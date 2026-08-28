@@ -234,48 +234,119 @@ configurations.consumable("unitTestClasses") {
     outgoing.artifact(unitTestClassesJar)
 }
 
-// --- The unit-test classpath is Spring-free, and stays that way ------------
-// modus.spring-module excludes the two Spring groups Modus resolves today. That
-// list is a literal, so it is checked rather than trusted: a third
-// org.springframework* group fails here instead of silently re-admitting Spring
-// to the source set whose whole point is not having it. Compile classpath,
-// because compiling is where misclassification is supposed to die.
-val unitTestCompileArtifacts =
-    configurations
-        .named("testCompileClasspath")
-        .flatMap { it.incoming.artifacts.resolvedArtifacts }
+// --- What a unit test may see, as an allowlist -----------------------------
+// `testImplementation` extends `implementation`, so every production dependency
+// of a module arrives on the unit-test classpath unless it is cut. The cut is
+// the two `exclude` lines below, and it is a DENYLIST — Gradle's exclude matches
+// a group exactly, so it can only ever name what is already known to be there.
+//
+// A denylist is the wrong shape for the guarantee this taxonomy rests on. Every
+// group it forgets is admitted SILENTLY: before this task was an allowlist,
+// `:adapter-rest`'s unit-test classpath carried springdoc, swagger, jakarta and
+// five Jackson artifacts, and a unit test importing them compiled, ran and
+// passed. The classpath was half-stripped, which is worse than either extreme —
+// the compile-time guarantee is gone AND the test dies at run time inside a
+// third-party class with `NoClassDefFoundError: org/springframework/util/Assert`.
+//
+// So the exclusions are the mechanism and this task is the contract. The set of
+// things a *unit* test legitimately needs is small and stable, so it is stated
+// positively: Kotlin, the runner, the assertions, the ArchUnit harness, and the
+// annotation-only artifacts those drag in. Anything else fails the build until
+// somebody decides it belongs on a unit-test classpath — a new dependency is
+// refused rather than admitted, and the exclusion list becomes a performance
+// detail rather than the load-bearing list.
+val unitTestClasspathAllowlist =
+    setOf(
+        // Kotlin itself, its test bindings, and coroutine test support.
+        "org.jetbrains.kotlin",
+        "org.jetbrains.kotlinx",
+        // Annotation-only artifacts (@Nullable and friends) pulled in by the above.
+        "org.jetbrains",
+        "org.jspecify",
+        // The runner.
+        "org.junit",
+        "org.junit.jupiter",
+        "org.junit.platform",
+        "org.opentest4j",
+        "org.apiguardian",
+        // The assertions, and the diff engine kotest reports failures with.
+        "io.kotest",
+        "io.github.java-diff-utils",
+        // :architecture-tests' harness, and the logging facade ArchUnit binds to.
+        "com.tngtech.archunit",
+        "org.slf4j",
+    )
 
-val springFreeStamp = layout.buildDirectory.file("reports/test-taxonomy/unit-test-classpath.txt")
+// Both classpaths, not just the compile one. Compiling is where misclassification
+// is supposed to die, but a type that is absent at compile time and present at
+// run time is still reachable reflectively, or through a helper that sits on the
+// classpath — and the guard whose job is to stop the exclusion list rotting would
+// have been looking the other way. `:modus-server`'s testRuntimeClasspath carried
+// springdoc-openapi-starter-webmvc-ui and its whole fan-out.
+val unitTestClasspathNames = listOf("testCompileClasspath", "testRuntimeClasspath")
+
+// Spring is cut here, in the base plugin, rather than in modus.spring-module:
+// :architecture-tests is not a Spring module, yet it puts every other module on
+// its test classpath and so inherits the entire Spring runtime graph through
+// them. Declared once, it holds for every module without exception.
+val excludedFromUnitTestClasspath = listOf("org.springframework", "org.springframework.boot", "org.springdoc")
+
+unitTestClasspathNames.forEach { classpath ->
+    configurations.named(classpath) {
+        excludedFromUnitTestClasspath.forEach { exclude(group = it) }
+    }
+}
+
+val unitTestArtifacts =
+    unitTestClasspathNames.associateWith { name ->
+        configurations.named(name).flatMap { it.incoming.artifacts.resolvedArtifacts }
+    }
+
+val unitTestClasspathStamp = layout.buildDirectory.file("reports/test-taxonomy/unit-test-classpath.txt")
 
 val assertUnitTestClasspathIsSpringFree =
     tasks.register("assertUnitTestClasspathIsSpringFree") {
         group = "verification"
-        description = "Fails if any org.springframework* artifact reaches the unit-test compile classpath."
-        val artifacts = unitTestCompileArtifacts
-        val stamp = springFreeStamp
+        description = "Fails if any artifact outside the unit-test allowlist reaches a unit-test classpath."
+        val artifacts = unitTestArtifacts
+        val allowed = unitTestClasspathAllowlist
+        val stamp = unitTestClasspathStamp
         val module = project.path
-        inputs.property("unitTestCompileClasspath", artifacts.map { arts -> arts.map { it.id.displayName }.sorted() })
+        artifacts.forEach { (name, resolved) ->
+            inputs.property(name, resolved.map { arts -> arts.map { it.id.displayName }.sorted() })
+        }
         outputs.file(stamp)
         doLast {
-            val spring =
-                artifacts
-                    .get()
-                    .map { it.id.componentIdentifier }
-                    .filterIsInstance<ModuleComponentIdentifier>()
-                    .filter { it.group.startsWith("org.springframework") }
-                    .map { "${it.group}:${it.module}" }
-                    .distinct()
-                    .sorted()
-            check(spring.isEmpty()) {
-                "Spring is on the unit-test compile classpath of $module: $spring. " +
-                    "Unit tests may not see Spring; move the test to src/integrationTest, " +
-                    "or add the group to the exclusions in modus.spring-module."
+            val report = StringBuilder()
+            artifacts.toSortedMap().forEach { (name, resolved) ->
+                val groups =
+                    resolved
+                        .get()
+                        .map { it.id.componentIdentifier }
+                        .filterIsInstance<ModuleComponentIdentifier>()
+                        .map { it.group to "${it.group}:${it.module}" }
+                val refused =
+                    groups
+                        .filterNot { (group, _) -> group in allowed }
+                        .map { (_, coordinate) -> coordinate }
+                        .distinct()
+                        .sorted()
+                check(refused.isEmpty()) {
+                    "$module's $name is not a unit-test classpath: $refused. " +
+                        "A unit test may see only $allowed. Move the test to src/integrationTest, " +
+                        "or — if the dependency genuinely belongs to every unit test — widen " +
+                        "unitTestClasspathAllowlist in modus.kotlin-base and say why."
+                }
+                report.append(name).append('\n')
+                groups.map { (_, coordinate) -> coordinate }.distinct().sorted().forEach {
+                    report.append("  ").append(it).append('\n')
+                }
             }
             stamp
                 .get()
                 .asFile
                 .also { it.parentFile.mkdirs() }
-                .writeText("spring-free\n")
+                .writeText(report.toString())
         }
     }
 

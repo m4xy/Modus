@@ -40,7 +40,7 @@ goes in, and what must be true before it counts, are here. MUST / SHOULD / MAY,
 | filesystem, network, subprocess | never | expected |
 | clock | injected | injected |
 | budget | milliseconds | allowed to be slow |
-| classpath | no `org.springframework..` at all | Spring, plus everything main sees |
+| classpath | an allowlist: Kotlin, the runner, the assertions, nothing else (§3) | Spring, plus everything main sees |
 
 A test is an integration test **if and only if** it needs something the unit classpath
 cannot give it. "Acceptance test" is not a third kind: an acceptance test that drives
@@ -58,8 +58,9 @@ Rules:
 
 `Enforced by:` `rule:archunit/unitTestsDoNotDependOnSpring`,
 `rule:archunit/unitTestsAreNotSpringBootTests`,
-`rule:archunit/unitTestsDoNotTouchTheFilesystemOrTheNetwork` — and, before any of them,
-by the classpath (§3).
+`rule:archunit/unitTestsDoNotTouchTheFilesystemOrTheNetwork`,
+`rule:archunit/unitTestsDoNotStartProcesses` — and, before any of them, by the
+classpath (§3).
 
 `Enforcement gap:` the last two rules above are not machine-checkable — nothing measures a
 test's duration, and nothing asserts an integration test earns its context. `bean:0006`
@@ -91,22 +92,54 @@ plugin. No module declares a test source set of its own.
 
 ---
 
-## 3. The unit-test classpath has no Spring on it <a id="unit-classpath"></a>
+## 3. The unit-test classpath is an allowlist <a id="unit-classpath"></a>
 
 This is the mechanism the whole taxonomy rests on. Misclassification is not caught in
 review, and not even caught by a rule — it fails to compile.
 
 ```
+modus.kotlin-base:
+  testCompileClasspath  \  exclude group: org.springframework, org.springframework.boot,
+  testRuntimeClasspath  /                 org.springdoc
+                        -> assertUnitTestClasspathIsSpringFree: every resolved artifact on
+                           BOTH configurations must have a group on the allowlist
+
 modus.spring-module:
   implementation                    -> spring-boot-starter
   integrationTestImplementation     -> spring-boot-starter-test, the Boot BOM
-  testCompileClasspath              -> exclude group: org.springframework
-  testRuntimeClasspath              -> exclude group: org.springframework.boot
 ```
 
 `testImplementation` extends `implementation`, so the exclusions are what actually does
 the work: without them a module's own production dependency on `spring-boot-starter`
-would put Spring back on the unit-test classpath.
+would put Spring back on the unit-test classpath. Both configurations are cut, and both
+are checked — a type absent at compile time but present at run time is still reachable
+reflectively, or through a helper that sits on the classpath.
+
+The cut lives in `modus.kotlin-base`, not in `modus.spring-module`: `:architecture-tests`
+is not a Spring module, yet it puts every other module on its test classpath and so
+inherited the whole Spring runtime graph through them.
+
+**The exclusion is a denylist and cannot be anything else** — Gradle's `exclude` matches a
+group *exactly*, so it can only name what someone already knew was there. It is therefore
+the mechanism, not the guarantee. `assertUnitTestClasspathIsSpringFree` states the
+guarantee positively:
+
+| a unit-test classpath may carry | for |
+|---|---|
+| `org.jetbrains.kotlin`, `org.jetbrains.kotlinx` | Kotlin, `kotlin-test`, coroutine test support |
+| `org.jetbrains`, `org.jspecify` | annotation-only artifacts the above drag in |
+| `org.junit`, `org.junit.jupiter`, `org.junit.platform`, `org.opentest4j`, `org.apiguardian` | the runner |
+| `io.kotest`, `io.github.java-diff-utils` | the assertions and their diff engine |
+| `com.tngtech.archunit`, `org.slf4j` | the `:architecture-tests` harness and the facade ArchUnit binds to |
+
+Anything else fails the build. That inverts the failure mode: a new dependency is refused
+until someone decides it belongs on a unit-test classpath, rather than admitted in silence.
+A denylist alone is not enough and the history says so — with only `org.springframework*`
+excluded, `:adapter-rest`'s unit-test classpath carried `org.springdoc`, `io.swagger`,
+`jakarta.validation` and five Jackson artifacts, and a unit test importing them compiled,
+ran and passed `qualityCheck`. A half-stripped classpath is worse than either extreme: it
+loses the compile-time guarantee *and* dies at run time inside a third-party class with
+`NoClassDefFoundError: org/springframework/util/Assert`.
 
 A unit test that imports `org.springframework.boot.test.context.SpringBootTest` therefore
 fails at the import, in `:modus-server`, the module that depends on all of Spring:
@@ -116,9 +149,7 @@ e: .../src/test/kotlin/uk/m4xy/modus/app/PlantedViolationTest.kt:3:12 Unresolved
 ```
 
 `Enforced by:` the Kotlin compiler, and `assertUnitTestClasspathIsSpringFree` in
-`modus.kotlin-base`, which fails the build if any artifact whose group starts
-`org.springframework` reaches `testCompileClasspath`. The exclusion list names two groups;
-the task is what stops that list from silently rotting when a third one appears.
+`modus.kotlin-base`. To widen the allowlist is to change this document.
 
 ---
 
@@ -138,19 +169,29 @@ vacuously.
 |---|---|---|
 | `rule:archunit/unitTestsDoNotDependOnSpring` | unit tests | no dependency on `org.springframework..` |
 | `rule:archunit/unitTestsAreNotSpringBootTests` | unit tests | not annotated `@SpringBootTest` |
-| `rule:archunit/unitTestsDoNotTouchTheFilesystemOrTheNetwork` | unit tests | no dependency on `java.nio.file..` or `java.net..` |
+| `rule:archunit/unitTestsDoNotTouchTheFilesystemOrTheNetwork` | unit tests | no dependency on `java.io..`, `java.nio.file..` or `java.net..` |
+| `rule:archunit/unitTestsDoNotStartProcesses` | unit tests | no call to `ProcessBuilder.start`, `ProcessBuilder.startPipeline` or `Runtime.exec` |
 | `rule:archunit/nothingSleepsTheThread` | every class | no call to `Thread.sleep` |
 | `rule:archunit/disabledCarriesAWorkItem` | every class | the `@Disabled` contract of `doc:30-code-style` §5.1 |
 
 - `rule:archunit/nothingSleepsTheThread` is not scoped to tests. Sleeping is a race with a
   timer attached: slow when it passes, flaky when it does not. Await the condition, or
   inject the clock.
+- `java.io..` is banned as a package, not as a hand-picked set of classes. `File`,
+  `FileInputStream`, `RandomAccessFile`, … is the same denylist shape §3 rejects, and
+  `File.createTempFile`/`readText`/`writeText` is the *likely* way a filesystem-touching
+  unit test gets written, not an exotic one. `java.io.IOException` and `java.io.Serializable`
+  are caught too: a unit test that needs either is describing I/O it should not be doing.
+- Process creation is a call predicate, not a package ban: `ProcessBuilder` and `Runtime`
+  live in `java.lang`, where no package ban can reach them without banning the language.
 - Nothing in `architecture-tests` names a module. The analysed classpath and the guards'
   expectations both derive from the project structure, so a new module's unit tests are
   analysed without anyone remembering to add them.
 - `rule:archunit/everyUnitTestPackageIsAnalysed` is the guard on the guards. It fails if
   the unit-test bytecode is missing — the only way the rules above could become a silent
-  no-op.
+  no-op. It says nothing about how much bytecode there is, and today there is one
+  package's worth: see the first row of §8 before assuming these rules are exercised
+  across the module graph.
 
 `Enforcement gap:` integration-test bytecode is not published or analysed, so
 `rule:archunit/disabledCarriesAWorkItem` and `rule:archunit/nothingSleepsTheThread` do not
@@ -214,16 +255,36 @@ Procedure, per test:
 ## 7. Mutation testing is rejected as a CI gate <a id="mutation-testing"></a>
 
 Mutation testing is the obvious mechanical answer to §6 and Modus does **not** adopt it.
-Four independent reasons, each sufficient:
+**One reason, and it is the only one that survives checking.**
 
-| # | reason |
+`gradle-pitest-plugin#402` — an open issue, *Find a way to mutate production code in the
+other subproject with Gradle 9+* — is the build Modus actually has. Modus is **ten**
+subprojects on Gradle 9.7.1 (`settings.gradle.kts`), and wherever a module's behaviour is
+covered by tests that live in a different subproject, mutation analysis needs the plugin
+to extend one project's configuration from another's. On Gradle 9 that is refused:
+
+> `Configuration ':itest:mutableCodeBase' in project ':itest' cannot extend configuration
+> ':shared:implementation' from project ':shared'. Configurations can only extend from
+> configurations in the same context.`
+
+Stated at its real strength, and no higher: the issue is open with no fix, and it was
+self-reported by the plugin's maintainer from a functional test on his own Gradle 9
+proof-of-concept branch (`AcceptanceTestsInSeparateSubprojectFunctionalSpec`), not by a
+user hitting it in the wild. One unresolved incompatibility with this build is the entire
+case. If `#402` closes, this section is reopened.
+
+An earlier draft gave four reasons "each sufficient". Three did not hold, and they are
+recorded rather than deleted because §6 forbids leaving a bad argument where a future
+reader can cite it as settled:
+
+| claimed | what the primary source says |
 |---|---|
-| 1 | `gradle-pitest-plugin#402`: cross-subproject mutation is broken on Gradle 9. Modus is eleven subprojects. |
-| 2 | `gradle-pitest-plugin#401`: incremental history is disabled on JDK 25. Modus is a JDK 25 toolchain. Every run is a full run. |
-| 3 | PIT declines to support Kotlin. Kotlin support is the commercial Arcmutate add-on. |
-| 4 | Kotlin's exhaustive `when` over a sealed class compiles to an unreachable `else` branch. Mutating it produces a mutant no test can kill, so the score has a permanent, meaningless deficit. |
+| `#401`: incremental history is disabled on JDK 25, so every run is a full run | **Collapses.** `#401` is an unmerged *draft PR*, *Migrate build to Gradle 9.4 + JDK25 compatibility tests - PoC*; nothing in it disables incremental analysis. Its companion `#399` records the opposite: `PIT 1.22.1 (ASM 9.9.1) works correctly with historyInputLocation on JDK 25, even with class file version 69.` |
+| PIT declines to support Kotlin | **Overstated.** hcoles wrote the Apache-2.0 `pitest/pitest-kotlin` himself and core PIT merged Kotlin source-dir handling (`pitest#1347`). What is true is narrower: that plugin is archived and unmaintained since 2023 and its README points at the commercial Arcmutate, whose Kotlin integration states `Before you can use the integration, you must first acquire a licence`. |
+| the `else` of an exhaustive `when` over a sealed class yields an unkillable mutant | **Overstated, and self-cancelling.** The unkillable mutants come from the compiler's redundant equality and null checks on the *final branch*, not from the `else` — and Arcmutate suppressed both (kotlin-plugin 1.1.2, 1.2.1). It is therefore an argument about which tooling you buy, not about mutation testing. |
 
-Reasons 1 and 2 are bugs and may be fixed. Reasons 3 and 4 are structural.
+Licence cost and an unmaintained free plugin are a cost to weigh, not a rejection. `#402`
+is the rejection.
 
 **Chosen substitute: targeted agent mutation.** For each success criterion in a bean, the
 agent breaks the specific behaviour under test and records the observed failure, per §6.
@@ -243,6 +304,7 @@ Stated so they can be closed rather than discovered.
 | gap | closing condition |
 |---|---|
 | **Coverage is not measured.** No JaCoCo, no threshold, no report. Out of scope here on purpose: a gate added in the same change as the taxonomy would be tuned to whatever the current tests happen to reach. | its own pull request, against this taxonomy |
+| **The purity rules currently guard one package.** Eight of the nine analysed modules have no `src/test` at all, so their `-unit-tests.jar` is empty and `unit-test-packages.txt` has exactly one line, `uk.m4xy.modus.core.domain`. Every rule in §4 is a `noClasses(...)`, and `rule:archunit/everyUnitTestPackageIsAnalysed` can only assert that whatever unit tests exist were imported — so the mechanism is sound and its current reach is one file. An empty jar is also indistinguishable, from inside the guard, from a jar that failed to be produced. | self-closing: each module's first unit test is analysed automatically, with no list to update. Closed when every analysed module has a `src/test` |
 | Integration-test bytecode is not analysed (§4). | publish `<module>-integration-tests.jar` beside the unit-test jar |
 | Nothing measures test duration or asserts an integration test earns its context (§1). | a duration budget in the `Test` task configuration |
 | Nothing mechanically compares `rule:ci/build` with the documented local command (§2). | a check that the workflow invokes exactly the aggregate task |

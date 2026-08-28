@@ -25,16 +25,13 @@ dependencies {
 }
 
 // `testImplementation` extends `implementation`, so Spring would still arrive on
-// the unit-test classpath through the module's own production dependencies. Cut
-// it there. This is the whole mechanism: misclassification is a compile error at
-// the import statement, not a review comment on the pull request. The two groups
-// are every Spring group Modus resolves today;
-// `assertUnitTestClasspathIsSpringFree` (modus.kotlin-base) fails the build if a
-// third one appears, so this list cannot silently rot.
-val springGroups = listOf("org.springframework", "org.springframework.boot")
-
-listOf("testCompileClasspath", "testRuntimeClasspath").forEach { classpath ->
-    configurations.named(classpath) {
-        springGroups.forEach { exclude(group = it) }
-    }
-}
+// the unit-test classpath through the module's own production dependencies. It
+// is cut in `modus.kotlin-base`, not here: `:architecture-tests` is not a Spring
+// module and still inherits the whole Spring runtime graph through its project
+// dependencies, so the cut has to be unconditional to be worth anything.
+//
+// That cut is what makes misclassification a compile error at the import
+// statement rather than a review comment on the pull request, and
+// `assertUnitTestClasspathIsSpringFree` (also `modus.kotlin-base`) states
+// positively what a unit-test classpath may contain, so a Spring-adjacent group
+// nobody thought to exclude fails the build instead of arriving in silence.
