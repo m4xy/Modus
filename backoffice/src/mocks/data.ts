@@ -11,10 +11,11 @@ import type {
 } from '../api/types';
 
 /**
- * Fixtures for the mocked API. Three domains with genuinely different shapes —
+ * Fixtures for the mocked API. Four domains with genuinely different shapes —
  * a busy production tenant, a quieter staging tenant with a narrower permission
- * grant, and a sandbox with almost nothing in it — so empty states, locked
- * navigation and the domain switcher all have something real to render.
+ * grant, a sandbox with almost nothing in it, and a tenant this actor can only
+ * observe — so empty states, locked navigation, refused actions and the domain
+ * switcher all have something real to render.
  */
 
 export const actor: Actor = {
@@ -54,6 +55,15 @@ export const domains: Domain[] = [
     monthToDateSpendUsd: 3.18,
     monthlyBudgetUsd: 25,
   },
+  {
+    id: 'beacon',
+    name: 'Beacon Analytics',
+    environment: 'production',
+    description: 'Another team’s tenant. This actor can see everything and change nothing.',
+    actorCount: 9,
+    monthToDateSpendUsd: 512.4,
+    monthlyBudgetUsd: 900,
+  },
 ];
 
 export const permissions: Permissions[] = [
@@ -88,6 +98,21 @@ export const permissions: Permissions[] = [
   {
     domainId: 'sandbox',
     capabilities: ['work.read', 'agents.read', 'agents.run', 'cost.read', 'skills.read'],
+  },
+  {
+    // An observer: reads every surface, holds no authority to spend money.
+    // agents.read without agents.run is the whole point of this grant — it is
+    // what makes the console's refusal path reachable.
+    domainId: 'beacon',
+    capabilities: [
+      'work.read',
+      'repositories.read',
+      'agents.read',
+      'memories.read',
+      'cost.read',
+      'skills.read',
+      'settings.read',
+    ],
   },
 ];
 
@@ -273,10 +298,52 @@ const atlasWork: WorkItem[] = [
   },
 ];
 
+const beaconWork: WorkItem[] = [
+  {
+    id: 'wi_0042',
+    key: '0042',
+    title: 'Nightly rollup drifts from the event log',
+    kind: 'story',
+    status: 'in-progress',
+    assignee: 'priya',
+    updatedAt: '2026-08-28T08:30:00Z',
+    labels: ['pipeline', 'correctness'],
+    spendUsd: 118.4,
+    parentKey: null,
+    body: bean([
+      '## Problem',
+      'The nightly rollup and a replay of the event log disagree by roughly',
+      '0.3% on any month that contains a late-arriving correction.',
+      '',
+      '## Success criteria',
+      '- [ ] Replay and rollup agree to the cent on the last twelve months',
+      '- [ ] A disagreement fails the nightly job instead of publishing',
+    ]),
+  },
+  {
+    id: 'wi_0043',
+    key: '0043',
+    title: 'Schema drift alert is too noisy to act on',
+    kind: 'task',
+    status: 'ready',
+    assignee: null,
+    updatedAt: '2026-08-26T16:10:00Z',
+    labels: ['alerting'],
+    spendUsd: 12.8,
+    parentKey: '0042',
+    body: bean([
+      '## Problem',
+      'Every additive column change pages someone. Only incompatible changes',
+      'should.',
+    ]),
+  },
+];
+
 export const workByDomain: Record<string, WorkItem[]> = {
   modus: modusWork,
   'atlas-ledger': atlasWork,
   sandbox: [],
+  beacon: beaconWork,
 };
 
 export const repositoriesByDomain: Record<string, Repository[]> = {
@@ -312,6 +379,17 @@ export const repositoriesByDomain: Record<string, Repository[]> = {
     },
   ],
   sandbox: [],
+  beacon: [
+    {
+      id: 'repo_21',
+      name: 'beacon-pipelines',
+      remote: 'git@github.com:m4xy/beacon-pipelines.git',
+      defaultBranch: 'main',
+      lastSyncedAt: '2026-08-28T11:44:00Z',
+      openWorkItems: 4,
+      status: 'connected',
+    },
+  ],
 };
 
 export const agentRunsByDomain: Record<string, AgentRun[]> = {
@@ -332,7 +410,7 @@ export const agentRunsByDomain: Record<string, AgentRun[]> = {
       id: 'run_300',
       workItemKey: '0003',
       trigger: 'push · main',
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-5',
       status: 'succeeded',
       startedAt: '2026-08-28T11:02:00Z',
       durationMs: 236_000,
@@ -370,7 +448,7 @@ export const agentRunsByDomain: Record<string, AgentRun[]> = {
       id: 'run_120',
       workItemKey: '0011',
       trigger: 'manual · console',
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-5',
       status: 'succeeded',
       startedAt: '2026-08-28T10:15:00Z',
       durationMs: 302_000,
@@ -380,6 +458,32 @@ export const agentRunsByDomain: Record<string, AgentRun[]> = {
     },
   ],
   sandbox: [],
+  beacon: [
+    {
+      id: 'run_501',
+      workItemKey: '0042',
+      trigger: 'trigger · nightly rollup',
+      model: 'claude-opus-5',
+      status: 'succeeded',
+      startedAt: '2026-08-28T02:00:00Z',
+      durationMs: 884_000,
+      costUsd: 9.12,
+      tokensIn: 402_600,
+      tokensOut: 58_400,
+    },
+    {
+      id: 'run_502',
+      workItemKey: '0043',
+      trigger: 'trigger · schema drift',
+      model: 'claude-haiku-4-5',
+      status: 'failed',
+      startedAt: '2026-08-27T21:12:00Z',
+      durationMs: 61_000,
+      costUsd: 0.14,
+      tokensIn: 88_400,
+      tokensOut: 6_200,
+    },
+  ],
 };
 
 export const memoriesByDomain: Record<string, Memory[]> = {
@@ -423,6 +527,17 @@ export const memoriesByDomain: Record<string, Memory[]> = {
     },
   ],
   sandbox: [],
+  beacon: [
+    {
+      id: 'mem_21',
+      title: 'Rollups are recomputed, never patched',
+      scope: 'domain',
+      updatedAt: '2026-08-25T14:05:00Z',
+      tokens: 260,
+      excerpt:
+        'A wrong rollup is deleted and rebuilt from the event log. Editing an aggregate in place hides the bug that produced it.',
+    },
+  ],
 };
 
 export const skillsByDomain: Record<string, Skill[]> = {
@@ -463,6 +578,16 @@ export const skillsByDomain: Record<string, Skill[]> = {
     },
   ],
   sandbox: [],
+  beacon: [
+    {
+      id: 'skill_21',
+      name: 'metric-explainer',
+      summary: 'Traces a dashboard number back to the query and the rows behind it.',
+      installedVersion: '1.0.4',
+      invocations30d: 33,
+      enabled: true,
+    },
+  ],
 };
 
 /** Deterministic pseudo-random so the charts look alive but never flicker between runs. */
@@ -516,8 +641,8 @@ export const costByDomain: Record<string, CostSummary> = {
         tokensOut: 1_020_000,
       },
       {
-        model: 'claude-sonnet-4-5',
-        label: 'Sonnet 4.5',
+        model: 'claude-sonnet-5',
+        label: 'Sonnet 5',
         usd: 132.8,
         tokensIn: 7_920_000,
         tokensOut: 880_000,
@@ -560,8 +685,8 @@ export const costByDomain: Record<string, CostSummary> = {
     ],
     byModel: [
       {
-        model: 'claude-sonnet-4-5',
-        label: 'Sonnet 4.5',
+        model: 'claude-sonnet-5',
+        label: 'Sonnet 5',
         usd: 78.2,
         tokensIn: 3_020_000,
         tokensOut: 360_000,
@@ -578,6 +703,86 @@ export const costByDomain: Record<string, CostSummary> = {
       { key: '0011', title: 'Migrate ledger postings to append-only store', usd: 52.8, runs: 22 },
       { key: '0012', title: 'Backfill projection from 2019 archive', usd: 28.4, runs: 15 },
       { key: '0013', title: 'Reconciliation report for finance', usd: 15.22, runs: 10 },
+    ],
+  },
+  /**
+   * Nine models over a month is ordinary for a team that never pins one. This
+   * fixture exists so the six-plus case the chart palette has to survive is
+   * actually rendered somewhere, not just reasoned about.
+   */
+  beacon: {
+    monthToDateUsd: 512.4,
+    previousMonthToDateUsd: 470.15,
+    monthlyBudgetUsd: 900,
+    forecastUsd: 731.2,
+    runs: 268,
+    daily: dailySeries(28, 21.2, 13),
+    byStage: [
+      { stage: 'plan', label: 'Plan', usd: 68.4, tokensIn: 2_410_000, tokensOut: 244_000 },
+      {
+        stage: 'implement',
+        label: 'Implement',
+        usd: 251.6,
+        tokensIn: 8_940_000,
+        tokensOut: 1_320_000,
+      },
+      { stage: 'review', label: 'Review', usd: 112.8, tokensIn: 4_180_000, tokensOut: 486_000 },
+      { stage: 'verify', label: 'Verify', usd: 51.2, tokensIn: 1_910_000, tokensOut: 196_000 },
+      {
+        stage: 'summarise',
+        label: 'Summarise',
+        usd: 28.4,
+        tokensIn: 1_040_000,
+        tokensOut: 132_000,
+      },
+    ],
+    byModel: [
+      {
+        model: 'claude-opus-5',
+        label: 'Opus 5',
+        usd: 188.4,
+        tokensIn: 4_310_000,
+        tokensOut: 716_000,
+      },
+      {
+        model: 'claude-sonnet-5',
+        label: 'Sonnet 5',
+        usd: 142.6,
+        tokensIn: 8_510_000,
+        tokensOut: 945_000,
+      },
+      {
+        model: 'claude-opus-4-8',
+        label: 'Opus 4.8',
+        usd: 74.2,
+        tokensIn: 1_700_000,
+        tokensOut: 282_000,
+      },
+      {
+        model: 'claude-sonnet-4-6',
+        label: 'Sonnet 4.6',
+        usd: 51.3,
+        tokensIn: 3_060_000,
+        tokensOut: 340_000,
+      },
+      {
+        model: 'claude-haiku-4-5',
+        label: 'Haiku 4.5',
+        usd: 38.6,
+        tokensIn: 2_340_000,
+        tokensOut: 224_000,
+      },
+      {
+        model: 'claude-opus-4-6',
+        label: 'Opus 4.6',
+        usd: 17.3,
+        tokensIn: 396_000,
+        tokensOut: 65_800,
+      },
+    ],
+    byWorkItem: [
+      { key: '0042', title: 'Nightly rollup drifts from the event log', usd: 118.4, runs: 46 },
+      { key: '0043', title: 'Schema drift alert is too noisy to act on', usd: 12.8, runs: 9 },
     ],
   },
   sandbox: {

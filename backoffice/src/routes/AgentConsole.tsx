@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDomain } from '../app/DomainContext';
 import { useAgentRuns } from '../api/queries';
-import { MockStreamTransport, replaySpeedFromLocation } from '../agent/mockTransport';
+import {
+  MockStreamTransport,
+  faultFromLocation,
+  replaySpeedFromLocation,
+} from '../agent/mockTransport';
 import { useAgentSession } from '../agent/useAgentSession';
 import type { TranscriptBlock } from '../agent/useAgentSession';
 import { PageHeader } from '../components/PageHeader';
@@ -31,7 +35,7 @@ import styles from './AgentConsole.module.css';
 
 const models = [
   { value: 'claude-opus-5', label: 'Opus 5 — deep work' },
-  { value: 'claude-sonnet-4-5', label: 'Sonnet 4.5 — balanced' },
+  { value: 'claude-sonnet-5', label: 'Sonnet 5 — balanced' },
   { value: 'claude-haiku-4-5', label: 'Haiku 4.5 — cheap and fast' },
 ];
 
@@ -90,7 +94,10 @@ export function AgentConsole() {
 
   // The seam: one construction site. Swapping in SseStreamTransport changes
   // this line and nothing else in the console.
-  const transport = useMemo(() => new MockStreamTransport(replaySpeedFromLocation()), []);
+  const transport = useMemo(
+    () => new MockStreamTransport(replaySpeedFromLocation(), faultFromLocation()),
+    [],
+  );
   const session = useAgentSession(transport);
 
   const [prompt, setPrompt] = useState(

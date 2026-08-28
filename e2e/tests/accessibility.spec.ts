@@ -24,20 +24,26 @@ async function scan(page: Page) {
   return new AxeBuilder({ page }).withTags(TAGS).analyze();
 }
 
+/**
+ * Every navigable surface, the heading that proves the right one rendered, and
+ * an axe scan of it. One visit, both assertions: a separate smoke test per
+ * route only ever failed alongside this one.
+ */
 const routes = [
-  '/domains/modus/work',
-  '/domains/modus/repositories',
-  '/domains/modus/agents',
-  '/domains/modus/memories',
-  '/domains/modus/cost',
-  '/domains/modus/skills',
-  '/domains/modus/settings',
+  { path: '/domains/modus/work', heading: 'Work' },
+  { path: '/domains/modus/repositories', heading: 'Repositories' },
+  { path: '/domains/modus/agents', heading: 'Agent console' },
+  { path: '/domains/modus/memories', heading: 'Memories' },
+  { path: '/domains/modus/cost', heading: 'Cost' },
+  { path: '/domains/modus/skills', heading: 'Skills' },
+  { path: '/domains/modus/settings', heading: 'Settings' },
 ];
 
 for (const route of routes) {
-  test(`no accessibility violations on ${route}`, async ({ page }) => {
-    await page.goto(route);
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  test(`${route.heading} renders with no accessibility violations`, async ({ page }) => {
+    await page.goto(route.path);
+    await expect(page.getByRole('heading', { level: 1, name: route.heading })).toBeVisible();
+    await expect(page.getByTestId('domain-switcher')).toBeVisible();
 
     const results = await scan(page);
     expect(results.violations).toEqual([]);

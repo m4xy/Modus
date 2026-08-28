@@ -10,7 +10,9 @@ import styles from './Charts.module.css';
  *
  * Shared rules, applied in every chart here:
  *  - series colours come from the validated --series-* slots, assigned in fixed
- *    order and never cycled;
+ *    order and never cycled: there are five slots, and a sixth or later series
+ *    is folded into a neutral "Other" bucket rather than reusing a colour,
+ *    because a repeated colour reads as a repeated category;
  *  - a 2px gap in the surface colour separates touching marks;
  *  - gridlines are hairline and recessive, labels wear text tokens (never the
  *    series colour), and numbers are tabular.
@@ -200,13 +202,49 @@ const SERIES = [
   'var(--series-5)',
 ];
 
-export function ModelSplit({ models }: { models: ModelCost[] }) {
+/** Reserved for the bucket, never for a real series. */
+const OTHER_COLOUR = 'var(--series-other)';
+
+const OTHER_KEY = '__other__';
+
+/**
+ * Keeps the "never cycled" rule true for any number of models.
+ *
+ * The palette has five validated slots. Given more series than that, the
+ * smallest are folded into one "Other" slice in a neutral colour, so no two
+ * slices ever share a colour and the CVD separation the palette was validated
+ * for still holds. Models arrive ordered by spend, largest first.
+ */
+function withinPalette(models: ModelCost[]): ModelCost[] {
+  if (models.length <= SERIES.length) return models;
+
+  const head = models.slice(0, SERIES.length - 1);
+  const tail = models.slice(SERIES.length - 1);
+  return [
+    ...head,
+    {
+      model: OTHER_KEY,
+      label: `Other (${tail.length} models)`,
+      usd: tail.reduce((sum, model) => sum + model.usd, 0),
+      tokensIn: tail.reduce((sum, model) => sum + model.tokensIn, 0),
+      tokensOut: tail.reduce((sum, model) => sum + model.tokensOut, 0),
+    },
+  ];
+}
+
+function colourFor(model: ModelCost, index: number): string {
+  return model.model === OTHER_KEY ? OTHER_COLOUR : (SERIES[index] ?? OTHER_COLOUR);
+}
+
+export function ModelSplit({ models: allModels }: { models: ModelCost[] }) {
+  const models = withinPalette(allModels);
   const total = models.reduce((sum, model) => sum + model.usd, 0);
 
   return (
     <div>
       <div
         className={styles.stack}
+        data-testid="model-split"
         role="img"
         aria-label={`Spend split by model: ${models
           .map((model) => `${model.label} ${formatUsd(model.usd)}`)
@@ -218,7 +256,7 @@ export function ModelSplit({ models }: { models: ModelCost[] }) {
             className={styles.segment}
             style={{
               width: `${total === 0 ? 0 : (model.usd / total) * 100}%`,
-              background: SERIES[index % SERIES.length],
+              background: colourFor(model, index),
             }}
           />
         ))}
@@ -231,7 +269,7 @@ export function ModelSplit({ models }: { models: ModelCost[] }) {
           <span className={styles.legendItem} key={model.model}>
             <span
               className={styles.swatch}
-              style={{ background: SERIES[index % SERIES.length] }}
+              style={{ background: colourFor(model, index) }}
               aria-hidden="true"
             />
             {model.label}
@@ -254,7 +292,7 @@ export function ModelSplit({ models }: { models: ModelCost[] }) {
                 <span className={styles.keyCell}>
                   <span
                     className={styles.swatch}
-                    style={{ background: SERIES[index % SERIES.length] }}
+                    style={{ background: colourFor(model, index) }}
                     aria-hidden="true"
                   />
                   {model.label}

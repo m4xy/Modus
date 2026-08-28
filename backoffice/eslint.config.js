@@ -5,6 +5,29 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import prettier from 'eslint-config-prettier';
 
+/**
+ * Rule 5 of the brief: nothing outside `src/api` may reach for the network.
+ *
+ * `no-restricted-globals` only matches unqualified identifiers, so it is half a
+ * mechanism on its own — `window.fetch(...)` walks straight past it. The two
+ * lists below are paired deliberately: the globals list catches the bare
+ * identifier and the constructors (`new EventSource`, `new WebSocket`), and the
+ * properties list catches every qualified route to the same APIs plus
+ * `navigator.sendBeacon`, which is a network call that does not look like one.
+ */
+const NETWORK_MESSAGE = 'Use the typed client in src/api instead of reaching for the network here.';
+
+const NETWORK_GLOBALS = ['fetch', 'EventSource', 'WebSocket', 'XMLHttpRequest'];
+
+const GLOBAL_OBJECTS = ['window', 'globalThis', 'self'];
+
+const restrictedProperties = [
+  ...GLOBAL_OBJECTS.flatMap((object) =>
+    NETWORK_GLOBALS.map((property) => ({ object, property, message: NETWORK_MESSAGE })),
+  ),
+  { object: 'navigator', property: 'sendBeacon', message: NETWORK_MESSAGE },
+];
+
 export default tseslint.config(
   { ignores: ['dist', 'node_modules', 'public/mockServiceWorker.js', 'coverage'] },
   js.configs.recommended,
@@ -35,20 +58,19 @@ export default tseslint.config(
       ],
       '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      // Rule 5 of the brief: nothing outside src/api may reach for the network.
       'no-restricted-globals': [
         'error',
-        {
-          name: 'fetch',
-          message: 'Use the typed client in src/api instead of calling fetch directly.',
-        },
+        ...NETWORK_GLOBALS.map((name) => ({ name, message: NETWORK_MESSAGE })),
       ],
+      'no-restricted-properties': ['error', ...restrictedProperties],
     },
   },
   {
-    // The API client is the one place allowed to talk to the network.
+    // The API client is the one place allowed to talk to the network. The SSE
+    // client (0003) is deliberately absent: it has to add itself here on
+    // purpose rather than inherit an exemption written before it existed.
     files: ['src/api/http.ts', 'src/mocks/**/*.ts'],
-    rules: { 'no-restricted-globals': 'off' },
+    rules: { 'no-restricted-globals': 'off', 'no-restricted-properties': 'off' },
   },
   {
     files: ['**/*.js'],

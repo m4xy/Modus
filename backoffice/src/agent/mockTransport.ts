@@ -36,6 +36,24 @@ export function replaySpeedFromLocation(search: string = window.location.search)
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 1;
 }
 
+/**
+ * Failure shapes a real SSE client produces and the happy-path replay never
+ * would. Selected from the URL (`?fault=stream-error`) so the e2e suite can
+ * drive the console's terminal paths without a second transport.
+ *
+ *  - `stream-error`     the server reports a failure mid tool call and stops.
+ *                       There is no `session-end`: the run died before one
+ *                       could be sent.
+ *  - `transport-error`  the connection itself drops mid tool call, surfacing
+ *                       through `onError` rather than as a stream event.
+ */
+export type MockFault = 'none' | 'stream-error' | 'transport-error';
+
+export function faultFromLocation(search: string = window.location.search): MockFault {
+  const raw = new URLSearchParams(search).get('fault');
+  return raw === 'stream-error' || raw === 'transport-error' ? raw : 'none';
+}
+
 /** Roughly four characters to a token — good enough for a plausible counter. */
 const tokensFor = (text: string) => Math.max(1, Math.round(text.length / 4));
 
@@ -123,12 +141,15 @@ export class MockStreamTransport implements StreamTransport {
   /** Multiplier on every delay: tests pass a small value to speed the replay up. */
   private readonly speed: number;
 
-  constructor(speed = 1) {
+  private readonly fault: MockFault;
+
+  constructor(speed = 1, fault: MockFault = 'none') {
     this.speed = speed;
+    this.fault = fault;
   }
 
   start(request: PromptRequest, handlers: StreamHandlers): StreamSubscription {
-    const script = this.buildScript(request);
+    const script = this.faulted(this.buildScript(request));
     const timers: number[] = [];
     let cancelled = false;
     let elapsed = 0;
@@ -139,20 +160,51 @@ export class MockStreamTransport implements StreamTransport {
         window.setTimeout(() => {
           if (cancelled) return;
           handlers.onEvent(step.event);
-          if (step.event.type === 'session-end') handlers.onClose();
+          // Both are terminal. `error` closes without a `session-end` because
+          // that is what a server that just fell over actually does.
+          if (step.event.type === 'session-end' || step.event.type === 'error') handlers.onClose();
+        }, elapsed),
+      );
+    }
+
+    if (this.fault === 'transport-error') {
+      elapsed += 400 * this.speed;
+      timers.push(
+        window.setTimeout(() => {
+          if (cancelled) return;
+          handlers.onError(new Error('The connection to the agent service dropped.'));
+          handlers.onClose();
         }, elapsed),
       );
     }
 
     return {
       cancel: () => {
+        // Deliberately no synthetic `session-end`: this is exactly what a real
+        // `EventSource.close()` does. The console owns the cancelled state.
         if (cancelled) return;
         cancelled = true;
         for (const timer of timers) window.clearTimeout(timer);
-        handlers.onEvent({ type: 'session-end', reason: 'cancelled' });
         handlers.onClose();
       },
     };
+  }
+
+  /** Truncates the happy path at the first tool call and injects the failure. */
+  private faulted(script: ScriptStep[]): ScriptStep[] {
+    if (this.fault === 'none') return script;
+
+    const firstToolCall = script.findIndex((step) => step.event.type === 'tool-call');
+    const upToTheToolCall = script.slice(0, firstToolCall + 1);
+
+    if (this.fault === 'transport-error') return upToTheToolCall;
+    return [
+      ...upToTheToolCall,
+      {
+        after: 400,
+        event: { type: 'error', message: 'The model stream dropped mid tool call.' },
+      },
+    ];
   }
 
   private buildScript(request: PromptRequest): ScriptStep[] {

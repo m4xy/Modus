@@ -34,6 +34,22 @@ export interface AgentSessionState {
 
 const EMPTY_USAGE: Usage = { tokensIn: 0, tokensOut: 0, costUsd: 0 };
 
+/**
+ * Resolve every tool block still marked `running`.
+ *
+ * A session can end four ways — completed, cancelled, an `error` event, or a
+ * transport failure — and a tool that was in flight must stop spinning in all
+ * four. Shared so the terminal paths cannot drift apart: a spinner that never
+ * resolves is indistinguishable from work still happening.
+ */
+function resolveRunningTools(blocks: TranscriptBlock[], summary: string): TranscriptBlock[] {
+  return blocks.map((block) =>
+    block.kind === 'tool' && block.status === 'running'
+      ? { ...block, status: 'failed', summary }
+      : block,
+  );
+}
+
 function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState {
   switch (event.type) {
     case 'session-start':
@@ -99,11 +115,13 @@ function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState
       return { ...state, usage: event.usage };
 
     case 'error':
+      // Terminal: a stream that dies mid tool call never sends `session-end`,
+      // because the server never got the chance to.
       return {
         ...state,
         status: 'error',
         blocks: [
-          ...state.blocks,
+          ...resolveRunningTools(state.blocks, 'Interrupted'),
           { kind: 'notice', id: `e${state.blocks.length}`, tone: 'error', text: event.message },
         ],
       };
@@ -117,11 +135,7 @@ function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState
             : event.reason === 'cancelled'
               ? 'cancelled'
               : 'error',
-        blocks: state.blocks.map((block) =>
-          block.kind === 'tool' && block.status === 'running'
-            ? { ...block, status: 'failed', summary: 'Interrupted' }
-            : block,
-        ),
+        blocks: resolveRunningTools(state.blocks, 'Interrupted'),
       };
 
     default:
@@ -169,9 +183,24 @@ export function useAgentSession(transport: StreamTransport) {
     [transport],
   );
 
+  /**
+   * Stopping is our state change, not the transport's. `StreamSubscription`
+   * only promises to stop the stream — a real `EventSource` closes the socket
+   * and emits nothing — so the console moves itself to `cancelled` and resolves
+   * in-flight tools rather than waiting for a courtesy `session-end`.
+   */
   const cancel = useCallback(() => {
     subscription.current?.cancel();
     subscription.current = null;
+    setState((current) =>
+      current.status === 'streaming'
+        ? {
+            ...current,
+            status: 'cancelled',
+            blocks: resolveRunningTools(current.blocks, 'Interrupted'),
+          }
+        : current,
+    );
   }, []);
 
   const reset = useCallback(() => {

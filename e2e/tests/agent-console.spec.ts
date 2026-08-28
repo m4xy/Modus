@@ -1,10 +1,22 @@
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 /** The mock transport takes its pacing from the URL, so the replay runs fast here. */
 const CONSOLE = '/domains/modus/agents?replay=0.04';
 
+/** `replay=0` collapses every delay to zero, so a whole session settles at once. */
+const INSTANT = '/domains/modus/agents?replay=0';
+
 function parseUsd(text: string): number {
   return Number(text.replace(/[^0-9.]/g, ''));
+}
+
+/** Runs the canned session to completion on `model` and returns what it cost. */
+async function costOfOneSession(page: Page, model: string): Promise<number> {
+  await page.getByLabel('Model').selectOption(model);
+  await page.getByTestId('agent-run').click();
+  await expect(page.getByText('Complete').first()).toBeVisible({ timeout: 20_000 });
+  return parseUsd(await page.getByTestId('agent-cost').innerText());
 }
 
 test('streams assistant text, tool calls and results incrementally', async ({ page }) => {
@@ -62,20 +74,97 @@ test('the cost counter climbs while the session runs', async ({ page }) => {
     .toBeGreaterThan(0);
 });
 
+/**
+ * The cost figure is the point of this screen, so it has to be *priced*, not
+ * merely non-zero. The same prompt produces the same token counts on every
+ * model, so the ratio between two sessions is exactly the ratio between two
+ * list prices: Opus 5 ($5/$25 per MTok) is 5x Haiku 4.5 ($1/$5), and Sonnet 5
+ * ($3/$15) is 3x. Mispricing one model moves a ratio — the $15/$75 this table
+ * used to claim for Opus 5 would read 15x here.
+ */
+test('the session cost is priced from the list price of the model that ran', async ({ page }) => {
+  await page.goto(INSTANT);
+
+  const haiku = await costOfOneSession(page, 'claude-haiku-4-5');
+  expect(haiku).toBeGreaterThan(0);
+
+  await page.getByRole('button', { name: 'Clear' }).click();
+  const sonnet = await costOfOneSession(page, 'claude-sonnet-5');
+
+  await page.getByRole('button', { name: 'Clear' }).click();
+  const opus = await costOfOneSession(page, 'claude-opus-5');
+
+  expect(opus / haiku).toBeCloseTo(5, 1);
+  expect(sonnet / haiku).toBeCloseTo(3, 1);
+});
+
 test('a running session can be stopped', async ({ page }) => {
   await page.goto('/domains/modus/agents?replay=1');
 
   await page.getByTestId('agent-run').click();
   await expect(page.getByTestId('agent-stop')).toBeVisible();
 
+  // The mock closes the way a real EventSource does — no synthetic session-end —
+  // so reaching 'Cancelled' proves the console owns the transition itself.
   await page.getByTestId('agent-stop').click();
   await expect(page.getByText('Cancelled').first()).toBeVisible();
   await expect(page.getByTestId('agent-run')).toBeVisible();
 });
 
+/**
+ * A stream that dies mid tool call never sends `session-end` — the server did
+ * not live long enough to send one. The tool block has to resolve anyway.
+ */
+test('an error mid tool call resolves the tool instead of spinning forever', async ({ page }) => {
+  await page.goto('/domains/modus/agents?replay=0.04&fault=stream-error');
+  await page.getByTestId('agent-run').click();
+
+  const transcript = page.getByTestId('agent-transcript');
+  await expect(transcript.getByText('Read', { exact: true })).toBeVisible();
+  await expect(transcript.getByText(/The model stream dropped mid tool call/)).toBeVisible();
+
+  await expect(transcript.getByText('running', { exact: true })).toHaveCount(0);
+  await expect(transcript.getByText('failed', { exact: true })).toBeVisible();
+  await expect(transcript.getByText('Interrupted')).toBeVisible();
+
+  // Terminal: the composer comes back rather than leaving a dead Stop button.
+  await expect(page.getByText('Error').first()).toBeVisible();
+  await expect(page.getByTestId('agent-run')).toBeVisible();
+});
+
+/** The same requirement for a dropped connection, which arrives via `onError`. */
+test('a dropped connection is reported and resolves the tool in flight', async ({ page }) => {
+  await page.goto('/domains/modus/agents?replay=0.04&fault=transport-error');
+  await page.getByTestId('agent-run').click();
+
+  const transcript = page.getByTestId('agent-transcript');
+  await expect(transcript.getByText(/connection to the agent service dropped/)).toBeVisible();
+
+  await expect(transcript.getByText('running', { exact: true })).toHaveCount(0);
+  await expect(transcript.getByText('Interrupted')).toBeVisible();
+  await expect(page.getByTestId('agent-run')).toBeVisible();
+});
+
 test('runs are refused where the actor cannot start them', async ({ page }) => {
-  // Atlas Ledger grants agents.read and agents.run; the sandbox grants both too,
-  // so the console is exercised where history is empty instead.
+  // Beacon Analytics grants agents.read without agents.run: this actor may read
+  // the console and may not spend money in it.
+  await page.goto('/domains/beacon/agents');
+
+  const run = page.getByTestId('agent-run');
+  await expect(run).toBeVisible();
+  await expect(run).toBeDisabled();
+  await expect(page.getByText('You cannot start runs in this domain')).toBeVisible();
+
+  // The gate holds under a forced click: nothing starts.
+  await run.click({ force: true });
+  await expect(page.getByTestId('agent-transcript').getByText('Nothing running')).toBeVisible();
+  await expect(page.getByTestId('agent-cost')).toHaveText('$0.0000');
+  await expect(page.getByText('Streaming')).toHaveCount(0);
+});
+
+test('a domain with no run history says so', async ({ page }) => {
   await page.goto('/domains/sandbox/agents');
   await expect(page.getByText('No runs recorded')).toBeVisible();
+  // The sandbox does grant agents.run, so the button is live here.
+  await expect(page.getByTestId('agent-run')).toBeEnabled();
 });
