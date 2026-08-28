@@ -9,6 +9,7 @@ detekt = "1.23.8"
 ktlintPlugin = "14.2.0"
 ktlint = "1.8.0"
 archunit = "1.5.0"
+kotest = "6.2.4"
 coroutines = "1.10.2"
 javaToolchain = "25"
 
@@ -38,6 +39,11 @@ spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-star
 # archunit-junit5 resolves and works, but only because the BOM force-upgrades
 # junit-platform-engine across a major version — see PR #2 review.
 archunit-junit6 = { module = "com.tngtech.archunit:archunit-junit6", version.ref = "archunit" }
+# Assertions only. kotest-assertions-core-jvm pulls neither a junit-platform
+# artifact nor a test engine, so it sits beside the JUnit runner Spring Boot's
+# BOM manages rather than becoming a second runner. Pinned because that BOM does
+# not manage io.kotest.
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core-jvm", version.ref = "kotest" }
 
 [plugins]
 # The Kotlin plugin is declared here so the root project can put it on the

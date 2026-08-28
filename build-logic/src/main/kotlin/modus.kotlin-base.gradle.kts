@@ -1,3 +1,6 @@
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.attributes.Usage
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
@@ -161,9 +164,123 @@ tasks.named("check") {
     dependsOn(detektTask)
 }
 
-// --- Tests ----------------------------------------------------------------
-dependencies {
-    testImplementation(kotlin("test"))
+// --- Test suites ----------------------------------------------------------
+// src/test is unit and acceptance: no Spring context, no I/O, fast.
+// src/integrationTest gets the context, the filesystem, and permission to be slow.
+// Declared with Gradle's JVM Test Suite plugin (incubating in 9.7.1, and the
+// supported way to divide tests by purpose). The split is not a naming
+// convention review has to police: modus.spring-module strips Spring off the
+// unit-test classpath, so misclassification fails to COMPILE. See doc:35-testing.
+//
+// kotlin-test-junit5 is named outright because a suite's dependency block takes
+// a coordinate, and the Kotlin plugin's implicit kotlin-test substitution fires
+// only for the built-in `test` source set — on a custom suite it leaves
+// `kotlin.test.Test` unresolved.
+val kotlinTest = "org.jetbrains.kotlin:kotlin-test-junit5:${libs.findVersion("kotlin").get().requiredVersion}"
+val kotestAssertions = libs.findLibrary("kotest-assertions-core").get()
+
+testing {
+    suites {
+        withType<JvmTestSuite>().configureEach {
+            dependencies {
+                implementation(kotlinTest)
+                // Assertions, not a runner — see gradle/libs.versions.toml.
+                implementation(kotestAssertions)
+            }
+        }
+
+        register<JvmTestSuite>("integrationTest") {
+            // `implementation(project())` is the only way a custom suite sees
+            // the main output.
+            dependencies { implementation(project()) }
+        }
+    }
+}
+
+// A custom suite starts from nothing, where `test` inherits `implementation` and
+// `runtimeOnly` for free. Integration tests need at least what main needs.
+configurations.named("integrationTestImplementation") {
+    extendsFrom(configurations.getByName("implementation"))
+}
+configurations.named("integrationTestRuntimeOnly") {
+    extendsFrom(configurations.getByName("runtimeOnly"))
+}
+
+// --- Unit-test classes, published for the architecture rules --------------
+// :architecture-tests asserts the test-purity rules against compiled unit-test
+// bytecode, which is on no classpath it would otherwise see. Modules expose
+// theirs as a jar under a Modus-private Usage attribute: nothing else can
+// resolve it, and no module has to opt in.
+val unitTestOutput =
+    extensions
+        .getByType<JavaPluginExtension>()
+        .sourceSets
+        .named("test")
+        .map { it.output }
+
+val unitTestClassesJar =
+    tasks.register<Jar>("unitTestClassesJar") {
+        group = "verification"
+        description = "Packages this module's unit-test classes for :architecture-tests to analyse."
+        archiveClassifier = "unit-tests"
+        from(unitTestOutput)
+    }
+
+configurations.consumable("unitTestClasses") {
+    description = "This module's compiled unit-test classes, for architecture analysis only."
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, "modus-unit-test-classes"))
+    }
+    outgoing.artifact(unitTestClassesJar)
+}
+
+// --- The unit-test classpath is Spring-free, and stays that way ------------
+// modus.spring-module excludes the two Spring groups Modus resolves today. That
+// list is a literal, so it is checked rather than trusted: a third
+// org.springframework* group fails here instead of silently re-admitting Spring
+// to the source set whose whole point is not having it. Compile classpath,
+// because compiling is where misclassification is supposed to die.
+val unitTestCompileArtifacts =
+    configurations
+        .named("testCompileClasspath")
+        .flatMap { it.incoming.artifacts.resolvedArtifacts }
+
+val springFreeStamp = layout.buildDirectory.file("reports/test-taxonomy/unit-test-classpath.txt")
+
+val assertUnitTestClasspathIsSpringFree =
+    tasks.register("assertUnitTestClasspathIsSpringFree") {
+        group = "verification"
+        description = "Fails if any org.springframework* artifact reaches the unit-test compile classpath."
+        val artifacts = unitTestCompileArtifacts
+        val stamp = springFreeStamp
+        val module = project.path
+        inputs.property("unitTestCompileClasspath", artifacts.map { arts -> arts.map { it.id.displayName }.sorted() })
+        outputs.file(stamp)
+        doLast {
+            val spring =
+                artifacts
+                    .get()
+                    .map { it.id.componentIdentifier }
+                    .filterIsInstance<ModuleComponentIdentifier>()
+                    .filter { it.group.startsWith("org.springframework") }
+                    .map { "${it.group}:${it.module}" }
+                    .distinct()
+                    .sorted()
+            check(spring.isEmpty()) {
+                "Spring is on the unit-test compile classpath of $module: $spring. " +
+                    "Unit tests may not see Spring; move the test to src/integrationTest, " +
+                    "or add the group to the exclusions in modus.spring-module."
+            }
+            stamp
+                .get()
+                .asFile
+                .also { it.parentFile.mkdirs() }
+                .writeText("spring-free\n")
+        }
+    }
+
+tasks.named("check") {
+    dependsOn(testing.suites.named("integrationTest"), assertUnitTestClasspathIsSpringFree)
 }
 
 tasks.withType<Test>().configureEach {
