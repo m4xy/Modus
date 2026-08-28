@@ -112,7 +112,7 @@ Resolution: `kind` selects the directory, `name` selects the file by prefix-glob
 - Summaries, recaps, convenience tables and examples that re-encode a rule are restatement.
 - A derived listing (for example the routing table in `AGENTS.md`) is permitted only when it is marked derived and names its normative source. On disagreement the source wins and the listing is the bug.
 
-Evidence — PR #1, 12 documents, +3458 lines, 8 review threads. Six were one fact living in two to four places and drifting apart:
+Evidence — PR #1 at review: 13 files (12 documents, 1 bean), +3458 lines, 8 review threads. Six were one fact living in two to four places and drifting apart:
 
 | drifted fact | copies | outcome |
 |---|---|---|

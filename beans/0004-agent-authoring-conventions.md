@@ -26,7 +26,7 @@ Not owned, not touched: every other `documentation/*.md`, `documentation/README.
 |---|---|---|
 | review threads on the documentation package | 8 | PR #1 |
 | of those, caused by one fact restated in 2–4 documents and drifting | 6 | PR #1 review threads |
-| package size | 12 files, +3458 lines | PR #1 |
+| package size at review | 13 files, +3458 lines | PR #1 |
 | peak agent context per work package against a 300k ceiling | 268k | `doc:00-constitution` §6 |
 
 Cause of the 268k: no document declared when it could be skipped, so all were read.
