@@ -1,3 +1,28 @@
+---
+id: doc:30-code-style
+title: Code style
+status: active
+superseded_by: null
+read_when:
+  - path: "**/*.kt"
+  - path: "**/*.kts"
+  - path: "**/*.ts"
+  - path: "**/*.tsx"
+  - path: config/detekt/**
+  - path: build-logic/**
+  - path: .editorconfig
+  - task: kotlin|typescript|ktlint|detekt|archunit|formatting|code style|naming|complexity|build (check|gate) fail
+provides:
+  - doc:30-code-style#formatting
+  - doc:30-code-style#kotlin-language-rules
+  - doc:30-code-style#detekt-configuration
+  - doc:30-code-style#custom-detekt-rules
+  - doc:30-code-style#archunit-rules
+  - doc:30-code-style#testing-style
+  - doc:30-code-style#changing-a-style-rule
+depends_on: [doc:00-constitution, doc:10-architecture, doc:20-ddd-practices, doc:80-agent-operating-procedure]
+---
+
 # 30 — Code Style
 
 ## The principle
@@ -29,7 +54,7 @@ stated once, in `00-constitution.md` §7.2.4; this document and
 
 ---
 
-## 1. Formatting — ktlint via Spotless
+## 1. Formatting — ktlint via Spotless <a id="formatting"></a>
 
 Spotless owns formatting. ktlint's `ktlint_official` code style is the ruleset. There is
 no negotiation about formatting; run `./gradlew spotlessApply` and move on.
@@ -63,7 +88,7 @@ under two seconds.
 
 ---
 
-## 2. Kotlin language rules
+## 2. Kotlin language rules <a id="kotlin-language-rules"></a>
 
 These are enforced by ktlint or Detekt as noted; they are listed here because agents ask
 about them.
@@ -89,7 +114,7 @@ about them.
 
 ---
 
-## 3. Detekt — standard configuration
+## 3. Detekt — standard configuration <a id="detekt-configuration"></a>
 
 Detekt runs with `buildUponDefaultConfig = true` and a project config at
 `build-logic/src/main/resources/detekt.yml`. Deviations from Detekt's defaults:
@@ -129,7 +154,7 @@ in this repository. **Enforced by:** a Gradle check that fails if any file match
 
 ---
 
-## 4. Custom Detekt rules
+## 4. Custom Detekt rules <a id="custom-detekt-rules"></a>
 
 These express Modus-specific hazards that no off-the-shelf rule covers. They live in
 `build-logic` as a Detekt rule-set provider and run on every Kotlin module.
@@ -163,7 +188,7 @@ annotation attribute. §5's `@Disabled` rule is the worked example.
 
 ---
 
-## 5. ArchUnit
+## 5. ArchUnit <a id="archunit-rules"></a>
 
 ArchUnit enforces structure — what depends on what, what lives where, what a type must
 implement. The complete rule set is derived from the tables in `10-architecture.md` §4.
@@ -226,7 +251,7 @@ normative statement of it — is `00-constitution.md` §7.2.4.
 
 ---
 
-## 7. Testing style
+## 7. Testing style <a id="testing-style"></a>
 
 | Rule | Detail |
 |---|---|
@@ -254,7 +279,7 @@ normative statement of it — is `00-constitution.md` §7.2.4.
 
 ---
 
-## 9. Adding or changing a style rule
+## 9. Adding or changing a style rule <a id="changing-a-style-rule"></a>
 
 1. Open a work item.
 2. Implement the rule in ktlint config, `detekt.yml`, a custom Detekt rule, or ArchUnit.

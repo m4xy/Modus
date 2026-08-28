@@ -1,10 +1,21 @@
+---
+id: adr:0001-record-architecture-decisions
+title: Record architecture decisions
+status: active
+superseded_by: null
+read_when:
+  - path: documentation/adr/**
+  - task: adr|architecture decision|record a decision|supersede|weaken a rule|remove a rule
+provides:
+  - adr:0001-record-architecture-decisions#adr-format
+depends_on: [doc:00-constitution, doc:50-memory-and-evidence, doc:60-cost-model]
+---
+
 # ADR 0001 — Record architecture decisions
 
-- **Status:** Accepted
 - **Date:** 2026-08-28
 - **Deciders:** Modus core
 - **Supersedes:** —
-- **Superseded by:** —
 
 ## Context
 
@@ -37,7 +48,7 @@ We already have two adjacent mechanisms, and neither fits:
 There is a third thing — a **choice with alternatives and consequences** — and it needs its
 own home.
 
-## Decision
+## Decision <a id="adr-format"></a>
 
 **We record architecturally significant decisions as Architecture Decision Records in
 `documentation/adr/`, in the standard Status / Context / Decision / Consequences format.**
@@ -45,8 +56,9 @@ own home.
 1. **Location and naming.** `documentation/adr/NNNN-kebab-case-title.md`, `NNNN`
    zero-padded and monotonically increasing. Numbers are never reused.
 
-2. **Format.** The header block above (Status, Date, Deciders, Supersedes, Superseded by)
-   followed by four sections: **Context**, **Decision**, **Consequences**, and
+2. **Format.** Front-matter (`doc:05-authoring-for-agents#front-matter`) carries `id`,
+   `title`, `status` and `superseded_by`; the body header block carries Date, Deciders and
+   Supersedes, followed by four sections: **Context**, **Decision**, **Consequences**, and
    **Alternatives considered**. The Decision section is written in the present imperative
    ("We store state as files"), not the past or the conditional.
 
@@ -57,7 +69,10 @@ own home.
 
 4. **Statuses.** `Proposed` → `Accepted` → (`Superseded` | `Deprecated`). `Rejected` is a
    valid terminal state and rejected ADRs are kept: "we considered X and did not do it" is
-   exactly the question that recurs.
+   exactly the question that recurs. Front-matter `status` carries `Proposed` as `draft`,
+   `Accepted` as `active` and `Superseded` as `superseded`.
+   Enforcement gap: `Deprecated` and `Rejected` have no front-matter value, so neither is
+   machine-readable — `bean:0005`.
 
 5. **What is architecturally significant.** An ADR is **required** for:
    - adding, removing, or renaming a Gradle module;

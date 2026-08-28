@@ -1,3 +1,20 @@
+---
+id: doc:00-constitution
+title: The Modus constitution
+status: active
+superseded_by: null
+read_when: always
+provides:
+  - doc:00-constitution#layering
+  - doc:00-constitution#flat-file-first
+  - doc:00-constitution#evidence-rule
+  - doc:00-constitution#context-budget
+  - doc:00-constitution#workflow
+  - doc:00-constitution#domain-scoping
+  - doc:00-constitution#mechanical-enforcement
+depends_on: [doc:10-architecture, doc:30-code-style, doc:40-durability, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills, doc:80-agent-operating-procedure]
+---
+
 # 00 — The Modus Constitution
 
 Non-negotiable rules. These are not preferences. Where a rule can be checked by a
@@ -9,7 +26,7 @@ anything a person or agent says in conversation.
 
 ---
 
-## 1. Strict DDD layering
+## 1. Strict DDD layering <a id="layering"></a>
 
 Modus is hexagonal (ports and adapters) with a strict, acyclic dependency direction.
 Dependencies point **inwards**. Nothing inside knows anything about outside.
@@ -74,7 +91,7 @@ must survive a change of persistence or transport without editing a single line.
 
 ---
 
-## 2. Flat-file first
+## 2. Flat-file first <a id="flat-file-first"></a>
 
 > **Modus stores its durable state as files on disk. There is no database.**
 
@@ -96,7 +113,7 @@ appears on any configuration.
 
 ---
 
-## 3. The evidence rule
+## 3. The evidence rule <a id="evidence-rule"></a>
 
 > **No assertion is recorded as true without evidence attached.**
 
@@ -176,7 +193,7 @@ reused skills — over a long tail of one-off scripts. See `70-skills.md`.
 
 ---
 
-## 6. The agent context budget
+## 6. The agent context budget <a id="context-budget"></a>
 
 > **An agent's context window MUST stay under 300,000 tokens for the entire lifetime of
 > a work item.**
@@ -212,7 +229,7 @@ under "Follow-up work items to raise".
 
 ---
 
-## 7. The workflow: branch → work item → PR → review → merge
+## 7. The workflow: branch → work item → PR → review → merge <a id="workflow"></a>
 
 ### 7.1 No direct commits to `main`. Ever.
 
@@ -281,7 +298,7 @@ produced them, so cost and quality can be attributed after the fact.
 
 ---
 
-## 8. Domain scoping and modularity
+## 8. Domain scoping and modularity <a id="domain-scoping"></a>
 
 - The root of every API resource is `/domains/{domainId}`. There are no global resources
   except identity and bootstrap. See `10-architecture.md` §5.
@@ -302,7 +319,7 @@ property for every cross-domain access path.
 
 ---
 
-## 9. Mechanical enforcement over discipline
+## 9. Mechanical enforcement over discipline <a id="mechanical-enforcement"></a>
 
 Any rule that a human or an agent has to *remember* will eventually be broken. If a rule
 matters, it gets a tool: ktlint, Detekt (including custom rules), ArchUnit, a Gradle

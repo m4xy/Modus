@@ -1,3 +1,22 @@
+---
+id: doc:50-memory-and-evidence
+title: Memory and evidence
+status: active
+superseded_by: null
+read_when:
+  - path: domains/**
+  - path: core/core-domain/**/memory/**
+  - task: memory|memories|evidence|assertion|hypothes|invalidat|record a (conclusion|finding)|what we (found|learned)
+provides:
+  - doc:50-memory-and-evidence#memory-scopes
+  - doc:50-memory-and-evidence#evidence-kinds
+  - doc:50-memory-and-evidence#evidence-record
+  - doc:50-memory-and-evidence#writing-a-memory
+  - doc:50-memory-and-evidence#invalidation
+  - doc:50-memory-and-evidence#unevidenced-assertions
+depends_on: [doc:00-constitution, doc:10-architecture, doc:40-durability, doc:80-agent-operating-procedure]
+---
+
 # 50 — Memory and Evidence
 
 Durable memory is how Modus stops agents from re-learning the same thing at full price,
@@ -24,7 +43,7 @@ It is not:
 
 A memory is a fact with a receipt.
 
-### 1.1 The three scopes
+### 1.1 The three scopes <a id="memory-scopes"></a>
 
 | Scope | Subject | Lifetime | Typical content |
 |---|---|---|---|
@@ -63,7 +82,7 @@ Evidence is **a record of an observation that another party could repeat**. That
 entire test. If nobody — human or agent — could re-run it and see what you saw, it is not
 evidence.
 
-### 2.1 The accepted evidence kinds
+### 2.1 The accepted evidence kinds <a id="evidence-kinds"></a>
 
 These six are the complete list. There is no `other`.
 
@@ -107,7 +126,7 @@ behavioural claim; it is sufficient for a structural claim ("the config key is n
 
 ---
 
-## 3. The evidence record
+## 3. The evidence record <a id="evidence-record"></a>
 
 ### 3.1 Required fields — every kind
 
@@ -208,7 +227,7 @@ Callers must handle 409 and retry. See work item 0042.
 
 ---
 
-## 4. Writing a memory
+## 4. Writing a memory <a id="writing-a-memory"></a>
 
 ### 4.1 The five gates
 
@@ -274,7 +293,7 @@ load.
 
 ---
 
-## 6. Invalidation
+## 6. Invalidation <a id="invalidation"></a>
 
 A memory is a claim about a world that changes. Memories that are never invalidated
 become the most expensive kind of lie: the confidently-cited stale fact.
@@ -352,7 +371,7 @@ A hypothesis is an unevidenced belief that is useful to write down.
 
 ---
 
-## 8. The prohibition on unevidenced assertions
+## 8. The prohibition on unevidenced assertions <a id="unevidenced-assertions"></a>
 
 This restates `00-constitution.md` §3 with the enforcement detail.
 

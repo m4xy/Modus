@@ -1,3 +1,22 @@
+---
+id: doc:80-agent-operating-procedure
+title: Agent operating procedure
+status: active
+superseded_by: null
+read_when: always
+provides:
+  - doc:80-agent-operating-procedure#pick-up-the-work-item
+  - doc:80-agent-operating-procedure#restate-success-criteria
+  - doc:80-agent-operating-procedure#plan-and-budget
+  - doc:80-agent-operating-procedure#investigate
+  - doc:80-agent-operating-procedure#implement
+  - doc:80-agent-operating-procedure#self-validate
+  - doc:80-agent-operating-procedure#encode-the-learnings
+  - doc:80-agent-operating-procedure#open-the-pull-request
+  - doc:80-agent-operating-procedure#respond-to-review
+depends_on: [doc:00-constitution, doc:10-architecture, doc:20-ddd-practices, doc:30-code-style, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills]
+---
+
 # 80 — Agent Operating Procedure
 
 **If you are an agent working in this repository, this is your loop.** Read
@@ -23,7 +42,7 @@ At every step: hold the 300k context budget (`00-constitution.md` §6) and recor
 
 ---
 
-## Step 1 — Pick up the work item
+## Step 1 — Pick up the work item <a id="pick-up-the-work-item"></a>
 
 ### Do
 
@@ -60,7 +79,7 @@ much. Restart.
 
 ---
 
-## Step 2 — Restate the success criteria
+## Step 2 — Restate the success criteria <a id="restate-success-criteria"></a>
 
 **Never skip this step.** It is the cheapest step and it prevents the most expensive
 failures.
@@ -89,7 +108,7 @@ options and a recommended default, and continue on everything else meanwhile.
 
 ---
 
-## Step 3 — Plan and budget
+## Step 3 — Plan and budget <a id="plan-and-budget"></a>
 
 Record in the work item, briefly:
 
@@ -108,7 +127,7 @@ found an architecture gap — resolve it now, not in review.
 
 ---
 
-## Step 4 — Investigate
+## Step 4 — Investigate <a id="investigate"></a>
 
 > **Investigate; do not ask** (`00-constitution.md` §4). Before you may ask a human, you
 > must have searched the repository, read the relevant documentation, read the memories,
@@ -160,7 +179,7 @@ was asked to do?* Then continue.
 
 ---
 
-## Step 5 — Implement
+## Step 5 — Implement <a id="implement"></a>
 
 | # | Rule |
 |---|---|
@@ -183,7 +202,7 @@ professional; blowing the budget at 300k and losing coherence is not.
 
 ---
 
-## Step 6 — Self-validate
+## Step 6 — Self-validate <a id="self-validate"></a>
 
 **You validate your own work before anyone else looks at it.** A pull request that fails
 the gate wastes a reviewer's attention, which is the most expensive resource in the
@@ -226,7 +245,7 @@ For each success criterion from step 2:
 
 ---
 
-## Step 7 — Encode the learnings
+## Step 7 — Encode the learnings <a id="encode-the-learnings"></a>
 
 This is the step agents skip, and skipping it is what makes the next agent pay again.
 
@@ -246,7 +265,7 @@ you used with the rationale (`60-cost-model.md` §3.2). If your `overhead` share
 
 ---
 
-## Step 8 — Open the pull request
+## Step 8 — Open the pull request <a id="open-the-pull-request"></a>
 
 ### Title
 
@@ -306,7 +325,7 @@ agentic implementation per the domain policy.
 
 ---
 
-## Step 9 — Respond to review
+## Step 9 — Respond to review <a id="respond-to-review"></a>
 
 ### The three valid resolutions
 
