@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: modus
+  main:
+    banner-mode: "off"
+
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

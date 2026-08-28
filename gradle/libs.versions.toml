@@ -1,0 +1,43 @@
+# Single source of truth for every third-party version in Modus.
+# Modules must never hard-code a version; add it here and reference the alias.
+
+[versions]
+kotlin = "2.4.10"
+springBoot = "4.1.1"
+springdoc = "3.1.0"
+detekt = "1.23.8"
+ktlintPlugin = "14.2.0"
+ktlint = "1.8.0"
+archunit = "1.5.0"
+coroutines = "1.10.2"
+javaToolchain = "25"
+
+[libraries]
+# --- Gradle plugin artifacts, consumed by build-logic only ----------------
+plugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+plugin-kotlin-allopen = { module = "org.jetbrains.kotlin:kotlin-allopen", version.ref = "kotlin" }
+plugin-springBoot = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "springBoot" }
+plugin-ktlint = { module = "org.jlleitschuh.gradle:ktlint-gradle", version.ref = "ktlintPlugin" }
+
+# --- Static analysis, executed as a CLI (see modus.kotlin-base) ------------
+detekt-cli = { module = "io.gitlab.arturbosch.detekt:detekt-cli", version.ref = "detekt" }
+
+# --- Platforms ------------------------------------------------------------
+springBoot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBoot" }
+
+# --- Production -----------------------------------------------------------
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter" }
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+springdoc-openapi-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+
+# --- Test -----------------------------------------------------------------
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+
+[plugins]
+# The Kotlin plugin is declared here so the root project can put it on the
+# buildscript classpath (apply false) — ktlint-gradle needs KGP classes present
+# even when the project itself has no Kotlin source.
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintPlugin" }
