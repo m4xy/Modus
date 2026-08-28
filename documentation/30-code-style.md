@@ -23,7 +23,9 @@ The three-tool division of labour:
 | **ArchUnit** | "Is it in the right place, depending on the right things?" | Architectural drift |
 
 All three run in the `check` task. `./gradlew check` is the gate; CI runs exactly the
-same task with no extra arguments, so a green local run means a green CI run.
+same task with no extra arguments, so a green local run means a green CI run. The gate is
+stated once, in `00-constitution.md` §7.2.4; this document and
+`80-agent-operating-procedure.md` step 6 cite it rather than restating its commands.
 
 ---
 
@@ -138,16 +140,26 @@ These express Modus-specific hazards that no off-the-shelf rule covers. They liv
 | **`NoFloatingPointMoney`** | `Float`/`Double` in any type whose name or property name matches money/cost/price/spend/usd. | Cost is the product. Floating-point money produces spend figures that do not add up, and nobody notices until an invoice does not reconcile. |
 | **`UnevidencedMemoryWrite`** | A call to a `MemoryRepository.save`-shaped API whose argument is constructed without a non-empty evidence collection, where statically determinable. | The evidence rule (`00` §3) is the product's core promise. A best-effort static check plus the runtime schema validation is better than runtime alone. |
 | **`ForbiddenTypeNameSuffix`** | Types under `core/` named `*Impl`, `*Manager`, `*Helper`, `*Util(s)`, `*Data`, `*Info`, `*Dto`, `*Entity`, `*Bean`, or `*Service` outside the domain-service allowlist. | These names describe position, not behaviour, and they attract unrelated code. Enforcing naming prevents the "junk drawer class". |
-| **`DomainScopedRoute`** | A Spring mapping annotation in `adapter-rest` or `modules/*` whose path does not start with `/domains/{domainId}`, unless the class is on the bootstrap allowlist. | Permissions are domain-scoped (`00` §8). One un-scoped route is a cross-domain data leak. Detekt catches it at the annotation, before ArchUnit sees the compiled class. |
+| **`DomainScopedRoute`** | A Spring mapping annotation in `adapter-rest` or `modules/*` whose path neither starts with `/domains/{domainId}` nor matches the **non-domain-scoped route allowlist** (`10-architecture.md` §5.1 — the rule reads that list; it does not carry its own copy). | Permissions are domain-scoped (`00` §8). One un-scoped route is a cross-domain data leak. Detekt catches it at the annotation, before ArchUnit sees the compiled class. |
 | **`NoBlockingInSuspend`** | `Thread.sleep`, `runBlocking`, blocking IO, or `.get()` on a future inside a `suspend` function. | The streaming adapters are the hot path for backoffice output; one blocking call stalls a shared dispatcher and every live stream stutters. |
 | **`JustifiedSuppression`** | `@Suppress` with no trailing `//` comment explaining it. | A suppression with a reason is a decision; one without is an unexplained hole. |
 | **`JustifiedVar`** | A `var` property in a class under `core/` with no explanatory comment. | Mutable aggregate state is legitimate but must be conscious. |
 | **`RawTokenArithmetic`** | Arithmetic on a raw `Long`/`Int` named like a token count, instead of the `TokenCount` value object. | Context-budget and cost accounting must not silently mix units. |
 | **`NoStringDomainId`** | A function parameter named `domainId`/`actorId`/`workItemId`/`runId` typed `String`. | Primitive obsession here means an id from one context can be passed where another is expected. |
+| **`NoMutableSingletonState`** | A `var` property, or a property of a mutable collection type, on an `object` or `companion object` under `core/`. | `20-ddd-practices.md` §8 forbids hidden global state, and until this rule existed no tool owned that row — `ForbiddenDomainApi` enumerates API *references*, and a `var` in a companion is not a reference to anything. Detekt has the AST, so this one is genuinely decidable. |
 
 **Severity:** all custom rules are `error`. **Adding a custom rule** requires: the rule
 implementation, a test for the positive and negative case, a row in this table with a
 "why", and a repository-wide clean run.
+
+**What a Detekt rule can see that an ArchUnit rule cannot.** Detekt analyses the Kotlin
+AST, so it sees comments (`PsiComment`), property mutability, annotation arguments, and
+call sites. ArchUnit analyses compiled bytecode, so it sees types, members, annotations
+and **annotation values** — but never a comment, because the compiler discards them. Any
+rule phrased as "requires a `//` comment" must therefore be a Detekt rule
+(`JustifiedSuppression`, `JustifiedVar` — both fine); a rule ArchUnit must own has to be
+phrased against something that survives compilation, which in practice means an
+annotation attribute. §5's `@Disabled` rule is the worked example.
 
 ---
 
@@ -162,16 +174,36 @@ Rule groups:
 |---|---|
 | `LayerDependencyRules` | The Gradle module dependency table (`10` §4.1) |
 | `DomainPurityRules` | The package-level `core-domain` rules (`10` §4.2) |
-| `ContextIsolationRules` | Bounded-context import allowlist (`10` §3.1) + no slice cycles |
+| `ContextIsolationRules` | `ContextInternalsAreSealed`, `PublishedLanguageAllowlist`, `PublishedLanguageIsLeaf`, and no cycles over the internals slices (`10` §3.1, §4.2) |
 | `AdapterRules` | Adapters implement ports; domain types do not escape; no DTOs in core (`10` §4.3) |
 | `RestRules` | Every route is domain-scoped; no field injection; controllers return DTOs |
 | `NamingRules` | Package placement matches type kind (`20` §5.1) |
 | `NoDatabaseRules` | No JDBC/JPA/ORM/SQL types anywhere (`00` §2) |
-| `TestRules` | No mocking framework in `core/`; no wall-clock dependency in any test; no `@Disabled` without a work-item reference |
+| `TestRules` | No mocking framework in `core/`; no wall-clock dependency in any test; `DisabledCarriesWorkItem` (below) |
 
 ArchUnit tests live in `build-logic`'s `modus.archunit` convention plugin and are applied
 to every Kotlin module, so a new module gets them automatically. Freezing (ArchUnit's
 `FreezingArchRule`) is **forbidden** for the same reason Detekt baselines are.
+
+### 5.1 `DisabledCarriesWorkItem`
+
+> Every `@Disabled` / `@Ignored` **annotation value** matches `^beans/\d{4}`, and the rest
+> of the value is a non-blank reason.
+
+```kotlin
+@Disabled("beans/0042: flaky under parallel execution — shared temp dir")
+```
+
+The reference is an **annotation attribute**, not a comment. `@Disabled`'s `value` is
+retained in the class file, so ArchUnit can read it and assert on it; a `//` comment
+beside the annotation is discarded by the compiler and no ArchUnit rule could ever see it.
+A rule stated against a comment here would be unenforceable while three documents told
+agents the build was catching it — which is worse than an admitted gap, because nobody
+checks it in review either.
+
+Kotest's `.config(enabled = false)` and `xdescribe`/`xit` have no annotation to carry the
+reference, so they are **forbidden outright** in this repository; disable a test with
+`@Disabled`. That keeps one mechanism, and it is the mechanism the rule can see.
 
 ---
 
@@ -189,7 +221,8 @@ to every Kotlin module, so a new module gets them automatically. Freezing (ArchU
 | API types | Generated from the OpenAPI document | Hand-written API types are forbidden — they drift |
 | Dead code | `knip` | `error` in CI |
 
-`./gradlew check` runs the backoffice checks too, so there is one command to remember.
+`./gradlew check` runs the backoffice checks above too. The complete gate — and the only
+normative statement of it — is `00-constitution.md` §7.2.4.
 
 ---
 
@@ -204,7 +237,7 @@ to every Kotlin module, so a new module gets them automatically. Freezing (ArchU
 | Mocks | Forbidden in `core/` — hand-written fakes only. Permitted in adapters for genuinely external systems. |
 | Time | Always injected. A test that calls `Instant.now()` fails ArchUnit's `TestRules`. |
 | Filesystem | Every filesystem test gets a fresh temp directory and deletes it on teardown. |
-| Flakes | A flaky test is a failing test. `@Disabled`/`@Ignored` requires a comment naming the work item that will fix it; ArchUnit enforces the comment. |
+| Flakes | A flaky test is a failing test. `@Disabled`/`@Ignored` requires its **annotation value** to name the work item that will fix it — `@Disabled("beans/0042: reason")` — which ArchUnit reads and asserts (§5.1). Not a comment: comments do not exist in bytecode. |
 | Determinism | No random data without a fixed, logged seed. |
 
 ---

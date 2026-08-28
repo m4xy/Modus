@@ -69,8 +69,8 @@ separately). This document specifies *how* files are written, not *what is in th
 For high-volume machine data: agent-run output, domain events, cost events, audit trail.
 
 ```
-{"seq":1,"at":"2026-08-28T09:14:02.117Z","kind":"run.started","runId":"01J...","payload":{...}}
-{"seq":2,"at":"2026-08-28T09:14:02.664Z","kind":"run.output","runId":"01J...","payload":{...}}
+{"seq":1,"at":"2026-08-28T09:14:02.117Z","kind":"run.started","runId":"01J...","payload":{...},"crc":"3b8a1f04"}
+{"seq":2,"at":"2026-08-28T09:14:02.664Z","kind":"run.output","runId":"01J...","payload":{...},"crc":"a1077c9e"}
 ```
 
 Rules:
@@ -81,9 +81,10 @@ Rules:
 | 2.2.2 | Append-only. A record is **never** modified or deleted in place. A correction is a new record that supersedes an earlier one by `seq`. |
 | 2.2.3 | Every record carries a monotonic `seq` (per log), an ISO-8601 UTC `at`, and a `kind`. |
 | 2.2.4 | `seq` is the resume cursor for streaming. An SSE `Last-Event-ID` is a `seq`. |
-| 2.2.5 | Logs are opened `O_APPEND` and written with a single `write(2)` per record below `PIPE_BUF`; larger records take the segment lock (§6). |
-| 2.2.6 | A truncated final line (from a crash mid-append) is discarded on read and the log is truncated to the last complete newline before the next append. This is the only permitted repair, and it is logged. |
-| 2.2.7 | Logs roll at a size threshold into `NNNN.ndjson` segments. Segments are immutable once rolled. |
+| 2.2.5 | Every record carries `crc`, the CRC-32C of the record's canonical serialisation with the `crc` field itself omitted (§8 makes serialisation deterministic, which is what makes this reproducible on read). `crc` is the last key. |
+| 2.2.6 | A record whose line does not parse, lacks `crc`, or whose recomputed `crc` does not match is **torn**: it is skipped on read, reported, and the log is marked `degraded` (§7). It is never repaired and never silently dropped. |
+| 2.2.7 | A truncated final line — no trailing newline, at the end of the file — is discarded on read and truncated away before the next append. This is the **only** permitted repair, it applies only to the last line, and it is logged. |
+| 2.2.8 | Logs roll at a size threshold into `NNNN.ndjson` segments. Segments are immutable once rolled. |
 
 ### 2.3 Choosing between them
 
@@ -129,6 +130,25 @@ Rules:
 `.modus/` is git-ignored in its entirety. Everything outside `.modus/` is intended to be
 committed, which is what makes `git` the audit log.
 
+### 3.1 `beans/` and `domains/<domainId>/work/` are the same thing
+
+There is **one** work-item concept, stored in **one** shape, and it lives at
+`domains/<domainId>/work/`. `beans/` at this repository's root is that directory for the
+`modus` domain — the domain whose product is Modus itself — reached by a shorter path
+because a repository root is where humans and agents look first.
+
+- The **schema** is identical in both places (`documentation/90-work-items.md`, owned
+  separately). A tool that reads one reads the other.
+- `00-constitution.md` §7.2 and `80-agent-operating-procedure.md` step 1 say "the work item
+  in `beans/`" because an agent working *on this repository* is always in the `modus`
+  domain. That is a shorthand for the general path, not a second mechanism.
+- When Modus manages this repository (`00-constitution.md` §12), `beans/` is what it
+  manages, with no migration and no import step. That is the point of picking one shape:
+  self-hosting must not require a conversion.
+
+If a future store root wants `modus`'s work items under the general path instead, that is
+a directory move, not a design change.
+
 ---
 
 ## 4. Atomic write
@@ -171,15 +191,42 @@ An append to an NDJSON log does not use temp-file-and-rename — that would rewr
 whole file. Instead:
 
 ```
-1. Serialise the record + '\n'.
-2. write(2) to a descriptor opened O_APPEND. One syscall, one record.
-3. fsync on the durability boundary (§5).
+1. Serialise the record canonically, compute crc, append '\n'.
+2. Take the log's appender lock (§6.2).
+3. Write all bytes to a descriptor opened O_APPEND, LOOPING until every byte is written.
+4. Release the lock.
+5. fsync on the durability boundary (§5).
 ```
 
-`O_APPEND` makes the offset-selection and the write a single atomic step in the kernel,
-so concurrent appenders never interleave or overwrite each other. Records at or below
-`PIPE_BUF` (4096 bytes on Linux) are additionally guaranteed not to be torn. Records
-above that size take the segment lock before appending.
+Three separate mechanisms, each doing one job. It matters that they are kept distinct,
+because the tempting single-mechanism story — "a small write is atomic, so nothing can
+tear" — is **false**, and the design used to rest on it:
+
+| Mechanism | What it actually guarantees | What it does not |
+|---|---|---|
+| `O_APPEND` | Offset selection and the write are one atomic step against other appenders to the same file, so an append never *overwrites* another. POSIX-specified. | It does not promise the write is issued as one `write(2)`, so it does not prevent *interleaving* between two appenders when one write is split. |
+| The appender lock | Every record from this process is written start-to-finish by one holder. Modus's own writers therefore never interleave, at any record size. | Nothing about a second process or a hand-editing human. |
+| `crc` + torn-record skip (§2.2.5–2.2.7) | Any record that *did* tear or interleave is **detected** on read and never parsed as data. | It does not prevent tearing; it makes tearing survivable, which is the achievable goal. |
+
+**Why the previous rule was wrong**, recorded so nobody reintroduces it. `PIPE_BUF` is
+POSIX's atomicity bound for writes to a **pipe or FIFO**; it says nothing about regular
+files, and POSIX promises no non-tearing write to a regular file at any size. It is also
+4096 on Linux but **512** on macOS/Darwin — the platform Modus is developed on — so the
+constant was misleading as well as inapplicable. Worse, "one `write(2)` per record" is not
+something the JVM can offer: `FileChannel.write` and `FileOutputStream.write` may perform
+a short write and loop, and there is no API to assert a single syscall. So a size
+threshold guarded nothing, while the real risk — a partial write of a large record — was
+unhandled. Hence step 3's explicit retry loop and the `crc`, which are things we control.
+
+Linux does happen to serialise a single `write()` to a regular file under the inode lock
+regardless of size. That is a stronger property than the one previously claimed, and we
+still do not rely on it: it is an implementation detail of one kernel, not a portable
+guarantee, and the store must be correct on macOS too.
+
+**Durability itself comes from `fsync` (§5), never from write size.** A write that reaches
+the page cache intact is still lost in a power failure; a write that is fsynced is not.
+The two questions — "can a record tear?" and "is a record durable?" — are independent, and
+conflating them is what produced the original error.
 
 ---
 
@@ -203,9 +250,17 @@ anyway), but the resume cursor it advertises lags to the last synced `seq`. On r
 after a crash the client may re-receive up to 200 ms of output; duplicates are cheap,
 gaps are not.
 
+This contract rests on `fsync` and on nothing else. In particular it does **not** assume a
+record is written by one syscall or that any record size is atomic (§4.2). A record that
+was torn by a crash fails its `crc` on read and is skipped; because the advertised cursor
+never runs ahead of the last fsynced `seq`, a skipped record is always one the client was
+never promised.
+
 **Enforced by:** an integration test that kills the process with `SIGKILL` at randomised
 points during a write workload and asserts, on restart, that every acknowledged cursor is
-readable and every document is either the old or the new complete version.
+readable and every document is either the old or the new complete version. A companion
+test corrupts bytes in the middle of a segment and asserts the reader skips exactly that
+record, marks the log `degraded`, and still serves every other record.
 
 ---
 
@@ -216,8 +271,11 @@ readable and every document is either the old or the new complete version.
 - **Reads are lock-free.** Atomic rename guarantees a reader sees a complete version.
   A reader that needs a consistent multi-file view takes a shared lock (§6.3).
 - **Writes to one document are serialised** by an advisory lock on that document.
-- **Appends to one log** are serialised by `O_APPEND` for small records, and by a segment
-  lock for large ones.
+- **Appends to one log** are serialised by that log's **appender lock**, held across the
+  whole record regardless of size (§4.2). `O_APPEND` prevents a *second process* from
+  overwriting; the per-record `crc` makes any residual tear detectable on read. There is
+  no size threshold and no size-dependent branch — a record's length never changes which
+  code path runs.
 - Modus assumes **one writer process** per store root. Multiple processes are supported
   well enough not to corrupt data, but not tuned for.
 
@@ -284,7 +342,8 @@ walk) and it is not optional.
 |---|---|
 | Orphan `*.tmp` beside a target, older than 1 hour | Delete; log at WARN with the path |
 | Orphan `*.tmp` younger than 1 hour | Leave (another process may be mid-write); log at DEBUG |
-| Log file whose final line is truncated (no trailing newline) | Truncate to the last complete newline; log at WARN with byte count discarded |
+| Log file whose final line is truncated (no trailing newline) | Truncate to the last complete newline; log at WARN with byte count discarded. Only the final line qualifies (§2.2.7). |
+| Log line that fails to parse, or whose `crc` does not match | Skip it, count it, mark the log `degraded`, log at ERROR with the byte offset. **Never repair, never renumber.** A torn record can sit anywhere in the file, not only at the end, so the reader checks every line — a fragment of one record can be followed by a complete later record and then the fragment's tail. |
 | Log with a `seq` gap | Log at ERROR; mark the log degraded; do not silently renumber |
 | Document failing schema validation | Move to `.modus/quarantine/<timestamp>/`, log at ERROR, continue. **Never** auto-repair. |
 | `intent` record with no `completed` | Replay the intent idempotently; append `completed` |

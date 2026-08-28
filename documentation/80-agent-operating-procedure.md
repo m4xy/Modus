@@ -191,12 +191,10 @@ system.
 
 ### The gate
 
-```
-./gradlew spotlessApply          # formatting, first
-./gradlew check                  # compile + ktlint + Detekt + ArchUnit + unit + integration
-npm --prefix backoffice run test # if backoffice/ changed
-npm --prefix e2e run test        # if any user-visible behaviour changed
-```
+**The gate is `00-constitution.md` §7.2.4.** Run exactly what that block says — this step
+does not carry its own command list, because a gate written down in three places is a gate
+that gets run in three different ways. In short: `spotlessApply`, then `check` (which
+includes the backoffice checks), then `e2eTest` only if user-visible behaviour changed.
 
 If a **skill** governs this task, its validation command is the gate (`70-skills.md`
 §3.6), and its exit code is the verdict.
@@ -219,8 +217,10 @@ For each success criterion from step 2:
   code says something; only a `test-run` proves it does something
   (`50-memory-and-evidence.md` §2.3).
 - **Read the failure tail, not the whole output.** Test output is a context sink.
-- A flaky test is a failing test. Fix it or open a work item and reference it in the
-  `@Disabled` comment — the build requires the reference.
+- A flaky test is a failing test. Fix it, or open a work item and put its id in the
+  `@Disabled` **annotation value** — `@Disabled("beans/0042: reason")`. ArchUnit reads the
+  annotation value and fails the build without it (`30-code-style.md` §5.1). A comment
+  beside the annotation is not enough and never was: comments are not in bytecode.
 - Re-run the full gate after your **last** change. "It passed before that last tweak" is
   how broken PRs get opened.
 
@@ -328,7 +328,7 @@ Every comment resolves as exactly one of:
 | 9.3 | **Do not expand scope.** A review comment asking for adjacent work becomes a follow-up work item, referenced in the thread. |
 | 9.4 | **Re-run the full gate after every change**, and update the evidence table in the PR body. Stale evidence is worse than none. |
 | 9.5 | **Repeated comments become rules.** A defect class caught twice in review becomes a tool rule (`60-cost-model.md` §6.7). Raise it. |
-| 9.6 | **Review spend is attributed** to the `revise` stage of this work item. |
+| 9.6 | **Both halves of the round trip are attributed, to different stages.** Performing the review bills to `review`; *responding* to it — this step — bills to `revise` (`60-cost-model.md` §6.6, §3.1). Splitting them is what makes "what did checking this change cost?" answerable separately from "what did fixing it cost?". |
 | 9.7 | **Leave no thread unresolved.** Every thread ends in one of the three resolutions above. |
 
 ---

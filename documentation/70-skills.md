@@ -28,22 +28,30 @@ allowed; they just do not get the name, and they do not get the cost claims.
 
 ### 2.1 The triggers
 
-Extract when **any** of these fires. Most come from `module-cost` automatically
-(`60-cost-model.md` §5.3), which raises an `extract-skill` action.
+Extract when **any** of these fires. Most come from `module-cost` automatically, which
+raises an `extract-skill` action.
 
-| Trigger | Threshold | Rationale |
-|---|---|---|
-| **Repetition** | The task was done 3 times in 90 days | Third time is the charm; the second time you notice, the third you act |
-| **Aggregate spend** | Category spend ≥ 20× the estimated cost of writing the skill | Straight payback arithmetic |
-| **Variance** | p90 cost ≥ 3× p50 cost | Unpredictable execution means the procedure is not understood |
-| **Rediscovery** | ≥ 40% of category spend in `investigate` | Agents are re-learning the same thing every time |
-| **Inconsistency** | Two agents did the same task materially differently | Divergence produces defects and unreviewable diffs |
-| **Escaped defect** | A defect escaped because a step was skipped | The step needs to be mechanical |
-| **Human repetition** | A human explained the same thing twice | That explanation is a skill trying to be born |
+**The thresholds live in `60-cost-model.md` §5.3 and only there.** That table is what
+`module-cost` measures, so it is the normative one; this table gives the rationale for
+each trigger, which is the part you need when deciding whether a fired trigger is worth
+acting on. It deliberately carries no numbers — an earlier draft carried a second copy of
+them, and the two had already drifted.
+
+| Trigger | Rationale |
+|---|---|
+| **Repetition** | Third time is the charm; the second time you notice, the third you act |
+| **Aggregate spend** | Straight payback arithmetic |
+| **Variance** | Unpredictable execution means the procedure is not understood |
+| **Rediscovery** | Agents are re-learning the same thing every time |
+| **Inconsistency** | Divergence produces defects and unreviewable diffs |
+| **Escaped defect** | The step needs to be mechanical |
+| **Human repetition** | That explanation is a skill trying to be born |
 
 ### 2.2 When *not* to extract
 
-- The task happened twice and will not happen again. Wait for the third.
+- The task happened twice and will not happen again. Wait for the third — this is the
+  threshold the whole package uses, including `00-constitution.md` §5
+  (`60-cost-model.md` §5.3).
 - The variance is inherent, not procedural. Genuinely novel design work does not
   proceduralise; forcing it into a skill produces a skill that lies about what it covers.
 - A **memory** would fix it. If the expensive part was *finding out a fact*, record an
@@ -158,6 +166,8 @@ costProfile:
   sampleSize: 12
   recommended: { model: claude-sonnet-5, effort: medium }
   grid:
+    # Haiku 4.5 takes no effort parameter — it rejects output_config.effort with a 400.
+    # The grid is ragged by model; see 60-cost-model.md §2 and §4.1.
     - { model: claude-haiku-4-5,  effort: n/a,    meanCostUsd: 0.0412, successRate: 0.58, attempts: 1.9, effectiveCostUsd: 0.0783 }
     - { model: claude-sonnet-5,   effort: medium, meanCostUsd: 0.1140, successRate: 0.92, attempts: 1.1, effectiveCostUsd: 0.1254 }
     - { model: claude-opus-5,     effort: high,   meanCostUsd: 0.4820, successRate: 0.97, attempts: 1.0, effectiveCostUsd: 0.4820 }

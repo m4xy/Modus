@@ -77,6 +77,11 @@ All six live as top-level packages under `com.modus.core.<context>` in **both**
 Cross-context communication is by **domain event** or by an explicitly declared
 **anti-corruption port**.
 
+The `Consumes` column below is a **published-language** dependency, not an internals
+dependency: consuming `AgentRunCompleted` means importing the event type from
+`execution`'s published package and nothing else. §3.1 states the rule that makes this
+expressible as an ArchUnit allowlist.
+
 | Context | Owns | Key aggregates | Publishes | Consumes |
 |---|---|---|---|---|
 | `identity` | Actors, credentials, permission grants, sessions | `Actor`, `PermissionGrant` | `ActorRegistered`, `GrantIssued`, `GrantRevoked` | — |
@@ -88,20 +93,51 @@ Cross-context communication is by **domain event** or by an explicitly declared
 
 ### 3.1 Context dependency rules
 
-| Context | MAY import | MUST NOT import |
+Every context is split into a **published language** and its **internals**. This split is
+the whole rule; get it right and the allowlist writes itself.
+
+| Part | Packages | Who may import it |
 |---|---|---|
-| `identity` | nothing | every other context |
-| `domainmgmt` | `identity` (ids and permission checks only) | `work`, `memory`, `execution`, `cost` |
+| **Published language** | `com.modus.core.<ctx>.domain.event..` (domain events) and `com.modus.core.<ctx>.domain.published..` (identifier value objects, plus any value object that appears in an event's signature — `WorkItemState`, `RunStatus`, …) | Any context named in the table below |
+| **Internals** | Every other package of the context — aggregates, ports, use cases, services, and every value object not published | **Nobody.** No allowlist, no exception. |
+
+The published-language packages are **leaves**: a type in `..domain.event..` or
+`..domain.published..` may reference only the Kotlin stdlib, `java.time` types, and its
+own context's `..domain.published..`. It may not reference an aggregate, a port, a use
+case, or another context. That is what makes depending on a published package safe, and
+it is what keeps the *package* graph acyclic even where the *context* graph is not.
+
+The rule has a useful consequence: **putting a type into an event's signature publishes
+it.** If you want to add a property to a cross-context event, you must first move its
+type into `..domain.published..`, which is a visible, reviewable act — and a breaking
+change to a published contract, so it needs an ADR (`20-ddd-practices.md` §4.1.5).
+
+| Context | MAY import the published language of | MUST NOT import, in any form |
+|---|---|---|
+| `identity` | — | every other context |
+| `domainmgmt` | `identity` | `work`, `memory`, `execution`, `cost` |
 | `work` | `identity`, `domainmgmt` | `memory`, `execution`, `cost` |
-| `memory` | `identity`, `domainmgmt`, `work` (ids only) | `execution`, `cost` |
-| `execution` | `identity`, `domainmgmt`, `work` (ids only) | `cost`, `memory` internals |
-| `cost` | `identity`, `domainmgmt` | `work`, `memory`, `execution` |
+| `memory` | `identity`, `domainmgmt`, `work`, `execution` | `cost` |
+| `execution` | `identity`, `domainmgmt`, `work`, `memory` | `cost` |
+| `cost` | `identity`, `domainmgmt`, `work`, `execution` | `memory` |
 
-"ids only" means: the identifier value object, nothing else. `work` may hold a
-`DomainId`; it may not hold a `Domain`.
+Every row matches the `Consumes` column of §3 exactly, and the table above is the only
+normative statement of it. `cost` imports `work`'s ids because a spend record carries
+`workItemId` and `epicId` (`60-cost-model.md` §3.2); it imports `execution`'s events
+because it consumes `AgentRunCompleted` (§6.1). Neither is an internals dependency.
 
-**Enforced by:** ArchUnit `SlicesRuleDefinition` over `com.modus.core.(*)..` with the
-explicit allowlist above, plus a global "no cycles between slices" rule.
+`memory` and `execution` each import the other's published language. That is a cycle at
+context granularity and it is **intentional**: both consume each other's events, and
+neither can see the other's internals. It is not a cycle in the package graph, because
+published packages are leaves.
+
+**Enforced by:** two ArchUnit rules, both derived directly from the tables above.
+`ContextInternalsAreSealed` — no type outside `com.modus.core.<ctx>..` may depend on
+`com.modus.core.<ctx>..` except on `..domain.event..` or `..domain.published..`.
+`PublishedLanguageAllowlist` — a context's dependencies on another context's published
+packages are limited to the row above. Plus `PublishedLanguageIsLeaf` (§4.2) and a
+"no cycles" rule over the internals slices only, `com.modus.core.(*)..` minus the two
+published packages. Assigned to `ContextIsolationRules` (`30-code-style.md` §5).
 
 ---
 
@@ -125,7 +161,7 @@ This is the source table an ArchUnit test is derived from. One row per (module, 
 | `adapters:*` | another `adapters:*` | DENY |
 | `adapters:*` | `modules:*`, `app:*` | DENY |
 | `modules:*` | `core:core-domain`, `core:core-application` | ALLOW |
-| `modules:*` | `org.springframework.*` | ALLOW |
+| `modules:*` | `org.springframework.*`, its own third-party libs | ALLOW |
 | `modules:*` | another `modules:*` | DENY |
 | `modules:*` | `adapters:*` | DENY |
 | `app:modus-server` | any Gradle module | ALLOW |
@@ -143,8 +179,9 @@ This is the source table an ArchUnit test is derived from. One row per (module, 
 | `NoAmbientRandom` | No call to `UUID.randomUUID`, `Math.random`, no `kotlin.random.Random.Default`. |
 | `NoAmbientConcurrency` | No `java.util.concurrent..`, no `Thread`, no `Dispatchers`. |
 | `NoReflection` | No `java.lang.reflect..`, no `::class.java` beyond `equals`/`hashCode` support. |
-| `AggregatesAreSealedOrFinal` | Aggregate roots are `final` (Kotlin default) — no `open` aggregate. |
+| `AggregatesAreSealedOrFinal` | Every type in `..domain.aggregate..` is `final` (Kotlin default) — no `open` aggregate. The package convention (`20-ddd-practices.md` §5.1) is what gives this rule a decidable scope. |
 | `EventsAreDataClasses` | Every type in `..domain.event..` is a `data class` and every property is `val`. |
+| `PublishedLanguageIsLeaf` | No type in `..domain.event..` or `..domain.published..` depends on anything beyond the Kotlin stdlib, `java.time` types, and its own context's `..domain.published..`. This is the rule §3.1 rests on. |
 | `PortsAreInterfaces` | Every type in `..domain.port..` is an `interface` with no default implementations that perform IO. |
 
 ### 4.3 Adapter rules
@@ -154,7 +191,7 @@ This is the source table an ArchUnit test is derived from. One row per (module, 
 | `AdaptersImplementPorts` | Every class in `..adapter..` annotated `@Component`/`@Repository`/`@Service` implements at least one `core` port, or is a Spring plumbing type on a named allowlist. |
 | `DomainTypesDoNotEscape` | No `core-domain` type appears in an `adapter-rest` controller signature — DTOs only. |
 | `NoDtoInCore` | No type named `*Dto`, `*Request`, `*Response` exists under `core/`. |
-| `ControllersAreDomainScoped` | Every `@RequestMapping`/`@GetMapping`/… path starts with `/domains/{domainId}` (allowlist: `/auth/**`, `/health`, `/openapi.json`). |
+| `ControllersAreDomainScoped` | Every `@RequestMapping`/`@GetMapping`/… path starts with `/domains/{domainId}`, unless it matches the **non-domain-scoped route allowlist** in §5.1. The rule reads that list; it does not restate it. |
 | `NoFieldInjection` | No `@Autowired` on a field or setter anywhere. Constructor injection only. |
 
 **Enforced by:** ArchUnit tests in `build-logic`'s `modus.archunit` convention plugin,
@@ -181,14 +218,22 @@ Every resource in the Modus REST API is nested under a domain:
 /domains/{domainId}/skills
 ```
 
-The only non-domain-scoped routes, and the complete list of them:
+#### The non-domain-scoped route allowlist
 
-```
-/auth/**            login, token exchange, session
-/domains            list domains this actor can see; create a domain
-/health             liveness
-/openapi.json       API description, filtered to what the actor may see
-```
+This is the **single normative copy** of the list. `ControllersAreDomainScoped` (§4.3),
+the `DomainScopedRoute` Detekt rule (`30-code-style.md` §4) and `00-constitution.md` §8
+all cite it by name; none of them restates its members, because three copies of one
+allowlist drift. Adding a member requires an ADR (§9).
+
+| Pattern | Match | Covers |
+|---|---|---|
+| `/auth/**` | prefix | login, token exchange, session |
+| `/domains` | **exact** | list domains this actor can see; create a domain |
+| `/health` | exact | liveness |
+| `/openapi.json` | exact | API description, filtered to what the actor may see |
+
+`/domains` is an exact match, not `/domains/**`: `/domains/{domainId}/…` is domain-scoped
+and is covered by the ordinary rule, so the allowlist must not swallow it.
 
 ### 5.2 Why
 
@@ -232,6 +277,33 @@ suite (`DomainIsolationIT`) that, for every registered route, asserts a `404` fo
 actor without a grant; and a Playwright test asserting the backoffice never renders a
 module the session cannot reach.
 
+### 5.5 Grant administration
+
+§5.3 says how a grant is *checked*. This says how one is *created*, which is the other
+half and is easy to leave unowned.
+
+- A `PermissionGrant` (`identity`) binds one actor to one domain and one scope set.
+  Scopes are `read`, `write`, `admin`, optionally narrowed to a resource kind. There is
+  no wildcard grant across domains and no global administrator role — a superuser is a
+  cross-domain visibility hole, which `00-constitution.md` §8 forbids.
+- Grants are administered **inside the domain they concern**, under
+  `/domains/{domainId}/grants`, and are therefore subject to the same 404-not-403 rule as
+  everything else. An actor with `admin` on a domain may issue, narrow and revoke grants
+  on that domain and no other.
+- **Bootstrap:** the first actor is created by `app/modus-server` at first start from
+  configuration, and the creator of a domain receives an `admin` grant on it in the same
+  transaction as `DomainCreated`. There is no other path to a first grant, because every
+  other path is a privilege-escalation path.
+- Issuing and revoking emit `GrantIssued` / `GrantRevoked` (§3). `domainmgmt` consumes
+  `GrantRevoked`; `execution` closes the revoked actor's open runs
+  (`20-ddd-practices.md` §7.1, cross-context row).
+- Every grant change is appended to the domain's event log and is therefore auditable
+  from the store with no extra machinery (`40-durability.md` §3).
+
+**Enforcement gap:** the backoffice grant-administration screens, and the Playwright
+assertions that an actor without `admin` cannot reach them, are not specified here. They
+are named as a follow-up in `beans/0001`, which owns raising the work item.
+
 ---
 
 ## 6. Cross-cutting flows
@@ -264,6 +336,36 @@ Both carry a `Last-Event-ID` / offset so a dropped connection resumes losslessly
 SSE is the default because it is simpler, proxy-friendly, and sufficient for one-way
 output. WebSocket is used only where bidirectional interaction is genuinely required.
 
+### 6.3 Triggers
+
+§6.1 names four things that fire a run. A `Trigger` is the aggregate that decides which,
+and it is per-domain like every other process concern (`00-constitution.md` §8).
+
+A `Trigger` carries: a `TriggerId`; the `domainId` it belongs to; a **source** — one of
+`work-item-transitioned`, `schedule`, `webhook`, `manual`; a **condition** over that
+source (a target state for a transition, a cron expression for a schedule, a signed
+path for a webhook); a **target spec** (the model, effort and skill the run starts with,
+per `60-cost-model.md` §4.4); and `enabled`. Triggers are ordinary domain documents
+under `domains/<domainId>/triggers/<triggerId>.md`, so they are editable, diffable and
+reviewable like everything else.
+
+Rules, because the interesting cases are all concurrency cases:
+
+| # | Rule |
+|---|---|
+| 6.3.1 | A trigger fires by **appending a run request**, never by launching a process inline. Firing is a domain decision; launching is an adapter's job. |
+| 6.3.2 | **A trigger has at most one in-flight run per target.** If it fires while a run for the same target is in flight, the firing is recorded as `coalesced` against the in-flight run and no second run starts. Two agents on one work item is the most expensive concurrency bug in the system. |
+| 6.3.3 | A firing that is refused — coalesced, disabled, or over the domain's budget (`60-cost-model.md` §8) — is still **recorded**. A trigger that silently does nothing is undebuggable. |
+| 6.3.4 | Firings are **idempotent per (triggerId, causeId)**. A redelivered webhook or a replayed event fires once. The `causeId` is the event id for event sources and the delivery id for webhooks. |
+| 6.3.5 | A trigger MUST NOT fire on an event its own run published. Self-triggering loops are cut at the trigger, not at the budget. |
+| 6.3.6 | Disabling a trigger never cancels an in-flight run; it prevents the next firing. Cancelling a run is a separate, explicit operation. |
+
+**Enforced by:** the coalescing and idempotence rules are invariants on the `Trigger`
+aggregate with accepting and rejecting tests (`20-ddd-practices.md` §7.3); the
+`(triggerId, causeId)` uniqueness is checked against the domain's event log at firing
+time. **Enforcement gap:** per-domain trigger configuration in the backoffice is not
+specified; named as a follow-up in `beans/0001`.
+
 ---
 
 ## 7. Module system
@@ -272,8 +374,11 @@ A Modus Module is a Gradle module under `modules/` that:
 
 1. Declares a `ModuleDescriptor` (stable id, version, the resource kinds it serves, the
    permissions it defines, the routes it contributes).
-2. Depends only on `core-domain`, `core-application`, and adapter **ports** — never an
-   adapter implementation. A module that needs to persist uses the repository ports.
+2. Depends only on `core-domain` and `core-application` — never on an adapter. Ports are
+   declared in `core` and implemented by adapters (`00-constitution.md` §1.2), so a
+   module that needs to persist depends on the repository port in `core-domain`; there is
+   no such thing as an "adapter port" to depend on. Spring is permitted in a module
+   (§4.1) because a module is wired like an adapter, not like the core.
 3. Is installable per domain, and does nothing at all in a domain where it is not
    installed. A module MUST NOT register global state, global routes, or global beans
    that are observable from an uninstalled domain.

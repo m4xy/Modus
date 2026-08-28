@@ -27,17 +27,31 @@ Owning context: `cost` (`10-architecture.md` §3). Owning module: `modules/modul
 Sourced from the `claude-api` skill (cached 2026-06-24). **This table is a snapshot, not
 the source of truth.** Prices per **million tokens**, Anthropic first-party API rates.
 
-| Model | Model ID | Context | Input $/1M | Output $/1M |
-|---|---|---|---|---|
-| Claude Fable 5 | `claude-fable-5` | 1M | $10.00 | $50.00 |
-| Claude Mythos 5 *(Project Glasswing only)* | `claude-mythos-5` | 1M | $10.00 | $50.00 |
-| Claude Opus 5 | `claude-opus-5` | 1M | $5.00 | $25.00 |
-| Claude Opus 4.8 | `claude-opus-4-8` | 1M | $5.00 | $25.00 |
-| Claude Opus 4.7 | `claude-opus-4-7` | 1M | $5.00 | $25.00 |
-| Claude Opus 4.6 | `claude-opus-4-6` | 1M | $5.00 | $25.00 |
-| Claude Sonnet 5 | `claude-sonnet-5` | 1M | $3.00 (intro $2.00 through 2026-08-31) | $15.00 (intro $10.00) |
-| Claude Sonnet 4.6 | `claude-sonnet-4-6` | 1M | $3.00 | $15.00 |
-| Claude Haiku 4.5 | `claude-haiku-4-5` | 200K | $1.00 | $5.00 |
+| Model | Model ID | Context | Input $/1M | Output $/1M | `output_config.effort` |
+|---|---|---|---|---|---|
+| Claude Fable 5 | `claude-fable-5` | 1M | $10.00 | $50.00 | `low` `medium` `high` `xhigh` `max` |
+| Claude Mythos 5 *(Project Glasswing only)* | `claude-mythos-5` | 1M | $10.00 | $50.00 | `low` `medium` `high` `xhigh` `max` |
+| Claude Opus 5 | `claude-opus-5` | 1M | $5.00 | $25.00 | `low` `medium` `high` `xhigh` `max` |
+| Claude Opus 4.8 | `claude-opus-4-8` | 1M | $5.00 | $25.00 | `low` `medium` `high` `xhigh` `max` |
+| Claude Opus 4.7 | `claude-opus-4-7` | 1M | $5.00 | $25.00 | `low` `medium` `high` `xhigh` `max` |
+| Claude Opus 4.6 | `claude-opus-4-6` | 1M | $5.00 | $25.00 | `low` `medium` `high` `max` — **no `xhigh`** |
+| Claude Sonnet 5 | `claude-sonnet-5` | 1M | $3.00 (intro $2.00 **through 2026-08-31**) | $15.00 (intro $10.00) | `low` `medium` `high` `xhigh` `max` |
+| Claude Sonnet 4.6 | `claude-sonnet-4-6` | 1M | $3.00 | $15.00 | `low` `medium` `high` `max` — **no `xhigh`** |
+| Claude Haiku 4.5 | `claude-haiku-4-5` | 200K | $1.00 | $5.00 | **none — the parameter is rejected (`400`)** |
+
+> **Sonnet 5 introductory pricing lapses after 2026-08-31.** On and after 2026-09-01 the
+> rate is the standard **$3.00 / $15.00** shown above — a 50% increase on both input and
+> output. If you are reading this on or after that date, the intro figures in the
+> parenthetical are **historical**: they are retained because a spend record computed
+> before the lapse must stay computable, not because they are current. §2.1 models this as
+> a price-book entry with an `effectiveTo`, so no code changes when it lapses; what does
+> need to happen is a `fetch`-evidenced entry for the standard rate, which is why
+> "populate the initial price book" is a live follow-up in `beans/0001`. Any spend
+> projection quoting $2.00/$10.00 for a run after the lapse is wrong.
+
+The **effort column is normative** and is the only statement of effort support in this
+package; §4.1, §4.4 and `70-skills.md` §3.7 all derive from it. Effort support is
+**per-model**, so the model × effort space is not rectangular — see §4.1.
 
 Notes that materially affect Modus's spend:
 
@@ -55,9 +69,10 @@ Notes that materially affect Modus's spend:
 - **Priority Tier does not cover Claude Opus 5**, Sonnet 5, or Mythos 5.
 - **Partner platforms** (Amazon Bedrock, Google Vertex AI) are separately priced. Claude
   on Microsoft Foundry bills at the standard API rates above.
-- **Effort levels** (`output_config.effort`: `low`, `medium`, `high`, `xhigh`, `max`) do
-  not change the per-token price. They change *how many tokens are spent*, and the effect
-  is large. Effort is the primary cost dial on a fixed model.
+- **Effort levels** (`output_config.effort`) do not change the per-token price. They change
+  *how many tokens are spent*, and the effect is large. Effort is the primary cost dial on
+  a fixed model. Which levels a model accepts is in the table above; sending an
+  unsupported one is a `400`, not a silent downgrade.
 
 ### 2.1 Keeping the price book current
 
@@ -152,12 +167,28 @@ Modus does not guess which model to use. It **measures**, and stores the measure
 ### 4.1 The benchmark procedure
 
 For a task category (§5.1), run a representative sample — at least 5 instances, ideally
-20 — across a grid, and record every cell:
+20 — across a grid, and record every cell.
+
+**The grid is ragged, not a cartesian product.** Effort support is per-model (§2), so
+`module-cost` MUST enumerate cells from the price book's effort column rather than
+crossing a model list with an effort list. A blind cross product produces cells that
+return `400` before they produce a measurement:
 
 ```
-models:  claude-haiku-4-5, claude-sonnet-5, claude-opus-5
-effort:  low, medium, high, xhigh
+claude-haiku-4-5:  (one cell, no effort parameter — the model rejects it with a 400)
+claude-sonnet-5:   low, medium, high, xhigh
+claude-opus-5:     low, medium, high, xhigh
 ```
+
+`max` is available on both Sonnet 5 and Opus 5 but is deliberately left out of the
+standard sweep: it is the "correctness matters more than cost" setting, so it is measured
+only for a category where `xhigh` failed to clear the success threshold. Add it as an
+extra row there rather than paying for it on every profile.
+
+**Enforced by:** a validation rule in `module-cost` — the same one that rejects an unknown
+`ModelId` (§2.1) — rejecting a `(modelId, effort)` pair the price book's effort column
+does not list. A benchmark that cannot be constructed is better than one that fails on its
+first cell.
 
 For every cell record:
 
@@ -200,9 +231,9 @@ to be replaced by evidence, not conclusions.
 | Long-horizon agentic implementation | `claude-opus-5` | `xhigh` | `xhigh` is the recommended setting for coding and agentic work on the Opus 5 generation |
 | Ordinary implementation and revision | `claude-opus-5` | `high` | The quality/token sweet spot |
 | Investigation subagents, fan-out search | `claude-opus-5` | `low` | Low effort means fewer, more consolidated tool calls; the parent keeps the judgement |
-| Mechanical transforms, classification, extraction | `claude-haiku-4-5` | n/a | 200K context is ample; 1/5 the input price of Opus |
+| Mechanical transforms, classification, extraction | `claude-haiku-4-5` | **n/a — the model rejects `effort` (§2)** | 200K context is ample; 1/5 the input price of Opus |
 | Bulk re-validation, nightly sweeps, benchmarking | any, via **Batch** | `medium` | 50% rate, latency irrelevant |
-| Code review — mechanical classes of defect | `claude-sonnet-5` | `medium` | See §6 |
+| Code review — mechanical classes of defect | `claude-sonnet-5` | `medium` | See §6. Re-check this row once Sonnet 5's introductory rate lapses on 2026-08-31 (§2): it was chosen against $2.00/$10.00, and the standard rate is 50% higher. |
 | Code review — design and correctness | `claude-opus-5` | `high` | See §6 |
 | A human is actively waiting on output | `claude-opus-5` + fast mode | `high` | 2× price for up to 2.5× throughput; only when the wait is real |
 
@@ -240,18 +271,31 @@ spend record derived from it.
 
 ### 5.3 The extraction trigger
 
+**This table is the single normative statement of the extraction thresholds.**
+`00-constitution.md` §5 states the principle and `70-skills.md` §2.1 gives the rationale
+per trigger; neither restates a number. Two copies of a threshold table diverge — these
+two already had.
+
 A category becomes a skill-extraction candidate when **any** holds:
 
-| Trigger | Threshold |
-|---|---|
-| Repetition | ≥ 3 instances in 90 days |
-| Aggregate spend | Total category spend ≥ 20× the estimated cost of writing the skill |
-| Variance | p90 cost ≥ 3× p50 cost (unpredictable work is expensive work) |
-| Rediscovery | ≥ 40% of category spend in the `investigate` stage |
-| Escaped defects | ≥ 1 escaped defect traceable to inconsistent execution of the category |
+| Trigger | Threshold | Raised by |
+|---|---|---|
+| Repetition | ≥ **3** instances in 90 days. Not two: a task done twice may never recur, and a skill for a task that does not recur is maintenance cost with no payback. | `module-cost` |
+| Aggregate spend | Total category spend ≥ 20× the estimated cost of writing the skill | `module-cost` |
+| Variance | p90 cost ≥ 3× p50 cost (unpredictable work is expensive work) | `module-cost` |
+| Rediscovery | ≥ 40% of category spend in the `investigate` stage | `module-cost` |
+| Escaped defects | ≥ 1 escaped defect traceable to inconsistent execution of the category | `module-cost` |
+| Inconsistency | Two agents did the same task materially differently | A human or an agent — **not measurable**; divergence has no numeric threshold |
+| Human repetition | A human explained the same thing twice | A human — **not measurable** |
+
+The last two rows have no threshold `module-cost` can compute and are raised by
+observation. They are listed here anyway so that the trigger set has one home; a trigger
+kept somewhere else because it is not automatable is a trigger that gets forgotten.
 
 **Enforced by:** `module-cost` raises a `skill-extraction-candidate` action into the
-domain's action list (§7). It does not create the skill; a human or an agent decides.
+domain's action list (§7) for the five measurable rows. It does not create the skill; a
+human or an agent decides. **Enforcement gap:** the last two rows are review-and-judgement
+only, by construction.
 
 ### 5.4 Extract
 
@@ -289,7 +333,7 @@ everything else.
 | 6.3 | Review input is **scoped to the diff plus its immediate context**, never the whole repository. `git diff --stat` first, then the hunks, then only the files a hunk actually depends on. |
 | 6.4 | Reviewing an unchanged file is billed as `overhead` and is a bug in the review skill. |
 | 6.5 | The review prompt prefix is **cached**. It is stable by construction: put the checklist and rules in the prefix, the diff last (`shared prefix → volatile suffix`). Verify cache hits via `cache_read_input_tokens`; a persistently zero value means something is invalidating the prefix. |
-| 6.6 | Review cost is attributed to the `review` stage of the work item under review, so the true cost of a change includes the cost of checking it. |
+| 6.6 | Review cost is attributed to the `review` stage of the work item under review, so the true cost of a change includes the cost of checking it. The author's cost of *responding* to review is a different stage, `revise` (§3.1, `80-agent-operating-procedure.md` §9.6) — one round trip, two stages, because "what did checking this cost?" and "what did fixing it cost?" are different questions. |
 | 6.7 | A defect class caught twice by review becomes a **tool rule** (Detekt/ArchUnit) rather than a review instruction. Review that repeatedly catches the same thing is a permanent tax; a lint rule is a one-off payment. |
 | 6.8 | Review runs on the **Batch API** when nobody is waiting — for example on a draft PR overnight. |
 

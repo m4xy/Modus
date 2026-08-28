@@ -36,7 +36,7 @@ rule can be.
 | `documentation/70-skills.md` | Extraction triggers and the escalation order (make impossible → mechanise → memory → skill → docs → ask); what a skill must contain including success criteria, validation command and cost profile; celebrity skills and long-tail curation; the autonomous test-and-validate contract |
 | `documentation/80-agent-operating-procedure.md` | The nine-step SOP: pick up, restate criteria, plan and budget, investigate, implement, self-validate, encode learnings, open the PR, respond to review — with context checkpoints, a tool cost ladder, a PR body template, and a failure-mode table |
 | `documentation/adr/0001-record-architecture-decisions.md` | Why ADRs exist here, what is architecturally significant, and six rejected alternatives |
-| `documentation/adr/0002-flat-file-over-database.md` | The flat-file decision, its eleven constituent commitments, honest negative consequences, and seven rejected alternatives including Postgres, SQLite and a hybrid |
+| `documentation/adr/0002-flat-file-over-database.md` | The flat-file decision, its twelve constituent commitments, honest negative consequences, and seven rejected alternatives including Postgres, SQLite and a hybrid |
 
 ### Out of scope
 
@@ -81,7 +81,7 @@ rule can be.
 | 9 | `00-constitution.md` §7.1–§7.4 | `citation` |
 | 10 | Both ADRs carry the header block plus Context / Decision / Consequences (positive, negative, neutral) / Alternatives considered; `0001` rejects six alternatives, `0002` rejects seven | `citation` |
 | 11 | `git status --short` on this branch shows additions only under `documentation/` and `beans/` | `command` |
-| 12 | `wc -l documentation/*.md documentation/adr/*.md` reports 107–363 lines per file (README 107; the nine numbered files 233–363; ADRs 130 and 164); 3,458 lines total across the package | `command` |
+| 12 | `wc -l documentation/*.md documentation/adr/*.md` after review cycle 1 reports 107–419 lines per file (README 107; the nine numbered files **266–419**, all inside the 250–500 range README requires; ADRs 130 and 178); 3,709 lines total across the package. Before the cycle, `30-code-style.md` was 233 — under the range, which the review noted; the finding-4 and finding-8 fixes brought it inside. | `command` |
 | 13 | `grep -rn '90-work-items' documentation/` shows the reference in `README.md` (×2), `00-constitution.md`, `20-ddd-practices.md` and `40-durability.md`, each stating it is owned separately | `command` |
 
 ## Decisions taken while authoring
@@ -131,3 +131,112 @@ rule can be.
 - Implement peak-context recording in the `execution` context to close the budget
   enforcement gap (`00-constitution.md` §6.2).
 - Populate the initial price book with `fetch`-evidenced entries.
+
+---
+
+## Review cycle 1 — pull request #1
+
+Eight inline threads were opened against the package, plus twelve lower-priority
+observations in the review summary body. Every thread was resolved by a change to the
+package; none was declined. The pricing figures and all nine model IDs in
+`60-cost-model.md` §2 were independently verified against the `claude-api` skill and were
+correct — they were not touched except to add the effort column and the lapse note.
+
+The pattern behind six of the eight findings is the same one, and it is worth naming: a
+rule was stated in more than one place, and the copies drifted. The fix in each case was
+to make one statement normative and have the others cite it, rather than to correct both
+copies and leave the drift mechanism in place.
+
+### The eight findings and their fixes
+
+| # | Where | Finding | Fix | Evidence |
+|---|---|---|---|---|
+| 1 | `60` §4.1 | The benchmark grid crossed `claude-haiku-4-5` with four effort levels, but Haiku 4.5 rejects `output_config.effort` with a `400`. Four cells that cannot run. | The price table in §2 gains a normative **effort column** per model; §4.1's grid is explicitly ragged and `module-cost` must enumerate cells from that column, enforced by the same validation rule that rejects an unknown `ModelId`. §4.4 and `70` §3.7 now cite it. | `60` §2 table, §4.1; `claude-api` skill: effort errors on Sonnet 4.5 and Haiku 4.5 |
+| 2 | `10` §3.1 | §3.1 forbade exactly the imports §3's `Consumes` column, §6.1's flow and `60` §3.2's spend record require. An ArchUnit rule derived from the table was unsatisfiable. | Published-language split (below). §3.1 rewritten; every row now matches §3 exactly. | `10` §3.1, §4.2 `PublishedLanguageIsLeaf`; `30` §5 `ContextIsolationRules` |
+| 3 | `10` §4.3 | The `ControllersAreDomainScoped` allowlist omitted `/domains`, which §5.1 declares required — so the rule failed the build for a required controller. Same gap in `DomainScopedRoute`, and a third looser phrasing in `00` §8. | §5.1 is now the **single normative copy**, named "the non-domain-scoped route allowlist", with `/domains` as an exact match. Both rules and `00` §8 cite it by name and carry no members. | `10` §5.1, §4.3; `30` §4; `00` §8 |
+| 4 | `30` §5 | ArchUnit was claimed to enforce a `//` comment on `@Disabled`. Comments are discarded by the compiler; no ArchUnit rule can ever see one. Three documents told agents the build caught it. | Replaced with `DisabledCarriesWorkItem` (`30` §5.1): the reference is an **annotation value** matching `^beans/\d{4}`, which is retained in the class file. Kotest's `enabled = false` is forbidden because it has no annotation to carry the reference. `30` §7 and `80` step 6 updated. Added an explicit note on what Detekt can see that ArchUnit cannot. | `30` §4 (closing note), §5.1, §7; `80` step 6 |
+| 5 | `20` §2.2 | The canonical aggregate example violated §2.1.4, `JustifiedVar` and §7.2 — the most-copied snippet in the package failed the build it teaches. | §2.1.4 clarified to "no mutable **public** API"; the example now carries a justified `private var state`, a `private val successCriteria`, throws `WorkItemTransitionNotPermittedException` instead of `require`, and lives in `..domain.aggregate`. | `20` §2.1.4, §2.2 |
+| 6 | `00` §5 | Skill extraction fired on the second occurrence here and the third in `60`/`70`, and this file has precedence — a rule an agent cannot obey. | Threshold is **three**, everywhere. `60` §5.3 is the single normative trigger table and absorbed the two triggers that existed only in `70`; `00` §5 states the principle and `70` §2.1 keeps the rationale, neither restating a number. | `00` §5; `60` §5.3; `70` §2.1, §2.2 |
+| 7 | `40` §2.2.5, §4.2 | The `PIPE_BUF` guarantee was wrong: it bounds pipe writes, not regular-file writes; it is 512 on macOS, this project's dev platform; and no JVM API can promise one `write(2)` per record. Load-bearing for §5 and `adr/0002`. | Underlying design replaced (below), not just the sentence. `adr/0002` gains Decision §5 stating append integrity honestly. | `40` §2.2.5–2.2.7, §4.2, §5, §6.1, §7; `adr/0002` §5 |
+| 8 | `20` §8 | "Each is enforced by ArchUnit, by `ForbiddenDomainApi`, or by both" was false for three rows, plus an undecidable `*Service` allowlist and an unscopeable coverage claim. | §8 split into §8.1 (per-row `Enforced by`) and §8.2 (`Enforcement gap: review only`). Mutable singleton state gets a real tool — the new Detekt rule `NoMutableSingletonState`. `*Service` banned outright. §7.3's coverage floor rescoped to the `..domain.aggregate` package, which Jacoco can actually target. | `20` §8.1, §8.2, §5.1, §7.3; `30` §4 |
+
+### Design decision — finding 2: the dependency direction
+
+**Domain events as a published language, not a direct dependency.** Each context is split
+into a **published language** — `..domain.event` (its events) and `..domain.published`
+(its identifiers, plus any value object appearing in an event signature) — and its
+**internals**, which nobody may import, with no allowlist and no exception. A context may
+import another context's published packages only where §3.1's table says so, and those
+rows now match §3's `Consumes` column exactly.
+
+Two properties make this expressible as ArchUnit rules rather than as prose.
+`PublishedLanguageIsLeaf`: a published package may reference only the Kotlin stdlib,
+`java.time` types, and its own context's published package. Because published packages are
+leaves, `memory` and `execution` importing each other's events is a cycle at *context*
+granularity but not in the *package* graph — so the no-cycles rule is stated over the
+internals slices and both facts stay true at once. The split has a useful side effect:
+putting a type into an event's signature publishes it, which is a visible, reviewable act
+and, per §4.1.5, a breaking contract change requiring an ADR.
+
+The alternative considered and rejected was an anti-corruption port per consumer. It
+avoids the context-level cycle entirely, but adds a translation layer per edge for no
+benefit at this scale and contradicts §4.1.6's "events are the cross-context coupling
+mechanism".
+
+### Design decision — finding 7: the durability mechanism
+
+**Detection, not prevention — three separable mechanisms, each claiming only what it
+actually provides.** `O_APPEND` guarantees that offset selection and the write are one
+atomic step against other appenders, so an append never *overwrites* another; it does not
+promise the write is one syscall. A per-log **appender lock**, held across the whole record
+with a retry loop on short writes, means Modus's own writers never interleave at any size —
+this replaces the old size threshold entirely, so a record's length no longer changes which
+code path runs. A per-record **CRC-32C** (`crc`, last key, computed over the canonical
+serialisation with `crc` omitted) makes any record that did tear **detectable on read**: it
+is skipped, counted, and the log marked `degraded`, never repaired and never silently
+dropped.
+
+The reader checks every line, not only the last, because a fragment of one record can be
+followed by a complete later record and then the fragment's tail. Truncation repair is
+narrowed to the final line only. Durability itself comes from `fsync` (§5) and never from
+write size; the resume-cursor contract now rests on that alone, so a record skipped for a
+bad CRC is always one the client was never promised. Linux's inode-lock serialisation of a
+single `write()` is noted as a non-portable implementation detail we deliberately do not
+rely on, because macOS is a supported development platform.
+
+### Also actioned, from the review summary body
+
+| Item | Fix |
+|---|---|
+| The gate specified three ways (`00` §7.2.4, `30` §6, `80` step 6) | `00` §7.2.4 is the single normative gate — `spotlessApply`, `check` (backoffice included), `e2eTest` only when user-visible behaviour changed. Playwright is deliberately outside `check`, with the reason stated. The other two cite it and carry no commands. |
+| `modules/*` dependency rules disagreed between `00` §1.1 and `10` §4.1/§7.2 | "adapter ports" deleted — ports live in `core` (§1.2), so there is nothing of that name to depend on. `00` §1.1 now matches `10` §4.1 (Spring allowed, no `adapters/*`), and §4.1 is declared the machine-readable form that wins on disagreement. |
+| Two divergent normative copies of the extraction triggers | Merged into `60` §5.3 (see finding 6). The two non-measurable triggers are kept there and marked as raised by observation, so the trigger set has one home. |
+| `superseded` with no `supersededBy` target | New `expired` status. The "work item closed → 30 days" trigger now yields `expired`; `superseded` always carries `supersededBy`, enforced by schema validation. |
+| Work items had two homes (`beans/` vs `domains/<id>/work/`) | One concept, one schema. `40` §3.1 states that `beans/` **is** the `modus` domain's work store at a shorter path, so self-hosting (`00` §12) needs no migration. |
+| `50` §4.1 gate 5 presented as enforced | Hedged like gates 1/2/4, and identified as the weakest of the five — semantic contradiction between free-text assertions is not decidable. `Enforcement gap:` added. |
+| `80` §9.6 vs `60` §6.6 attribution | Both amended to say the same thing: performing review bills to `review`; responding to it bills to `revise`. |
+| Thin coverage of **triggers** | New `10` §6.3: the `Trigger` shape, per-domain storage, and six rules covering the cases that actually bite — at most one in-flight run per target with coalescing recorded, refusals always recorded, idempotence per `(triggerId, causeId)`, no self-triggering, and disable-does-not-cancel. |
+| Thin coverage of **backoffice grant administration** | New `10` §5.5: grants administered under `/domains/{domainId}/grants` and therefore 404-scoped like everything else; no wildcard or global-admin grant; bootstrap defined as the only path to a first grant; revocation's cross-context consequence named. The backoffice screens remain an explicit enforcement gap. |
+| `Enforcement gap:` lines not naming a work item | The three gaps in `00` (§3, §4, §6.2) now name `beans/0001` — this file — which owns raising them under "Follow-up work items to raise". |
+| Sonnet 5 introductory pricing lapses 2026-08-31 | `60` §2 carries a dated block: from 2026-09-01 the rate is the standard $3.00/$15.00; the intro figures are historical and retained only so pre-lapse spend stays computable; any projection quoting them for a later run is wrong. §4.4's Sonnet 5 review row is flagged for re-check. |
+
+Not actioned, deliberately: the per-domain price-book design question (a genuine design
+debate, not a defect — it deserves an ADR rather than a patch); `30` §9.3's
+repo-wide-fix rule versus the 300k budget; and the three predicted dead letters in `50`
+§3.3 and `30` §2. Each was flagged by the reviewer as take-or-leave, and none is a false
+statement in the package.
+
+### Follow-up work items this cycle adds
+
+- Implement the `NoMutableSingletonState` custom Detekt rule (`30` §4) — the eleventh.
+- Implement `DisabledCarriesWorkItem` as an ArchUnit rule reading the `@Disabled`
+  annotation value (`30` §5.1).
+- Implement the three ArchUnit rules the published-language split requires:
+  `ContextInternalsAreSealed`, `PublishedLanguageAllowlist`, `PublishedLanguageIsLeaf`.
+- Add the `module-cost` validation rejecting a `(modelId, effort)` pair the price book's
+  effort column does not list (`60` §4.1).
+- Narrower rules for the two `20` §8.2 gaps: forbid a `Boolean?` property on a type in
+  `..domain.aggregate`, and raise `TooGenericExceptionThrown` to `error`.
+- Specify the backoffice grant-administration screens and their Playwright assertions
+  (`10` §5.5).
+- Specify per-domain trigger configuration in the backoffice (`10` §6.3).

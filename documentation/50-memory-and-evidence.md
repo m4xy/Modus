@@ -224,8 +224,13 @@ A memory write is refused unless all five pass:
    conflict first (§6.3) — do not stack contradictory memories.
 
 **Enforced by:** the `RecordMemoryUseCase` in `core-application` plus schema validation
-at the adapter; gates 1, 2 and 4 are partially heuristic and are additionally checked at
-review time.
+at the adapter. Only gate 3 is fully mechanical — presence and kind of evidence are
+structural facts. Gates 1, 2, 4 and **5** are heuristic and are additionally checked at
+review time; gate 5 is the weakest of them, since semantic contradiction between two
+free-text assertions is not decidable, and the use case can do no more than surface the
+scope's active memories for the writer to compare against.
+**Enforcement gap:** gates 1, 2, 4 and 5 are best-effort checks plus review. Do not read
+"refused unless all five pass" as "a machine proved all five".
 
 ### 4.2 Writing style for assertions
 
@@ -261,8 +266,9 @@ load.
   are read; a full evidence payload is fetched only when the agent needs to verify or
   challenge that specific memory. This keeps memory loading at hundreds of tokens rather
   than tens of thousands.
-- `superseded` and `invalidated` memories are **not** loaded by default. They are
-  available on request, which is what makes the history useful without making it costly.
+- `superseded`, `expired` and `invalidated` memories are **not** loaded by default. They
+  are available on request, which is what makes the history useful without making it
+  costly.
 - If the active memory set for a scope exceeds ~50 entries, that is a signal to
   consolidate (§6.4), not to raise the limit.
 
@@ -280,7 +286,14 @@ become the most expensive kind of lie: the confidently-cited stale fact.
 | `active` | Believed true; evidence stands | yes |
 | `stale` | Evidence's anchor changed; needs re-verification before reuse | no — surfaced as an operator action |
 | `invalidated` | Shown false; retained with the disproving evidence | no |
-| `superseded` | Replaced by a more precise or more current memory; carries `supersededBy` | no |
+| `superseded` | Replaced by a more precise or more current memory; **carries `supersededBy`, always** | no |
+| `expired` | Its subject is gone — the work item or epic it was scoped to is closed, and it was not promoted. Nothing replaced it | no |
+
+`superseded` and `expired` are not interchangeable. `superseded` means "we know the better
+version, here it is"; `expired` means "the thing this was about is over". A status that
+promises a `supersededBy` pointer must be able to produce one, so a memory whose subject
+merely ended is `expired`. **Enforced by:** schema validation rejecting a `superseded`
+memory with no `supersededBy`.
 
 Memories are **never deleted**. The history of what we believed and why we stopped
 believing it is itself valuable, and deletion would let a bad memory disappear without
@@ -294,7 +307,7 @@ anyone learning why it was bad.
 | A cited path is deleted or renamed | → `stale` | Yes |
 | A referenced `test-run` selector no longer exists | → `stale` | Yes |
 | A `fetch` evidence record is older than 90 days | → `stale` | Yes |
-| The referenced work item or epic is closed, for `story`/`epic` scope | → `superseded` after a 30-day grace period, unless promoted | Yes |
+| The referenced work item or epic is closed, for `story`/`epic` scope | → **`expired`** after a 30-day grace period, unless promoted to a wider scope. Not `superseded`: nothing replaced it, so there would be no `supersededBy` to set | Yes |
 | An agent observes behaviour contradicting the assertion, with evidence | → `invalidated`, with the disproving evidence attached | No — requires an agent action, gate-checked |
 | A more precise memory is recorded for the same claim | → `superseded`, `supersededBy` set | No |
 | A human marks it wrong in the backoffice | → `invalidated`, with the human as `capturedBy` and their reason as an `observation` | No |

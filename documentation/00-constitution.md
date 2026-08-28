@@ -37,14 +37,20 @@ core/core-domain                 (aggregates, VOs, events, ports — ZERO framew
 | `core/core-domain` | Kotlin stdlib, `java.time` **types** only | Spring, Jackson, JPA, HTTP, file IO, SLF4J, any `adapters/*`, any `modules/*`, `core-application` |
 | `core/core-application` | `core-domain`, Kotlin stdlib, coroutines | Spring, Jackson, any `adapters/*`, any `modules/*`, `app/*` |
 | `adapters/adapter-*` | `core-domain`, `core-application`, their own third-party libs | Any other `adapters/*`, `app/*`, `modules/*` |
-| `modules/module-*` | `core-domain`, `core-application`, adapter **ports** only | Another module's internals, `app/*`, any `adapters/*` implementation |
+| `modules/module-*` | `core-domain`, `core-application`, Spring, their own third-party libs | Any `adapters/*`, another `modules/*`, `app/*` |
 | `app/modus-server` | Everything | Nothing (it is the top) |
 | `backoffice/` | The REST API contract | Any Kotlin source |
 | `e2e/` | The running system over HTTP | Any Kotlin source |
 
+A module is wired like an adapter, so Spring is permitted in one; it is the **core** that
+is framework-free (§1.3). A module never depends on an adapter: ports are declared in
+`core` (§1.2), so "adapter ports" is not a thing that exists to depend on
+(`10-architecture.md` §7.2).
+
 **Enforced by:** ArchUnit (`build-logic` convention plugin `modus.archunit`), plus
-Gradle `api`/`implementation` module boundaries. The table in `10-architecture.md` §4
-is the machine-readable form; keep the two in sync.
+Gradle `api`/`implementation` module boundaries. The table in `10-architecture.md` §4.1
+is the machine-readable form and the one an ArchUnit test is generated from; this table
+is its prose rendering. If they disagree, §4.1 wins and this table is the bug.
 
 ### 1.2 Ports live inside, adapters implement them
 
@@ -111,8 +117,9 @@ The evidence record shape, the accepted evidence kinds, and invalidation rules a
 **Enforced by:** schema validation on memory files at write time in
 `adapters/adapter-persistence-flatfile`; a transition guard in the `work` context that
 refuses `done` without at least one evidence record per success criterion.
-**Enforcement gap:** PR-body evidence is currently a review responsibility; a CI check
-on PR body structure is a follow-up work item.
+**Enforcement gap:** PR-body evidence is currently a review responsibility. A CI check on
+PR body structure is owned by `beans/0001`, which lists it under "Follow-up work items to
+raise" and is accountable for raising it.
 
 ---
 
@@ -146,14 +153,23 @@ which is worth more than any token budget it saves.
 
 **Enforced by:** review, and the SOP in `80-agent-operating-procedure.md`.
 **Enforcement gap:** "questions asked per work item" should be recorded by the
-`execution` context; not yet implemented.
+`execution` context; not yet implemented. Owned by `beans/0001`, under "Follow-up work
+items to raise".
 
 ---
 
 ## 5. Prefer skills over improvisation
 
-If you are doing something for the second time, you extract a skill. If a skill exists
-for what you are about to do, you use it rather than reinventing the approach.
+**The third time you do something, you extract a skill.** The second time, you notice and
+record it; the third time you act. If a skill exists for what you are about to do, you use
+it rather than reinventing the approach.
+
+The threshold is three, not two, because a task done twice may never happen again, and a
+skill written for a task that does not recur is a maintenance cost with no payback
+(`70-skills.md` §2.2). The **single normative statement** of the extraction thresholds is
+the trigger table in `60-cost-model.md` §5.3 — it is the one `module-cost` measures. This
+section states the principle; it does not restate the numbers, and where it appeared to
+disagree with §5.3 it was this file that was wrong.
 
 Modus prefers **celebrity skills** — a small number of well-known, well-named, heavily
 reused skills — over a long tail of one-off scripts. See `70-skills.md`.
@@ -191,7 +207,8 @@ you catch this — before you have spent anything.
 
 **Enforced by:** the `execution` context records peak context per agent run and flags
 runs over 240k (80% of budget) as at-risk. **Enforcement gap:** the recorder is not yet
-implemented; until it is, self-report peak context in the PR body.
+implemented; until it is, self-report peak context in the PR body. Owned by `beans/0001`,
+under "Follow-up work items to raise".
 
 ---
 
@@ -210,13 +227,29 @@ a local `pre-push` hook that refuses a push to `main`.
 1. **Work item first.** Every branch has exactly one work item in `beans/`. If none
    exists, create it before you create the branch. The work item states the success
    criteria **before** the work starts. On-disk schema: `documentation/90-work-items.md`
-   (owned separately).
+   (owned separately). `beans/` **is** a work store in the sense of `40-durability.md` §3 —
+   specifically the one belonging to the `modus` domain, this repository. See
+   `40-durability.md` §3.1: there is one work-item concept, not two.
 2. **Branch.** Named `<kind>/<slug>`, `<kind>` ∈ {`feat`, `fix`, `docs`, `chore`,
    `refactor`, `test`, `perf`, `build`}. Example: `docs/foundation-documentation-package`.
 3. **Work.** Follow `80-agent-operating-procedure.md`.
-4. **Self-validate before opening the PR.** The full local gate must pass:
-   `./gradlew check` (compile + ktlint + Detekt + ArchUnit + unit + integration tests),
-   plus Playwright for any change touching `backoffice/`.
+4. **Self-validate before opening the PR.** This is **the gate**, stated once, here.
+   `30-code-style.md` §6 and `80-agent-operating-procedure.md` step 6 cite this block;
+   neither carries its own command list.
+
+   ```
+   ./gradlew spotlessApply   # fix formatting first, so the gate never fails on it
+   ./gradlew check           # compile, ktlint, Detekt, ArchUnit, Kotlin unit and
+                             # integration tests, AND the backoffice checks
+                             # (Prettier, ESLint, tsc --noEmit, knip, backoffice tests)
+   ./gradlew e2eTest         # Playwright; required only when user-visible behaviour changed
+   ```
+
+   `check` is one command by design: a gate you have to remember three halves of is a gate
+   people run two halves of. Playwright is deliberately **not** inside `check` — it needs a
+   built and running system and takes minutes, and putting it there would make the fast
+   gate slow enough that agents stop running it. CI runs `check` and `e2eTest` with no
+   extra arguments, so a green local run means a green CI run.
 5. **Pull request.** Conventional-commit title. The body states what changed, the success
    criteria from the work item, and the **evidence** each was met by. A PR body with a
    claim and no evidence is rejected without further review (§3).
@@ -260,9 +293,12 @@ produced them, so cost and quality can be attributed after the fact.
   done, its own required evidence kinds, its own model and effort policy. Modus supplies
   defaults; a domain may override any of them. Code MUST NOT hardcode a single process.
 
-**Enforced by:** an ArchUnit rule that every REST controller mapping begins with
-`/domains/{domainId}` (with a named allowlist for identity/bootstrap routes), plus an
-integration suite asserting the 404-not-403 property for every cross-domain access path.
+**Enforced by:** an ArchUnit rule (`ControllersAreDomainScoped`) and a Detekt rule
+(`DomainScopedRoute`) requiring every REST controller mapping to begin with
+`/domains/{domainId}` unless it matches the **non-domain-scoped route allowlist**, whose
+one normative copy is `10-architecture.md` §5.1. Neither rule, and not this section,
+carries a second copy of that list. Plus an integration suite asserting the 404-not-403
+property for every cross-domain access path.
 
 ---
 
