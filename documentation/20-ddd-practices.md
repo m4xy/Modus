@@ -6,6 +6,7 @@ superseded_by: null
 read_when:
   - path: core/**
   - task: aggregate|value object|entity|domain event|invariant|domain service|port interface|use case|ubiquitous language
+  - task: (add|new|write|create).{0,30}class
 provides:
   - doc:20-ddd-practices#aggregates
   - doc:20-ddd-practices#value-objects

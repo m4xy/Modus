@@ -18,9 +18,9 @@ front-matter, so `read_when` selected nothing and all nine checks were an
 | # | criterion | evidence | result |
 |---|---|---|---|
 | 1 | Every file under `documentation/` carries schema-valid front-matter | 14 files: 11 `documentation/*.md`, 3 ADRs; `docs-lint` checks 1, 2, 3, 7 pass over all of them | met |
-| 2 | `read_when` selects a strict subset per task, and the selection is reproducible | the six briefed scenarios select 5, 7, 6, 5, 5 and 4 of 14 documents; predicates and matches recorded in the PR body | met |
+| 2 | `read_when` selects a strict subset per task, and the selection is reproducible | the six briefed scenarios select 5, 7, 6, 6, 5 and 4 of 14 documents; predicates and matches recorded in the PR body | met |
 | 3 | `provides` anchors are unique repo-wide and declared where they are provided | 72 anchors, no bare-name collision; `docs-lint` checks 4 and 5 pass | met |
-| 4 | Every `doc:`/`bean:`/`adr:`/`rule:` reference resolves to exactly one target | 189 distinct references resolved; two pre-existing breaks found and fixed (below) | met |
+| 4 | Every `doc:`/`bean:`/`adr:`/`rule:` reference resolves to exactly one target | 189 distinct references resolved; one pre-existing break found and fixed (below) | met |
 | 5 | Each check is proved to fire | 12 mutations, one per check plus 3 second cases; each observed failing and reverted | met |
 | 6 | Local and CI run the same gate | `docsLint` is a dependency of `qualityCheck`, which `rule:ci/build` invokes verbatim; there is no separate CI step to drift | met |
 | 7 | `CLAUDE.md` holds no duplicated content | 5 lines, no rule of its own; the module graph, dependency rules, style rules and workflow it copied now live only in `AGENTS.md`, `settings.gradle.kts` and `documentation/` | met |
@@ -72,8 +72,6 @@ Evidence for 5 — one mutation per check, each reverted:
 - Check 6 cannot see a bare file path used where a reference exists
   (`doc:05-authoring-for-agents#reference-syntax`); the documents still cite each other as
   `40-durability.md §3`.
-- `doc:20-ddd-practices` is selected by `path: core/**`, so a task that names no planned
-  file selects it only from its `task:` predicate.
 - `doc:05-authoring-for-agents#reference-syntax` gives no way to quote a broken reference
   as evidence; the mutations above are recorded in prose because writing them verbatim
   fails check 6 in the file that reports them.
