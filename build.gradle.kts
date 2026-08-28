@@ -13,13 +13,22 @@ ktlint {
     }
 }
 
+// The nine checks of doc:05-authoring-for-agents#checks. A shell script rather than a
+// JavaExec: the checks match lines and globs, so a source set and a toolchain would buy
+// nothing. It runs from qualityCheck, which is the only command CI invokes.
+tasks.register<Exec>("docsLint") {
+    group = "verification"
+    description = "Runs the documentation front-matter, anchor and reference checks."
+    commandLine("bash", "tools/docs-lint.sh")
+}
+
 // The single aggregate entry point. CI runs exactly this, so "green locally"
 // and "green in CI" cannot mean two different things.
 tasks.register("qualityCheck") {
     group = "verification"
     description = "Runs every mechanical gate: compilation, tests, ktlint, Detekt and ArchUnit — build-logic included."
     dependsOn(
-        subprojects.map { "${it.path}:check" } + listOf("ktlintCheck"),
+        subprojects.map { "${it.path}:check" } + listOf("ktlintCheck", "docsLint"),
     )
     // An included build's tasks are not reached by anything in this build, so
     // the convention plugins' own ktlint/Detekt/allWarningsAsErrors gates have

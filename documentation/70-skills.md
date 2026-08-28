@@ -1,3 +1,22 @@
+---
+id: doc:70-skills
+title: Skills
+status: active
+superseded_by: null
+read_when:
+  - path: .claude/skills/**
+  - path: domains/*/skills/**
+  - task: skill|runbook|procedure|done (this|it) (before|twice|again)|repeat
+provides:
+  - doc:70-skills#what-a-skill-is
+  - doc:70-skills#when-to-extract
+  - doc:70-skills#required-sections
+  - doc:70-skills#celebrity-skills
+  - doc:70-skills#test-and-validate-contract
+  - doc:70-skills#skill-lifecycle
+depends_on: [doc:00-constitution, doc:30-code-style, doc:40-durability, doc:50-memory-and-evidence, doc:60-cost-model]
+---
+
 # 70 — Skills
 
 > **Always make skills for recurring tasks.**
@@ -8,7 +27,7 @@ expensive judgement becomes cheap procedure.
 
 ---
 
-## 1. What a skill is, and is not
+## 1. What a skill is, and is not <a id="what-a-skill-is"></a>
 
 | A skill **is** | A skill **is not** |
 |---|---|
@@ -24,7 +43,7 @@ allowed; they just do not get the name, and they do not get the cost claims.
 
 ---
 
-## 2. When to extract a skill
+## 2. When to extract a skill <a id="when-to-extract"></a>
 
 ### 2.1 The triggers
 
@@ -78,7 +97,7 @@ step 4 for a reason: it is cheap compared to human attention, but not free.
 
 ---
 
-## 3. What a skill must contain
+## 3. What a skill must contain <a id="required-sections"></a>
 
 Every skill is a document (`40-durability.md` §2.1) at
 `domains/<domainId>/skills/<skillId>.md`, or in the repository's `.claude/skills/` for
@@ -191,7 +210,7 @@ satisfy. This is what makes a skill's output auditable rather than merely plausi
 
 ---
 
-## 4. Celebrity skills
+## 4. Celebrity skills <a id="celebrity-skills"></a>
 
 > A **celebrity skill** is one that is well-known, well-named, heavily used, and trusted
 > enough that agents reach for it by name without being told to.
@@ -238,7 +257,7 @@ domain's action list, with usage numbers as evidence.
 
 ---
 
-## 5. The autonomous test-and-validate contract
+## 5. The autonomous test-and-validate contract <a id="test-and-validate-contract"></a>
 
 The defining property of a Modus skill: **it proves its own output correct without a
 human in the loop.** This is what makes remote orchestration possible.
@@ -293,7 +312,7 @@ out by investigation.
 
 ---
 
-## 6. Skill lifecycle
+## 6. Skill lifecycle <a id="skill-lifecycle"></a>
 
 | Phase | Entry condition | Exit condition |
 |---|---|---|

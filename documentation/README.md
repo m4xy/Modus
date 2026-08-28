@@ -1,3 +1,19 @@
+---
+id: doc:README
+title: Documentation package index
+status: active
+superseded_by: null
+read_when: always
+provides:
+  - doc:README#reading-order
+  - doc:README#minimum-read
+  - doc:README#ownership
+  - doc:README#encoding-rule
+  - doc:README#changing-this-package
+  - doc:README#conventions
+depends_on: [doc:00-constitution, doc:05-authoring-for-agents, doc:10-architecture, doc:20-ddd-practices, doc:30-code-style, doc:40-durability, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills, doc:80-agent-operating-procedure]
+---
+
 # Modus Documentation Package
 
 This directory is the **constitution** of the Modus repository. Every agent and every
@@ -11,15 +27,20 @@ the same pull request that fixes the behaviour.
 
 ---
 
-## Reading order
+## Reading order <a id="reading-order"></a>
 
-Read in the order below on your first pass. On subsequent tasks, read only what the
-"Read this when" column tells you to.
+Read in the order below on your first pass. On subsequent tasks, run the selection
+algorithm (`doc:05-authoring-for-agents#read-when`) over the front-matter instead.
+
+Derived listing (`doc:05-authoring-for-agents#one-fact-one-place`). The normative
+predicates are each document's own `read_when` front-matter; the "Read this when" column
+is a human gloss on it. On disagreement `read_when` wins and this table is the bug.
 
 | # | File | Read this when |
 |---|------|----------------|
 | — | [`README.md`](README.md) | You are new to the repository. Start here. |
 | 00 | [`00-constitution.md`](00-constitution.md) | **Always.** Non-negotiable rules. ~10 min. |
+| 05 | [`05-authoring-for-agents.md`](05-authoring-for-agents.md) | You are writing or editing a document, a bean, `AGENTS.md`, or a PR body. |
 | 10 | [`10-architecture.md`](10-architecture.md) | You are adding a module, a class, or an endpoint. |
 | 20 | [`20-ddd-practices.md`](20-ddd-practices.md) | You are writing anything in `core/`. |
 | 30 | [`30-code-style.md`](30-code-style.md) | You are writing Kotlin or TypeScript, or a build check fails. |
@@ -31,7 +52,7 @@ Read in the order below on your first pass. On subsequent tasks, read only what 
 | 90 | `90-work-items.md` | *Owned separately.* The on-disk work-item ("bean") spec. Not yet ratified. |
 | — | [`adr/`](adr/) | You want to know *why* a decision was made, or you are making a new one. |
 
-### The minimum an agent must read
+### The minimum an agent must read <a id="minimum-read"></a>
 
 `00-constitution.md` + `80-agent-operating-procedure.md`. Everything else is
 read-on-demand, driven by the table above. Reading the whole package on every task
@@ -39,7 +60,7 @@ is a context-budget violation (see `00-constitution.md` §6).
 
 ---
 
-## What is owned where
+## What is owned where <a id="ownership"></a>
 
 | Concern | Owner | Location |
 |---|---|---|
@@ -56,7 +77,7 @@ item that makes the enforcement real.
 
 ---
 
-## The encoding rule
+## The encoding rule <a id="encoding-rule"></a>
 
 > **Every learning is encoded back into this package.**
 
@@ -82,20 +103,21 @@ carries evidence.
 
 ---
 
-## How to change this package
+## How to change this package <a id="changing-this-package"></a>
 
 - Documentation changes go through the same branch → work item → PR → review → merge
   workflow as code. There are no direct commits to `main`. See `00-constitution.md` §7.
 - A change that removes or weakens a rule requires an ADR. A change that adds or
   clarifies a rule does not.
-- Keep each file in the 250–500 line range. If a file outgrows that, it is two files,
-  or it contains material that belongs in an ADR or in a skill.
+- Line budget for `documentation/*.md`: `max_lines: 500`, `min_lines: none` (`adr:0003`).
+  A file that outgrows the ceiling is two files, or it contains material that belongs in
+  an ADR or in a skill. Enforced by: `docs-lint` check 8, which reads both values here.
 - Prefer tables and imperatives. Avoid aspiration: "the code should be clean" is not a
   rule. "Cyclomatic complexity above 10 fails the Detekt build" is a rule.
 
 ---
 
-## Conventions used in this package
+## Conventions used in this package <a id="conventions"></a>
 
 - **MUST / MUST NOT** — mechanically enforced, or slated for enforcement. Violating it
   fails a build, a check, or review.

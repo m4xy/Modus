@@ -20,7 +20,10 @@ dependencyResolutionManagement {
 rootProject.name = "modus"
 
 // Project names are flat and unique; directories carry the layer grouping.
-// Keep this list and the dependency rules in CLAUDE.md in sync.
+// This list is the one home for the module set: no document restates it
+// (doc:05-authoring-for-agents#one-fact-one-place). What a module may depend on is
+// doc:10-architecture#module-dependencies, enforced by the ArchUnit rules in
+// architecture-tests — not by keeping a second copy of this list in sync.
 fun module(
     name: String,
     path: String,

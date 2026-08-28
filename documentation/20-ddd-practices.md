@@ -1,3 +1,21 @@
+---
+id: doc:20-ddd-practices
+title: DDD practices
+status: active
+superseded_by: null
+read_when:
+  - path: core/**
+  - task: aggregate|value object|entity|domain event|invariant|domain service|port interface|use case|ubiquitous language
+provides:
+  - doc:20-ddd-practices#aggregates
+  - doc:20-ddd-practices#value-objects
+  - doc:20-ddd-practices#domain-events
+  - doc:20-ddd-practices#ports-and-adapters
+  - doc:20-ddd-practices#invariants
+  - doc:20-ddd-practices#domain-prohibitions
+depends_on: [doc:00-constitution, doc:10-architecture, doc:30-code-style]
+---
+
 # 20 — DDD Practices
 
 Read this before writing anything in `core/`. These conventions are strict because
@@ -21,7 +39,7 @@ and a repository, the rule is in the wrong place.
 
 ---
 
-## 2. Aggregate design
+## 2. Aggregate design <a id="aggregates"></a>
 
 ### 2.1 Rules
 
@@ -111,7 +129,7 @@ Putting a megabyte-scale stream inside an aggregate would violate 2.1.6.
 
 ---
 
-## 3. Value objects
+## 3. Value objects <a id="value-objects"></a>
 
 ### 3.1 Rules
 
@@ -161,7 +179,7 @@ Detekt rule `NoFloatingPointMoney` (see `30-code-style.md` §4).
 
 ---
 
-## 4. Domain events
+## 4. Domain events <a id="domain-events"></a>
 
 ### 4.1 Rules
 
@@ -190,7 +208,7 @@ data class WorkItemTransitioned(
 
 ---
 
-## 5. Ports and adapters — naming and placement
+## 5. Ports and adapters — naming and placement <a id="ports-and-adapters"></a>
 
 ### 5.1 Naming and package placement
 
@@ -271,7 +289,7 @@ service" is mostly calling ports and coordinating, it is a use case — move it 
 
 ---
 
-## 7. Invariants
+## 7. Invariants <a id="invariants"></a>
 
 ### 7.1 Where invariants live
 
@@ -308,7 +326,7 @@ Naming a test after its invariant is checked by review, not by a tool.
 
 ---
 
-## 8. What is forbidden in `core-domain`
+## 8. What is forbidden in `core-domain` <a id="domain-prohibitions"></a>
 
 The complete list, with the rule that actually catches each row. A row whose enforcement
 is a person reading a diff says so; it does not borrow credibility from a tool that

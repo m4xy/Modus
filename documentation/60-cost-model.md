@@ -1,3 +1,23 @@
+---
+id: doc:60-cost-model
+title: Cost model
+status: active
+superseded_by: null
+read_when:
+  - path: modules/module-cost/**
+  - path: adapters/adapter-agent-claude/**
+  - task: cost|spend|price|budget|token|effort|benchmark|(pick|choose|select).{0,20}model|opus|sonnet|haiku|skill
+provides:
+  - doc:60-cost-model#price-book
+  - doc:60-cost-model#stage-attribution
+  - doc:60-cost-model#spend-record
+  - doc:60-cost-model#model-selection
+  - doc:60-cost-model#extraction-threshold
+  - doc:60-cost-model#cost-in-the-ui
+  - doc:60-cost-model#budgets
+depends_on: [doc:00-constitution, doc:10-architecture, doc:20-ddd-practices, doc:30-code-style, doc:40-durability, doc:50-memory-and-evidence, doc:70-skills, doc:80-agent-operating-procedure]
+---
+
 # 60 — Cost Model
 
 Modus knows what every stage of every workflow costs, in dollars, and it acts on that
@@ -22,7 +42,7 @@ Owning context: `cost` (`10-architecture.md` §3). Owning module: `modules/modul
 
 ---
 
-## 2. The model line-up and price book
+## 2. The model line-up and price book <a id="price-book"></a>
 
 Sourced from the `claude-api` skill (cached 2026-06-24). **This table is a snapshot, not
 the source of truth.** Prices per **million tokens**, Anthropic first-party API rates.
@@ -96,7 +116,7 @@ Notes that materially affect Modus's spend:
 
 ---
 
-## 3. Stage-level cost attribution
+## 3. Stage-level cost attribution <a id="stage-attribution"></a>
 
 ### 3.1 The stages
 
@@ -118,7 +138,7 @@ that costs are comparable across work items and across domains.
 `overhead` is a first-class stage on purpose. A cheap model that needs three attempts is
 not cheap, and the only way to see that is to bill the failures to the same work item.
 
-### 3.2 The spend record
+### 3.2 The spend record <a id="spend-record"></a>
 
 Appended to `domains/<domainId>/cost/NNNN.ndjson` — an append-only log
 (`40-durability.md` §2.2), fsynced per record because it is money.
@@ -205,7 +225,7 @@ For every cell record:
 Benchmarks run on the **Batch API** (50% cost) because they are not latency-sensitive.
 Benchmarking cost is itself recorded, against the skill or category being profiled.
 
-### 4.2 Selection rule
+### 4.2 Selection rule <a id="model-selection"></a>
 
 > Choose the **cheapest cell whose `successRate` clears the category's threshold and whose
 > `escapedDefectRate` is within tolerance**, ranked by `effectiveCostUsd`.
@@ -269,7 +289,7 @@ spend record derived from it.
 - Fraction of spend in the `investigate` stage — high fraction means agents keep
   rediscovering the same thing, which is a **memory** gap, not a skill gap
 
-### 5.3 The extraction trigger
+### 5.3 The extraction trigger <a id="extraction-threshold"></a>
 
 **This table is the single normative statement of the extraction thresholds.**
 `00-constitution.md` §5 states the principle and `70-skills.md` §2.1 gives the rationale
@@ -339,7 +359,7 @@ everything else.
 
 ---
 
-## 7. Cost in the UI
+## 7. Cost in the UI <a id="cost-in-the-ui"></a>
 
 The backoffice makes spend impossible to miss and impossible to misread. Every surface
 below is asserted by a Playwright test in `e2e/`.
@@ -394,7 +414,7 @@ valuable thing the operator could do next.
 
 ---
 
-## 8. Budgets
+## 8. Budgets <a id="budgets"></a>
 
 - A domain may declare a spend budget per period. Budgets are **advisory by default and
   enforcing by configuration** — a domain may choose to have runs refused past its cap.

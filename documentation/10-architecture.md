@@ -1,3 +1,27 @@
+---
+id: doc:10-architecture
+title: Architecture and module layout
+status: active
+superseded_by: null
+read_when:
+  - path: core/**
+  - path: adapters/**
+  - path: modules/**
+  - path: app/**
+  - path: architecture-tests/**
+  - path: settings.gradle.kts
+  - task: (add|new|move|rename|delete|split).{0,40}(module|class|endpoint|package|adapter|port|bounded context|route)
+  - task: layering|dependency rule|repository layout|domain root|trigger
+provides:
+  - doc:10-architecture#repository-layout
+  - doc:10-architecture#placement-table
+  - doc:10-architecture#bounded-contexts
+  - doc:10-architecture#module-dependencies
+  - doc:10-architecture#domain-root-convention
+  - doc:10-architecture#module-system
+depends_on: [doc:00-constitution, doc:20-ddd-practices, doc:30-code-style, doc:40-durability, doc:60-cost-model]
+---
+
 # 10 — Architecture
 
 Read this before adding a module, a class, a package, or an endpoint.
@@ -24,7 +48,7 @@ similar names; always qualify which you mean in code comments and commit scopes.
 
 ---
 
-## 2. Repository layout
+## 2. Repository layout <a id="repository-layout"></a>
 
 ```
 build-logic/                            convention plugins (style, arch, test)
@@ -45,9 +69,10 @@ backoffice/                             React + Vite + TypeScript
 e2e/                                    Playwright
 documentation/                          this package
 beans/                                  work items
+tools/                                  repository-wide checks that are not Kotlin rules
 ```
 
-### 2.1 What goes where — the decision table
+### 2.1 What goes where — the decision table <a id="placement-table"></a>
 
 | You are writing… | It goes in… |
 |---|---|
@@ -64,13 +89,14 @@ beans/                                  work items
 | A React component, route, or store | `backoffice/` |
 | A user-flow assertion | `e2e/` |
 | A ktlint/Detekt/ArchUnit rule or a shared Gradle convention | `build-logic/` |
+| A repository-wide check over files rather than over Kotlin (`docs-lint`) | `tools/`, invoked by a task in the root `build.gradle.kts` |
 
 If you cannot place your code using this table, you have discovered a gap. Do not guess:
 add a row here in the same pull request, with a rationale.
 
 ---
 
-## 3. Bounded contexts
+## 3. Bounded contexts <a id="bounded-contexts"></a>
 
 All six live as top-level packages under `com.modus.core.<context>` in **both**
 `core-domain` and `core-application`. A context never imports another context's internals.
@@ -146,7 +172,7 @@ published packages. Assigned to `ContextIsolationRules` (`30-code-style.md` §5)
 This is the source table an ArchUnit test is derived from. One row per (module, rule).
 `ALLOW` rows are exhaustive: anything not listed is denied.
 
-### 4.1 Gradle module dependencies
+### 4.1 Gradle module dependencies <a id="module-dependencies"></a>
 
 | From | To | Rule |
 |---|---|---|
@@ -199,7 +225,7 @@ applied to every Kotlin module. The tests fail the `check` task.
 
 ---
 
-## 5. The `/domains/{domainId}` API root convention
+## 5. The `/domains/{domainId}` API root convention <a id="domain-root-convention"></a>
 
 ### 5.1 The rule
 
@@ -368,7 +394,7 @@ specified; named as a follow-up in `beans/0001`.
 
 ---
 
-## 7. Module system
+## 7. Module system <a id="module-system"></a>
 
 A Modus Module is a Gradle module under `modules/` that:
 

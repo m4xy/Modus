@@ -8,7 +8,7 @@ read_when:
   - path: AGENTS.md
   - path: beans/**
   - path: .github/pull_request_template.md
-  - task: write|edit|review .*(document|doc|spec|bean|front-matter|pr body)
+  - task: (write|edit|review).{0,30}(document|doc|spec|bean|front-matter|pr body)
 provides:
   - doc:05-authoring-for-agents#front-matter
   - doc:05-authoring-for-agents#read-when
@@ -99,7 +99,7 @@ One scheme: `kind:name`, optionally `#anchor`. It MUST be used inline, in front-
 | `bean:0004` | `beans/0004-*.md` | exactly one match |
 | `adr:0002` | `documentation/adr/0002-*.md` | exactly one match |
 | `rule:archunit/domainIsFrameworkFree` | the `ArchRule` declared under that identifier in `architecture-tests/` | identifier verbatim, camelCase |
-| `rule:detekt/DomainScopedRoute` | the rule id in `config/detekt/detekt.yml` | |
+| `rule:detekt/CyclomaticComplexMethod` | the rule id in `config/detekt/detekt.yml` | id verbatim; a rule `doc:30-code-style#custom-detekt-rules` specifies but `config/detekt/detekt.yml` does not yet declare is not a target |
 | `rule:ci/build` | the job id in `.github/workflows/ci.yml` | |
 
 Resolution: `kind` selects the directory; `name` MUST include the fixed-width numeric id in full (2 digits for `doc:`, 4 digits for `bean:` and `adr:`), then selects the file by prefix-glob; `#anchor` selects the owning heading. A reference resolving to anything other than exactly one target is broken (§6 check 6). An agent that resolves a reference to zero or to more than one target MUST stop and report the ambiguity — it MUST NOT guess or continue on a partial match.

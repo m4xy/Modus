@@ -7,8 +7,7 @@ source of truth is flat files — Markdown documents and append-only NDJSON logs
 comments. A backoffice renders the flat files for humans.
 
 This file is canonical for agent onboarding and routes; it never restates a rule.
-`documentation/` is the authority. Follow-up (`bean:0004`): reduce `CLAUDE.md` to a pointer
-here, and add `doc:05-authoring-for-agents` to `documentation/README.md`.
+`documentation/` is the authority.
 
 ## Routing
 

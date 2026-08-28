@@ -1,3 +1,18 @@
+---
+id: doc:40-durability
+title: Durability model
+status: active
+superseded_by: null
+read_when:
+  - path: adapters/adapter-persistence-flatfile/**
+  - path: "**/*.ndjson"
+  - task: on-disk format|atomic write|fsync|append-only|file lock
+provides:
+  - doc:40-durability#atomic-write
+  - doc:40-durability#append-only-log
+depends_on: [doc:00-constitution]
+---
+
 # 40 — Durability
 
 The flat-file durability model. Read this before touching persistence, file IO, or
@@ -64,7 +79,7 @@ Rules:
 The exact frontmatter schema for work items is `documentation/90-work-items.md` (owned
 separately). This document specifies *how* files are written, not *what is in them*.
 
-### 2.2 Logs — newline-delimited JSON, append-only
+### 2.2 Logs — newline-delimited JSON, append-only <a id="append-only-log"></a>
 
 For high-volume machine data: agent-run output, domain events, cost events, audit trail.
 
@@ -151,7 +166,7 @@ a directory move, not a design change.
 
 ---
 
-## 4. Atomic write
+## 4. Atomic write <a id="atomic-write"></a>
 
 **Every document write uses this sequence, without exception.** It is implemented once,
 in `adapters/adapter-persistence-flatfile`, and nothing else in the codebase calls

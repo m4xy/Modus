@@ -1,10 +1,21 @@
+---
+id: adr:0002-flat-file-over-database
+title: Flat files over a database
+status: active
+superseded_by: null
+read_when:
+  - path: adapters/adapter-persistence-flatfile/**
+  - task: database|flat file|sqlite|postgres|storage engine|why files|query|index
+provides:
+  - adr:0002-flat-file-over-database#flat-file-decision
+depends_on: [doc:00-constitution, doc:10-architecture, doc:20-ddd-practices, doc:40-durability, doc:60-cost-model]
+---
+
 # ADR 0002 — Flat files over a database
 
-- **Status:** Accepted
 - **Date:** 2026-08-28
 - **Deciders:** Modus core
 - **Supersedes:** —
-- **Superseded by:** —
 
 ## Context
 
@@ -45,7 +56,7 @@ Against all that: we lose ad-hoc query, store-enforced referential integrity, re
 multi-writer concurrency, and multi-record transactions. Those are genuine losses and the
 decision stands or falls on whether they can be lived with.
 
-## Decision
+## Decision <a id="flat-file-decision"></a>
 
 **Modus uses a durable flat-file store as its system of record. There is no database.**
 
