@@ -10,14 +10,19 @@ domain model and its architectural decisions; when this file and
 Everything is Gradle. Requires JDK 25 (the wrapper provisions the rest).
 
 ```bash
-./gradlew build          # compile + test + every mechanical gate
+./gradlew qualityCheck   # THE gate. Every module's check + build scripts + build-logic.
+                         # CI runs exactly this command and nothing else.
+./gradlew build          # compile + test + every module-level gate (not build-logic)
 ./gradlew ktlintCheck    # style only
 ./gradlew ktlintFormat   # fix style automatically — do this instead of hand-formatting
 ./gradlew detekt         # static analysis only
 ./gradlew :architecture-tests:test   # the architecture rules
-./gradlew qualityCheck   # aggregate: every module's check + build-script linting
 ./gradlew :modus-server:bootRun      # run the server
 ```
+
+`build-logic` is an included build, so its own ktlint/Detekt/`allWarningsAsErrors`
+gates are not reached by `build`. `qualityCheck` asks for them by name. If you
+change a convention plugin, run `qualityCheck`.
 
 Versions live in `gradle/libs.versions.toml` and nowhere else. Never write a
 version literal into a module's `build.gradle.kts`.
@@ -72,6 +77,13 @@ config — with a comment saying why — not the call site.
 
 Kotlin explicit API mode is on: public declarations need explicit visibility and
 return types.
+
+Detekt runs PSI-only (no type resolution — see the header of
+`config/detekt/detekt.yml` for why, and the `Enforcement gap:` it records). Every
+rule that needs type resolution is listed there with `active: false`. Do not turn
+one on: it will not fire, and a rule that cannot fire is worse than an admitted
+gap. The bans worth keeping — no `println`, no static `java.time` clocks — are
+enforced by ArchUnit in `architecture-tests`, which reads bytecode.
 
 Every module applies a convention plugin from `build-logic/`
 (`modus.kotlin-base`, `modus.spring-module`, `modus.spring-app`). No module

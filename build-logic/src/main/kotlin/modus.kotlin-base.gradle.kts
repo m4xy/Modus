@@ -1,13 +1,11 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
-/**
- * Baseline for every Kotlin module in Modus: JVM toolchain, compiler strictness,
- * and the mechanical gates (ktlint, Detekt, tests).
- *
- * No module may configure Kotlin, ktlint or Detekt itself. If a rule needs to
- * change, it changes here, once, for everybody.
- */
+// Baseline for every Kotlin module in Modus: JVM toolchain, compiler strictness,
+// and the mechanical gates (ktlint, Detekt, tests).
+//
+// No module may configure Kotlin, ktlint or Detekt itself. If a rule needs to
+// change, it changes here, once, for everybody.
 plugins {
     id("org.jetbrains.kotlin.jvm")
     id("org.jlleitschuh.gradle.ktlint")
@@ -17,7 +15,12 @@ val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 val javaToolchains = extensions.getByType<JavaToolchainService>()
 
 /** The JVM Modus itself is built for and runs on. */
-val projectJdk = libs.findVersion("javaToolchain").get().requiredVersion.toInt()
+val projectJdk =
+    libs
+        .findVersion("javaToolchain")
+        .get()
+        .requiredVersion
+        .toInt()
 
 /** The JVM the Detekt CLI is executed on. See the Detekt section below. */
 val detektJdk = 21
@@ -83,6 +86,21 @@ val detektConfigFile = isolated.rootProject.projectDirectory.file("config/detekt
 val detektReportFile = layout.buildDirectory.file("reports/detekt/detekt.html")
 val kotlinSources = layout.projectDirectory.dir("src")
 
+// The task is cacheable, so nothing about it may depend on where the checkout
+// lives: an absolute path in `args` would be part of the cache key and make
+// every entry unusable on another machine (or another worktree). Everything the
+// CLI is told is therefore relative to the working directory, which is this
+// project's directory.
+val detektWorkingDir = layout.projectDirectory.asFile
+val detektConfigArg = detektConfigFile.asFile.relativeTo(detektWorkingDir).invariantSeparatorsPath
+val detektInputArg = kotlinSources.asFile.relativeTo(detektWorkingDir).invariantSeparatorsPath
+val detektReportArg =
+    detektReportFile
+        .get()
+        .asFile
+        .relativeTo(detektWorkingDir)
+        .invariantSeparatorsPath
+
 val detektTask =
     tasks.register<JavaExec>("detekt") {
         group = "verification"
@@ -97,24 +115,45 @@ val detektTask =
         // Required by detekt-cli's own manifest when it is launched from a
         // classpath rather than as an executable jar.
         jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
+        workingDir = detektWorkingDir
 
         inputs
             .files(fileTree(kotlinSources) { include("**/*.kt") })
             .withPropertyName("kotlinSources")
             .withPathSensitivity(PathSensitivity.RELATIVE)
             .skipWhenEmpty()
-        inputs.file(detektConfigFile).withPropertyName("detektConfig")
+        // NONE, not the default ABSOLUTE: the config's contents decide the
+        // findings, its location does not.
+        inputs
+            .file(detektConfigFile)
+            .withPropertyName("detektConfig")
+            .withPathSensitivity(PathSensitivity.NONE)
         outputs.file(detektReportFile).withPropertyName("detektReport")
         outputs.cacheIf { true }
 
+        // DELIBERATELY PSI-ONLY. There is no `--classpath`/`--jvm-target` here,
+        // so Detekt performs no type resolution and skips every rule annotated
+        // @RequiresTypeResolution — silently, and without a warning.
+        //
+        // This is not an oversight and adding `--classpath` is not the fix:
+        // Detekt 1.23.8 embeds Kotlin 2.0.21 while Modus compiles with 2.4.10,
+        // and detekt#8865 (type resolution against Kotlin >= 2.3.0 producing "a
+        // ton of false positives") was closed NOT PLANNED with no backport.
+        //
+        // The cost is real and is written down rather than hidden: all 65
+        // affected rules are listed with `active: false` in
+        // config/detekt/detekt.yml, under an `Enforcement gap:` that names what
+        // is lost and the condition for closing it (Detekt 2.x stable). Note
+        // this is a SEPARATE problem from the JDK 21 launcher above, which is a
+        // crash workaround.
         args(
             "--config",
-            detektConfigFile.asFile.absolutePath,
+            detektConfigArg,
             "--build-upon-default-config",
             "--input",
-            kotlinSources.asFile.absolutePath,
+            detektInputArg,
             "--report",
-            "html:${detektReportFile.get().asFile.absolutePath}",
+            "html:$detektReportArg",
         )
     }
 

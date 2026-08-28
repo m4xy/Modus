@@ -22,10 +22,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 25 is the project toolchain. 21 is only there for the Detekt CLI, which
-      # embeds a Kotlin frontend that cannot run on a JDK 25 JVM — see the
-      # comment in build-logic/src/main/kotlin/modus.kotlin-base.gradle.kts.
-      # Gradle picks both up via org.gradle.java.installations.fromEnv.
+      # This is ONE build on JDK 25, not a JDK matrix.
+      #
+      # actions/setup-java points JAVA_HOME at the LAST version listed, so the
+      # Gradle daemon and every compile task run on 25. JDK 21 is installed
+      # solely so the Detekt CLI has a launcher: it embeds a Kotlin frontend
+      # that crashes on a JDK 25 JVM (see the comment in
+      # build-logic/src/main/kotlin/modus.kotlin-base.gradle.kts). Gradle finds
+      # both via org.gradle.java.installations.fromEnv.
+      #
+      # A matrix was considered and deliberately rejected: the Kotlin toolchain
+      # is pinned to 25 in gradle/libs.versions.toml, so a second job with a
+      # different launcher JVM would compile with the same toolchain and prove
+      # nothing about JDK 21 compatibility. Modus targets one JVM; when that
+      # changes, the matrix arrives with the second supported target, not before.
+      #
+      # Enforcement gap: nothing here exercises the foojay fallback — the path
+      #   where no JDK 21 is pre-installed and the toolchain resolver has to
+      #   provision one. setup-java always supplies it. Closing condition: the
+      #   JDK 21 launcher disappears entirely when Detekt 2.x is stable, which
+      #   removes the fallback rather than testing it.
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -37,8 +53,11 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
-      - name: Build, test, ktlint, Detekt and ArchUnit
-        run: ./gradlew build ktlintCheck detekt --stacktrace
+      # The SAME aggregate task CLAUDE.md documents for local use. CI must not
+      # run an equivalent-but-different command: the two would drift, and the
+      # first anyone would know is a red build nobody can reproduce.
+      - name: qualityCheck (compile, test, ktlint, Detekt, ArchUnit, build-logic)
+        run: ./gradlew qualityCheck --stacktrace
 
       - name: Upload reports
         if: failure()

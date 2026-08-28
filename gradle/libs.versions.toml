@@ -33,7 +33,11 @@ springdoc-openapi-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starte
 
 # --- Test -----------------------------------------------------------------
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
-archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+# Spring Boot's BOM manages JUnit Jupiter 6.x, so the junit6 flavour of the
+# ArchUnit engine is the one actually built against the platform we run on.
+# archunit-junit5 resolves and works, but only because the BOM force-upgrades
+# junit-platform-engine across a major version — see PR #2 review.
+archunit-junit6 = { module = "com.tngtech.archunit:archunit-junit6", version.ref = "archunit" }
 
 [plugins]
 # The Kotlin plugin is declared here so the root project can put it on the
