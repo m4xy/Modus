@@ -1,0 +1,122 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  padding: var(--space-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+.heroMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.heroLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.heroValue {
+  font-size: var(--text-hero);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.heroDelta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+.up {
+  color: var(--warn);
+  font-variant-numeric: tabular-nums;
+}
+
+.down {
+  color: var(--good);
+  font-variant-numeric: tabular-nums;
+}
+
+.heroAside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  justify-content: center;
+  padding-left: var(--space-6);
+  border-left: 1px solid var(--line);
+}
+
+.asideRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.asideLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.asideValue {
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.budgetTrack {
+  height: 6px;
+  margin-top: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.budgetFill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--spend);
+}
+
+.budgetOver {
+  background: var(--danger);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: var(--space-5);
+}
+
+@media (max-width: 52rem) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .heroAside {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-top: var(--space-5);
+  }
+}
