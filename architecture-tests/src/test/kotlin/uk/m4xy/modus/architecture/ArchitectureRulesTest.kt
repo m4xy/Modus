@@ -25,7 +25,11 @@ import java.time.LocalDateTime
  */
 @AnalyzeClasses(
     packages = [ArchitectureRulesTest.ROOT],
-    importOptions = [ImportOption.DoNotIncludeTests::class],
+    // DoNotIncludeTests only recognises test *directories*. Unit-test bytecode
+    // now also reaches this classpath as jars, for TestPurityRulesTest, so it
+    // has to be excluded by classifier too — these rules are about production
+    // code and a test may legitimately depend on the module it tests.
+    importOptions = [ImportOption.DoNotIncludeTests::class, ExcludeUnitTestClasses::class],
 )
 class ArchitectureRulesTest {
     /**

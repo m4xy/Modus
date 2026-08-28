@@ -1,3 +1,6 @@
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.attributes.Usage
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
@@ -161,9 +164,194 @@ tasks.named("check") {
     dependsOn(detektTask)
 }
 
-// --- Tests ----------------------------------------------------------------
-dependencies {
-    testImplementation(kotlin("test"))
+// --- Test suites ----------------------------------------------------------
+// src/test is unit and acceptance: no Spring context, no I/O, fast.
+// src/integrationTest gets the context, the filesystem, and permission to be slow.
+// Declared with Gradle's JVM Test Suite plugin (incubating in 9.7.1, and the
+// supported way to divide tests by purpose). The split is not a naming
+// convention review has to police: modus.spring-module strips Spring off the
+// unit-test classpath, so misclassification fails to COMPILE. See doc:35-testing.
+//
+// kotlin-test-junit5 is named outright because a suite's dependency block takes
+// a coordinate, and the Kotlin plugin's implicit kotlin-test substitution fires
+// only for the built-in `test` source set — on a custom suite it leaves
+// `kotlin.test.Test` unresolved.
+val kotlinTest = "org.jetbrains.kotlin:kotlin-test-junit5:${libs.findVersion("kotlin").get().requiredVersion}"
+val kotestAssertions = libs.findLibrary("kotest-assertions-core").get()
+
+testing {
+    suites {
+        withType<JvmTestSuite>().configureEach {
+            dependencies {
+                implementation(kotlinTest)
+                // Assertions, not a runner — see gradle/libs.versions.toml.
+                implementation(kotestAssertions)
+            }
+        }
+
+        register<JvmTestSuite>("integrationTest") {
+            // `implementation(project())` is the only way a custom suite sees
+            // the main output.
+            dependencies { implementation(project()) }
+        }
+    }
+}
+
+// A custom suite starts from nothing, where `test` inherits `implementation` and
+// `runtimeOnly` for free. Integration tests need at least what main needs.
+configurations.named("integrationTestImplementation") {
+    extendsFrom(configurations.getByName("implementation"))
+}
+configurations.named("integrationTestRuntimeOnly") {
+    extendsFrom(configurations.getByName("runtimeOnly"))
+}
+
+// --- Unit-test classes, published for the architecture rules --------------
+// :architecture-tests asserts the test-purity rules against compiled unit-test
+// bytecode, which is on no classpath it would otherwise see. Modules expose
+// theirs as a jar under a Modus-private Usage attribute: nothing else can
+// resolve it, and no module has to opt in.
+val unitTestOutput =
+    extensions
+        .getByType<JavaPluginExtension>()
+        .sourceSets
+        .named("test")
+        .map { it.output }
+
+val unitTestClassesJar =
+    tasks.register<Jar>("unitTestClassesJar") {
+        group = "verification"
+        description = "Packages this module's unit-test classes for :architecture-tests to analyse."
+        archiveClassifier = "unit-tests"
+        from(unitTestOutput)
+    }
+
+configurations.consumable("unitTestClasses") {
+    description = "This module's compiled unit-test classes, for architecture analysis only."
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, "modus-unit-test-classes"))
+    }
+    outgoing.artifact(unitTestClassesJar)
+}
+
+// --- What a unit test may see, as an allowlist -----------------------------
+// `testImplementation` extends `implementation`, so every production dependency
+// of a module arrives on the unit-test classpath unless it is cut. The cut is
+// the two `exclude` lines below, and it is a DENYLIST — Gradle's exclude matches
+// a group exactly, so it can only ever name what is already known to be there.
+//
+// A denylist is the wrong shape for the guarantee this taxonomy rests on. Every
+// group it forgets is admitted SILENTLY: before this task was an allowlist,
+// `:adapter-rest`'s unit-test classpath carried springdoc, swagger, jakarta and
+// five Jackson artifacts, and a unit test importing them compiled, ran and
+// passed. The classpath was half-stripped, which is worse than either extreme —
+// the compile-time guarantee is gone AND the test dies at run time inside a
+// third-party class with `NoClassDefFoundError: org/springframework/util/Assert`.
+//
+// So the exclusions are the mechanism and this task is the contract. The set of
+// things a *unit* test legitimately needs is small and stable, so it is stated
+// positively: Kotlin, the runner, the assertions, the ArchUnit harness, and the
+// annotation-only artifacts those drag in. Anything else fails the build until
+// somebody decides it belongs on a unit-test classpath — a new dependency is
+// refused rather than admitted, and the exclusion list becomes a performance
+// detail rather than the load-bearing list.
+val unitTestClasspathAllowlist =
+    setOf(
+        // Kotlin itself, its test bindings, and coroutine test support.
+        "org.jetbrains.kotlin",
+        "org.jetbrains.kotlinx",
+        // Annotation-only artifacts (@Nullable and friends) pulled in by the above.
+        "org.jetbrains",
+        "org.jspecify",
+        // The runner.
+        "org.junit",
+        "org.junit.jupiter",
+        "org.junit.platform",
+        "org.opentest4j",
+        "org.apiguardian",
+        // The assertions, and the diff engine kotest reports failures with.
+        "io.kotest",
+        "io.github.java-diff-utils",
+        // :architecture-tests' harness, and the logging facade ArchUnit binds to.
+        "com.tngtech.archunit",
+        "org.slf4j",
+    )
+
+// Both classpaths, not just the compile one. Compiling is where misclassification
+// is supposed to die, but a type that is absent at compile time and present at
+// run time is still reachable reflectively, or through a helper that sits on the
+// classpath — and the guard whose job is to stop the exclusion list rotting would
+// have been looking the other way. `:modus-server`'s testRuntimeClasspath carried
+// springdoc-openapi-starter-webmvc-ui and its whole fan-out.
+val unitTestClasspathNames = listOf("testCompileClasspath", "testRuntimeClasspath")
+
+// Spring is cut here, in the base plugin, rather than in modus.spring-module:
+// :architecture-tests is not a Spring module, yet it puts every other module on
+// its test classpath and so inherits the entire Spring runtime graph through
+// them. Declared once, it holds for every module without exception.
+val excludedFromUnitTestClasspath = listOf("org.springframework", "org.springframework.boot", "org.springdoc")
+
+unitTestClasspathNames.forEach { classpath ->
+    configurations.named(classpath) {
+        excludedFromUnitTestClasspath.forEach { exclude(group = it) }
+    }
+}
+
+val unitTestArtifacts =
+    unitTestClasspathNames.associateWith { name ->
+        configurations.named(name).flatMap { it.incoming.artifacts.resolvedArtifacts }
+    }
+
+val unitTestClasspathStamp = layout.buildDirectory.file("reports/test-taxonomy/unit-test-classpath.txt")
+
+val assertUnitTestClasspathIsSpringFree =
+    tasks.register("assertUnitTestClasspathIsSpringFree") {
+        group = "verification"
+        description = "Fails if any artifact outside the unit-test allowlist reaches a unit-test classpath."
+        val artifacts = unitTestArtifacts
+        val allowed = unitTestClasspathAllowlist
+        val stamp = unitTestClasspathStamp
+        val module = project.path
+        artifacts.forEach { (name, resolved) ->
+            inputs.property(name, resolved.map { arts -> arts.map { it.id.displayName }.sorted() })
+        }
+        outputs.file(stamp)
+        doLast {
+            val report = StringBuilder()
+            artifacts.toSortedMap().forEach { (name, resolved) ->
+                val groups =
+                    resolved
+                        .get()
+                        .map { it.id.componentIdentifier }
+                        .filterIsInstance<ModuleComponentIdentifier>()
+                        .map { it.group to "${it.group}:${it.module}" }
+                val refused =
+                    groups
+                        .filterNot { (group, _) -> group in allowed }
+                        .map { (_, coordinate) -> coordinate }
+                        .distinct()
+                        .sorted()
+                check(refused.isEmpty()) {
+                    "$module's $name is not a unit-test classpath: $refused. " +
+                        "A unit test may see only $allowed. Move the test to src/integrationTest, " +
+                        "or — if the dependency genuinely belongs to every unit test — widen " +
+                        "unitTestClasspathAllowlist in modus.kotlin-base and say why."
+                }
+                report.append(name).append('\n')
+                groups.map { (_, coordinate) -> coordinate }.distinct().sorted().forEach {
+                    report.append("  ").append(it).append('\n')
+                }
+            }
+            stamp
+                .get()
+                .asFile
+                .also { it.parentFile.mkdirs() }
+                .writeText(report.toString())
+        }
+    }
+
+tasks.named("check") {
+    dependsOn(testing.suites.named("integrationTest"), assertUnitTestClasspathIsSpringFree)
 }
 
 tasks.withType<Test>().configureEach {

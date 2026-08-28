@@ -1,0 +1,313 @@
+---
+id: doc:35-testing
+title: Test taxonomy and evidence
+status: active
+superseded_by: null
+read_when:
+  - path: "**/src/test/**"
+  - path: "**/src/integrationTest/**"
+  - path: architecture-tests/**
+  - path: build-logic/**
+  - task: write|add|move|fix .*(test|suite|assertion|flake|mutation|coverage)
+provides:
+  - doc:35-testing#definitions
+  - doc:35-testing#source-sets
+  - doc:35-testing#unit-classpath
+  - doc:35-testing#purity-rules
+  - doc:35-testing#assertions
+  - doc:35-testing#load-bearing-evidence
+  - doc:35-testing#mutation-testing
+  - doc:35-testing#gaps
+depends_on: [doc:00-constitution, doc:30-code-style]
+---
+
+# 35 — Test taxonomy and evidence
+
+Applies to every `src/test` and `src/integrationTest` tree, to `build-logic/`, and to
+`architecture-tests/`. How a test is written is `doc:30-code-style` §7; which drawer it
+goes in, and what must be true before it counts, are here. MUST / SHOULD / MAY,
+`Enforced by:` and `Enforcement gap:` are defined in `documentation/README.md`.
+
+---
+
+## 1. Two kinds of test, and only two <a id="definitions"></a>
+
+| | unit / acceptance | integration |
+|---|---|---|
+| source set | `src/test` | `src/integrationTest` |
+| Gradle task | `test` | `integrationTest` |
+| Spring context | never | expected |
+| filesystem, network, subprocess | never | expected |
+| clock | injected | injected |
+| budget | milliseconds | allowed to be slow |
+| classpath | an allowlist: Kotlin, the runner, the assertions, nothing else (§3) | Spring, plus everything main sees |
+
+A test is an integration test **if and only if** it needs something the unit classpath
+cannot give it. "Acceptance test" is not a third kind: an acceptance test that drives
+domain behaviour through a use case, with hand-built collaborators, is a unit test.
+
+Rules:
+
+- A test that starts a Spring context MUST be in `src/integrationTest`.
+- A test that reads or writes a real file, opens a socket, or starts a process MUST be in
+  `src/integrationTest`.
+- A test in `src/test` MUST NOT be slower than the rest of `src/test` by an order of
+  magnitude. Move it or make it smaller.
+- A test in `src/integrationTest` MUST justify the context it starts by asserting on
+  something only that context provides.
+
+`Enforced by:` `rule:archunit/unitTestsDoNotDependOnSpring`,
+`rule:archunit/unitTestsAreNotSpringBootTests`,
+`rule:archunit/unitTestsDoNotTouchTheFilesystemOrTheNetwork`,
+`rule:archunit/unitTestsDoNotStartProcesses` — and, before any of them, by the
+classpath (§3).
+
+`Enforcement gap:` the last two rules above are not machine-checkable — nothing measures a
+test's duration, and nothing asserts an integration test earns its context. `bean:0006`
+carries both.
+
+---
+
+## 2. Source sets <a id="source-sets"></a>
+
+Both suites are declared once, in `modus.kotlin-base`, using Gradle's JVM Test Suite
+plugin. No module declares a test source set of its own.
+
+| fact | value |
+|---|---|
+| plugin | `jvm-test-suite` (incubating in Gradle 9.7.1; the supported way to divide tests by purpose) |
+| unit suite | the built-in `test` suite |
+| integration suite | `integrationTest`, registered in `modus.kotlin-base` |
+| integration inheritance | `integrationTestImplementation` extends `implementation`; `integrationTestRuntimeOnly` extends `runtimeOnly` |
+| wired into | `check`, in every module, for both suites |
+| the gate | `doc:00-constitution` §7.2 — one command, run identically by a human and by `rule:ci/build` |
+
+- A module MUST NOT register a further test suite.
+- A module MUST NOT put a test dependency in its own `build.gradle.kts`. It goes in
+  `modus.kotlin-base` (everywhere) or `modus.spring-module` (Spring modules).
+- `rule:ci/build` MUST invoke the same aggregate task the documented local command
+  invokes, with no extra arguments. `Enforced by:` review of `.github/workflows/ci.yml`
+  against `doc:00-constitution` §7.2. `Enforcement gap:` nothing compares the two
+  mechanically; `bean:0006` carries it.
+
+---
+
+## 3. The unit-test classpath is an allowlist <a id="unit-classpath"></a>
+
+This is the mechanism the whole taxonomy rests on. Misclassification is not caught in
+review, and not even caught by a rule — it fails to compile.
+
+```
+modus.kotlin-base:
+  testCompileClasspath  \  exclude group: org.springframework, org.springframework.boot,
+  testRuntimeClasspath  /                 org.springdoc
+                        -> assertUnitTestClasspathIsSpringFree: every resolved artifact on
+                           BOTH configurations must have a group on the allowlist
+
+modus.spring-module:
+  implementation                    -> spring-boot-starter
+  integrationTestImplementation     -> spring-boot-starter-test, the Boot BOM
+```
+
+`testImplementation` extends `implementation`, so the exclusions are what actually does
+the work: without them a module's own production dependency on `spring-boot-starter`
+would put Spring back on the unit-test classpath. Both configurations are cut, and both
+are checked — a type absent at compile time but present at run time is still reachable
+reflectively, or through a helper that sits on the classpath.
+
+The cut lives in `modus.kotlin-base`, not in `modus.spring-module`: `:architecture-tests`
+is not a Spring module, yet it puts every other module on its test classpath and so
+inherited the whole Spring runtime graph through them.
+
+**The exclusion is a denylist and cannot be anything else** — Gradle's `exclude` matches a
+group *exactly*, so it can only name what someone already knew was there. It is therefore
+the mechanism, not the guarantee. `assertUnitTestClasspathIsSpringFree` states the
+guarantee positively:
+
+| a unit-test classpath may carry | for |
+|---|---|
+| `org.jetbrains.kotlin`, `org.jetbrains.kotlinx` | Kotlin, `kotlin-test`, coroutine test support |
+| `org.jetbrains`, `org.jspecify` | annotation-only artifacts the above drag in |
+| `org.junit`, `org.junit.jupiter`, `org.junit.platform`, `org.opentest4j`, `org.apiguardian` | the runner |
+| `io.kotest`, `io.github.java-diff-utils` | the assertions and their diff engine |
+| `com.tngtech.archunit`, `org.slf4j` | the `:architecture-tests` harness and the facade ArchUnit binds to |
+
+Anything else fails the build. That inverts the failure mode: a new dependency is refused
+until someone decides it belongs on a unit-test classpath, rather than admitted in silence.
+A denylist alone is not enough and the history says so — with only `org.springframework*`
+excluded, `:adapter-rest`'s unit-test classpath carried `org.springdoc`, `io.swagger`,
+`jakarta.validation` and five Jackson artifacts, and a unit test importing them compiled,
+ran and passed `qualityCheck`. A half-stripped classpath is worse than either extreme: it
+loses the compile-time guarantee *and* dies at run time inside a third-party class with
+`NoClassDefFoundError: org/springframework/util/Assert`.
+
+A unit test that imports `org.springframework.boot.test.context.SpringBootTest` therefore
+fails at the import, in `:modus-server`, the module that depends on all of Spring:
+
+```
+e: .../src/test/kotlin/uk/m4xy/modus/app/PlantedViolationTest.kt:3:12 Unresolved reference 'springframework'.
+```
+
+`Enforced by:` the Kotlin compiler, and `assertUnitTestClasspathIsSpringFree` in
+`modus.kotlin-base`. To widen the allowlist is to change this document.
+
+---
+
+## 4. Test-purity rules <a id="purity-rules"></a>
+
+The compiler cannot see a `Thread.sleep`, and it does not read annotation values. ArchUnit
+does both, so the second line of enforcement is bytecode.
+
+`TestPurityRulesTest` in `architecture-tests` analyses **compiled unit-test bytecode**,
+which reaches it as a `<module>-unit-tests.jar` published by every module under the
+`modus-unit-test-classes` usage. `ImportOption.DoNotIncludeTests` MUST NOT be used on
+these rules: it matches a `build/classes/.../test/...` directory layout, so on a jar it
+excludes nothing and selects nothing, and every `noClasses(...)` rule would pass
+vacuously.
+
+| rule | scope | states |
+|---|---|---|
+| `rule:archunit/unitTestsDoNotDependOnSpring` | unit tests | no dependency on `org.springframework..` |
+| `rule:archunit/unitTestsAreNotSpringBootTests` | unit tests | not annotated `@SpringBootTest` |
+| `rule:archunit/unitTestsDoNotTouchTheFilesystemOrTheNetwork` | unit tests | no dependency on `java.io..`, `java.nio.file..` or `java.net..` |
+| `rule:archunit/unitTestsDoNotStartProcesses` | unit tests | no call to `ProcessBuilder.start`, `ProcessBuilder.startPipeline` or `Runtime.exec` |
+| `rule:archunit/nothingSleepsTheThread` | every class | no call to `Thread.sleep` |
+| `rule:archunit/disabledCarriesAWorkItem` | every class | the `@Disabled` contract of `doc:30-code-style` §5.1 |
+
+- `rule:archunit/nothingSleepsTheThread` is not scoped to tests. Sleeping is a race with a
+  timer attached: slow when it passes, flaky when it does not. Await the condition, or
+  inject the clock.
+- `java.io..` is banned as a package, not as a hand-picked set of classes. `File`,
+  `FileInputStream`, `RandomAccessFile`, … is the same denylist shape §3 rejects, and
+  `File.createTempFile`/`readText`/`writeText` is the *likely* way a filesystem-touching
+  unit test gets written, not an exotic one. `java.io.IOException` and `java.io.Serializable`
+  are caught too: a unit test that needs either is describing I/O it should not be doing.
+- Process creation is a call predicate, not a package ban: `ProcessBuilder` and `Runtime`
+  live in `java.lang`, where no package ban can reach them without banning the language.
+- Nothing in `architecture-tests` names a module. The analysed classpath and the guards'
+  expectations both derive from the project structure, so a new module's unit tests are
+  analysed without anyone remembering to add them.
+- `rule:archunit/everyUnitTestPackageIsAnalysed` is the guard on the guards. It fails if
+  the unit-test bytecode is missing — the only way the rules above could become a silent
+  no-op. It says nothing about how much bytecode there is, and today there is one
+  package's worth: see the first row of §8 before assuming these rules are exercised
+  across the module graph.
+
+`Enforcement gap:` integration-test bytecode is not published or analysed, so
+`rule:archunit/disabledCarriesAWorkItem` and `rule:archunit/nothingSleepsTheThread` do not
+see `src/integrationTest`. `bean:0006` carries it.
+
+---
+
+## 5. Assertions <a id="assertions"></a>
+
+One runner, and never a second one.
+
+| classpath | artifacts |
+|---|---|
+| `src/test` | `kotlin-test-junit5`, `kotest-assertions-core-jvm` |
+| `src/integrationTest` | the above, plus `spring-boot-starter-test` (which brings AssertJ, Mockito and the Boot-managed JUnit Jupiter) |
+
+- Versions live in `gradle/libs.versions.toml`. Kotest MUST be pinned there: the Boot BOM
+  manages `org.junit` and `org.assertj`, but not `io.kotest`.
+- `kotest-assertions-core-jvm` MUST remain the assertions artifact and MUST NOT be
+  upgraded to `kotest-runner-junit5`. It carries no `junit-platform` artifact and no
+  engine, which is the only reason it can sit beside Spring Boot's runner.
+- `@MockBean` and `@SpyBean` do not exist: Boot 4.0 removed them. Use `@MockitoBean` and
+  `@MockitoSpyBean`, in `src/integrationTest` only.
+- Kotest's `.config(enabled = false)`, `xdescribe` and `xit` are forbidden
+  (`doc:30-code-style` §5.1). `Enforced by:` the assertions artifact contains no spec DSL,
+  so none of the three resolves.
+
+---
+
+## 6. Load-bearing evidence <a id="load-bearing-evidence"></a>
+
+> A test that has never been observed to fail is not evidence. It is a comment that costs
+> a build slot.
+
+Every added or changed test MUST ship with proof that it fails when the source it covers
+is broken.
+
+Procedure, per test:
+
+1. `Pre:` the test passes on the unmodified source.
+2. Break the specific behaviour the test names — invert a condition, drop a guard, return
+   the wrong branch. Not the compile, and not a different behaviour.
+3. Run the one test. Record the assertion message verbatim.
+4. `Post:` revert the source. Re-run. It passes.
+
+- The recorded failure MUST be the assertion the test's name describes. A test that fails
+  with `NullPointerException` when its subject is broken has proved nothing.
+- The evidence MUST appear in the pull-request body's `verify` block, verbatim, per
+  `doc:00-constitution` §3.
+- The same procedure applies to every rule added to `architecture-tests`: plant a real
+  violation at a real call site, observe the named rule fail, revert. A rule that cannot
+  be made to fail is worse than an admitted gap — it also stops anyone looking.
+- `const val` references are inlined by the Kotlin compiler and leave no trace in the
+  referring class file. Plant violations at call sites, never at a constant.
+
+`Enforcement gap:` this is a review obligation on the `verify` block, not a machine check.
+`bean:0006` carries it.
+
+---
+
+## 7. Mutation testing is rejected as a CI gate <a id="mutation-testing"></a>
+
+Mutation testing is the obvious mechanical answer to §6 and Modus does **not** adopt it.
+**One reason, and it is the only one that survives checking.**
+
+`gradle-pitest-plugin#402` — an open issue, *Find a way to mutate production code in the
+other subproject with Gradle 9+* — is the build Modus actually has. Modus is **ten**
+subprojects on Gradle 9.7.1 (`settings.gradle.kts`), and wherever a module's behaviour is
+covered by tests that live in a different subproject, mutation analysis needs the plugin
+to extend one project's configuration from another's. On Gradle 9 that is refused:
+
+> `Configuration ':itest:mutableCodeBase' in project ':itest' cannot extend configuration
+> ':shared:implementation' from project ':shared'. Configurations can only extend from
+> configurations in the same context.`
+
+Stated at its real strength, and no higher: the issue is open with no fix, and it was
+self-reported by the plugin's maintainer from a functional test on his own Gradle 9
+proof-of-concept branch (`AcceptanceTestsInSeparateSubprojectFunctionalSpec`), not by a
+user hitting it in the wild. One unresolved incompatibility with this build is the entire
+case. If `#402` closes, this section is reopened.
+
+An earlier draft gave four reasons "each sufficient". Three did not hold, and they are
+recorded rather than deleted because §6 forbids leaving a bad argument where a future
+reader can cite it as settled:
+
+| claimed | what the primary source says |
+|---|---|
+| `#401`: incremental history is disabled on JDK 25, so every run is a full run | **Collapses.** `#401` is an unmerged *draft PR*, *Migrate build to Gradle 9.4 + JDK25 compatibility tests - PoC*; nothing in it disables incremental analysis. Its companion `#399` records the opposite: `PIT 1.22.1 (ASM 9.9.1) works correctly with historyInputLocation on JDK 25, even with class file version 69.` |
+| PIT declines to support Kotlin | **Overstated.** hcoles wrote the Apache-2.0 `pitest/pitest-kotlin` himself and core PIT merged Kotlin source-dir handling (`pitest#1347`). What is true is narrower: that plugin is archived and unmaintained since 2023 and its README points at the commercial Arcmutate, whose Kotlin integration states `Before you can use the integration, you must first acquire a licence`. |
+| the `else` of an exhaustive `when` over a sealed class yields an unkillable mutant | **Overstated, and self-cancelling.** The unkillable mutants come from the compiler's redundant equality and null checks on the *final branch*, not from the `else` — and Arcmutate suppressed both (kotlin-plugin 1.1.2, 1.2.1). It is therefore an argument about which tooling you buy, not about mutation testing. |
+
+Licence cost and an unmaintained free plugin are a cost to weigh, not a rejection. `#402`
+is the rejection.
+
+**Chosen substitute: targeted agent mutation.** For each success criterion in a bean, the
+agent breaks the specific behaviour under test and records the observed failure, per §6.
+It answers what a mutation score is a proxy for — did this test ever detect anything — and
+it produces the evidence the pull request has to carry anyway.
+
+`Enforcement gap:` targeted mutation is exhaustive over a bean's criteria, not over the
+source, so it cannot report an untested branch nobody wrote a criterion for. `bean:0006`
+carries it.
+
+---
+
+## 8. Gaps <a id="gaps"></a>
+
+Stated so they can be closed rather than discovered.
+
+| gap | closing condition |
+|---|---|
+| **Coverage is not measured.** No JaCoCo, no threshold, no report. Out of scope here on purpose: a gate added in the same change as the taxonomy would be tuned to whatever the current tests happen to reach. | its own pull request, against this taxonomy |
+| **The purity rules currently guard one package.** Eight of the nine analysed modules have no `src/test` at all, so their `-unit-tests.jar` is empty and `unit-test-packages.txt` has exactly one line, `uk.m4xy.modus.core.domain`. Every rule in §4 is a `noClasses(...)`, and `rule:archunit/everyUnitTestPackageIsAnalysed` can only assert that whatever unit tests exist were imported — so the mechanism is sound and its current reach is one file. An empty jar is also indistinguishable, from inside the guard, from a jar that failed to be produced. | self-closing: each module's first unit test is analysed automatically, with no list to update. Closed when every analysed module has a `src/test` |
+| Integration-test bytecode is not analysed (§4). | publish `<module>-integration-tests.jar` beside the unit-test jar |
+| Nothing measures test duration or asserts an integration test earns its context (§1). | a duration budget in the `Test` task configuration |
+| Nothing mechanically compares `rule:ci/build` with the documented local command (§2). | a check that the workflow invokes exactly the aggregate task |
+| Load-bearing evidence is a review obligation (§6). | a PR-body checker, part of the `docs-lint` step `bean:0004` describes |
+
+`bean:0006` carries every row.

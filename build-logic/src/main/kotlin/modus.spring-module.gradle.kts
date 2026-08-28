@@ -14,8 +14,24 @@ val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 dependencies {
     val bom = platform(libs.findLibrary("springBoot-bom").get())
     "implementation"(bom)
-    "testImplementation"(bom)
+    "integrationTestImplementation"(bom)
 
     "implementation"(libs.findLibrary("spring-boot-starter").get())
-    "testImplementation"(libs.findLibrary("spring-boot-starter-test").get())
+
+    // Spring's test support is available to integration tests and to nothing
+    // else. It is NOT on `testImplementation`: a unit test that imports
+    // @SpringBootTest, MockMvc or @MockitoBean has no such symbol to import.
+    "integrationTestImplementation"(libs.findLibrary("spring-boot-starter-test").get())
 }
+
+// `testImplementation` extends `implementation`, so Spring would still arrive on
+// the unit-test classpath through the module's own production dependencies. It
+// is cut in `modus.kotlin-base`, not here: `:architecture-tests` is not a Spring
+// module and still inherits the whole Spring runtime graph through its project
+// dependencies, so the cut has to be unconditional to be worth anything.
+//
+// That cut is what makes misclassification a compile error at the import
+// statement rather than a review comment on the pull request, and
+// `assertUnitTestClasspathIsSpringFree` (also `modus.kotlin-base`) states
+// positively what a unit-test classpath may contain, so a Spring-adjacent group
+// nobody thought to exclude fails the build instead of arriving in silence.

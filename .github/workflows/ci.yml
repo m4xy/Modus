@@ -56,7 +56,11 @@ jobs:
       # The SAME aggregate task CLAUDE.md documents for local use. CI must not
       # run an equivalent-but-different command: the two would drift, and the
       # first anyone would know is a red build nobody can reproduce.
-      - name: qualityCheck (compile, test, ktlint, Detekt, ArchUnit, build-logic)
+      #
+      # Both suites are reached through it: `check` depends on `test` and on
+      # `integrationTest` in every module (modus.kotlin-base), so there is no
+      # second step to forget. See doc:35-testing#source-sets.
+      - name: qualityCheck (both test suites, ktlint, Detekt, ArchUnit, build-logic)
         run: ./gradlew qualityCheck --stacktrace
 
       - name: Upload reports

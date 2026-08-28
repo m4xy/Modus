@@ -1,3 +1,5 @@
+import org.gradle.api.attributes.Usage
+
 // The architectural gate. This module has no production code: it puts every
 // other module on the test classpath and asserts the dependency rules that the
 // module graph is supposed to guarantee.
@@ -21,6 +23,31 @@ dependencies {
 
     testImplementation(platform(libs.springBoot.bom))
     testImplementation(libs.archunit.junit6)
+}
+
+// --- The unit-test bytecode the test-purity rules analyse ------------------
+// `TestPurityRulesTest` asserts against compiled UNIT-TEST classes, which no
+// ordinary dependency puts here: a project dependency publishes main output and
+// nothing else. Modules expose theirs under the `modus-unit-test-classes` usage
+// (`modus.kotlin-base`), resolved through the same derived project list as
+// everything else — a new module's unit tests are analysed automatically.
+val analysedUnitTests = configurations.dependencyScope("analysedUnitTests")
+
+val analysedUnitTestClasses =
+    configurations.resolvable("analysedUnitTestClasses") {
+        description = "Compiled unit-test classes of every analysed module."
+        extendsFrom(analysedUnitTests.get())
+        attributes {
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, "modus-unit-test-classes"))
+        }
+    }
+
+dependencies {
+    analysedProjects.forEach { add(analysedUnitTests.name, project(it.path)) }
+}
+
+sourceSets.named("test") {
+    runtimeClasspath += files(analysedUnitTestClasses)
 }
 
 /**
@@ -67,10 +94,24 @@ val writeAnalysedPackages =
         manifest = analysedPackagesDir.map { it.file("analysed-packages.txt") }
     }
 
+/**
+ * The same trick for the unit-test side, asserted by
+ * `TestPurityRulesTest.everyUnitTestPackageIsAnalysed`.
+ */
+val writeUnitTestPackages =
+    tasks.register<WriteAnalysedPackages>("writeUnitTestPackages") {
+        group = "verification"
+        description = "Records the packages every test-purity rule must have been able to see."
+        analysedProjects.forEach { analysed ->
+            sources.from(analysed.fileTree("src/test/kotlin") { include("**/*.kt") })
+        }
+        manifest = analysedPackagesDir.map { it.file("unit-test-packages.txt") }
+    }
+
 sourceSets.named("test") {
     resources.srcDir(analysedPackagesDir)
 }
 
 tasks.named<ProcessResources>("processTestResources") {
-    dependsOn(writeAnalysedPackages)
+    dependsOn(writeAnalysedPackages, writeUnitTestPackages)
 }
