@@ -1,0 +1,339 @@
+# Modus Detekt configuration.
+#
+# This file is merged ON TOP of Detekt's shipped defaults (buildUponDefaultConfig
+# = true in modus.kotlin-base). It therefore records only DELIBERATE deviations,
+# and every deviation carries the reason it exists. Do not paste the default
+# config dump in here: a stale dump silently freezes the rule set at the version
+# it was generated from, which is the opposite of a mechanical gate.
+#
+# Rules of engagement:
+#   * A finding is a build failure. Never raise a threshold to get a branch green.
+#   * If a rule is genuinely wrong for Modus, disable it HERE, with a comment
+#     saying why. A `@Suppress` at a call site is for the genuinely exceptional
+#     case and should be rare enough to notice in review.
+#
+# ---------------------------------------------------------------------------
+# TYPE RESOLUTION: NOT AVAILABLE. READ THIS BEFORE ENABLING ANY RULE.
+# ---------------------------------------------------------------------------
+#
+# Modus runs the Detekt 1.23.8 CLI without `--classpath`, so Detekt analyses the
+# PSI only. Every rule annotated `@RequiresTypeResolution` is skipped — silently,
+# with no warning, and `config: validation: true` does not catch it, because it
+# checks that a rule NAME exists, not that the rule can run.
+#
+# `--classpath` is not an option here. Detekt 1.23.8 embeds Kotlin 2.0.21 and
+# Modus compiles with Kotlin 2.4.10; detekt#8865 (type resolution against Kotlin
+# >= 2.3.0 producing "a ton of false positives") was closed NOT PLANNED with no
+# backport to the 1.23 line.
+#
+# A config that enables a rule which cannot fire is worse than an admitted gap:
+# review trusts the config. So every one of the 65 configurable rules that needs
+# type resolution is listed below with `active: false`, whether or not Detekt's
+# defaults already had it off. Turning one back on is then a deliberate edit to
+# a line that sits under this comment, and is wrong until the gap below closes.
+#
+# Enforcement gap: no Detekt rule requiring type resolution runs. In practice
+#   that costs, at minimum: null-safety analysis (UnsafeCallOnNullableType,
+#   UnnecessarySafeCall, UnnecessaryNotNullOperator, HasPlatformType), dead-code
+#   detection (UnreachableCode, UnreachableCatchBlock), ignored return values
+#   (IgnoredReturnValue), the coroutine rules in full (InjectDispatcher,
+#   SleepInsteadOfDelay, SuspendFunWithFlowReturnType, RedundantSuspendModifier),
+#   and ForbiddenMethodCall, which was the only mechanism banning `println` and
+#   the static `java.time` clocks.
+#   Partially covered elsewhere: `-Xjsr305=strict` plus Kotlin's own null safety
+#   cover some of the null-safety loss on Java interop; the `println`/`print` and
+#   static-clock bans are now enforced for real by `nothingWritesToTheStandard
+#   Streams` and `timeIsInjectedNeverReadFromAStaticClock` in `architecture-tests`,
+#   which read bytecode and so need no Kotlin frontend.
+#   Closing condition: Detekt 2.x stable (built against Kotlin 2.4.x and tested
+#   on JDK 25; currently 2.0.0-alpha.6 only). When it ships, delete every
+#   "type resolution required" block below, pass a classpath, and re-audit.
+
+build:
+  # Zero tolerance. Weighted "budgets" turn a gate into a negotiation.
+  maxIssues: 0
+
+config:
+  # Fail if this file references a rule that no longer exists, so a Detekt
+  # upgrade cannot silently drop a rule we thought we were enforcing. It also
+  # makes the type-resolution blocks below self-maintaining: if a rule is
+  # renamed or removed upstream, the build fails and the list gets revisited.
+  validation: true
+  warningsAsErrors: true
+
+console-reports:
+  active: true
+  exclude:
+    - 'ProjectStatisticsReport'
+    - 'ComplexityReport'
+    - 'NotificationReport'
+
+comments:
+  active: true
+  # Deliberately NOT enabling UndocumentedPublic*: Modus documents boundaries and
+  # decisions in `documentation/`, not with a KDoc block on every accessor.
+  # Explicit API mode already forces the signature to be spelled out.
+  AbsentOrWrongFileLicense:
+    active: false # Modus carries no per-file licence header.
+
+complexity:
+  LongParameterList:
+    active: true
+    # Constructor injection in adapters and Spring configuration legitimately
+    # takes more collaborators than a plain function should.
+    functionThreshold: 6
+    constructorThreshold: 8
+    ignoreDefaultParameters: true
+    ignoreAnnotated: ['Autowired', 'Bean']
+  TooManyFunctions:
+    active: true
+    # A domain aggregate with many small behaviours is good design; a service
+    # class with many functions is not. Interfaces and data classes are exempt.
+    thresholdInClasses: 15
+    thresholdInFiles: 20
+    ignorePrivate: true
+    ignoreOverridden: true
+    ignoreDeprecated: true
+  LongMethod:
+    active: true
+    threshold: 40
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 12
+  # --- type resolution required: cannot fire, see the header -----------------
+  NamedArguments:
+    active: false
+  NestedScopeFunctions:
+    active: false
+  ReplaceSafeCallChainWithRun:
+    active: false
+
+coroutines:
+  # --- type resolution required: cannot fire, see the header -----------------
+  # The whole coroutines rule set needs type resolution. Every one of these is
+  # on by default upstream, which made this the largest silent gap in the config.
+  InjectDispatcher:
+    active: false
+  RedundantSuspendModifier:
+    active: false
+  SleepInsteadOfDelay:
+    active: false
+  SuspendFunSwallowedCancellation:
+    active: false
+  SuspendFunWithCoroutineScopeReceiver:
+    active: false
+  SuspendFunWithFlowReturnType:
+    active: false
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: true
+    # Supervising external processes (Claude Code, git) means genuinely having to
+    # catch broadly at the process boundary, but only there.
+    excludes: ['**/adapter/agent/**', '**/adapter/vcs/**']
+  SwallowedException:
+    active: true
+  ThrowingExceptionsWithoutMessageOrCause:
+    active: true
+  # --- type resolution required: cannot fire, see the header -----------------
+  ObjectExtendsThrowable:
+    active: false
+  ReturnFromFinally:
+    active: false
+
+naming:
+  FunctionNaming:
+    active: true
+    # Spring @Bean factory methods and Kotlin type-like factory functions are the
+    # accepted exceptions to lowerCamelCase.
+    ignoreAnnotated: ['Bean', 'Test', 'ParameterizedTest', 'ArchTest']
+  MatchingDeclarationName:
+    active: true
+  TopLevelPropertyNaming:
+    active: true
+  # --- type resolution required: cannot fire, see the header -----------------
+  BooleanPropertyNaming:
+    active: false
+  NoNameShadowing:
+    active: false
+  NonBooleanPropertyPrefixedWithIs:
+    active: false
+
+performance:
+  SpreadOperator:
+    # SpringApplication.run(cls, *args) is the documented entry point; the array
+    # is tiny and allocated once per process.
+    active: false
+  # --- type resolution required: cannot fire, see the header -----------------
+  ArrayPrimitive:
+    active: false
+  CouldBeSequence:
+    active: false
+
+potential-bugs:
+  CastToNullableType:
+    active: true
+  ImplicitDefaultLocale:
+    active: true
+  LateinitUsage:
+    active: true
+    # lateinit hides an initialisation order bug until runtime. Tests may use it
+    # for fixtures that JUnit assigns in @BeforeEach.
+    excludes: ['**/test/**', '**/*Test.kt']
+  # --- type resolution required: cannot fire, see the header -----------------
+  # UnsafeCallOnNullableType used to be listed above as `active: true`. It was
+  # the clearest example of the config lying: it has never once been evaluated.
+  AvoidReferentialEquality:
+    active: false
+  CastNullableToNonNullableType:
+    active: false
+  Deprecation:
+    active: false
+  DontDowncastCollectionTypes:
+    active: false
+  DoubleMutabilityForCollection:
+    active: false
+  ElseCaseInsteadOfExhaustiveWhen:
+    active: false
+  ExitOutsideMain:
+    active: false
+  HasPlatformType:
+    active: false
+  IgnoredReturnValue:
+    active: false
+  ImplicitUnitReturnType:
+    active: false
+  NullCheckOnMutableProperty:
+    active: false
+  NullableToStringCall:
+    active: false
+  PropertyUsedBeforeDeclaration:
+    active: false
+  UnnecessaryNotNullCheck:
+    active: false
+  UnnecessaryNotNullOperator:
+    active: false
+  UnnecessarySafeCall:
+    active: false
+  UnreachableCatchBlock:
+    active: false
+  UnreachableCode:
+    active: false
+  UnsafeCallOnNullableType:
+    active: false
+  UnsafeCast:
+    active: false
+  UnusedUnaryOperator:
+    active: false
+
+style:
+  MaxLineLength:
+    active: true
+    # Matches max_line_length in .editorconfig; ktlint is the enforcer, this is
+    # the backstop for files ktlint does not read.
+    maxLineLength: 140
+    excludeCommentStatements: false
+  MagicNumber:
+    active: true
+    ignoreNumbers: ['-1', '0', '1', '2']
+    ignoreHashCodeFunction: true
+    ignorePropertyDeclaration: true
+    ignoreAnnotation: true
+    ignoreEnums: true
+    excludes: ['**/test/**', '**/*Test.kt']
+  ForbiddenComment:
+    active: true
+    # TODO/FIXME in main are how intent quietly rots. Track it as a work item in
+    # `beans/` instead, where it is visible and assignable.
+    comments:
+      - reason: 'Track the work in beans/ instead of hiding it in a comment.'
+        value: 'TODO:'
+      - reason: 'Track the work in beans/ instead of hiding it in a comment.'
+        value: 'FIXME:'
+      - reason: 'Track the work in beans/ instead of hiding it in a comment.'
+        value: 'STOPSHIP:'
+    excludes: ['**/test/**']
+  ReturnCount:
+    active: true
+    max: 3
+    excludeGuardClauses: true
+  ThrowsCount:
+    active: true
+    max: 3
+  UnusedImports:
+    active: true
+  UnusedPrivateMember:
+    active: true
+  WildcardImport:
+    active: true
+    # Never. .editorconfig sets the IntelliJ star-import threshold to infinity so
+    # the IDE cannot introduce one either.
+    excludeImports: []
+  UseDataClass:
+    # Opinionated to the point of being wrong for value objects that need
+    # invariants enforced in an init block.
+    active: false
+  DataClassContainsFunctions:
+    # Domain value objects are expected to carry behaviour; that is the point.
+    active: false
+  # --- type resolution required: cannot fire, see the header -----------------
+  # ForbiddenMethodCall lived here with five bans (kotlin.io.println,
+  # kotlin.io.print, LocalDate.now, LocalDateTime.now, Instant.now). None of them
+  # could ever fire. The bans themselves are worth keeping, so they moved to
+  # `architecture-tests` where they are enforced against bytecode instead.
+  CanBeNonNullable:
+    active: false
+  ExplicitCollectionElementAccessMethod:
+    active: false
+  ForbiddenAnnotation:
+    active: false
+  ForbiddenMethodCall:
+    active: false
+  ForbiddenVoid:
+    active: false
+  MaxChainedCallsOnSameLine:
+    active: false
+  MultilineLambdaItParameter:
+    active: false
+  NullableBooleanCheck:
+    active: false
+  ObjectLiteralToLambda:
+    active: false
+  PreferToOverPairSyntax:
+    active: false
+  RedundantExplicitType:
+    active: false
+  RedundantHigherOrderMapUsage:
+    active: false
+  UnnecessaryAbstractClass:
+    active: false
+  UnnecessaryApply:
+    active: false
+  UnnecessaryBracesAroundTrailingLambda:
+    active: false
+  UnnecessaryFilter:
+    active: false
+  UnnecessaryInnerClass:
+    active: false
+  UnnecessaryLet:
+    active: false
+  UseAnyOrNoneInsteadOfFind:
+    active: false
+  UseCheckNotNull:
+    active: false
+  UseEmptyCounterpart:
+    active: false
+  UseIfEmptyOrIfBlank:
+    active: false
+  UseIsNullOrEmpty:
+    active: false
+  UseOrEmpty:
+    active: false
+  UseRequireNotNull:
+    active: false
+  UseSumOfInsteadOfFlatMapSize:
+    active: false
+  UselessCallOnNotNull:
+    active: false
+  VarCouldBeVal:
+    active: false

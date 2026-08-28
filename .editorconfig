@@ -1,0 +1,39 @@
+# Mechanically enforced by ktlint (see build-logic/src/main/kotlin/modus.kotlin-base.gradle.kts).
+# Style is never argued about in review: if ktlint accepts it, it is correct.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+max_line_length = 140
+
+[*.{kt,kts}]
+# The strictest of ktlint's bundled styles. It adds the rules the Kotlin coding
+# conventions describe but IntelliJ does not enforce (function/class signature
+# wrapping, blank-line rules, backing-property naming, ...).
+ktlint_code_style = ktlint_official
+
+# Trailing commas keep diffs to one line per changed argument.
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+
+# Wildcard imports hide where a symbol came from; always import explicitly.
+ij_kotlin_name_count_to_use_star_import = 2147483647
+ij_kotlin_name_count_to_use_star_import_for_members = 2147483647
+
+# Test function names are sentences in backticks, which the naming rule rejects.
+ktlint_function_naming_ignore_when_annotated_with = Test, ParameterizedTest, ArchTest
+
+[*.{yml,yaml,json}]
+indent_size = 2
+
+[*.md]
+# Two trailing spaces are a hard line break in Markdown.
+trim_trailing_whitespace = false
+
+[gradle/wrapper/gradle-wrapper.properties]
+insert_final_newline = false
