@@ -22,6 +22,10 @@ after:         <observable state after merge>
 out_of_scope:  <what the reviewer MUST NOT flag: pre-existing, owned elsewhere, deferred>
 ```
 
+<!-- out_of_scope MUST NOT name any file or behaviour this diff changes; it may only cite
+     pre-existing state or another named bean/PR's ownership. A reviewer MUST still
+     evaluate every changed line regardless of out_of_scope. -->
+
 ## verify
 
 <!-- One block per success criterion in the bean. Observed output is verbatim, never

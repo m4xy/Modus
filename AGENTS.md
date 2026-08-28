@@ -12,23 +12,15 @@ here, and add `doc:05-authoring-for-agents` to `documentation/README.md`.
 
 ## Routing
 
-Derived from each document's `read_when` front-matter (`doc:05-authoring-for-agents#read-when`).
-Front-matter is normative; on disagreement it wins and this table is the bug.
+`documentation/README.md`'s reading order and its "minimum an agent must read" rule are
+the one source for `doc:00`–`doc:80`. Follow them; this file does not restate them, so
+there is nothing here for those rows to drift against (`doc:05-authoring-for-agents#one-fact-one-place`).
 
-Read the first row plus every row matching the task. **Read nothing else.**
+Two routing facts README does not carry:
 
 | task shape | read | do not read |
 |---|---|---|
-| any task | `doc:00-constitution`, `doc:80-agent-operating-procedure` | every document below that no row selects |
-| Kotlin under `core/**` | `doc:20-ddd-practices`, `doc:10-architecture` | `doc:40-durability` unless the change is persistence |
-| module graph, ports, adapters, endpoints | `doc:10-architecture` | `doc:20-ddd-practices` unless you add a domain type |
-| persistence, file IO, locking, on-disk format | `doc:40-durability` | `doc:10-architecture` |
-| a style, ktlint or Detekt failure | `doc:30-code-style` | everything else — run `./gradlew ktlintFormat` first |
-| recording or citing a conclusion | `doc:50-memory-and-evidence` | |
-| choosing a model, an effort level, reporting spend | `doc:60-cost-model` | |
-| a task you have now done three times | `doc:70-skills` | |
-| build scripts, `build-logic/`, CI | `doc:30-code-style`, `rule:ci/build` | the rest of `documentation/` |
-| `documentation/**`, `AGENTS.md`, `beans/**`, the PR template | `doc:05-authoring-for-agents` | `doc:10`–`doc:70` |
+| `documentation/**`, `AGENTS.md`, `beans/**`, the PR template | `doc:05-authoring-for-agents` — its own `read_when` front-matter states the predicates; derived, not restated here (`#checks` check 9) | `doc:10`–`doc:80` |
 | reviewing a pull request | the PR body, then only the documents in its `refs:` | any document the PR body does not reference |
 
 ## Commands
@@ -54,8 +46,8 @@ Style rules: `doc:30-code-style`. Layering rules: `doc:10-architecture`. Neither
 
 ## Context budget
 
-Ceiling: 300k tokens per work package (`doc:00-constitution` §6). Measured overrun: 268k on the
-PR #1 package, caused by reading documents whole because nothing said what to skip.
+Ceiling: 300k tokens per work package (`doc:00-constitution` §6); see `bean:0004` for the
+measured overrun.
 
 - Load front-matter first, select with `read_when`, then read only the selected documents.
 - Follow a reference to its anchor and read that section — not the file it lives in.

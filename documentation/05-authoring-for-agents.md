@@ -102,7 +102,7 @@ One scheme: `kind:name`, optionally `#anchor`. It MUST be used inline, in front-
 | `rule:detekt/DomainScopedRoute` | the rule id in `config/detekt/detekt.yml` | |
 | `rule:ci/build` | the job id in `.github/workflows/ci.yml` | |
 
-Resolution: `kind` selects the directory, `name` selects the file by prefix-glob, `#anchor` selects the owning heading. A reference resolving to anything other than exactly one target is broken (§6 check 6).
+Resolution: `kind` selects the directory; `name` MUST include the fixed-width numeric id in full (2 digits for `doc:`, 4 digits for `bean:` and `adr:`), then selects the file by prefix-glob; `#anchor` selects the owning heading. A reference resolving to anything other than exactly one target is broken (§6 check 6). An agent that resolves a reference to zero or to more than one target MUST stop and report the ambiguity — it MUST NOT guess or continue on a partial match.
 
 ## 3. One fact, one place <a id="one-fact-one-place"></a>
 
@@ -172,9 +172,7 @@ Each check is decidable from repository contents alone.
 | 5 | anchor declared | a `provides` anchor has no `<a id="…">` in its own file, or an `<a id>` is not in `provides` |
 | 6 | references resolve | a `doc:` / `bean:` / `adr:` / `rule:` reference matches other than exactly one target |
 | 7 | predicate shape | a `read_when` entry is neither the scalar `always` nor a single `path:` or `task:` key |
-| 8 | line budget | a `documentation/*.md` exceeds 400 lines, or `AGENTS.md` exceeds 120 |
-| 9 | derived listings | the `AGENTS.md` routing table disagrees with the `read_when` fields it is derived from |
+| 8 | line budget | a `documentation/*.md` is outside the line range `documentation/README.md` states, or `AGENTS.md` exceeds 120 lines |
+| 9 | derived listings | a row in `AGENTS.md` marked derived omits the `doc:` id it derives from, or itself states a `path:`/`task:` predicate value instead of citing that id |
 
 Enforcement gap: all nine. `bean:0004` carries them; they land as a `docs-lint` step in `rule:ci/build`.
-
-Check 8's 400-line budget conflicts with the 250–500 line range stated in `documentation/README.md`. Until the follow-up in `bean:0004` reconciles them, `documentation/README.md` wins.
