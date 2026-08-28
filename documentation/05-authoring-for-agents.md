@@ -95,7 +95,7 @@ One scheme: `kind:name`, optionally `#anchor`. It MUST be used inline, in front-
 | reference | resolves to | notes |
 |---|---|---|
 | `doc:40-durability` | `documentation/40-durability.md` | |
-| `doc:40-durability#atomic-write` | the `<a id="atomic-write">` in that file | MUST appear in that file's `provides` |
+| `doc:40-durability#atomic-write` | the anchor tag of that name in that file | MUST appear in that file's `provides` |
 | `bean:0004` | `beans/0004-*.md` | exactly one match |
 | `adr:0002` | `documentation/adr/0002-*.md` | exactly one match |
 | `rule:archunit/domainIsFrameworkFree` | the `ArchRule` declared under that identifier in `architecture-tests/` | identifier verbatim, camelCase |
