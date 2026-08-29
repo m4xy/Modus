@@ -128,9 +128,10 @@ the whole rule; get it right and the allowlist writes itself.
 | **Internals** | Every other package of the context — aggregates, ports, use cases, services, and every value object not published | **Nobody.** No allowlist, no exception. |
 
 The published-language packages are **leaves**: a type in `..domain.event..` or
-`..domain.published..` may reference only the Kotlin stdlib, `java.time` types, and its
-own context's `..domain.published..`. It may not reference an aggregate, a port, a use
-case, or another context. That is what makes depending on a published package safe, and
+`..domain.published..` may reference only the Kotlin stdlib, `java.time` types, its
+own context's `..domain.published..`, and the **shared kernel** — `DomainEvent` and
+`DomainId`, which belong to no context (`adr:0004-domain-id-shared-kernel`). It may not
+reference an aggregate, a port, a use case, or another context. That is what makes depending on a published package safe, and
 it is what keeps the *package* graph acyclic even where the *context* graph is not.
 
 The rule has a useful consequence: **putting a type into an event's signature publishes
@@ -165,7 +166,10 @@ packages are limited to the row above. Plus `PublishedLanguageIsLeaf` (§4.2) an
 "no cycles" rule over the internals slices only, `com.modus.core.(*)..` minus the two
 published packages. Assigned to `ContextIsolationRules` (`30-code-style.md` §5).
 
-`PublishedLanguageIsLeaf` and the no-cycles rule are implemented and non-vacuous.
+`PublishedLanguageIsLeaf` and the no-cycles rule are implemented. `PublishedLanguageIsLeaf`
+was **vacuous on the cross-context half** until `bean:0032`: `identity` imports no other
+context, so the case it exists to catch could not arise. It has since been observed
+rejecting one (`adr:0004-domain-id-shared-kernel`).
 **Enforcement gap:** `ContextInternalsAreSealed` and `PublishedLanguageAllowlist` are not.
 Both compare one context against another and `identity` is the only modelled context, so
 both would pass on an empty set of dependencies today — an implementation now would be a
@@ -214,7 +218,8 @@ This is the source table an ArchUnit test is derived from. One row per (module, 
 | `NoReflection` | No `java.lang.reflect..`, no `::class.java` beyond `equals`/`hashCode` support. |
 | `AggregatesAreSealedOrFinal` | Every type in `..domain.aggregate..` is `final` (Kotlin default) — no `open` aggregate. The package convention (`20-ddd-practices.md` §5.1) is what gives this rule a decidable scope. |
 | `EventsAreDataClasses` | Every type in `..domain.event..` is a `data class` and every property is `val`. |
-| `PublishedLanguageIsLeaf` | No type in `..domain.event..` or `..domain.published..` depends on anything beyond the Kotlin stdlib, `java.time` types, its own context's `..domain.published..`, and the shared-kernel `DomainEvent` marker. This is the rule §3.1 rests on. The `DomainEvent` exemption is the whole of it and is named in the rule: an event must implement the marker to be dispatchable across contexts, and without the exemption every context would declare an identical interface of its own and there would be no type to dispatch as. |
+| `PublishedLanguageIsLeaf` | No type in `..domain.event..` or `..domain.published..` depends on anything beyond the Kotlin stdlib, `java.time` types, its own context's `..domain.published..`, and the shared kernel. This is the rule §3.1 rests on. The shared kernel is the whole of the exemption and its members are named in the rule, never matched by package: `DomainEvent`, without which every context would declare an identical marker of its own and there would be no type to dispatch a cross-context event as; and `DomainId`, without which every context would declare its own tenant identifier and no two would be equal (`adr:0004-domain-id-shared-kernel`). |
+| `SharedKernelIsLeaf` | The shared kernel depends on nothing beyond the Kotlin stdlib and `java.time`. Every context imports it, so a dependency added there is one every context inherits unseen. Scoped on the outermost enclosing class, because a `private companion object` and a top-level `private val` both generate classes the source does not name. |
 | `PortsAreInterfaces` | Every type in `..domain.port..` is an `interface` with no default implementations that perform IO. |
 
 ### 4.3 Adapter rules

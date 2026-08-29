@@ -202,6 +202,21 @@ class ArchitectureRulesTest {
             .should(beFinalOrSealed())
             .because("an open aggregate root lets a subclass outside the boundary override an invariant")
 
+    /**
+     * The shared kernel is itself a leaf. `adr:0004-domain-id-shared-kernel` makes
+     * [SHARED_KERNEL_DOMAIN_ID] importable from every context's published package, which
+     * only stays safe while the kernel drags nothing behind it — a dependency added here
+     * would be one every context inherits without seeing it.
+     *
+     * Scoped by name rather than by package, for the reason [SHARED_KERNEL] records.
+     */
+    @ArchTest
+    val sharedKernelIsLeaf: ArchRule =
+        classes()
+            .that(areSharedKernel())
+            .should(dependOnlyOnLeafSafeTypes())
+            .because("every context imports the shared kernel, so anything it drags behind it is imported unseen")
+
     @ArchTest
     val thereAreNoPackageCycles: ArchRule =
         slices()
@@ -299,6 +314,38 @@ class ArchitectureRulesTest {
         private const val SHARED_KERNEL_EVENT = "$DOMAIN_ROOT.DomainEvent"
 
         /**
+         * The tenant identifier, exempt from [publishedLanguageIsLeaf] by `doc:10` §4.2
+         * (`adr:0004-domain-id-shared-kernel`). Every context's events name the domain they
+         * concern, and a published package is a leaf, so a per-context `DomainId` would be
+         * one tenant with as many unequal types as there are contexts.
+         */
+        private const val SHARED_KERNEL_DOMAIN_ID = "$DOMAIN_ROOT.DomainId"
+
+        /**
+         * The shared kernel, by name. Not `$DOMAIN_ROOT` as a package: `BoundedContexts`
+         * lives there too and legitimately references every context marker, so a package
+         * wildcard would either fail on it or have to carve it out. Naming the members is
+         * also what stops the [publishedLanguageIsLeaf] exemption widening by accident —
+         * adding one is an edit here, visible in review. If a third member ever arrives,
+         * move all of them to a `..domain.kernel` package and scope both rules to it
+         * structurally, the way `..domain.aggregate` scopes [aggregatesAreSealedOrFinal]
+         * (`doc:20-ddd-practices` §5.1).
+         */
+        private val SHARED_KERNEL = setOf(SHARED_KERNEL_EVENT, SHARED_KERNEL_DOMAIN_ID)
+
+        /**
+         * Membership is decided on the **outermost** enclosing class, because Kotlin
+         * generates classes the source does not name. A `private companion object` becomes
+         * `DomainId$Companion`, and a top-level `private val` becomes a `DomainIdKt`
+         * file facade. Matching the exact name alone put the companion outside its own
+         * kernel and the facade outside it permanently — both observed, on the first two
+         * runs of [sharedKernelIsLeaf]. Splitting on `$` covers the nested case; the
+         * facade is deliberately still excluded, which is why [SHARED_KERNEL_DOMAIN_ID]
+         * keeps its regex in a companion rather than at file scope.
+         */
+        private fun isSharedKernel(javaClass: JavaClass): Boolean = javaClass.name.substringBefore('$') in SHARED_KERNEL
+
+        /**
          * The Kotlin standard library plus the `java.*` packages it erases to. `java.util`
          * and `java.lang` are prefixes of themselves only in the sense that
          * `java.util.concurrent` and `java.lang.reflect` are forbidden in the domain by
@@ -324,13 +371,19 @@ class ArchitectureRulesTest {
                 targetPackage == "java.time" ||
                 targetPackage.startsWith("java.time.") ||
                 targetPackage == "$DOMAIN_ROOT.$context.published" ||
-                target.name == SHARED_KERNEL_EVENT
+                isSharedKernel(target)
         }
+
+        private fun areSharedKernel(): DescribedPredicate<JavaClass> =
+            object : DescribedPredicate<JavaClass>("the shared kernel (${SHARED_KERNEL.joinToString(", ")})") {
+                override fun test(javaClass: JavaClass): Boolean = isSharedKernel(javaClass)
+            }
 
         private fun dependOnlyOnLeafSafeTypes(): ArchCondition<JavaClass> =
             object : ArchCondition<JavaClass>(
                 "depend on nothing beyond the Kotlin stdlib, java.time, " +
-                    "their own context's published language and $SHARED_KERNEL_EVENT",
+                    "their own context's published language and the shared kernel " +
+                    SHARED_KERNEL.joinToString(", "),
             ) {
                 override fun check(
                     item: JavaClass,

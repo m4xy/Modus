@@ -18,6 +18,7 @@ provides:
   - doc:30-code-style#detekt-configuration
   - doc:30-code-style#custom-detekt-rules
   - doc:30-code-style#archunit-rules
+  - doc:30-code-style#archunit-synthetic-classes
   - doc:30-code-style#testing-style
   - doc:30-code-style#changing-a-style-rule
 depends_on: [doc:00-constitution, doc:10-architecture, doc:20-ddd-practices, doc:80-agent-operating-procedure]
@@ -221,9 +222,31 @@ Rule groups:
 | `NoDatabaseRules` | No JDBC/JPA/ORM/SQL types anywhere (`00` §2) |
 | `TestRules` | No mocking framework in `core/`; no wall-clock dependency in any test; `DisabledCarriesWorkItem` (below) |
 
-ArchUnit tests live in `build-logic`'s `modus.archunit` convention plugin and are applied
-to every Kotlin module, so a new module gets them automatically. Freezing (ArchUnit's
-`FreezingArchRule`) is **forbidden** for the same reason Detekt baselines are.
+ArchUnit tests live in the `architecture-tests` module, which imports every other module's
+bytecode, so a new module is covered as soon as `settings.gradle.kts` names it. (There is no
+`modus.archunit` convention plugin; `build-logic` carries `modus.kotlin-base`,
+`modus.coverage`, `modus.spring-app` and `modus.spring-module` and nothing else.) Freezing
+(ArchUnit's `FreezingArchRule`) is **forbidden** for the same reason Detekt baselines are.
+
+### 5.0 Kotlin generates classes your rule has to see <a id="archunit-synthetic-classes"></a>
+
+A rule scoped by **class name** must account for the classes Kotlin emits that the source
+never names. Two bite immediately:
+
+| source | emitted | consequence for a name-scoped rule |
+|---|---|---|
+| `private companion object` inside `Foo` | `Foo$Companion` | a nested class outside the set its own outer type is in |
+| a top-level `private val` in `Foo.kt` | `FooKt` file facade | a class in the same package that is not `Foo` and never will be |
+
+Decide membership on the **outermost** enclosing class (`name.substringBefore('$')`), and
+put a value object's validating `Regex` in a companion rather than at file scope so no
+facade is generated at all. Both cases were observed failing `SharedKernelIsLeaf` on its
+first two runs (`adr:0004-domain-id-shared-kernel`), which is the only reason they are
+written down here rather than rediscovered.
+
+A rule scoped by **package** does not have this problem: both generated classes land in the
+package of their source file. Prefer a package scope where the architecture gives you one —
+that is the argument `20-ddd-practices.md` §5.1 makes for `..domain.aggregate`.
 
 ### 5.1 `DisabledCarriesWorkItem`
 

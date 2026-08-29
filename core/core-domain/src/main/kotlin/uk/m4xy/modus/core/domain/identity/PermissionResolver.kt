@@ -1,9 +1,9 @@
 package uk.m4xy.modus.core.domain.identity
 
+import uk.m4xy.modus.core.domain.DomainId
 import uk.m4xy.modus.core.domain.identity.aggregate.PermissionGrant
 import uk.m4xy.modus.core.domain.identity.published.ActorId
 import uk.m4xy.modus.core.domain.identity.published.Capability
-import uk.m4xy.modus.core.domain.identity.published.DomainId
 import uk.m4xy.modus.core.domain.identity.published.GrantId
 
 /**

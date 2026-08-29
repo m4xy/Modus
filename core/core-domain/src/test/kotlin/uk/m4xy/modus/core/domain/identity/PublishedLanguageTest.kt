@@ -5,7 +5,6 @@ import io.kotest.matchers.shouldBe
 import uk.m4xy.modus.core.domain.identity.published.ActorId
 import uk.m4xy.modus.core.domain.identity.published.ActorKind
 import uk.m4xy.modus.core.domain.identity.published.Capability
-import uk.m4xy.modus.core.domain.identity.published.DomainId
 import uk.m4xy.modus.core.domain.identity.published.GrantId
 import kotlin.test.Test
 
@@ -53,28 +52,6 @@ class PublishedLanguageTest {
         refused.forEach { value ->
             shouldThrow<IllegalArgumentException> { ActorId(value) }.message shouldBe actorIdMessage(value)
         }
-    }
-
-    @Test
-    fun `accepts a domain id that is a slug`() {
-        DomainId("modus-core").value shouldBe "modus-core"
-    }
-
-    @Test
-    fun `refuses a domain id that is not a slug`() {
-        shouldThrow<IllegalArgumentException> { DomainId("Modus Core") }
-            .message shouldBe "domainId must be a slug: 'Modus Core'"
-    }
-
-    /**
-     * Separate from the test above, which fails on the *space*: the case half of the rule
-     * is what stops `Modus-Core/` and `modus-core/` being one directory on the
-     * case-insensitive volumes the flat-file store runs on.
-     */
-    @Test
-    fun `refuses a domain id that is not lower case`() {
-        shouldThrow<IllegalArgumentException> { DomainId("Modus-Core") }
-            .message shouldBe "domainId must be a slug: 'Modus-Core'"
     }
 
     @Test

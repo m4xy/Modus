@@ -1,10 +1,10 @@
 package uk.m4xy.modus.core.domain.identity.event
 
 import uk.m4xy.modus.core.domain.DomainEvent
+import uk.m4xy.modus.core.domain.DomainId
 import uk.m4xy.modus.core.domain.identity.published.ActorId
 import uk.m4xy.modus.core.domain.identity.published.ActorKind
 import uk.m4xy.modus.core.domain.identity.published.Capability
-import uk.m4xy.modus.core.domain.identity.published.DomainId
 import uk.m4xy.modus.core.domain.identity.published.GrantId
 import java.time.Instant
 
