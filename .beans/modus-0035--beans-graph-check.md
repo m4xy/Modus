@@ -1,11 +1,12 @@
 ---
 # modus-0035
 title: docs-lint must validate the bean graph, not just prose references
-status: in-progress
+status: completed
 type: fix
 priority: high
 order: AE
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T16:01:48Z
 ---
 
 # `docs-lint` must validate the bean graph, not just prose references

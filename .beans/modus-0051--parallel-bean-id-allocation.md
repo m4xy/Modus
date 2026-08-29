@@ -1,11 +1,12 @@
 ---
 # modus-0051
 title: Two parallel agents allocated the same bean id
-status: in-progress
+status: completed
 type: fix
 priority: high
 order: AL
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T16:01:48Z
 ---
 
 # Two parallel agents allocated the same bean id
