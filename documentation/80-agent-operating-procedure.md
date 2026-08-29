@@ -6,6 +6,7 @@ superseded_by: null
 read_when: always
 provides:
   - doc:80-agent-operating-procedure#orchestrating
+  - doc:80-agent-operating-procedure#reports-are-evidence
   - doc:80-agent-operating-procedure#pick-up-the-work-item
   - doc:80-agent-operating-procedure#restate-success-criteria
   - doc:80-agent-operating-procedure#plan-and-budget
@@ -51,7 +52,7 @@ the agent that does it. These are the operating details it defers here.
 
 | # | Rule |
 |---|---|
-| 0.1 | Delegate plan, implement, review and QA as separate briefs. A reviewer that implemented the change is not a second opinion. |
+| 0.1 | Delegate plan, implement, review and QA as separate briefs. Review independence is a rule, not a preference (`doc:00-constitution#independent-review`); the mechanics are below. |
 | 0.2 | Spawn another orchestrator for a work package with its own internal sequence. Delegating a decision is not abdicating it — you still own the priority. |
 | 0.3 | Run independent work concurrently, in isolated worktrees. Two agents editing one tree is a merge conflict you scheduled. |
 | 0.4 | Read what agents return, not what they read. If you find yourself opening the files an agent already read, you have taken its job. |
@@ -67,6 +68,20 @@ the agent that does it. These are the operating details it defers here.
 4. **A required `LEARNINGS` section** in the return: what was non-obvious, with `file:line`
    or command output, and an instruction to say "nothing" rather than invent.
 
+### Briefing a reviewer
+
+Spawning the reviewer is your job. Who may review, what a verdict is worth and who merges
+are stated normatively in `doc:00-constitution#independent-review`; each row below adds a
+mechanic that section does not carry. On disagreement it wins and the row is the bug.
+
+| # | Rule |
+|---|---|
+| R1 | **Who not to spawn:** the implementer, a continuation of its session, or yourself. An implementer asked to review will find what it looked for the first time. |
+| R2 | **What to hand it:** nothing you compose yourself. `AGENTS.md`'s routing table, last row, already prescribes what a reviewing agent reads; your job is to make that prescription resolve — the reviewer cannot go looking for what the pull-request body left out. Fill `review_focus` and `out_of_scope` precisely, for the reason the template's own header gives. |
+| R3 | **What to demand back:** evidence per finding and for the verdict itself, in the kinds `doc:50-memory-and-evidence#evidence-kinds` accepts. `doc:00-constitution#observed-failing` applies to a review exactly as it applies to a gate. |
+| R4 | **What to do with it:** weigh it, and reject findings you can show to be wrong — in the thread, with the evidence. Do not let the implementer settle one by outlasting it. A verdict is an agent report like any other: `doc:80-agent-operating-procedure#reports-are-evidence`. |
+| R5 | **What it costs:** §9.6 carries the billing rule for a review and for the response to it. It sits inside the implementer's step 9, which a reader of this section never reaches — that placement is the only reason this row exists. |
+
 ### Why the context rule is a rule
 
 Seven agents in one session consumed 71k–190k tokens each and returned a few hundred lines
@@ -76,7 +91,7 @@ delegable. The failure mode is not laziness but its opposite: an orchestrator th
 stops being able to prioritise, spending on discardable work the one context that cannot be
 discarded.
 
-### What comes back is not automatically true
+### What comes back is not automatically true <a id="reports-are-evidence"></a>
 
 An agent's report is evidence, not a verdict. Reproduce a claim before restating it, or say
 plainly that you did not — three findings encoded this session carry that caveat. A report
@@ -369,7 +384,8 @@ agentic implementation per the domain policy.
 - **Surface your own doubts.** The thing you are least sure about goes in `## Decisions`,
   at the top of it. Reviewer attention spent where you point it is worth ten times
   reviewer attention spent hunting.
-- Push the branch. **Do not merge your own PR.**
+- Push the branch and stop. **You do not review it and you do not merge it**
+  (`doc:00-constitution#independent-review`); the orchestrator spawns a reviewer and decides.
 - Draft PRs are for incomplete work handed off at a checkpoint — mark them draft and say
   what remains.
 

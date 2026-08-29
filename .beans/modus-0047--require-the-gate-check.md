@@ -24,6 +24,11 @@ cmd:      gh api repos/m4xy/Modus/rulesets/21765196 \
 observed: (nothing — the rule does not exist)
 ```
 
+Both commands read `.rules[].type` and the `required_status_checks` rule's absence. Neither
+read the **parameters** of the `pull_request` rule, so the `required_approving_review_count`
+figure in "Success criteria" below is prose, not an observation — nothing in this tree has
+watched that number. `doc:00-constitution` §7.1 and `bean:0053` cite it and say so.
+
 So `rule:ci/build` has never been a merge gate. Every pull request in this repository could
 have been merged red, and one was red for two pushes before it was noticed by a human
 reading the checks tab rather than by anything stopping it. `doc:00-constitution#observed-failing`
