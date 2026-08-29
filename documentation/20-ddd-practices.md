@@ -385,8 +385,8 @@ The domain has no idea it is stored in Markdown. This is not incidental — it i
 
 - The domain declares `WorkItemRepository`. `adapter-persistence-flatfile` implements it
   over Markdown-with-frontmatter files. The mapping (frontmatter keys, body layout,
-  cross-reference syntax) is **entirely** the adapter's business and follows
-  `documentation/90-work-items.md` (owned separately).
+  cross-reference syntax) is **entirely** the adapter's business and follows the upstream
+  `hmans/beans` convention; `bean:0008` records the migration.
 - The domain never knows a file path, a filename, or a directory layout.
 - If a domain concept exists only to make storage convenient (a `version` field for
   optimistic locking, a `filePath`), it belongs in the adapter's own record type, not in

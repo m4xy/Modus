@@ -239,17 +239,21 @@ under "Follow-up work items to raise".
 `main` is protected. Every change — including documentation, including a one-character
 typo fix — arrives through a pull request.
 
-**Enforcement gap:** neither exists —
-`gh api repos/m4xy/Modus/branches/main/protection` returns `404 Branch not protected`,
-and no `pre-push` hook is committed anywhere in the repository. `bean:0027` carries the
-audit.
+**Enforced by:** repository ruleset `main-protected` (id `21765196`, `enforcement: active`)
+carrying the `pull_request`, `non_fast_forward` and `deletion` rules, plus
+`required_review_thread_resolution`, so an unresolved review thread blocks merge. Verify with
+`gh api repos/m4xy/Modus/rulesets`. Note the classic
+`gh api repos/m4xy/Modus/branches/main/protection` endpoint returns `404 Branch not protected`
+for a repository that uses rulesets — that 404 is not evidence of an unprotected branch, and
+reading it as such once produced a false `Enforcement gap:` here.
 
 ### 7.2 The sequence
 
 1. **Work item first.** Every branch has exactly one work item in `beans/`. If none
    exists, create it before you create the branch. The work item states the success
-   criteria **before** the work starts. On-disk schema: `documentation/90-work-items.md`
-   (owned separately). `beans/` **is** a work store in the sense of `40-durability.md` §3 —
+   criteria **before** the work starts. On-disk schema: the upstream `hmans/beans`
+   convention, `.beans/<prefix><id>--<slug>.md`. That store **is** a work store in the sense
+   of `doc:40-durability` §3 —
    specifically the one belonging to the `modus` domain, this repository. See
    `40-durability.md` §3.1: there is one work-item concept, not two.
 2. **Branch.** Named `<kind>/<slug>`, `<kind>` ∈ {`feat`, `fix`, `docs`, `chore`,

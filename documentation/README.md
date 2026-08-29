@@ -49,7 +49,6 @@ is a human gloss on it. On disagreement `read_when` wins and this table is the b
 | 60 | [`60-cost-model.md`](60-cost-model.md) | You are choosing a model, an effort level, or reporting spend. |
 | 70 | [`70-skills.md`](70-skills.md) | You have done a task more than once. |
 | 80 | [`80-agent-operating-procedure.md`](80-agent-operating-procedure.md) | **Always, if you are an agent.** This is your loop. |
-| 90 | `90-work-items.md` | *Owned separately.* The on-disk work-item ("bean") spec. Not yet ratified. |
 | — | [`adr/`](adr/) | You want to know *why* a decision was made, or you are making a new one. |
 
 ### The minimum an agent must read <a id="minimum-read"></a>
@@ -66,8 +65,8 @@ is a context-budget violation (see `00-constitution.md` §6).
 |---|---|---|
 | Methodology, rules, conventions | This package | `documentation/` |
 | Architecture decisions with alternatives considered | ADR log | `documentation/adr/` |
-| Work-item on-disk schema | Separate work package | `documentation/90-work-items.md` |
-| Actual work items | Beans | `beans/` |
+| Work-item on-disk schema | Upstream `hmans/beans`; project config in `.beans.yml` | `bean:0008` records the migration |
+| Actual work items | Beans | `.beans/` |
 | Build, style and arch enforcement | Convention plugins | `build-logic/` |
 | Skills | Skill registry | `.claude/skills/` and per-domain skill stores |
 

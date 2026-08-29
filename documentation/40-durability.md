@@ -76,8 +76,10 @@ Rules:
 | 2.1.5 | A file that fails schema validation is quarantined, never silently repaired. See §7. |
 | 2.1.6 | Documents are read whole and written whole. There is no partial update. |
 
-The exact frontmatter schema for work items is `documentation/90-work-items.md` (owned
-separately). This document specifies *how* files are written, not *what is in them*.
+The exact frontmatter schema for work items is the upstream `hmans/beans` convention —
+filename `<prefix><id>--<slug>.md` carries the id and slug, and `.beans.yml` carries the
+project config; `bean:0008` records the migration. This document specifies *how* files are
+written, not *what is in them*.
 
 ### 2.2 Logs — newline-delimited JSON, append-only <a id="append-only-log"></a>
 
@@ -152,8 +154,8 @@ There is **one** work-item concept, stored in **one** shape, and it lives at
 `modus` domain — the domain whose product is Modus itself — reached by a shorter path
 because a repository root is where humans and agents look first.
 
-- The **schema** is identical in both places (`documentation/90-work-items.md`, owned
-  separately). A tool that reads one reads the other.
+- The **schema** is identical in both places (the upstream `hmans/beans` convention; see
+  `bean:0008`). A tool that reads one reads the other.
 - `00-constitution.md` §7.2 and `80-agent-operating-procedure.md` step 1 say "the work item
   in `beans/`" because an agent working *on this repository* is always in the `modus`
   domain. That is a shorthand for the general path, not a second mechanism.
