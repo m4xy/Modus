@@ -82,10 +82,10 @@ adapter. Wiring happens exactly once, in `app/modus-server`.
 ### 1.3 `core-domain` is framework-free — absolutely
 
 No Spring. No Jackson. No JPA. No SLF4J. No `java.io.File`, no `java.nio.file`.
-No `System.currentTimeMillis()`, no `Instant.now()`, no `LocalDate.now()` — time enters
-through a `Clock` port passed as a constructor argument. No `UUID.randomUUID()` —
-identifiers come through an `IdGenerator` port. No static singletons, no service
-locators, no reflection, no coroutine dispatchers.
+No `System.currentTimeMillis()`, no `Instant.now()`, no `LocalDate.now()`, no
+`UUID.randomUUID()`, no static singletons, no service locators, no reflection, no
+coroutine dispatchers. Time, identifiers and randomness enter as constructor-injected
+ports, named by `doc:20-ddd-practices#ambient-ports` §5.3 and by nothing here.
 
 **Rationale:** `core-domain` must be testable with zero setup in under a second, and it
 must survive a change of persistence or transport without editing a single line.

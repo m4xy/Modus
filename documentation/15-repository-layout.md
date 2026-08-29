@@ -221,7 +221,8 @@ additionally unspecified; named as a follow-up in `bean:0001`.
 
 **Rules:** no mocking framework in `core/` — hand-written fakes only; a mock of your own
 domain is a design smell. Adapter and integration tests use a per-test temp directory and
-delete it on teardown. No test may depend on wall-clock time; inject the `Clock` port.
+delete it on teardown. No test may depend on wall-clock time; inject `ClockPort`
+(`doc:20-ddd-practices#ambient-ports` §5.3).
 
 ---
 

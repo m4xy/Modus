@@ -46,8 +46,9 @@ similar names; always qualify which you mean in code comments and commit scopes.
 
 ## 3. Bounded contexts <a id="bounded-contexts"></a>
 
-All six live as top-level packages under `com.modus.core.<context>` in **both**
-`core-domain` and `core-application`. A context never imports another context's internals.
+All six live as packages under `uk.m4xy.modus.core.domain.<context>` in `core-domain` and,
+as `core-application` grows them, `uk.m4xy.modus.core.application.<context>`. A context
+never imports another context's internals.
 Cross-context communication is by **domain event** or by an explicitly declared
 **anti-corruption port**.
 
@@ -72,7 +73,7 @@ the whole rule; get it right and the allowlist writes itself.
 
 | Part | Packages | Who may import it |
 |---|---|---|
-| **Published language** | `com.modus.core.<ctx>.domain.event..` (domain events) and `com.modus.core.<ctx>.domain.published..` (identifier value objects, plus any value object that appears in an event's signature — `WorkItemState`, `RunStatus`, …) | Any context named in the table below |
+| **Published language** | `uk.m4xy.modus.core.domain.<ctx>.event..` (domain events) and `uk.m4xy.modus.core.domain.<ctx>.published..` (identifier value objects, plus any value object that appears in an event's signature — `WorkItemState`, `RunStatus`, …) | Any context named in the table below |
 | **Internals** | Every other package of the context — aggregates, ports, use cases, services, and every value object not published | **Nobody.** No allowlist, no exception. |
 
 The published-language packages are **leaves**: a type in `..domain.event..` or
@@ -108,12 +109,12 @@ neither can see the other's internals. It is not a cycle in the package graph, b
 published packages are leaves.
 
 **Enforced by:** two ArchUnit rules, both derived directly from the tables above.
-`ContextInternalsAreSealed` — no type outside `com.modus.core.<ctx>..` may depend on
-`com.modus.core.<ctx>..` except on `..domain.event..` or `..domain.published..`.
+`ContextInternalsAreSealed` — no type outside `uk.m4xy.modus.core.domain.<ctx>..` may depend
+on `uk.m4xy.modus.core.domain.<ctx>..` except on `..domain.event..` or `..domain.published..`.
 `PublishedLanguageAllowlist` — a context's dependencies on another context's published
 packages are limited to the row above. Plus `PublishedLanguageIsLeaf`
 (`doc:15-repository-layout#core-package-rules` §4.2) and a
-"no cycles" rule over the internals slices only, `com.modus.core.(*)..` minus the two
+"no cycles" rule over the internals slices only, `uk.m4xy.modus.core.domain.(*)..` minus the two
 published packages. Assigned to `ContextIsolationRules` (`30-code-style.md` §5).
 
 `PublishedLanguageIsLeaf` and the no-cycles rule are implemented. `PublishedLanguageIsLeaf`
