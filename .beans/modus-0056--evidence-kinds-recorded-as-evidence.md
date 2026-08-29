@@ -23,10 +23,12 @@ Both merged **after** `adr:0005` landed, so the rule applied to them:
 | `bean:0048` | `6347022` (#26) | yes |
 | `bean:0052` | `054d96f` (#34) | yes |
 
-Found while closing ten merged beans (pull request #35), by a reviewer
-checking whether the nine beans closed without edits actually satisfied the rule they were
-being closed under. Eight of the ten did. These two do not, and the closure asserted they
-did.
+Found while closing ten merged beans (pull request #35), by a reviewer checking whether the
+beans closed without edits actually satisfied the rule they were being closed under. Stated
+with its denominator, because two are in circulation: **seven of the nine** closed on their
+existing evidence satisfy item 1, and **eight of the ten** closed in that pull request do,
+the eighth being `bean:0045`, which had its evidence authored in the same change. These two
+do not, on either count, and the closure asserted they did.
 
 ## What is actually wrong, row by row
 

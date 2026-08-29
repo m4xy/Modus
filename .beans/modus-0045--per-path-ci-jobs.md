@@ -23,6 +23,13 @@ Measured on this repository's own history:
 | `main`, Kotlin only, before `bean:0029` | ~50–53s |
 | after wiring, with npm and Playwright | 2m02s |
 
+**Both figures above are unsourced and both are wrong.** They name no run, no command and
+no unit, and they were written into this bean and copied into `bean:0039` before anyone
+asked where they came from. Measured against the real run history, the baseline is 134s and
+no reading of the pre-`bean:0029` history supports ~50–53s. The originals are left standing
+because they are what the bean was opened on; the sourced replacements are under
+"Criterion 4 — the measurement" below, and every figure there names its run id.
+
 That is the cost `bean:0039` is really about, and it is a **CI topology** problem rather
 than a repository-boundary problem. Fixing it here is cheap and answers whether the
 separation wanted is about gates or about repositories — which is the question `bean:0039`
@@ -87,7 +94,7 @@ while the local command is the superset, and that is now stated there as one-dir
 | 1 | separate jobs with path filters — three clauses, **two of them not observed on a real run** | Kotlin-only skips the frontend half: run `33261902606`, `backoffice + e2e` **skipped**. Frontend-only skips the Kotlin half, and a change touching both runs both: **classifier only** — the decision function below, never a CI run, because no such change has been pushed since the split landed |
 | 2 | branch protection still passes when a job is skipped | `gate` observed `success` on run `33261902606`, in which `backoffice + e2e` was skipped — the aggregating job reports green rather than never reporting. The ruleset also carries no `required_status_checks` rule at all, so nothing is blocked today either way (`bean:0047`) |
 | 3 | `doc:00-constitution` §7.2.4 states the promise one-directionally | citation below |
-| 4 | measure and record the result | run `33261902606` — 66s wall clock on a Kotlin-only change against the 2m02s baseline above, a 46% saving. Below |
+| 4 | measure and record the result | runs `33261902606` (66s) against `33256259515` (134s), both `.beans/`-only changes, both run wall clock — a 51% saving, n=1 against n=1. Below, with the two unsourced figures this bean inherited and what they should have been |
 
 ### Criterion 1 — a half observed skipped on a real pull request
 
@@ -120,8 +127,12 @@ dependency was skipped still reports green, so requiring it would not block this
 ### Criterion 1, continued — the classifier's decision function
 
 The two unobserved clauses are evidenced by **running** the classifier, not by reading it.
-The command extracts the decision function from `.github/workflows/ci.yml` by line range —
-so it cannot drift from the workflow — and drives it with a path list:
+The command extracts the decision function from `.github/workflows/ci.yml` at the commit
+that introduced it and drives it with a path list. The extraction is by **line range**, so
+it is pinned to the sha and not to the working tree: any edit above line 57 of a later
+`ci.yml` shifts the window and yields a different block that still runs and still prints a
+result. `git show 65ba4f5:` is what makes it re-runnable by a reader who is not standing on
+this branch:
 
 ```
 cmd:      bash -s <<'EOF'
@@ -135,7 +146,7 @@ cmd:      bash -s <<'EOF'
           for s in "${sets[@]}"; do
             export changed="$(printf '%s\n' $s)"
             printf '%-62s' "$s"
-            bash -c "$(sed -n '57,65p;68p' .github/workflows/ci.yml | sed 's/^ *//')"
+            bash -c "$(git show 65ba4f5:.github/workflows/ci.yml | sed -n '57,65p;68p' | sed 's/^ *//')"
           done
           EOF
 
@@ -172,33 +183,67 @@ CI gaining a task local runs do not have.
 ### Criterion 4 — the measurement
 
 The claim under test is that per-path jobs recover most of the time a repository split
-would. Measured on a **one-half change** — the only shape where a split saves anything:
+would. It needs a **like-for-like pair**: the same shape of change, the same measure, one
+run under each topology. Every figure below is **run wall clock**, `createdAt` to
+`updatedAt`, for a push run on `main` or the pull request run of the change itself. Job
+durations are quoted separately and always named as such.
 
 ```
-run:      33261902606 (pull request #35, `.beans/` only, so frontend skipped)
-cmd:      gh run view 33261902606 --json createdAt,updatedAt
-observed: created=2026-08-29T16:03:07Z  gate completed 2026-08-29T16:04:13Z
-          = 66s wall clock
-baseline: 2m02s (122s) — main after bean:0029 wired npm and Playwright into every run
-saving:   56s, 46%
+cmd:      gh run list --branch main --limit 40 \
+            --json databaseId,createdAt,updatedAt,headSha,conclusion
+          (wall clock = updatedAt - createdAt, successful runs only)
+
+after:    33261902606  pull request #35, `.beans/` only, frontend skipped
+          16:03:07Z -> 16:04:13Z                                        =  66s
+before:   33256259515  b812a9b `.beans/` only, after bean:0029 wired the
+          backoffice in, before this split landed
+          13:55:49Z -> 13:58:03Z                                        = 134s
+
+saving:   68s, 51%
 ```
 
-Per-job durations on that run: `which halves` 4s, `build` 48s, `backoffice + e2e` skipped,
-`gate` 4s.
+`b812a9b` is the like-for-like partner and is the reason the pair is worth anything: it
+changed three files, all under `.beans/`, and had to run `npm ci`, `tsc`, ESLint, Prettier
+and Playwright anyway because the split did not exist yet. It is this pull request's change
+under the old topology.
 
-**The measurement first written here was the wrong one and overstated nothing — it measured
-the wrong thing.** It cited run `33256522531` (pull request #22) at build 50s / frontend
-1m32s / gate 4s. Both halves ran in that one, because the change touched
-`.github/workflows/ci.yml` and the classifier routes that to both by design. End to end it
-was 1m53s against the 2m02s baseline — `gh run view 33256522531 --json createdAt,updatedAt`
-→ `created=2026-08-29T14:02:09Z updated=2026-08-29T14:04:02Z`, 113s — about 8%, and it
-measures job parallelism rather than the path split. A both-halves run cannot measure the saving on a one-half change. The
-figure above replaces it.
+Per-job durations on `33261902606`, for completeness and not as the measurement:
+`which halves` 4s, `build` 48s, `backoffice + e2e` skipped, `gate` 4s.
 
-That 46% is against the post-`bean:0029` baseline. Against the pre-`bean:0029` Kotlin-only
-time of ~50–53s the split does not beat the original — it restores it, which is the honest
-reading: this recovers the cost `bean:0029` added rather than improving on what came before.
-Whether that answers `bean:0039` is `bean:0039`'s call.
+**n=1 against n=1, inside a wide spread.** The twenty-one successful `main` runs in the
+history range 47s to 209s, and cache state, runner allocation and change size all move them.
+The pair above is two single runs, matched on change shape and nothing else. A saving of 51%
+is the honest reading of that pair; it is not a measured mean and this bean does not have one.
+
+#### Two figures this bean inherited, both wrong
+
+**`2m02s` (122s) — the post-`bean:0029` baseline.** Unsourced. The two post-`bean:0029`,
+pre-split successful runs on `main` are `33256259515` = 134s and `33256630231` = 133s. The
+real baseline is 12s slower than the bean claimed, so the saving is 51% and not the 46% first
+recorded here. **The error did not flatter the work**, which is the point: an unsourced
+number is not safe just because it happens to understate.
+
+**`~50–53s` — "Kotlin only, before `bean:0029`".** Unsourced, and no reading of the history
+supports it. The twelve successful pre-`bean:0029` runs on `main` are 47, 50, 67, 69, 79,
+81, 101, 125, 125, 136, 146, 209s. The two closest to this change's shape — documentation
+and beans, no code — are `33255099872` (e4dbc48) 47s and `33247011196` (0bc47e0) 50s, which
+is probably where the figure came from and is not what the row says.
+
+**The ceiling claim, restated against real runs.** 66s against 47–50s for the same shape
+means the split **restores most of what `bean:0029` cost and does not beat what came
+before** — it lands 16 to 19 seconds above it. That is the same conclusion this bean drew
+from the wrong numbers, now with runs behind it. Whether it settles `bean:0039` is
+`bean:0039`'s call; what it rules out is settling it on the unsourced pair.
+
+#### The measurement first written here measured the wrong thing
+
+It cited run `33256522531` (pull request #22) at build 50s / frontend 1m32s / gate 4s. Both
+halves ran in that one, because the change touched `.github/workflows/ci.yml` and the
+classifier routes that to both by design. End to end it was 113s —
+`gh run view 33256522531 --json createdAt,updatedAt` →
+`created=2026-08-29T14:02:09Z updated=2026-08-29T14:04:02Z` — which is 8% off a 122s
+baseline and 16% off the real 134s one. Either way a both-halves run cannot measure the
+saving on a one-half change, and per-job durations from it cannot measure wall clock at all.
 
 Requiring the `gate` check is `bean:0047` and is blocked on a human: the harness refuses
 branch-protection edits to an agent.

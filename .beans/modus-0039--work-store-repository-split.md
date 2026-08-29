@@ -130,14 +130,29 @@ document lags both the UI and this proposal.
 
 ## Why the CI argument is real but does not settle it
 
-| | duration |
-|---|---|
-| `main`, Kotlin only, before `bean:0029` | ~50–53s |
-| after wiring the backoffice in | ~2m |
+| | duration | source |
+|---|---|---|
+| `main`, beans/docs only, before `bean:0029` | 47s, 50s | runs `33255099872`, `33247011196` |
+| after wiring the backoffice in, before `bean:0045` | 134s | run `33256259515` (`.beans/` only) |
+| after `bean:0045`'s per-path split | 66s | run `33261902606` (`.beans/` only) |
+
+All four are run wall clock, `createdAt` to `updatedAt`. This table originally carried
+`~50–53s` and `~2m`, copied from `bean:0045`, with no run id and no unit behind either;
+both were wrong and the second was 12s out. Corrected against the run history —
+`gh run list --branch main --limit 40 --json databaseId,createdAt,updatedAt,headSha,conclusion`
+— by the change that closed `bean:0045` (pull request #35). Twenty-one successful `main`
+runs span 47s to 209s, so each cell is a single run matched on change shape, not a mean.
 
 `bean:0029` closed a real hole and made this worse: every Kotlin-only change now runs
 `npm ci`, `tsc`, ESLint and Prettier, and CI runs Playwright on top. That cost is genuine —
 and it is a **CI topology** problem, which `bean:0045` fixes with per-path jobs at a fraction
-of the effort a repository split takes. If per-path jobs recover most of the time, the
-component split has to justify itself on release cadence and ownership rather than on
-minutes, which is a different and much smaller argument. Try the cheap thing first.
+of the effort a repository split takes. Try the cheap thing first.
+
+**It has now been tried, and the answer is on the table above.** Per-path jobs took a
+one-half change from 134s to 66s, a 51% saving, which recovers most of what `bean:0029` cost
+but does not beat the 47–50s this repository saw before it. So the minutes argument for a
+component split is largely spent: what a split would still buy over the topology fix is the
+last ~16–19s on this shape of change, and this bean now has to justify itself on release
+cadence and ownership rather than on minutes. That is a different and much smaller argument.
+The measurement is n=1 against n=1 (`bean:0045`'s evidence, criterion 4) — if this bean wants
+to reopen the minutes case, the way to do it is more runs, not a better estimate.
