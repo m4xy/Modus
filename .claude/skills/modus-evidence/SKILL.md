@@ -57,6 +57,28 @@ git status --porcelain          # must be empty; a dirty tree makes the revert a
 | **Firing for the wrong reason** | three `publishedLanguageIsLeaf` plants fired via `data class` synthetics, not the rule's own reason; the erased case passed | plant the *shape* the rule is about, not the convenient one |
 | **`const val` inlining** | a planted violation at a constant leaves no trace in the referring class file | plant at call sites, never at a constant |
 
+## Choosing what to plant
+
+- **Plant something no other check also rejects**, or the observation is not isolated. A
+  duplicate-bean-id plant on an id that is a `parent` fires check 12 alongside check 13
+  (`bean:0051`). Pick a subject nothing else references: compare the ids in prose against
+  the ids on disk and take one from the difference.
+- **For a cross-branch check, use real history rather than forging a ref.** Branching from
+  the commit before a bean was added makes that id free in the worktree and taken on
+  `origin/main` — the exact shape the check is about, with no `git update-ref` that would
+  mutate state shared with other worktrees.
+- **Run the negative control too.** A check that fires on the plant and also fires on a
+  legitimate change is not a gate, it is an obstacle. The counts in the success line are
+  what prove the comparison ran rather than skipped.
+
+## Sandbox, when running inside an isolated worktree
+
+`GITHUB_TOKEN= gh …` works; `env -u GITHUB_TOKEN gh …` is refused. Also refused: compound
+commands containing `>`/`>>` into a non-literal target, and multi-statement `for … do … done`
+loops that pipe. A single `awk` over a glob is the reliable substitute; `cat file >> target`
+is accepted; a `mv`, a run and a `mv` back must be three separate calls. Write new files with
+the Write tool.
+
 ## Success criteria
 
 - [ ] The mechanism was observed failing, and the output is recorded verbatim in the bean.
