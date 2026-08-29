@@ -5,7 +5,7 @@ this file no longer matches a replay of the same transcripts.
 
 | | |
 |---|---|
-| repo sha at generation | `b7d2b8fa85d6dde05ff8a2fad9467a0292ab26bc` |
+| repo sha at generation | `e300048a22083d1471fe68d2a3782053c333a73e` |
 | transcripts | 2 root session(s), 63 subagent run(s) |
 | input files hashed | 129 |
 
@@ -13,16 +13,16 @@ this file no longer matches a replay of the same transcripts.
 
 | | tokens | share |
 |---|---:|---:|
-| input (fresh) | 9,670 | 0.0% |
-| output | 2,301,468 | 0.31% |
-| cache read | 725,842,757 | 98.15% |
-| cache write 5m | 9,752,884 | 1.32% |
-| cache write 1h | 1,654,058 | 0.22% |
-| **total** | **739,560,837** | |
+| input (fresh) | 9,814 | 0.0% |
+| output | 2,357,322 | 0.31% |
+| cache read | 741,216,620 | 98.05% |
+| cache write 5m | 10,691,219 | 1.41% |
+| cache write 1h | 1,669,408 | 0.22% |
+| **total** | **755,944,383** | |
 
-- **Cache-read ratio: 98.15%** of all tokens.  
-- **Cost: $468.098671** (derived — see *Prices* below; no billed figure exists in the transcript).  
-- **Delegated spend is INCLUDED**: 61.17% of the dollar total is subagent runs (63 of 65 runs).
+- **Cache-read ratio: 98.05%** of all tokens.  
+- **Cost: $483.200719** (derived — see *Prices* below; no billed figure exists in the transcript).  
+- **Delegated spend is INCLUDED**: 62.13% of the dollar total is subagent runs (63 of 65 runs).
 
 Fresh input plus output is 0.31% of all tokens. A baseline reporting only those two would
 describe almost none of the spend; the cache classes are the bill.
@@ -31,10 +31,10 @@ describe almost none of the spend; the cache classes are the bill.
 
 | asked for | obtainable | why |
 |---|---|---|
-| per-branch totals | **no** | `gitBranch` is the literal string `HEAD` on 4847 of 4847 assistant messages in this corpus. Not a detached checkout — the repository was on named branches throughout. The field is unusable as a join key, and the pull-request join above uses `gh pr create` results instead. |
+| per-branch totals | **no** | `gitBranch` is the literal string `HEAD` on 4919 of 4919 assistant messages in this corpus. Not a detached checkout — the repository was on named branches throughout. The field is unusable as a join key, and the pull-request join above uses `gh pr create` results instead. |
 | `durationMs` per message | **no** | the field does not exist on an assistant line. Wall clock above is `max(timestamp) - min(timestamp)` per run, so it includes think time, tool time and idle time, and for a root session it includes the human being away. |
 | a billed dollar figure | **no** | the stored transcript carries no cost field. Every dollar here is derived from token counts and the rate table below. |
-| delegated spend | **yes** | in `<sessionId>/subagents/agent-*.jsonl`, one transcript per subagent, with an `agent-*.meta.json` sidecar. It is absent from the parent transcript, so reading only `*.jsonl` at the top of the project directory hides 61.17% of the spend. |
+| delegated spend | **yes** | in `<sessionId>/subagents/agent-*.jsonl`, one transcript per subagent, with an `agent-*.meta.json` sidecar. It is absent from the parent transcript, so reading only `*.jsonl` at the top of the project directory hides 62.13% of the spend. |
 | `parentRunId` | **yes** | the sidecar's `toolUseId` is the id of the `Task` tool_use block in the spawning run. All 63 subagent edges resolved, at depth 1 and depth 2. There is no `parent_tool_use_id` field on a stored assistant line. |
 | `peakContextTokens` | **yes** | `input + cache_read + cache_creation` on the largest single request of the run. The largest here is **865,375 tokens**, 2.9x `doc:00-constitution` §6's 300k ceiling. |
 
@@ -82,29 +82,29 @@ describe almost none of the spend; the cache classes are the bill.
 | 37 | no | — | 1 | 2,409,432 | $2.037972 | $0.000000 | $2.037972 |
 | 38 | no | — | 2 | 8,346,074 | $5.619762 | $0.000000 | $5.619762 |
 | 39 | no | — | 1 | 1,852,355 | $1.131790 | $0.000000 | $1.131790 |
-| 40 | no | — | 1 | 17,330,790 | $12.784062 | $12.784062 | $0.000000 |
+| 40 | no | — | 1 | 17,606,821 | $12.965230 | $12.965230 | $0.000000 |
 | 41 | no | — | 1 | 4,072,085 | $3.130266 | $0.000000 | $3.130266 |
 
-| attribution | micro-dollars | share |
+| attribution | integer micro-dollars | share |
 |---|---:|---:|
-| exact (run opened the PR) | 98,232,878 | 20.99% |
-| segmented (orchestrator, by timestamp) | 272,174,147 | 58.14% |
-| unattributed | 97,691,646 | 20.87% |
+| exact (run opened the PR) | 98,414,046 | 20.37% |
+| segmented (orchestrator, by timestamp) | 272,174,147 | 56.33% |
+| unattributed | 112,612,526 | 23.31% |
 
 ## Per run
 
 | run | role | parent | msgs | tokens | $ | peak ctx | wall |
 |---|---|---|---:|---:|---:|---:|---:|
-| `ffd4977c-3d34-41e` | root | — | 548 | 244,759,223 | $146.465476 | 865,375 | 24893s |
+| `ffd4977c-3d34-41e` | root | — | 555 | 246,487,591 | $147.672305 | 865,375 | 25752s |
 | `1d5c6709-7c3c-457` | root | — | 199 | 46,674,698 | $35.294958 | 397,750 | 44854s |
-| `agent-a7f91f80670` | general-purpose | `ffd4977c-3d34-41e` | 118 | 21,811,457 | $16.693951 | 265,526 | 3750s |
+| `agent-a7f91f80670` | general-purpose | `ffd4977c-3d34-41e` | 140 | 27,983,832 | $23.320536 | 292,295 | 4655s |
 | `agent-a030c7398d1` | general-purpose | `1d5c6709-7c3c-457` | 171 | 27,185,014 | $16.066595 | 232,007 | 1773s |
+| `agent-ae3eab60823` | general-purpose | `ffd4977c-3d34-41e` | 133 | 20,362,970 | $16.002627 | 252,950 | 4431s |
 | `agent-a0896f9eb8e` | general-purpose | `1d5c6709-7c3c-457` | 138 | 20,700,452 | $13.287499 | 266,112 | 2080s |
-| `agent-a2d88edc8d6` | general-purpose | `ffd4977c-3d34-41e` | 114 | 17,330,790 | $12.784062 | 273,833 | 4070s |
+| `agent-a2d88edc8d6` | general-purpose | `ffd4977c-3d34-41e` | 115 | 17,606,821 | $12.965230 | 274,404 | 4198s |
 | `agent-a662955d9ce` | general-purpose | `1d5c6709-7c3c-457` | 116 | 18,703,952 | $12.344965 | 242,133 | 1231s |
 | `agent-a2a90790971` | general-purpose | `1d5c6709-7c3c-457` | 128 | 19,158,737 | $12.178263 | 229,629 | 1785s |
 | `agent-a484cbf07cf` | general-purpose | `1d5c6709-7c3c-457` | 105 | 18,242,577 | $10.919647 | 238,088 | 1149s |
-| `agent-ae3eab60823` | general-purpose | `ffd4977c-3d34-41e` | 106 | 14,029,212 | $10.670050 | 212,007 | 3544s |
 | `agent-a548ccdede2` | general-purpose | `1d5c6709-7c3c-457` | 99 | 15,107,796 | $9.845197 | 211,722 | 1322s |
 | `agent-af61db74cd8` | general-purpose | `ffd4977c-3d34-41e` | 110 | 12,243,216 | $9.652413 | 184,148 | 3292s |
 | `agent-a781dd791ea` | general-purpose | `ffd4977c-3d34-41e` | 110 | 11,061,115 | $9.065629 | 160,492 | 2679s |
@@ -115,12 +115,12 @@ describe almost none of the spend; the cache classes are the bill.
 | `agent-a5396047b80` | general-purpose | `1d5c6709-7c3c-457` | 103 | 12,298,738 | $7.536999 | 170,826 | 1177s |
 | `agent-adc35b13850` | general-purpose | `1d5c6709-7c3c-457` | 73 | 10,175,572 | $7.360295 | 200,382 | 1195s |
 | `agent-abf9c652513` | general-purpose | `1d5c6709-7c3c-457` | 106 | 10,428,829 | $6.952627 | 151,828 | 1416s |
+| `agent-ac0a330b5d5` | general-purpose | `ffd4977c-3d34-41e` | 92 | 7,457,591 | $6.234233 | 132,564 | 2557s |
 | `agent-aaae830b7d6` | general-purpose | `1d5c6709-7c3c-457` | 168 | 26,532,936 | $6.152483 | 248,745 | 1626s |
 | `agent-a35f93f0526` | general-purpose | `ffd4977c-3d34-41e` | 91 | 8,567,294 | $5.885065 | 127,809 | 1374s |
 | `agent-a826c4e4997` | general-purpose | `1d5c6709-7c3c-457` | 84 | 8,592,210 | $5.846367 | 147,292 | 935s |
 | `agent-af09eab3bf2` | general-purpose | `1d5c6709-7c3c-457` | 64 | 7,264,081 | $5.379943 | 163,493 | 1419s |
 | `agent-aa2f62e17ad` | general-purpose | `ffd4977c-3d34-41e` | 51 | 5,335,691 | $4.590919 | 151,548 | 1580s |
-| `agent-ac0a330b5d5` | general-purpose | `ffd4977c-3d34-41e` | 77 | 5,584,577 | $4.479344 | 111,177 | 830s |
 | `agent-a9451064578` | general-purpose | `ffd4977c-3d34-41e` | 69 | 5,021,598 | $4.028418 | 120,631 | 730s |
 | `agent-a5e109a874d` | general-purpose | `ffd4977c-3d34-41e` | 81 | 5,897,264 | $3.923941 | 110,797 | 1204s |
 | `agent-a323e82033b` | general-purpose | `ffd4977c-3d34-41e` | 66 | 5,407,594 | $3.701663 | 105,499 | 820s |
@@ -177,7 +177,7 @@ skill's `shared/prompt-caching.md`, which `doc:60#price-book` names as their sou
 | assertion | result |
 |---|---|
 | repeated frames of one `message.id` agree on input and cache tokens | 0 disagreement(s) |
-| output tokens recovered by taking the largest frame, not the first | 1,094,414 (47.55% of all output) |
+| output tokens recovered by taking the largest frame, not the first | 1,129,285 (47.91% of all output) |
 | every subagent's parent edge resolved | 0 unresolved |
 
 ## Input hashes
@@ -187,7 +187,7 @@ record is repeatable by running it again, which requires knowing what it read.
 
 ```
 31baeb6171b01662baf28a7b198096245518f7b7861c0c89bb908dfdbb9cc77a  .claude/projects/-Users-maxholman-IdeaProjects-Modus/1d5c6709-7c3c-4571-82f7-654b2f5c6da8.jsonl
-d0efa6aa5e6ad66fc3421f9ac545ff40c26121b111702fec9e7275e0ca202af9  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688.jsonl
+4da6361217657323ff71f2f7ec07df255a08b6365739fc07702c594629cb6b9e  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688.jsonl
 0fbb4cd275be2d15b19b27425fcea4baf3712a80e0e10ce7a9ef6cc2e0f1aa8e  .claude/projects/-Users-maxholman-IdeaProjects-Modus/1d5c6709-7c3c-4571-82f7-654b2f5c6da8/subagents/agent-a030c7398d194a4a2.jsonl
 b6cfda22e6816a47a88eff335de4d3c6177d8316911f7f99f4578dc46832780b  .claude/projects/-Users-maxholman-IdeaProjects-Modus/1d5c6709-7c3c-4571-82f7-654b2f5c6da8/subagents/agent-a030c7398d194a4a2.meta.json
 d66f95329f504157882e546e8858f7fb997fe2eda2936c8a69f95a62dab5a9ec  .claude/projects/-Users-maxholman-IdeaProjects-Modus/1d5c6709-7c3c-4571-82f7-654b2f5c6da8/subagents/agent-a041cb1532c8c34bc.jsonl
@@ -274,7 +274,7 @@ c25f8b566022ffdf1c44f4aaa0bbc26f5f6e51afa2a7325a660791ad15adb73e  .claude/projec
 7f2f9b0836a3748862c12468e69c771dd9bfd614e298274e049f0143b4f7eb88  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a261f1dced2570e42.meta.json
 08cb3957bb86af752e22950393ecd206437bd542ef152b6d0344531a1e562eb9  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a2c3fe81835de71a9.jsonl
 956fd57b4220ef05c974f663a2941f5c8fb73b0b97940d2bcec58090775b0cdf  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a2c3fe81835de71a9.meta.json
-ad0537fb233bf8fd484ead042ac4074b14098b9bb08f5ea436d4603f2f64ba1a  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a2d88edc8d61c1010.jsonl
+428579637f33d43c3b057a46bf55b55aa9e97706a4b709972178ea1a576864b6  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a2d88edc8d61c1010.jsonl
 7bc148bb9252a2baa670a1e92bd104535ad4ba1e1e4522d097a2f259b51d5480  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a2d88edc8d61c1010.meta.json
 f843bb718e91721922c1154d7e5fa92de4395ce795d78fcb2acc775ad71c29d6  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a323e82033bcc7da6.jsonl
 a18a1d900647605d23a4819feb6b2a3d8de915d34fe42f8569f650fe69cdad02  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a323e82033bcc7da6.meta.json
@@ -294,17 +294,17 @@ fe03162a2fe2df51b68d7dc69f0bb98cc38ebee771412e5f9eb19ee5a2f4a9ea  .claude/projec
 92db814a94faaaf769cb5075dc494a79e16b74aca39b51769c1360afd0b1d3f5  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a781dd791eaa56886.meta.json
 e4498989a4a02f33892f62d2c441e1dd02e1a09bb5b74dfd98963fb93ee85a27  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7ada704ae8ddde1e.jsonl
 4c1b026433e1e6d064938e3d448e84c9b46ac680a881636cd016c5472a09ca00  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7ada704ae8ddde1e.meta.json
-1c22e5b1310e6896a084a239db0179b1570f4f64a9105cad74adec1160e56183  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7f91f80670cd9b10.jsonl
+21a0d49bdadd767cdcc0c83be99b186c4436dd9247716b93d954d4a76899b069  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7f91f80670cd9b10.jsonl
 a1c22a2f76cf3ae20c11b4f7d37151d58631668e090335d76bd1f4ad25404dcb  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7f91f80670cd9b10.meta.json
 2a50c72381b0acb7f31d6e3ffd1aea030bdbeae4d1b7ec8628967f9e25d3f47a  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a9451064578c8b7fd.jsonl
 3ec60940c27a531eeef2d93299c03b8f1bdc1acf1a99e4ba319efe88fe3e8d51  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a9451064578c8b7fd.meta.json
 17e8b3e3030388d973e9fcb4e6f52ef06cc6213be521036800baf5a66cb3ba31  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-aa2f62e17adc92ee1.jsonl
 3bdfdfea763a3a299857f919e93c391ec8511638d90d812a52855acb0344b6f5  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-aa2f62e17adc92ee1.meta.json
-dc6facaacab3b8d387ae8fe55c4dd35eab15132dc75a668a0088b31f746d93dc  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ac0a330b5d5988ba8.jsonl
+52a6d7425aad6c1a9dda2bd760d7b3412c1351e9010db6ccf17e065774572f16  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ac0a330b5d5988ba8.jsonl
 fd68526d8ca8022a3a3f38874d87710674c58ce4ebb106596e797ff02417fa89  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ac0a330b5d5988ba8.meta.json
 a527de1ab16e39cd7ef2ac6038a6d21dafb5c5dce4d9d4f781720350d90752b2  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-aca03df582fc3a019.jsonl
 97c7e186030ebb60f370074f5e64c945bf4e30b9e9482420e4df254fefb9e380  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-aca03df582fc3a019.meta.json
-41fcb433614723318c4c147b5ba9ebf23c7262ad8657c54b28912e11c315d304  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae3eab60823f11f8c.jsonl
+6a487d90b507d2cd413dd277b5178fe555107babcbd22cb6677fd973bf000dcd  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae3eab60823f11f8c.jsonl
 b05961f02f0fcaf328e9a5690440d518df502b379094f9f05489283ef487230e  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae3eab60823f11f8c.meta.json
 fed6927433779e8a5b2b79db1238d0bcae06558d535162523929cfe73cc6605c  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae93785cd345bbbe1.jsonl
 84d6acdf584f8b51e65ce468b9eba853f3fa869469a8a35824d035877e97a7af  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae93785cd345bbbe1.meta.json

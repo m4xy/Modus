@@ -45,17 +45,17 @@ and `--check` fails if it drifts from the artifact. *Not done* says why that rul
 |---|---:|
 | runs replayed | 65 (2 root session(s), 63 subagent run(s)) |
 | input files hashed | 129 |
-| assistant messages / transcript frames | 4,847 / 8,903 (**1.837x** overcount if frames are summed) |
-| tokens | 739,560,837 |
-| cache-read ratio | **98.15%** |
+| assistant messages / transcript frames | 4,919 / 9,030 (**1.836x** overcount if frames are summed) |
+| tokens | 755,944,383 |
+| cache-read ratio | **98.05%** |
 | fresh input + output | 0.31% of all tokens |
-| derived cost | **$468.098671** |
-| delegated share of cost | **61.17%** — included, not excluded |
+| derived cost | **$483.200719** |
+| delegated share of cost | **62.13%** — included, not excluded |
 | largest peak context | 865,375 tokens, 2.9x the 300k ceiling (`doc:00-constitution#context-budget`) |
 | pull requests attributed | 39 — min $1.066690, median $5.885065, max $56.710674 |
-| attributed exactly / by timestamp / not at all | 20.99% / 58.14% / 20.87% of dollars |
-| `gitBranch` == the literal `HEAD` | 4,847 of 4,847 messages |
-| output tokens recovered by taking the largest frame, not the first | 1,094,414 (47.55% of all output) |
+| attributed exactly / by timestamp / not at all | 20.37% / 56.33% / 23.31% of dollars |
+| `gitBranch` == the literal `HEAD` | 4,919 of 4,919 messages |
+| output tokens recovered by taking the largest frame, not the first | 1,129,285 (47.91% of all output) |
 | frames disagreeing on input or cache tokens | 0 |
 | subagent parent edges unresolved | 0 of 63 |
 
@@ -63,12 +63,12 @@ Verbatim, for criteria 2 and 3 (`doc:00-constitution#evidence-rule`):
 
 ```
 cmd:      python3 tools/cost-replay.py
-observed: Delegated spend is INCLUDED: 61.17% of the dollar total is subagent runs
+observed: Delegated spend is INCLUDED: 62.13% of the dollar total is subagent runs
             (63 of 65 runs)
           repeated frames of one `message.id` agree on input and cache tokens
             | 0 disagreement(s)
           output tokens recovered by taking the largest frame, not the first
-            | 1,094,414 (47.55% of all output)
+            | 1,129,285 (47.91% of all output)
 exit:     0
 ```
 
@@ -104,10 +104,61 @@ into the exact figure.
 | 3 | Delegated spend is included and its share stated | the block's verbatim `observed:`, regenerated with the artifact it quotes | A |
 | 4 | Dollars are integer micro-dollars, with cache read and both cache-write TTLs priced separately | `tools/cost_lib.py` `cost_micros`; rate table rendered into the baseline | A |
 | 5 | Input hashes recorded, and re-checkable | `command`: `python3 tools/cost-replay.py --check`; observed `baseline inputs have moved on: 2 changed, 0 gone.` when a live session appended, exit 1 | A |
-| 6 | One spend record per agent run is appended at the harness edge | `domains/modus/cost/0001.ndjson` | B |
-| 7 | `parentRunId` is populated for a subagent run | `command`: recorder self-test | B |
-| 8 | Fields the harness cannot supply are omitted, never invented | `tools/cost-record.py`; the table below | B |
+| 6 | One spend record per agent run is appended at the harness edge, and a lost cursor never re-bills | `domains/modus/cost/0001.ndjson`, two records; `.claude/settings.json` registers `Stop` and `SubagentStop` | B |
+| 7 | `parentRunId` is populated for a subagent run | `command`: `python3 tools/cost-record.py --self-test`; observed below | B |
+| 8 | Fields the harness cannot supply are omitted, never invented; the shape otherwise matches | 16 of 22 field names match; `tools/cost-record.py` `UNAVAILABLE`; `doc:60-cost-model` §3.2.1 | B |
 | 9 | `./gradlew ktlintFormat && ./gradlew qualityCheck` green | `test-run` | A, B |
+
+### Criterion 7, verbatim
+
+```
+cmd:      python3 tools/cost-record.py --self-test
+observed: "runId": "a7f91f80670cd9b10"
+          "parentRunId": "ffd4977c-3d34-41e9-a3ae-f60919540688"
+          "role": "general-purpose", "spawnDepth": 1
+          "gitBranch": "feat/cost-recorder"
+          "peakContextTokens": 198216
+          "outcomeBasis": "hook event SubagentStop means the turn ended, not that it succeeded"
+          self-test OK — every required field populated
+exit:     0
+```
+
+`gitBranch` is the branch, not `HEAD`: the recorder resolves it from the hook's `cwd` at
+record time instead of reading the transcript's own field, which is the one moment the real
+branch is knowable.
+
+Idempotence, driven through the hook entry point rather than the self-test:
+
+```
+cmd:      <SubagentStop payload> | python3 tools/cost-record.py
+          <Stop payload>         | python3 tools/cost-record.py
+          <Stop payload>         | python3 tools/cost-record.py   # again
+observed: domains/modus/cost/0001.ndjson  2 lines, then still 2 lines
+```
+
+`Stop` fires at the end of every turn, so records are deltas keyed on the previous record's
+`lastMessageId`. The log is its own cursor; a replayed payload adds nothing.
+
+### Criterion 6, verbatim — the four cursor outcomes
+
+```
+cmd:      <Stop payload> | python3 tools/cost-record.py        # first record
+observed: domains/modus/cost/0001.ndjson  1 line, billingBasis "full"
+cmd:      <same payload again>                                 # nothing new
+observed: still 1 line
+cmd:      <lastMessageId rewritten to an id not in the transcript, endedAt left in the past>
+observed: billingBasis = refused
+          billed       = False
+          costUsd      = <absent - nothing billed>
+          error        = cursor 'msg_GONE' absent from the transcript and every message
+                         postdates the previous record's endedAt 2020-01-01T00:00:00.000Z;
+                         that is a re-bill of the whole run, not a delta. The transcript
+                         was probably rewritten or replaced.
+```
+
+The fourth outcome — a missing cursor whose `endedAt` still falls inside the transcript — bills
+only what is strictly newer and sets `billingBasis: timestamp-fallback` with a `billingNote`
+saying the record is a partial that may overlap or undercount.
 
 ### Criterion 5, verbatim
 
@@ -154,6 +205,24 @@ So prose quotes the shape and points at the artifact for the totals. A reviewer 
 replay from scratch, sharing no code, over the 53 inputs of that generation whose hashes still
 matched, and got run rows identical to the committed ones with zero discrepancies — the method reproduces
 exactly; it is the moving corpus underneath it that does not.
+## Does the record match `doc:60-cost-model#spend-record`?
+
+16 of 22 field names match exactly. Six are omitted, each because the harness does not know
+the answer, and the record names them in an `unavailable` map so a consumer sees the shape of
+the hole rather than inferring it: `stage`, `workItemId`, `epicId`, `skillId`, `rationale`
+(all properties of the work, not of the process) and `priceBookEntryId` (no price book —
+`bean:0001`).
+
+Two of the 22 are new. `doc:60` §3.2 had **no `parentRunId` and no `role`**, while §3.3
+promises rollups `run -> stage -> work item -> epic -> domain`. There is no run-to-run edge in
+that chain, so a subagent's spend has nowhere to roll up to — and delegation is where the
+majority of the spend is — the generated block's *delegated share of cost* row. The two
+fields are added
+to the table, which is the one place this work changes a tier-1 shape.
+
+§3.2.1 is also added, recording which fields a harness-edge recorder can supply and which it
+cannot. That is additive: it does not weaken the table, which is written for
+`adapters/adapter-agent-claude` at the API edge and stays correct there.
 
 ## Not done
 
@@ -178,6 +247,31 @@ exactly; it is the moving corpus underneath it that does not.
   else's machine. `--transcripts DIR` and `MODUS_COST_TRANSCRIPTS` win over the derivation. A
   baseline a stranger cannot regenerate is not a baseline; the review found this by having to
   monkeypatch the path resolver to reproduce the run at all.
+- **The stale-figure guard covers the generated block, not the document.** `--check` reads
+  `runs.ndjson`, `baseline.md` and the region between the markers. Bean prose outside them,
+  pull-request bodies and source comments pass silently — proved by a reviewer planting a
+  fabricated cost sentence outside the markers and watching `--check` exit 0. Two live
+  instances slipped through in this very change and are fixed; the hole is `bean:0059`.
+- **The cursor refusal is all-or-nothing on count.** One message surviving at or before the
+  previous record's `endedAt` turns a near-total re-bill into a `timestamp-fallback` partial:
+  a reviewer seeded 5 messages, kept 1 before the boundary, and 4 of 5 were billed again.
+  Bounded and flagged rather than silent, but not proportional. `bean:0060`.
+- **A missing cursor refuses to bill rather than silently re-billing.** `Stop` fires per turn,
+  so a record is a delta keyed on the previous record's `lastMessageId`. The first version fell
+  back to billing every message when that id was not in the transcript — compaction, a rewrite,
+  a resumed session — which writes the whole run again into an append-only money log that
+  cannot then be corrected in place. Four outcomes now, and never that one: no previous record
+  bills everything; a found cursor bills what follows it; a missing cursor with a usable
+  `endedAt` bills what is strictly newer and marks the record a flagged partial; and a missing
+  cursor whose fallback would select every message writes a `billingBasis: refused` line with
+  `billed: false`, no `costUsd`, and the reason.
+- **The spend log will conflict in git.** `domains/modus/cost/0001.ndjson` is append-only and
+  several agents append to it on different branches at once, so every merge is a textual
+  conflict at the last line. The fix is a `merge=union` attribute, which lives in a root
+  `.gitattributes` this work does not own. Until then the log is merged by hand.
+- **The recorder is not registered for sibling agents.** `.claude/settings.json` only takes
+  effect on a branch that has it, so nothing is being recorded on the four branches in flight
+  beside this one. Their spend is recoverable by replay (deliverable A) and only by replay.
 - **No price book.** `doc:60-cost-model` §2.1 requires `domains/<domainId>/cost/price-book.md`
   with `fetch` evidence per entry; it does not exist (`bean:0001`), so every dollar here is
   derived from a rate table inside the tool and is labelled derived wherever it is printed.

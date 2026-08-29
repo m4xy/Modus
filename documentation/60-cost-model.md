@@ -149,6 +149,8 @@ Appended to `domains/<domainId>/cost/NNNN.ndjson` — an append-only log
 | `at` | ISO-8601 UTC |
 | `domainId`, `workItemId`, `epicId?` | Attribution chain |
 | `runId` | The agent run |
+| `parentRunId?` | The run that spawned this one. Null for a run a human started. **Without it delegated spend does not roll up**, and delegation is where the majority of the `modus` domain's own spend to date has gone. `bean:0054` carries the measured share; a figure over a still-growing corpus is not restated here, because the one that was went stale in a day |
+| `role` | What the run was doing the work as — the orchestrator, or the agent type it was spawned as. Distinguishes an orchestrator's own spend from the spend it delegated |
 | `stage` | From §3.1 |
 | `modelId` | Exact model ID string |
 | `effort` | `low` \| `medium` \| `high` \| `xhigh` \| `max` |
@@ -162,6 +164,32 @@ Appended to `domains/<domainId>/cost/NNNN.ndjson` — an append-only log
 | `outcome` | `succeeded` \| `failed` \| `abandoned` \| `retried` |
 | `peakContextTokens` | For budget accounting (`00-constitution.md` §6) |
 | `rationale` | Why this model/effort was chosen. Required, non-empty. |
+
+### 3.2.1 What a harness-edge recorder can supply
+
+The table above is written for `adapters/adapter-agent-claude`, which sees the API response.
+A recorder at the **agent-harness edge** — a Claude Code `Stop`/`SubagentStop` hook — sees
+less, and the difference is measured rather than assumed (`bean:0054`).
+
+| field | at the harness edge |
+|---|---|
+| `runId`, `parentRunId`, `role`, `modelId`, `effort`, `speed`, all four token kinds, `peakContextTokens` | **yes** |
+| `outcome` | **partial.** `Stop` means the turn ended, not that it succeeded. `failed` and `retried` are unreachable from a hook and need the runner (`bean:0020`) |
+| `costUsd` | **derived, not billed.** No hook payload and no stored transcript carries a cost field |
+| `stage`, `workItemId`, `epicId`, `skillId`, `rationale`, `priceBookEntryId` | **no.** None is a property the harness knows |
+
+A field it cannot supply is **omitted**, never nulled and never guessed: a null is
+indistinguishable from a measured zero, and a guess is the estimate the paragraph below
+forbids. The record names its own gaps in an `unavailable` map so a consumer sees the shape
+of what is missing rather than inferring it.
+
+Such a recorder MAY carry these further fields, which §3.2 does not define and which a reader
+should not mistake for it. They are provenance and self-description, never a substitute for a
+field above: `startedAt`/`endedAt` (§3.2 has one `at`), `gitBranch` and `repoSha` (resolved
+live from the hook's `cwd` — the stored transcript's own `gitBranch` is the literal string
+`HEAD` on every line this repository has produced), `costBasis`, `outcomeBasis`,
+`billingBasis`, `lastMessageId`, `messages`, `modelIds`, `spawnDepth`, `source` and
+`unavailable`.
 
 Token counts come from the API response's `usage` block, captured by
 `adapters/adapter-agent-claude` — never estimated. Where a pre-flight estimate is needed
