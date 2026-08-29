@@ -75,7 +75,15 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      # fetch-depth: 0 because docs-lint checks 11 and 13 are diff-shaped: both
+      # resolve `origin/main` and take a merge base, and the default depth-1
+      # checkout has no remote-tracking ref at all, so both went inert here while
+      # reporting success. Check 13's counts are what surfaced it — the CI run
+      # for PR #32 printed `- introduced, - on origin/main` where the local run
+      # printed `0 introduced, 51 on origin/main` (bean:0051).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # This is ONE build on JDK 25, not a JDK matrix.
       #
