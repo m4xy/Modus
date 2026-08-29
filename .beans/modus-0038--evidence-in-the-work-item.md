@@ -1,7 +1,7 @@
 ---
 # modus-0038
 title: Move evidence into the work item and finalise completed beans
-status: todo
+status: in-progress
 type: feature
 priority: high
 order: AB
@@ -60,3 +60,59 @@ The work-store repository split (`bean:0039`). `adr:0005` records that the split
 this bean *and* on the backoffice rendering the store (`bean:0022`), because once the bean is
 in another repository a reviewer on GitHub cannot read the evidence at all. Landing this
 first is what makes that split safe to consider; it is not a commitment to it.
+
+## Evidence
+
+| # | criterion | observed |
+|---|---|---|
+| 1 | the template's `verify` block is a bean reference and asks for no evidence of its own | `.github/pull_request_template.md` — `bean:` and `criteria: N of N met`, nothing else |
+| 2 | `doc:00` §7.2.5 and `doc:80` step 8 name the bean as the evidence home, neither restating the other | §7.2.5 states it; `doc:80` step 8's body template names the bean and drops its evidence table |
+| 3 | `AGENTS.md` review routing names the bean | "the PR body, then **the bean it names** whole, then only the documents in its `refs:`" |
+| 4 | `docs-lint` rejects any change to a completed bean other than appended amendments | four plants below |
+| 5 | the check reads the merge base, not the branch, and the working tree, not `HEAD` | first version did neither and was **inert** — see below |
+| 6 | an amendment carries its date, its authoring bean, what was claimed, what was found and the evidence | plants 3 and 4 |
+| 8 | `qualityCheck` green | `BUILD SUCCESSFUL`, `docs-lint: OK — 18 documents, 96 anchors, 685 references.` |
+
+Criterion 4 and 6, planted against `bean:0009` — a completed bean — and reverted:
+
+```
+planted:  title: The identity bounded context -> title: tampered
+observed: check 11 …modus-0009…: completed bean edited in place; it may only gain
+          '## Amendments' entries (adr:0005#amendments)
+
+planted:  a trailing "## Extra thoughts" section
+observed: check 11 …: appended '## Extra thoughts'; a completed bean may only gain a
+          '## Amendments' section (adr:0005#amendments)
+
+planted:  ### changed my mind
+observed: check 11 …: amendment heading '### changed my mind' is not
+          '### YYYY-MM-DD · bean:NNNN'
+
+planted:  a well-formed amendment with **Claimed:** and **Found:** but no **Evidence:**
+observed: check 11 …: 1 amendment(s) but 0 '**Evidence:**' line(s) (adr:0005#amendments)
+
+accepted: ### 2026-08-29 · bean:0038 with all three lines
+observed: docs-lint: OK — 18 documents, 96 anchors, 680 references.
+```
+
+### The check was inert on its first four plants
+
+Worth recording, because it is the failure mode the criterion was written to prevent and I
+walked into it anyway. The first version gated on `BASE != HEAD` and diffed `BASE` against
+`HEAD`. On a fresh branch with no commits the merge base *is* `HEAD`, so the whole check was
+skipped — all four plants passed silently, and the accepted case "passed" for the same
+reason. It only looked correct.
+
+Two changes: drop the `!= HEAD` guard, and diff the base against the **working tree** rather
+than `HEAD`. Every other check in `docs-lint` reads the working tree; one that reads only
+committed content passes locally and fails in CI after the commit, which is the slowest
+feedback the repository can produce.
+
+## Criterion 7 is dropped, deliberately
+
+It required re-expressing `bean:0010`'s three in-place corrections to `bean:0007`,
+`bean:0008` and `bean:0009` as amendments, so the repository's own history would satisfy the
+rule it adopts. **Grandfathered instead.** Those corrections are already recorded in those
+beans, in prose, marked as corrections; restating the same facts in a new format changes
+nothing a reader would learn and edits three completed beans to do it. The rule applies from
+adoption. `#18`'s review raised this as an open question and this is the answer.
