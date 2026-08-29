@@ -455,3 +455,42 @@ longer this branch's diff.
 they count a ref this branch does not contain, and both moved when the base merged. They are
 quoted against the named sha above and are not reproducible for a later reader; the rest of
 the line is, and was re-run to prove it.
+
+### `docs/encode-sprint-1-claims` — claims
+
+| # | criterion | observed |
+|---|---|---|
+| 5 | §2.2 rejects the four unsourced shapes | `documentation/50-memory-and-evidence.md` — four rows added to *What is explicitly not evidence*: a figure with no command, a count with no command and no tree, arithmetic over a table of figures, and a citation that resolves without carrying its claim |
+| 6 | the four shapes are named in one place, the fabricated decline among them | `documentation/50-memory-and-evidence.md` §2.5, `The four shapes in which a claim reads as verified` — a marked derived table of shape/tell/rule, closing on why the fabricated justification is the worst of the four; `documentation/80-agent-operating-procedure.md` step 9 resolution 3 cites that anchor rather than restating it |
+| 7 | §3 states both authoring rules | `documentation/05-authoring-for-agents.md` — "Removing a copy and restating it in the same change is how the duplication comes back", and "A pointer that carries content its target does not is an unowned rule", worked against `bean:0058` |
+| 11 | budgets held | the `wc -l` below, each of 500 |
+| 12 | the gate | the run below, on this branch |
+
+Line numbers are deliberately absent from criteria 5, 6 and 7. They were `:111`, `:150` and
+`:128` when first written, and the rebase onto `97f13b0` moved every one of them. A line
+number is a **rebase-dependent** figure — a fourth class beside the three below, and the
+cheapest fix is not to cite one where the anchor and the quoted sentence already locate the
+claim.
+
+```
+cmd:      wc -l documentation/05-authoring-for-agents.md documentation/50-memory-and-evidence.md documentation/80-agent-operating-procedure.md
+observed: 308 documentation/05-authoring-for-agents.md
+          439 documentation/50-memory-and-evidence.md
+          493 documentation/80-agent-operating-procedure.md
+exit:     0
+
+cmd:      git diff --name-only origin/main
+observed: .beans/modus-0068--encode-sprint-1-findings.md
+          documentation/05-authoring-for-agents.md
+          documentation/50-memory-and-evidence.md
+          documentation/80-agent-operating-procedure.md
+exit:     0
+
+cmd:      ./gradlew qualityCheck
+observed: docs-lint: OK — 19 documents, 109 anchors, 1212 references, 83 beans, 37 graph
+          edges, 33 selectable, 83 bean ids, 0 introduced, 83 on origin/main, 0 closing
+          transitions, 0 criteria checked, 0 unnumbered.
+          BUILD SUCCESSFUL in 19s
+tree:     this branch rebased onto origin/main at 161a7c3
+exit:     0
+```

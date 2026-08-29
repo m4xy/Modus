@@ -445,7 +445,9 @@ Every comment resolves as exactly one of:
    `documentation/` or to a tool **in this PR**, and say so. This is the encoding rule
    (`documentation/README.md`) doing its job.
 3. **Decline, with a reason.** Disagreeing is legitimate. State the reason and the
-   evidence. "Won't do because X" is a complete answer; silence is not.
+   evidence. "Won't do because X" is a complete answer; silence is not. A reason invented
+   to make the decline look considered is worse than either, and is the fourth shape in
+   `doc:50-memory-and-evidence#unverified-shapes`.
 
 ### Rules
 

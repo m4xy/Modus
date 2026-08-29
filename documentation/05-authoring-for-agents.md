@@ -125,6 +125,20 @@ Evidence — PR #1 at review: 13 files (12 documents, 1 bean), +3458 lines, 8 re
 
 Fix pattern: name the fact, give it one anchor in the document that owns the subject, replace every other copy with a reference.
 
+**Removing a copy and restating it in the same change is how the duplication comes back.**
+"For the reader's convenience" is the phrasing it arrives in, and it was reported repeatedly
+from one sprint (`bean:0068`). The reader who needs the fact follows the reference; the
+reader who does not, does not need the copy either. A deduplicating change that leaves the
+fact stated twice has relocated a copy, not removed one — and the relocated copy is the one
+nobody will think to check.
+
+**A pointer that carries content its target does not is an unowned rule.** A reference that
+resolves is not a reference that says what the citing sentence says it says: check 6 sees the
+first and no check can see the second. `bean:0058` shipped a pointer stating three things the
+anchor it named was silent on; by this section's own resolution rule the source wins, so the
+listing was derived from nothing and the rules in it belonged to no document. Move the
+content to the anchor and own it there, or state it where it stands and put it in `provides`.
+
 **A count restated outside the thing it counts is a drift generator**, and this repository
 has already produced two live instances. `bean:0035` found `tools/docs-lint.sh`'s header
 saying "the eleven mechanical checks" and `build.gradle.kts`'s comment saying "The nine
@@ -132,6 +146,13 @@ checks", while §6's table had eleven rows — three statements, two wrong, none
 check could see. A comment that counts rows in another file is a copy of that file's length,
 and lengths change. **Delete the count; cite the anchor.** Code comments are as bound by this
 section as documents are — they are simply the copies nobody greps.
+
+**A count is a drift generator inside the thing it counts as well as outside it.** A heading
+that numbers its own table, or an opening that says "all four", is invalidated by the row that
+the next change adds — and the change need not come from another author or another branch.
+`doc:50-memory-and-evidence#unverified-shapes` was introduced with four rows and a heading
+saying four, and gained a fifth row two pull requests later in the same stack. **A set that
+can grow is named, never counted.**
 
 ## 4. Prose ban <a id="prose-ban"></a>
 
