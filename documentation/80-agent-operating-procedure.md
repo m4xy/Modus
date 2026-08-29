@@ -5,6 +5,7 @@ status: active
 superseded_by: null
 read_when: always
 provides:
+  - doc:80-agent-operating-procedure#orchestrating
   - doc:80-agent-operating-procedure#pick-up-the-work-item
   - doc:80-agent-operating-procedure#restate-success-criteria
   - doc:80-agent-operating-procedure#plan-and-budget
@@ -23,7 +24,8 @@ depends_on: [doc:00-constitution, doc:10-architecture, doc:15-repository-layout,
 `00-constitution.md` and this file. Read everything else on demand, driven by the index
 in `documentation/README.md`.
 
-The SOP is nine steps. Do them in order. Do not skip step 2.
+The SOP is nine steps. Do them in order. Do not skip step 2. If you are orchestrating rather
+than implementing, step 0 is your whole loop and steps 1–9 belong to the agents you spawn.
 
 ```
 1. Pick up          → load the work item, the memories, the domain's rules
@@ -39,6 +41,47 @@ The SOP is nine steps. Do them in order. Do not skip step 2.
 
 At every step: hold the 300k context budget (`00-constitution.md` §6) and record spend
 (`60-cost-model.md` §3).
+
+---
+
+## Step 0 — If you are the orchestrator <a id="orchestrating"></a>
+
+`doc:00-constitution#orchestrator` states the rule: you decide what happens next and spawn
+the agent that does it. These are the operating details it defers here.
+
+| # | Rule |
+|---|---|
+| 0.1 | Delegate plan, implement, review and QA as separate briefs. A reviewer that implemented the change is not a second opinion. |
+| 0.2 | Spawn another orchestrator for a work package with its own internal sequence. Delegating a decision is not abdicating it — you still own the priority. |
+| 0.3 | Run independent work concurrently, in isolated worktrees. Two agents editing one tree is a merge conflict you scheduled. |
+| 0.4 | Read what agents return, not what they read. If you find yourself opening the files an agent already read, you have taken its job. |
+| 0.5 | Encode the learnings before starting the next round, in the same cycle they were found. |
+
+### What a brief must contain
+
+1. **What to read, exhaustively** — and that it is the whole list. Without this an agent
+   reads the package and burns its budget before starting (`doc:00-constitution` §6).
+2. **The environment's traps**, named. Every agent that hits an undocumented one pays again.
+3. **What counts as done**, in the repository's own terms: gate green, each mechanism
+   observed failing, evidence in the bean.
+4. **A required `LEARNINGS` section** in the return: what was non-obvious, with `file:line`
+   or command output, and an instruction to say "nothing" rather than invent.
+
+### Why the context rule is a rule
+
+Seven agents in one session consumed 71k–190k tokens each and returned a few hundred lines
+apiece — their reading, false starts and reverted plants never reached the orchestrator. It
+still hit 85% of a 1M window, having implemented several packages itself first. Every one was
+delegable. The failure mode is not laziness but its opposite: an orchestrator that implements
+stops being able to prioritise, spending on discardable work the one context that cannot be
+discarded.
+
+### What comes back is not automatically true
+
+An agent's report is evidence, not a verdict. Reproduce a claim before restating it, or say
+plainly that you did not — three findings encoded this session carry that caveat. A report
+that says a gate fires is a claim about a gate, and `doc:00-constitution#observed-failing`
+applies to it exactly as to your own.
 
 ---
 
