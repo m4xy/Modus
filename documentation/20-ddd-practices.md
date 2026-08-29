@@ -170,9 +170,12 @@ data class Usd(val micros: Long) {          // money is integral; never Double
 `ModuleId`, `SkillId`, `EvidenceId`, `TokenCount`, `Usd`, `ModelId`, `EffortLevel`,
 `ContextBudget`, `WorkItemState`, `MemoryStatus`, `RunStatus`, `Scope`.
 
-The `*Id` types, and any value object that appears in a domain event's signature
-(`WorkItemState`, `MemoryStatus`, `RunStatus`), are their context's **published language**
-and live in `com.modus.core.<ctx>.domain.published` (§5.1). Everything else on this list
+`DomainId` is the exception: it belongs to no context and lives in the **shared kernel**
+beside `DomainEvent`, because every context's events name the domain they concern and a
+published package may not reach into another context's (`adr:0004-domain-id-shared-kernel`).
+Every other `*Id` type, and any value object that appears in a domain event's signature
+(`WorkItemState`, `MemoryStatus`, `RunStatus`), is its context's **published language**
+and lives in `com.modus.core.<ctx>.domain.published` (§5.1). Everything else on this list
 is internal to its context and lives in `com.modus.core.<ctx>.domain`.
 
 **Money is never a `Double`.** `Usd` stores integer micros. **Enforcement gap:** the custom
@@ -223,7 +226,8 @@ in the wrong package silently removes it from a rule.
 |---|---|---|
 | `com.modus.core.<ctx>.domain.aggregate` | Aggregate roots and the entities inside their boundary | Nothing else. This package **is** the definition of "aggregate" for every tool that needs one. |
 | `com.modus.core.<ctx>.domain.event` | Domain events | **Published language.** Leaf package — see `10-architecture.md` §3.1. |
-| `com.modus.core.<ctx>.domain.published` | Identifier value objects (`WorkItemId`, `DomainId`, …) and any value object that appears in an event's signature (`WorkItemState`, `RunStatus`, …) | **Published language.** Leaf package. Moving a type in here is a deliberate act: it becomes another context's contract. |
+| `com.modus.core.<ctx>.domain.published` | Identifier value objects (`WorkItemId`, `ActorId`, …) and any value object that appears in an event's signature (`WorkItemState`, `RunStatus`, …) | **Published language.** Leaf package. Moving a type in here is a deliberate act: it becomes another context's contract. |
+| `com.modus.core.domain` | The shared kernel: `DomainEvent` and `DomainId`, and nothing else without an ADR | Belongs to no context. Membership test and the trigger for giving it its own package: `adr:0004-domain-id-shared-kernel#shared-kernel-membership`. |
 | `com.modus.core.<ctx>.domain.port` | Outbound ports | |
 | `com.modus.core.<ctx>.domain` | Unpublished value objects, domain services, domain exceptions, specifications | The default; internal. |
 | `com.modus.core.<ctx>.application.usecase` | Inbound ports and use cases | `core-application`. |

@@ -1,11 +1,11 @@
 package uk.m4xy.modus.core.domain.identity.aggregate
 
 import uk.m4xy.modus.core.domain.DomainEvent
+import uk.m4xy.modus.core.domain.DomainId
 import uk.m4xy.modus.core.domain.identity.event.GrantIssued
 import uk.m4xy.modus.core.domain.identity.event.GrantRevoked
 import uk.m4xy.modus.core.domain.identity.published.ActorId
 import uk.m4xy.modus.core.domain.identity.published.Capability
-import uk.m4xy.modus.core.domain.identity.published.DomainId
 import uk.m4xy.modus.core.domain.identity.published.GrantId
 import java.time.Instant
 
