@@ -78,11 +78,20 @@ test('the cost counter climbs while the session runs', async ({ page }) => {
  * The cost figure is the point of this screen, so it has to be *priced*, not
  * merely non-zero. The same prompt produces the same token counts on every
  * model, so the ratio between two sessions is exactly the ratio between two
- * list prices: Opus 5 ($5/$25 per MTok) is 5x Haiku 4.5 ($1/$5), and Sonnet 5
- * ($3/$15) is 3x. Mispricing one model moves a ratio — the $15/$75 this table
- * used to claim for Opus 5 would read 15x here.
+ * rates: Opus 5 ($5/$25 per MTok) is 5x Haiku 4.5 ($1/$5), and Sonnet 5 is 2x
+ * on its introductory $2/$10. Mispricing one model moves a ratio — the $15/$75
+ * this table used to claim for Opus 5 would read 15x here.
+ *
+ * **Read what this does NOT cover.** It prices the mock's tokens from
+ * `BASE_RATES_UPM` and then asserts a ratio derived from `BASE_RATES_UPM`: it
+ * compares the code to itself. It catches a table that is internally
+ * inconsistent — which is the defect it was written for — and it can never
+ * catch one that is merely *stale*. Sonnet 5's introductory rate lapses after
+ * 2026-08-31, at which point the table is 33% low and this test stays green.
+ * `bean:0090` carries that gap; nothing in the repository compares these
+ * numbers to `doc:60-cost-model#price-book`.
  */
-test('the session cost is priced from the list price of the model that ran', async ({ page }) => {
+test('the session cost is priced from the rate of the model that ran', async ({ page }) => {
   await page.goto(INSTANT);
 
   const haiku = await costOfOneSession(page, 'claude-haiku-4-5');
@@ -95,7 +104,44 @@ test('the session cost is priced from the list price of the model that ran', asy
   const opus = await costOfOneSession(page, 'claude-opus-5');
 
   expect(opus / haiku).toBeCloseTo(5, 1);
-  expect(sonnet / haiku).toBeCloseTo(3, 1);
+  expect(sonnet / haiku).toBeCloseTo(2, 1);
+});
+
+/**
+ * `keepLargerFrame` discards the losing frame of a repeated `messageId` on the
+ * premise that frames of one message agree on the four non-output token kinds.
+ * The premise holds across the measured corpus and **nothing asserts it** — the
+ * Python replay renders a count into a table and never fails on it. So the one
+ * place it is checked is the console, and a check nobody has watched fail is
+ * not a check (`doc:00-constitution#observed-failing`). This is that watching.
+ */
+test('a usage frame that disagrees on cache tokens is reported, not discarded', async ({
+  page,
+}) => {
+  await page.goto('/domains/modus/agents?replay=0&fault=usage-disagreement');
+  await page.getByTestId('agent-run').click();
+
+  const transcript = page.getByTestId('agent-transcript');
+  const notice = transcript.getByText(/disagree on input or cache tokens/);
+
+  // Exactly one, for the message that disagreed. Every later frame of that
+  // message disagrees with the frame that was retained, so a per-frame notice
+  // would repeat — which is what the first run of this test caught.
+  await expect(notice).toHaveCount(1);
+  await expect(notice).toBeVisible();
+
+  // The run is not derailed by it: the notice is a report, not a terminal state.
+  await expect(page.getByText('Complete').first()).toBeVisible({ timeout: 20_000 });
+});
+
+/** The happy path must NOT trip the detector, or the notice means nothing. */
+test('an ordinary session reports no frame disagreement', async ({ page }) => {
+  await page.goto(INSTANT);
+  await page.getByTestId('agent-run').click();
+  await expect(page.getByText('Complete').first()).toBeVisible({ timeout: 20_000 });
+  await expect(
+    page.getByTestId('agent-transcript').getByText(/disagree on input or cache tokens/),
+  ).toHaveCount(0);
 });
 
 test('a running session can be stopped', async ({ page }) => {

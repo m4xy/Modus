@@ -148,8 +148,13 @@ export function AgentConsole() {
               data-testid="agent-cost"
               aria-live="off"
             >
-              {/* Micros are the stored unit; dollars exist only for this render. */}
-              {formatUsdPrecise(session.costUsdMicros / 1_000_000)}
+              {/*
+                Micros are the stored unit; dollars exist only for this render.
+                `null` is not zero — it means the model is not in
+                `BASE_RATES_UPM`, and showing "$0.0000" for an unpriced run
+                would be the silent-default this seam removed.
+              */}
+              {session.costUsd === null ? '—' : formatUsdPrecise(session.costUsd / 1_000_000)}
             </span>
             <span className={styles.meterNote}>{model.replace('claude-', '')}</span>
           </div>
@@ -314,6 +319,20 @@ export function AgentConsole() {
                   </tr>
                 </thead>
                 <tbody>
+                  {/*
+                    PRE-CORRECTION SHAPE, on the same screen as the corrected one.
+                    The meters above show a live run priced from five integer-micros
+                    token kinds; these rows show past runs from `api.AgentRun`, whose
+                    `tokensIn`/`tokensOut`/`costUsd` are two token kinds and
+                    floating-point dollars — the model `bean:0069` removed from the
+                    stream seam. It is left standing deliberately, not overlooked:
+                    `AgentRun` is the `execution` context's own aggregate and
+                    `bean:0014` defines its published shape, so correcting it here
+                    would pre-empt that bean and drag the REST DTOs, the mock
+                    fixtures and the charts into a change that is about the stream.
+                    Until then these two blocks disagree about what a run costs, and
+                    the rows are the ones that are wrong.
+                  */}
                   {(runs.data ?? []).map((item) => (
                     <tr key={item.id}>
                       <Td mono>{item.id}</Td>

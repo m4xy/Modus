@@ -95,6 +95,27 @@ export interface Repository {
 
 export type AgentRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
+/**
+ * **Pre-correction shape. Do not copy it into new code.**
+ *
+ * This is the `execution` context's own aggregate as the placeholder REST layer
+ * currently returns it, and its usage fields state the model `bean:0069` removed
+ * from the stream seam next door in `agent/transport.ts`:
+ *
+ *  - `tokensIn`/`tokensOut` are two token kinds where there are five. Cache
+ *    reads dominate a real agentic run, so a two-kind row describes a small
+ *    fraction of what a run actually cost.
+ *  - `costUsd` here is **floating-point dollars**. The same field name means
+ *    **integer micro-dollars** in `doc:60-cost-model#spend-record` and in every
+ *    record already written to `domains/<domainId>/cost/*.ndjson`, and
+ *    `doc:20-ddd-practices#value-objects` §3 forbids floating-point money.
+ *
+ * It is left alone deliberately rather than overlooked. `bean:0014` defines this
+ * aggregate's published shape and `bean:0018` owns the REST layer that serves
+ * it; correcting it here would pre-empt both and pull the mock fixtures and the
+ * cost charts into a change that is about the run stream. `AgentConsole.tsx`
+ * renders both shapes on one screen and says so at the call site.
+ */
 export interface AgentRun {
   id: string;
   workItemKey: string | null;

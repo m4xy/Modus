@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { costMicros, foldUsage, keepLargerFrame, peakContextTokens, zeroUsage } from './transport';
+import {
+  costMicros,
+  foldUsage,
+  framesDisagree,
+  isPricedModel,
+  keepLargerFrame,
+  peakContextTokens,
+  zeroUsage,
+} from './transport';
 import type {
   PromptRequest,
   StreamEvent,
@@ -38,20 +46,41 @@ export interface AgentSessionState {
   usageByMessage: Record<string, Usage>;
   /** Folded from `usageByMessage`; never accumulated from the wire. */
   usage: Usage;
-  /** Integer micro-dollars (`doc:20-ddd-practices` §3). Dollars only at render. */
-  costUsdMicros: number;
+  /**
+   * **Integer micro-dollars**, the unit `doc:60-cost-model#spend-record` gives
+   * `costUsd` and the unit every record in `domains/<domainId>/cost/*.ndjson`
+   * already stores. The name is that field's name on purpose: a `costUsdMicros`
+   * here would be a third name for one concept, next to `costUsd`-as-micros in
+   * the store and `costUsd`-as-float-dollars in `api/types.ts`. Dollars are
+   * produced once, at the render boundary, and stored nowhere.
+   *
+   * `null` means **not priced**, never zero — usage arrived for a model
+   * `BASE_RATES_UPM` does not carry, and no figure is shown rather than a wrong
+   * one. A real zero (nothing charged yet) stays `0`; see `totalCostUsd`.
+   */
+  costUsd: number | null;
   /** `max(promptTokens)` over the run — `doc:00-constitution` §6's figure. */
   peakContextTokens: number;
   sessionId: string | null;
   model: string | null;
 }
 
-/** Sum of each message's own cost, as `cost_lib` does — not the cost of the sum. */
-function totalCostMicros(model: string | null, byMessage: Record<string, Usage>): number {
-  return Object.values(byMessage).reduce(
-    (total, usage) => total + costMicros(model ?? '', usage),
-    0,
-  );
+/**
+ * Sum of each message's own cost, as `cost_lib` does — not the cost of the sum.
+ *
+ * Three states, and conflating any two of them is a defect:
+ *  - **0** — nothing has been charged. No usage has arrived, so the run has cost
+ *    nothing so far. True before a run starts, and it is a real zero.
+ *  - **a total** — usage has arrived and the model is priced.
+ *  - **`null`** — usage has arrived and the model is **not** in `BASE_RATES_UPM`,
+ *    so what was charged cannot be priced. Never rendered as `$0.00`: reporting
+ *    an unpriced run as a free one is the silent default this seam removed.
+ */
+function totalCostUsd(model: string | null, byMessage: Record<string, Usage>): number | null {
+  const usages = Object.values(byMessage);
+  if (usages.length === 0) return 0;
+  if (model === null || !isPricedModel(model)) return null;
+  return usages.reduce((total, usage) => total + (costMicros(model, usage) ?? 0), 0);
 }
 
 /**
@@ -81,7 +110,7 @@ function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState
         // Cost is a function of usage and the model that produced it, so
         // learning the model late re-prices what has already arrived rather
         // than leaving it priced against the fallback.
-        costUsdMicros: totalCostMicros(event.model, state.usageByMessage),
+        costUsd: totalCostUsd(event.model, state.usageByMessage),
       };
 
     case 'assistant-delta': {
@@ -153,14 +182,47 @@ function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState
       // Assigning here, as this reducer used to, silently required the producer
       // to send cumulative totals, which no real producer does.
       const previous = state.usageByMessage[event.messageId];
+
+      // The premise the selection rests on, checked rather than assumed. Frames
+      // of one message must agree on the four non-output kinds; if they do not,
+      // they are independent charges and discarding the loser undercounts the
+      // bill. Checked BEFORE the no-op return below, or a disagreeing frame that
+      // happened to carry the smaller `outputTokens` would be dropped in
+      // silence. Nothing else checks this anywhere — see `framesDisagree`.
+      //
+      // Reported once per MESSAGE, not once per frame. A message that disagreed
+      // keeps whichever frame was retained, so every later frame of it disagrees
+      // with that one too and would raise the same notice again. The id is
+      // derived from `messageId` so the check is the presence of that block.
+      const noticeId = `disagreement-${event.messageId}`;
+      const disagreed =
+        previous !== undefined &&
+        framesDisagree(previous, event.usage) &&
+        !state.blocks.some((block) => block.id === noticeId);
+
       const kept = keepLargerFrame(previous, event.usage);
-      if (previous !== undefined && kept === previous) return state;
-      const usageByMessage = { ...state.usageByMessage, [event.messageId]: kept };
+      const usageByMessage =
+        kept === previous
+          ? state.usageByMessage
+          : { ...state.usageByMessage, [event.messageId]: kept };
+      if (!disagreed && usageByMessage === state.usageByMessage) return state;
+
       return {
         ...state,
+        blocks: disagreed
+          ? [
+              ...state.blocks,
+              {
+                kind: 'notice',
+                id: noticeId,
+                tone: 'error',
+                text: `Usage frames for ${event.messageId} disagree on input or cache tokens. They are not snapshots of one request, so the cost below is understated.`,
+              },
+            ]
+          : state.blocks,
         usageByMessage,
         usage: foldUsage(usageByMessage),
-        costUsdMicros: totalCostMicros(state.model, usageByMessage),
+        costUsd: totalCostUsd(state.model, usageByMessage),
         peakContextTokens: peakContextTokens(usageByMessage),
       };
     }
@@ -204,7 +266,7 @@ const INITIAL: AgentSessionState = {
   blocks: [],
   usageByMessage: {},
   usage: zeroUsage(),
-  costUsdMicros: 0,
+  costUsd: 0,
   peakContextTokens: 0,
   sessionId: null,
   model: null,

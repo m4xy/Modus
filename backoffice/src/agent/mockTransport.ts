@@ -46,12 +46,22 @@ export function replaySpeedFromLocation(search: string = window.location.search)
  *                       could be sent.
  *  - `transport-error`  the connection itself drops mid tool call, surfacing
  *                       through `onError` rather than as a stream event.
+ *  - `usage-disagreement`
+ *                       two frames of one `messageId` disagree on a cache kind.
+ *                       This does not happen in the measured corpus, and that is
+ *                       the point: `keepLargerFrame` discards the losing frame
+ *                       on the premise that it cannot happen, and a premise no
+ *                       test has ever falsified is a premise nobody has watched
+ *                       hold (`doc:00-constitution#observed-failing`). This
+ *                       fault is how the detector is seen to fire.
  */
-export type MockFault = 'none' | 'stream-error' | 'transport-error';
+export type MockFault = 'none' | 'stream-error' | 'transport-error' | 'usage-disagreement';
 
 export function faultFromLocation(search: string = window.location.search): MockFault {
   const raw = new URLSearchParams(search).get('fault');
-  return raw === 'stream-error' || raw === 'transport-error' ? raw : 'none';
+  return raw === 'stream-error' || raw === 'transport-error' || raw === 'usage-disagreement'
+    ? raw
+    : 'none';
 }
 
 /** Roughly four characters to a token — good enough for a plausible counter. */
@@ -194,6 +204,8 @@ export class MockStreamTransport implements StreamTransport {
   private faulted(script: ScriptStep[]): ScriptStep[] {
     if (this.fault === 'none') return script;
 
+    if (this.fault === 'usage-disagreement') return this.withDisagreeingFrame(script);
+
     const firstToolCall = script.findIndex((step) => step.event.type === 'tool-call');
     const upToTheToolCall = script.slice(0, firstToolCall + 1);
 
@@ -205,6 +217,33 @@ export class MockStreamTransport implements StreamTransport {
         event: { type: 'error', message: 'The model stream dropped mid tool call.' },
       },
     ];
+  }
+
+  /**
+   * Corrupt one repeated frame so it disagrees with its predecessor on a cache
+   * kind, leaving everything else intact.
+   *
+   * The run still completes; only the premise is broken. `cacheReadTokens` is
+   * changed rather than `outputTokens` precisely because `outputTokens` is
+   * *expected* to differ between frames — that is what the selection rule is
+   * for. A cache kind differing means the two frames are not the same request,
+   * and the consumer must say so rather than quietly keeping one.
+   */
+  private withDisagreeingFrame(script: ScriptStep[]): ScriptStep[] {
+    let seen = 0;
+    return script.map((step) => {
+      if (step.event.type !== 'usage') return step;
+      // The second frame of the first message: the first one established the
+      // entry, so this is the earliest point a disagreement can be detected.
+      if (++seen !== 2) return step;
+      return {
+        ...step,
+        event: {
+          ...step.event,
+          usage: { ...step.event.usage, cacheReadTokens: step.event.usage.cacheReadTokens + 4_096 },
+        },
+      };
+    });
   }
 
   /**
