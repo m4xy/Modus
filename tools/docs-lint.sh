@@ -27,8 +27,13 @@ fail() { printf 'FAIL check %-2s %s\n' "$1" "$2" | tee -a "$TMP/fails.txt"; }
 TAB="$(printf '\t')"
 
 FM_FILES="$(ls documentation/*.md documentation/adr/*.md)"
-REF_FILES="$FM_FILES $(ls beans/*.md) AGENTS.md CLAUDE.md .github/pull_request_template.md"
+REF_FILES="$FM_FILES $(ls .beans/*.md 2>/dev/null) AGENTS.md CLAUDE.md .github/pull_request_template.md"
 REQUIRED_KEYS="id title status superseded_by read_when provides depends_on"
+
+# Beans live under .beans/<prefix><id>--<slug>.md (the hmans/beans on-disk convention);
+# .beans.yml's beans.prefix is the one source of that prefix, read here rather than
+# duplicated as a second hard-coded copy (doc:05-authoring-for-agents#one-fact-one-place).
+BEAN_PREFIX="$(grep -E '^ *prefix:' .beans.yml | head -1 | sed -E 's/^ *prefix: *"?([^"[:space:]]*)"?.*/\1/')"
 
 # ------------------------------------------------------------------ parse ---
 # Emits per file: K <key> | S <key> <value> | L <key> <value> | E <check> <msg>
@@ -232,7 +237,7 @@ while IFS="$TAB" read -r src ref; do
   case "$kind" in
     doc) target="$(ls documentation/"$rest"*.md 2>/dev/null)" ;;
     adr) target="$(ls documentation/adr/"$rest"*.md 2>/dev/null)" ;;
-    bean) target="$(ls beans/"$rest"*.md 2>/dev/null)" ;;
+    bean) target="$(ls .beans/"${BEAN_PREFIX}${rest}"*.md 2>/dev/null)" ;;
     *) target="" ;;
   esac
   n="$(printf '%s' "$target" | grep -c .)"
