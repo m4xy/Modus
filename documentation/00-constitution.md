@@ -14,6 +14,7 @@ provides:
   - doc:00-constitution#domain-scoping
   - doc:00-constitution#mechanical-enforcement
   - doc:00-constitution#observed-failing
+  - doc:00-constitution#orchestrator
 depends_on: [doc:10-architecture, doc:30-code-style, doc:40-durability, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills, doc:80-agent-operating-procedure]
 ---
 
@@ -460,23 +461,38 @@ the Detekt entries it has already reached.
 
 ## 10. The UI is a deliverable, not an afterthought
 
-The backoffice must be genuinely beautiful, and it must be verified. Every user-facing
-flow has a Playwright test in `e2e/`. Visual regression is checked, not eyeballed. A
-backoffice change without a corresponding `e2e/` change is incomplete unless the PR body
-states why no user-visible behaviour changed.
+The backoffice must be genuinely beautiful, and verified. Every user-facing flow has a
+Playwright test in `e2e/`; a backoffice change without a corresponding `e2e/` change is
+incomplete unless the PR body says why no user-visible behaviour changed.
 
 ---
 
 ## 11. Cost consciousness
 
-Every stage of every workflow carries an attributed spend figure, in dollars, recorded
-against the work item. Model and effort selection is a deliberate, recorded decision,
-never a default that nobody chose. Repeated expensive tasks are converted into cheaper
-defined skills. See `60-cost-model.md`.
+Every stage carries an attributed spend figure, in dollars, against the work item. Model and
+effort selection is a recorded decision, never a default nobody chose. See `60-cost-model.md`.
 
 ---
 
-## 12. Self-hosting is the destination
+## 12. The orchestrator does not implement <a id="orchestrator"></a>
+
+> **An orchestrator's job is to decide what happens next and spawn the agent that does it.
+> Executing the work itself is a failure of the role, not diligence.**
+
+It prioritises — selects by §7.2's rule, splits what is too large, sequences what depends on
+what — and delegates everything else to a briefed agent, including a whole work package to
+another orchestrator.
+
+**Its context is the scarcest resource in the system**, being the only one that spans the
+whole programme: a subagent's is discarded on return, this one is not. Read conclusions, not
+corpora. Encoding what agents return is the one duty it may never delegate (`README.md`, the
+encoding rule) — their findings die with their context otherwise.
+
+Operating rules, brief contents and the measurement: `80-agent-operating-procedure.md` §0.
+
+---
+
+## 13. Self-hosting is the destination
 
 Modus will eventually manage its own development. Take every decision as if Modus were
 already running this repository. When a design that is convenient for a human operator
