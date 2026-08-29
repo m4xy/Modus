@@ -5,7 +5,7 @@ status: todo
 type: feature
 priority: high
 created_at: 2026-08-29T00:00:00Z
-blocked_by: [modus-0017, modus-0012]
+blocked_by: [modus-0017, modus-0031]
 ---
 
 # The domain-scoped REST layer at /domains/{domainId}

@@ -5,7 +5,7 @@ status: todo
 type: task
 priority: normal
 created_at: 2026-08-29T00:00:00Z
-blocked_by: [modus-0012]
+blocked_by: [modus-0031]
 ---
 
 # Implement ContextInternalsAreSealed and PublishedLanguageAllowlist

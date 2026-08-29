@@ -6,7 +6,7 @@ type: feature
 priority: high
 created_at: 2026-08-29T00:00:00Z
 parent: modus-0011
-blocked_by: [modus-0012]
+blocked_by: [modus-0030]
 ---
 
 # The work bounded context

@@ -24,14 +24,14 @@ fixtures varied per `doc:35-testing#fixture-variation`.
 Owned: `core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/domainmgmt/**` except
 `ModuleInstallation` and its events, `core/core-domain/src/test/**` for the same,
 `config/coverage/baseline.tsv`, and the `DomainMgmtContext` marker with `BoundedContexts`'
-reference to it — two lines, and leaving a marker whose KDoc says *"delete it as soon as the
-context has a real aggregate root"* beside a real aggregate root is a lie the next agent
-has to check.
+reference to it — deleting a 14-line file and editing `BoundedContexts` by +5/-6. It moved
+here from `bean:0031` because the marker's own KDoc says *"delete it as soon as the context
+has a real aggregate root"*, and this bean is where that root arrives; leaving it beside a
+real aggregate is a lie the next agent has to check.
 
-Not owned: `identity/**`, and the shared kernel — `DomainId` is imported, never copied. `ModuleInstallation`,
-`ModuleInstalled`, `ModuleUninstalled`, module visibility, `GrantRevoked` consumption and
-the deletion of the `DomainMgmtContext` marker are `bean:0031`; the marker therefore
-survives this bean and `BoundedContexts` is untouched. `core-application`, `adapters/**`,
+Not owned: `identity/**`, and the shared kernel — `DomainId` is imported, never copied.
+`ModuleInstallation`, `ModuleInstalled`, `ModuleUninstalled`, module visibility and
+`GrantRevoked` consumption are `bean:0031`. `core-application`, `adapters/**`,
 `modules/**`, `app/**`, `backoffice/**`, `e2e/**`, `documentation/**`.
 
 ## Decisions
@@ -77,6 +77,7 @@ need a port back into this context — which is the coupling §3.1 exists to pre
 | 10 | Each test is load-bearing: broken subject, observed assertion recorded verbatim, reverted | test-run, per `doc:35-testing#load-bearing-evidence` |
 | 11 | Fixtures vary collection size across 0, 1 and 2-or-more wherever a collection is accepted | citation, per `doc:35-testing#fixture-variation` |
 | 12 | `./gradlew qualityCheck` is green | test-run |
+| 13 | The `DomainMgmtContext` marker is gone and `BoundedContexts` names `domainmgmt` as a literal, exactly as `bean:0009` did for `identity` | `git diff`; `BoundedContextsTest` still asserts six |
 
 Out of scope, explicitly: persistence (`bean:0017`), any REST surface (`bean:0018`), the
 two context-isolation ArchUnit rules (`bean:0023` — this bean supplies the second context
