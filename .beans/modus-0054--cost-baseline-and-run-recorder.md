@@ -106,7 +106,7 @@ into the exact figure.
 | 5 | Input hashes recorded, and re-checkable | `command`: `python3 tools/cost-replay.py --check`; observed `baseline inputs have moved on: 2 changed, 0 gone.` when a live session appended, exit 1 | A |
 | 6 | One spend record per agent run is appended at the harness edge | `domains/modus/cost/0001.ndjson`, two records; `.claude/settings.json` registers `Stop` and `SubagentStop` | B |
 | 7 | `parentRunId` is populated for a subagent run | `command`: `python3 tools/cost-record.py --self-test`; observed below | B |
-| 8 | Fields the harness cannot supply are omitted, never invented | `tools/cost-record.py` `UNAVAILABLE`; `doc:60-cost-model` §3.2.1 | B |
+| 8 | Fields the harness cannot supply are omitted, never invented; the shape otherwise matches | 16 of 22 field names match; `tools/cost-record.py` `UNAVAILABLE`; `doc:60-cost-model` §3.2.1 | B |
 | 9 | `./gradlew ktlintFormat && ./gradlew qualityCheck` green | `test-run` | A, B |
 
 ### Criterion 7, verbatim
@@ -184,6 +184,24 @@ So prose quotes the shape and points at the artifact for the totals. A reviewer 
 replay from scratch, sharing no code, over the 53 inputs of that generation whose hashes still
 matched, and got run rows identical to the committed ones with zero discrepancies — the method reproduces
 exactly; it is the moving corpus underneath it that does not.
+## Does the record match `doc:60-cost-model#spend-record`?
+
+16 of 22 field names match exactly. Six are omitted, each because the harness does not know
+the answer, and the record names them in an `unavailable` map so a consumer sees the shape of
+the hole rather than inferring it: `stage`, `workItemId`, `epicId`, `skillId`, `rationale`
+(all properties of the work, not of the process) and `priceBookEntryId` (no price book —
+`bean:0001`).
+
+Two of the 22 are new. `doc:60` §3.2 had **no `parentRunId` and no `role`**, while §3.3
+promises rollups `run -> stage -> work item -> epic -> domain`. There is no run-to-run edge in
+that chain, so a subagent's spend has nowhere to roll up to — and delegation is where the
+majority of the spend is — the generated block's *delegated share of cost* row. The two
+fields are added
+to the table, which is the one place this work changes a tier-1 shape.
+
+§3.2.1 is also added, recording which fields a harness-edge recorder can supply and which it
+cannot. That is additive: it does not weaken the table, which is written for
+`adapters/adapter-agent-claude` at the API edge and stays correct there.
 
 ## Not done
 

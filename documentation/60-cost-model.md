@@ -149,6 +149,8 @@ Appended to `domains/<domainId>/cost/NNNN.ndjson` — an append-only log
 | `at` | ISO-8601 UTC |
 | `domainId`, `workItemId`, `epicId?` | Attribution chain |
 | `runId` | The agent run |
+| `parentRunId?` | The run that spawned this one. Null for a run a human started. **Without it delegated spend does not roll up**, and delegation is where the majority of it is: 56.8% of the `modus` domain's own spend to date was subagent runs (`bean:0054`) |
+| `role` | What the run was doing the work as — the orchestrator, or the agent type it was spawned as. Distinguishes an orchestrator's own spend from the spend it delegated |
 | `stage` | From §3.1 |
 | `modelId` | Exact model ID string |
 | `effort` | `low` \| `medium` \| `high` \| `xhigh` \| `max` |

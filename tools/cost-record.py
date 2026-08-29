@@ -170,7 +170,7 @@ def build_record(payload):
         "cacheWriteTokens": usage["cacheWrite5mTokens"] + usage["cacheWrite1hTokens"],
         "cacheWrite5mTokens": usage["cacheWrite5mTokens"],
         "cacheWrite1hTokens": usage["cacheWrite1hTokens"],
-        "costUsdMicros": micros,
+        "costUsd": micros,  # integer micros, per doc:60 §3.2. Never a float.
         "costBasis": "derived",
         "peakContextTokens": C.peak_context_tokens(messages),
         "outcome": OUTCOME_BY_EVENT.get(event),
