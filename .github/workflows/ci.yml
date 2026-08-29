@@ -75,7 +75,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      # fetch-depth: 0 because docs-lint checks 11 and 13 are diff-shaped: both
+      # fetch-depth: 0 because docs-lint checks 11, 13 and 14 are diff-shaped: all
       # resolve `origin/main` and take a merge base, and the default depth-1
       # checkout has no remote-tracking ref at all, so both went inert here while
       # reporting success. Check 13's counts are what surfaced it — the CI run

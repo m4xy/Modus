@@ -193,11 +193,13 @@ Each check is decidable from repository contents alone.
 | 11 | completed beans are final | a bean that was `completed` on the merge base changes in any way other than gaining entries under a trailing `## Amendments` section, or an amendment omits its date, its authoring bean, `**Claimed:**`, `**Found:**` or `**Evidence:**` (`adr:0005-evidence-lives-in-the-work-item#amendments`) |
 | 12 | bean graph | a `blocked_by` or `parent` id matches other than exactly one bean file, a `blocked_by` edge names a `type: epic` bean, the `blocked_by` graph has a cycle, two beans that reach `AGENTS.md` step 1's tiebreak together share an `order` value, or no bean is selectable at all |
 | 13 | bean id uniqueness | a bean id names two files in the tree, a filename's id and its front-matter `# <id>` marker disagree, a bean filename is not `<prefix><id>--<slug>.md` at `.beans.yml`'s `id_length`, or an id this branch **introduces** already exists on `origin/main` |
+| 14 | a bean closes without evidence | a bean that is `completed` in the change and was not `completed` on the merge base carries no evidence section, an evidence section holding no entry, a numbered table in an evidence section with no evidence column, an unanswered numbered criterion, or an evidence cell that is empty or holds only a name from `doc:50-memory-and-evidence#evidence-kinds` |
 
 **Enforced by:** `tools/docs-lint.sh`, run by the `docsLint` task inside `qualityCheck`
 (`rule:ci/build`). Each check has been observed rejecting a planted violation; check 11's
 four rejections and its one accepted amendment are recorded in `bean:0038`, check 12's
-six rejections and its one negative control in `bean:0035`, check 13's three in `bean:0051`.
+six rejections and its one negative control in `bean:0035`, check 13's three in `bean:0051`,
+check 14's five, its negative control and its observed CI failure in `bean:0055`.
 
 Check 11 classifies by the `status:` on the **merge base**, not on the branch, and diffs the
 base against the **working tree**. A bean moving `in-progress` → `completed` in the change
@@ -211,6 +213,33 @@ scoped to that set grouped by `priority`, because only beans that reach the tieb
 can be tied by it; a bean with no `order` is not a collision, since absence is itself a
 defined position. The counts on the `OK` line — beans, graph edges, selectable — are the
 check's vacuity assertion: a run that parsed nothing reports zero rather than success.
+
+Check 14 classifies a bean as *closing* when it is `completed` in the working tree and was
+not `completed` on the merge base — check 11's diff shape, one status earlier. It therefore
+never re-reads a bean the base already closed, which is what keeps it off the corpus check 11
+has already frozen. Two evidence shapes are accepted because the corpus writes both: one
+`## Success criteria and evidence` table with an `evidence` column, and a separate
+`## Evidence` section beside a criteria section.
+
+Three definitions the check depends on, stated here because they are rules and not
+conventions:
+
+- An **entry** in an evidence section is a table row, a sub-heading, or a fenced block. A
+  section of prose alone is not an entry; evidence is `doc:00-constitution#evidence-rule`'s
+  command, expectation and verbatim output, and none of those is a paragraph.
+- An **evidence column** is one headed `evidence`, `observed`, `output` or `result`. An
+  `evidence kind` column names what will be produced, not what was, so a numbered table in an
+  evidence section that carries no evidence column restates its criteria and answers none of
+  them. Check 14 rejects that table rather than letting its rows stand as their own evidence.
+- A criterion is **answered** by an evidence row bearing its number, or by a `criterion N` or
+  `criteria N–M` citation anywhere in the bean. A criterion whose evidence is a section that
+  never names it is unanswered however long that section is, because
+  `adr:0005-evidence-lives-in-the-work-item#evidence-home` puts the evidence beside the
+  criterion it satisfies and a reader must be able to find the pairing.
+
+A criterion the bean does not number is outside the per-criterion condition; the `OK` line's
+`closing transitions`, `criteria checked` and `unnumbered` counts are what say how much was
+examined, and every one of them reads `-` rather than `0` when there is no base.
 
 Check 13's third condition is the only one in this table that reads a ref this branch does
 not contain. `.beans/` **is** the id allocator, it is read at branch time, and nothing
