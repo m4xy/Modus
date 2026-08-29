@@ -108,10 +108,11 @@ does not exist; see `30-code-style.md` §4 and `bean:0026`.
 
 **Rationale and alternatives considered:** `adr/0002-flat-file-over-database.md`.
 
-**Enforced by:** ArchUnit (no `java.sql`, `javax.sql`, `jakarta.persistence`,
-`org.hibernate`, `org.jooq` types anywhere in the repository) plus a Gradle
-dependency-verification rule in `build-logic` that fails the build if a database driver
-appears on any configuration.
+**Enforcement gap:** neither exists yet — no ArchUnit rule scans for `java.sql`,
+`javax.sql`, `jakarta.persistence`, `org.hibernate` or `org.jooq` types (`domainIsFrameworkFree`
+covers `jakarta..`/`javax..` for `core-domain` only, not `java.sql` and not the rest of the
+repository), and `build-logic` has no Gradle dependency-verification rule for database
+drivers. `bean:0027` carries the audit.
 
 ---
 
@@ -133,10 +134,10 @@ be written down; they may not be stored as memories, and they may not close a wo
 The evidence record shape, the accepted evidence kinds, and invalidation rules are in
 `50-memory-and-evidence.md`.
 
-**Enforced by:** schema validation on memory files at write time in
-`adapters/adapter-persistence-flatfile`; a transition guard in the `work` context that
-refuses `done` without at least one evidence record per success criterion.
-**Enforcement gap:** PR-body evidence is currently a review responsibility. A CI check on
+**Enforcement gap:** neither exists — schema validation on memory files at write time
+(`adapters/adapter-persistence-flatfile` is an empty placeholder with no tests, `bean:0017`)
+nor the transition guard in the `work` context refusing `done` without evidence (`work`
+is not built, `bean:0013`). PR-body evidence is currently a review responsibility. A CI check on
 PR body structure is owned by `bean:0001`, which lists it under "Follow-up work items to
 raise" and is accountable for raising it.
 
@@ -238,8 +239,10 @@ under "Follow-up work items to raise".
 `main` is protected. Every change — including documentation, including a one-character
 typo fix — arrives through a pull request.
 
-**Enforced by:** GitHub branch protection on `main` (owned by the CI work package), plus
-a local `pre-push` hook that refuses a push to `main`.
+**Enforcement gap:** neither exists —
+`gh api repos/m4xy/Modus/branches/main/protection` returns `404 Branch not protected`,
+and no `pre-push` hook is committed anywhere in the repository. `bean:0027` carries the
+audit.
 
 ### 7.2 The sequence
 
@@ -285,7 +288,9 @@ subject ≤ 72 characters. Scope is the module or bounded context (`core-domain`
 Agent-authored commits MUST end with a `Co-Authored-By:` trailer naming the model that
 produced them, so cost and quality can be attributed after the fact.
 
-**Enforced by:** a commit-message check in CI.
+**Enforcement gap:** no commit-message check exists in `.github/workflows/ci.yml`, and the
+history disagrees with this rule for every commit before it was stated. `bean:0024`
+carries reconciling the rule with the history.
 
 ### 7.4 Review
 
@@ -312,12 +317,12 @@ produced them, so cost and quality can be attributed after the fact.
   done, its own required evidence kinds, its own model and effort policy. Modus supplies
   defaults; a domain may override any of them. Code MUST NOT hardcode a single process.
 
-**Enforced by:** an ArchUnit rule (`ControllersAreDomainScoped`) and a Detekt rule
-(`DomainScopedRoute`) requiring every REST controller mapping to begin with
-`/domains/{domainId}` unless it matches the **non-domain-scoped route allowlist**, whose
-one normative copy is `10-architecture.md` §5.1. Neither rule, and not this section,
-carries a second copy of that list. Plus an integration suite asserting the 404-not-403
-property for every cross-domain access path.
+**Enforcement gap:** neither `ControllersAreDomainScoped` (ArchUnit) nor `DomainScopedRoute`
+(Detekt) exists — `adapters/adapter-rest` is a placeholder with no controllers to check —
+nor does the integration suite asserting 404-not-403 for every cross-domain access path.
+`bean:0018` carries all three. Once they exist, the **non-domain-scoped route allowlist**
+has one normative copy, `10-architecture.md` §5.1; neither rule, nor this section, carries
+a second.
 
 ---
 

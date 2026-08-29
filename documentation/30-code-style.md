@@ -160,8 +160,8 @@ condition; `bean:0026` carries it.
 cannot be satisfied today, either the rule is wrong (change it, with a rationale in this
 document) or the code is wrong (fix it, or open a work item and disable the rule
 repository-wide with a comment naming the work item). No `detekt-baseline.xml` may exist
-in this repository. **Enforced by:** a Gradle check that fails if any file matching
-`*baseline*.xml` exists.
+in this repository. **Enforcement gap:** the Gradle check that would fail the build if any
+file matching `*baseline*.xml` exists does not exist. `bean:0027` carries the audit.
 
 ---
 

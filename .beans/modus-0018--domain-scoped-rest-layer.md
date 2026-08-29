@@ -5,7 +5,7 @@ status: todo
 type: feature
 priority: high
 created_at: 2026-08-29T00:00:00Z
-blocked_by: [modus-0017]
+blocked_by: [modus-0017, modus-0012]
 ---
 
 # The domain-scoped REST layer at /domains/{domainId}
@@ -27,5 +27,12 @@ Success criteria:
   `doc:30-code-style` §6 forbids hand-written backoffice API types.
 - 404-not-403 asserted in `src/integrationTest` for every cross-domain access path, each
   assertion observed failing on a planted leak (`doc:00-constitution#observed-failing`).
+
+`blocked_by` adds `modus-0012`: the §5.3 authorisation contract's step 4 (module
+visibility) needs domainmgmt's `ModuleInstallation`, an internals dependency, not a
+published-language one — narrowing this bean's own criteria to exclude step 4 would ship
+an authorisation contract with a hole in it and a second bean to patch the hole later.
+Adding the edge instead means the contract lands whole, once, the same shape `bean:0009`
+put the rest of `AccessDecision`'s mapping in.
 
 Blocks `bean:0019`, `bean:0021`, `bean:0022`.

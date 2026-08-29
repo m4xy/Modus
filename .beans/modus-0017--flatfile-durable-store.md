@@ -4,6 +4,7 @@ title: The flat-file durable store adapter
 status: todo
 type: feature
 priority: high
+order: C
 created_at: 2026-08-29T00:00:00Z
 ---
 

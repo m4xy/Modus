@@ -227,8 +227,11 @@ This is the source table an ArchUnit test is derived from. One row per (module, 
 | `ControllersAreDomainScoped` | Every `@RequestMapping`/`@GetMapping`/… path starts with `/domains/{domainId}`, unless it matches the **non-domain-scoped route allowlist** in §5.1. The rule reads that list; it does not restate it. |
 | `NoFieldInjection` | No `@Autowired` on a field or setter anywhere. Constructor injection only. |
 
-**Enforced by:** ArchUnit tests in `build-logic`'s `modus.archunit` convention plugin,
-applied to every Kotlin module. The tests fail the `check` task.
+**Enforcement gap:** none of the five rules above exist. `DomainTypesDoNotEscape`,
+`NoDtoInCore` and `ControllersAreDomainScoped` are `adapter-rest`-specific and every
+adapter today, including it, is a placeholder with no controllers to check; `bean:0018`
+carries them. `AdaptersImplementPorts` and `NoFieldInjection` apply to any adapter;
+`bean:0017` is the first to implement one and is the first point either can fire.
 
 ---
 
@@ -305,10 +308,10 @@ Every domain-scoped request passes through exactly one authorisation step, in th
 - The backoffice navigation is likewise generated from the installed-and-visible module
   set. There is no hardcoded menu.
 
-**Enforced by:** the `ControllersAreDomainScoped` ArchUnit rule; an integration-test
-suite (`DomainIsolationIT`) that, for every registered route, asserts a `404` for an
-actor without a grant; and a Playwright test asserting the backoffice never renders a
-module the session cannot reach.
+**Enforcement gap:** none of the three exist — `ControllersAreDomainScoped`, the
+`DomainIsolationIT` integration suite, and the module-visibility Playwright assertion.
+`bean:0018` carries the ArchUnit rule and `DomainIsolationIT`; `bean:0022` carries the
+Playwright test, once the backoffice runs against a live API.
 
 ### 5.5 Grant administration
 
@@ -393,11 +396,10 @@ Rules, because the interesting cases are all concurrency cases:
 | 6.3.5 | A trigger MUST NOT fire on an event its own run published. Self-triggering loops are cut at the trigger, not at the budget. |
 | 6.3.6 | Disabling a trigger never cancels an in-flight run; it prevents the next firing. Cancelling a run is a separate, explicit operation. |
 
-**Enforced by:** the coalescing and idempotence rules are invariants on the `Trigger`
-aggregate with accepting and rejecting tests (`20-ddd-practices.md` §7.3); the
-`(triggerId, causeId)` uniqueness is checked against the domain's event log at firing
-time. **Enforcement gap:** per-domain trigger configuration in the backoffice is not
-specified; named as a follow-up in `bean:0001`.
+**Enforcement gap:** the `Trigger` aggregate does not exist yet (`bean:0014`), so neither
+the coalescing/idempotence invariants nor the `(triggerId, causeId)` uniqueness check
+against the event log exist either. Per-domain trigger configuration in the backoffice is
+additionally unspecified; named as a follow-up in `bean:0001`.
 
 ---
 

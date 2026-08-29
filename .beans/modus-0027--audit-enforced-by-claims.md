@@ -4,6 +4,7 @@ title: Audit every Enforced by line against the observed-failing rule
 status: todo
 type: task
 priority: high
+order: B
 created_at: 2026-08-29T00:00:00Z
 ---
 
@@ -29,6 +30,13 @@ Success criteria:
   `ControllersAreDomainScoped` and `DomainScopedRoute`. Several name contexts that do not
   exist yet and belong to the beans that build them; that is a legitimate outcome, stated
   rather than assumed.
+- Also start from `doc:40-durability` and `doc:60-cost-model`: together roughly nine more
+  `Enforced by:` lines (a `SIGKILL` kill test, a recovery test suite, a round-trip property
+  test, `module-cost` validation rules and more) name mechanisms for
+  `adapter-persistence-flatfile` and `module-cost` — both empty placeholder descriptor
+  classes with zero test files anywhere. Every one of those lines is a claim about a
+  mechanism that does not exist; scoping the audit to `doc:00-constitution` alone would
+  miss the largest concentration of false claims in the package.
 
 Splitting is expected (`doc:00-constitution#context-budget` §6.2): the survey is small and
 a document's worth of demotions may not be.

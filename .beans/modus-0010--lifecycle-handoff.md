@@ -42,7 +42,8 @@ carries the cases where one bean cannot start without another's output. The
 published-language table of `doc:10-architecture#bounded-contexts` §3.1 is the source for
 the context ordering. The intentional `memory`/`execution` cycle is deliberately **not**
 encoded as mutual `blocked_by`: it would deadlock, and neither context needs the other's
-internals.
+internals. Review cycle 2, thread 3, found the one-way half of this still missing — see
+below.
 
 ### 3. The learnings are in the document that owns the topic, once
 
@@ -78,3 +79,15 @@ every other `Enforced by:` line, which the new rule makes overdue.
 ### 5. The gate is green
 
 The `verify` block of the pull request.
+
+## Review cycle 2
+
+Five threads, all fixed in this PR (no follow-up).
+
+| thread | finding | fix | evidence |
+|---|---|---|---|
+| cold-start ambiguity | `bean:0012`, `bean:0017`, `bean:0027` (plus epic `bean:0011`) all `todo`/`high`/unblocked at once; no tiebreak | added the upstream `order` fractional-index field: `bean:0012 order: A`, `bean:0027 order: B`, `bean:0017 order: C` (`pkg/bean/bean.go` confirms the field; `pkg/bean/sort.go`'s `SortByStatusPriorityAndType` sorts status, then `order` ascending — present before absent — then `priority`, then `type`); `AGENTS.md` workflow step 1 gained one rule: skip `type: epic`, else highest `priority` then lowest `order` | re-ran the cold-start test: read only `AGENTS.md` + `.beans/`; unblocked `todo` beans excluding the epic are `{bean:0012, bean:0017, bean:0027}` at `priority: high` and `{bean:0024, bean:0025, bean:0026}` below it; `order` breaks the first set `A < B < C` — **`bean:0012` is next**, precisely because `doc:10-architecture#bounded-contexts` §3.1 already names it as "the first point at which either rule can be shown to fire" for the two vacuous context-isolation rules, and it unblocks `bean:0013` and `bean:0023` |
+| `Enforced by:` sweep incomplete | `20-ddd-practices.md` and `60-cost-model.md` still cited `NoFloatingPointMoney`/`ForbiddenTypeNameSuffix` as real, the exact falsehood `doc:00#observed-failing` was written to condemn | swept every `Enforced by:` line in `documentation/**` (44 raw hits; 10 meta/definitional, excluded); of 34 substantive claims: 4 already self-qualified with an adjacent `Enforcement gap:` (left as-is), 9 verified real by grep/build-logic inspection (typed `rule:` references are docs-lint-checked and were not re-litigated), **27 demoted** to `Enforcement gap:` naming the owning bean — `bean:0026` (Detekt rules), `bean:0016` (`module-cost`, empty, zero tests), `bean:0017` (flat-file adapter, empty, zero tests), `bean:0018`/`bean:0022` (REST layer, backoffice-on-live-API), `bean:0013`/`bean:0014`/`bean:0015` (`work`/`execution`/`memory`, unbuilt), `bean:0024` (commit-message check), `bean:0027` (branch protection, DB-driver dependency verification, baseline-file Gradle check — no owning bean existed yet) | per-claim `grep`/`find` against `core/`, `adapters/`, `build-logic/`, `config/`, `.github/`; `gh api repos/m4xy/Modus/branches/main/protection` → `404 Branch not protected` for the branch-protection half of `00-constitution` §7.1; `bash tools/docs-lint.sh` after every edit → `docs-lint: OK` throughout |
+| `bean:0027` scope | "Start from" named only `doc:00-constitution`, missing `doc:40-durability`/`doc:60-cost-model`'s ~9 lines for `adapter-persistence-flatfile`/`module-cost` | added a second "Start from" bullet naming both documents and both empty-placeholder modules explicitly | `find adapters/adapter-persistence-flatfile -path '*test*'` and `find modules/module-cost -type f` — no test directory, two/three skeleton files only, in either |
+| memory/execution mutual wall | both beans unblock off `bean:0013` simultaneously, each needing the other's not-yet-published event | sequenced, did not split: `bean:0015 blocked_by: [modus-0013, modus-0014]` (one-way only — `bean:0014` keeps `blocked_by: [modus-0013]`); `bean:0014`'s success criteria drop `MemoryRecorded` consumption, `bean:0015`'s success criteria gain "wires `execution`'s deferred `MemoryRecorded` consumption"; `bean:0011`'s epic text restated to describe the one-way edge, not "neither direction" | `.beans/modus-0014--execution-bounded-context.md`, `.beans/modus-0015--memory-bounded-context.md`, `.beans/modus-0011--remaining-bounded-contexts.md` diffs |
+| `bean:0018` missing edge | `blocked_by: [modus-0017]` only; §5.3 step 4 needs domainmgmt's `ModuleInstallation` (`bean:0012`) | added the edge (`blocked_by: [modus-0017, modus-0012]`) rather than narrowing the criteria — narrowing would ship the authorisation contract with a known hole and a second bean to patch it later; the edge lands it whole, once | `.beans/modus-0018--domain-scoped-rest-layer.md` diff |

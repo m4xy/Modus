@@ -20,7 +20,10 @@ remaining context carries a provisional `*Context` marker under
 
 Children: `bean:0012`, `bean:0013`, `bean:0014`, `bean:0015`, `bean:0016`. Order is §3.1's
 published-language table, not preference; `memory` and `execution` import each other's
-published language and that intentional cycle is a blocking edge in neither direction.
+published language, and that intentional cycle is never mutual `blocked_by` — it would
+deadlock. It is a one-way `blocked_by` (`bean:0015` on `bean:0014`, not the reverse), with
+the first mover's reciprocal consumption criterion deferred to the second (`bean:0014`,
+`bean:0015`).
 
 Done when `BoundedContexts` goes with the last marker and `bean:0023` closes §3.1's
 `Enforcement gap:`.

@@ -175,8 +175,9 @@ The `*Id` types, and any value object that appears in a domain event's signature
 and live in `com.modus.core.<ctx>.domain.published` (§5.1). Everything else on this list
 is internal to its context and lives in `com.modus.core.<ctx>.domain`.
 
-**Money is never a `Double`.** `Usd` stores integer micros. **Enforced by:** the custom
-Detekt rule `NoFloatingPointMoney` (see `30-code-style.md` §4).
+**Money is never a `Double`.** `Usd` stores integer micros. **Enforcement gap:** the custom
+Detekt rule `NoFloatingPointMoney` this relies on does not exist; see `30-code-style.md`
+§4 and `bean:0026`.
 
 ---
 
@@ -236,8 +237,9 @@ in the wrong package silently removes it from a rule.
 | DTO | `com.modus.adapter.rest.<ctx>.dto` | `<Noun>Request` / `<Noun>Response` | `TransitionWorkItemRequest` |
 
 Forbidden name suffixes anywhere in `core/`: `*Impl`, `*Manager`, `*Helper`, `*Util`,
-`*Utils`, `*Service`, `*Data`, `*Info`, `*Dto`, `*Entity`, `*Bean`. **Enforced by:** the
-custom Detekt rule `ForbiddenTypeNameSuffix`.
+`*Utils`, `*Service`, `*Data`, `*Info`, `*Dto`, `*Entity`, `*Bean`. **Enforcement gap:** the
+custom Detekt rule `ForbiddenTypeNameSuffix` this relies on does not exist; see
+`30-code-style.md` §4 and `bean:0026`.
 
 `*Service` is banned **outright**, with no domain-service exemption. §6 already requires a
 domain service to be named for its operation (`PermissionResolver`, not

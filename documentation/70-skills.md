@@ -252,8 +252,9 @@ number of obscure ones.
   trigger and rename it — a rename is a new `id` plus a `supersedes` pointer, so the cost
   history follows.
 
-**Enforced by:** `module-cost` raises `retire-skill` and `merge-skills` actions into the
-domain's action list, with usage numbers as evidence.
+**Enforcement gap:** `module-cost` would raise `retire-skill` and `merge-skills` actions
+into the domain's action list, with usage numbers as evidence; the module is an empty
+placeholder with no tests today (`bean:0016`).
 
 ---
 
@@ -284,10 +285,12 @@ A skill invocation, once started, MUST:
    This is the cardinal sin. Changing a skill's criteria is a separate work item, a
    separate pull request, and a human-reviewed decision.
 
-Point 8 is enforced structurally: an agent executing a skill runs with the skill
-definition as **read-only input**. A change to a skill file inside a run that invoked that
-skill fails the pull request. **Enforced by:** a CI check comparing the skill files
-touched by a diff against the skills invoked during the run.
+Point 8 is meant to be enforced structurally: an agent executing a skill runs with the
+skill definition as **read-only input**, and a change to a skill file inside a run that
+invoked that skill should fail the pull request. **Enforcement gap:** the CI check that
+would compare the skill files touched by a diff against the skills invoked during the run
+does not exist — `.github/workflows/ci.yml` has no such job. `bean:0027` carries the
+audit.
 
 ### 5.2 Setting success criteria autonomously
 

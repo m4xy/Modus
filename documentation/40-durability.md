@@ -185,10 +185,11 @@ in `adapters/adapter-persistence-flatfile`, and nothing else in the codebase cal
 
 Step 7 is the one people skip. Without it, POSIX permits the directory entry to be lost
 in a crash even though the file's data was synced: you get a durable file nobody can
-find, and the old content still visible. **Enforced by:** an ArchUnit rule restricting
-`java.nio.file.Files` write methods to a single class, `AtomicFileWriter`, plus a Detekt
-`ForbiddenMethodCall` entry for `File.writeText`, `File.writeBytes`, and
-`Files.newOutputStream` outside that class.
+find, and the old content still visible. **Enforcement gap:** neither the ArchUnit rule
+restricting `java.nio.file.Files` write methods to a single class, `AtomicFileWriter`, nor
+the Detekt `ForbiddenMethodCall` entry for `File.writeText`, `File.writeBytes` and
+`Files.newOutputStream` outside that class exists — `AtomicFileWriter` itself does not
+exist. `bean:0017` carries it.
 
 ### 4.1 Guarantees this gives
 
@@ -271,11 +272,10 @@ was torn by a crash fails its `crc` on read and is skipped; because the advertis
 never runs ahead of the last fsynced `seq`, a skipped record is always one the client was
 never promised.
 
-**Enforced by:** an integration test that kills the process with `SIGKILL` at randomised
-points during a write workload and asserts, on restart, that every acknowledged cursor is
-readable and every document is either the old or the new complete version. A companion
-test corrupts bytes in the middle of a segment and asserts the reader skips exactly that
-record, marks the log `degraded`, and still serves every other record.
+**Enforcement gap:** neither test exists — the `SIGKILL`-at-randomised-points test, nor the
+companion test that corrupts a segment's bytes and asserts the reader skips exactly that
+record, marks the log `degraded`, and still serves every other record. `bean:0017` carries
+both.
 
 ---
 
@@ -328,9 +328,10 @@ Every document write is conditional on the version the writer read:
   decides whether a retry is safe.
 
 This is what replaces database row versioning. It is **required** for every document
-mutation; there is no unconditional overwrite API. **Enforced by:** the store's public
-port has no unconditional `write(path, bytes)` method — the only mutation entry point
-takes an expected-version argument.
+mutation; there is no unconditional overwrite API. **Enforcement gap:** the store's public
+port does not exist yet, so there is no `write(path, bytes)` method to have omitted —
+`bean:0017` carries defining the port with only the expected-version-guarded mutation
+entry point.
 
 ### 6.5 Multi-document changes
 
@@ -369,8 +370,8 @@ walk) and it is not optional.
 silently rewritten decision. Quarantine, surface it in the backoffice as an operator
 action, and let a human or an evidence-gathering agent decide.
 
-**Enforced by:** a recovery test suite that constructs each condition above on disk and
-asserts the exact action taken.
+**Enforcement gap:** the recovery test suite that would construct each condition above on
+disk and assert the exact action taken does not exist. `bean:0017` carries it.
 
 ---
 
@@ -384,7 +385,7 @@ Consequences we accept and must respect:
 | Consequence | What we do about it |
 |---|---|
 | A human may hand-edit a file outside Modus | The store validates on read, quarantines on failure (§7), and never assumes it wrote the last version (§6.4). Hand-editing is a supported workflow, not an accident. |
-| Formatting is part of the data | Serialisation is **canonical and deterministic**: stable frontmatter key order, stable list order, LF newlines, no trailing whitespace, one trailing newline. Re-serialising an unchanged record produces byte-identical output. **Enforced by:** a round-trip property test — parse → serialise → parse yields an identical record and identical bytes. |
+| Formatting is part of the data | Serialisation is **canonical and deterministic**: stable frontmatter key order, stable list order, LF newlines, no trailing whitespace, one trailing newline. Re-serialising an unchanged record produces byte-identical output. **Enforcement gap:** the round-trip property test — parse → serialise → parse yields an identical record and identical bytes — does not exist. `bean:0017` carries it. |
 | Diffs must be reviewable | Never reflow prose on write. Never rewrite the body's whitespace. Touch only the fields that changed. A one-field change must produce a one-line diff. |
 | Markdown is not a schema | Frontmatter is validated against an explicit schema on every read and every write. The body is free text and is never parsed for meaning, except for cross-reference links. |
 | The backoffice must not become a worse editor than a text editor | The backoffice renders and edits the same file. It never introduces a field that only it understands. |
@@ -409,8 +410,9 @@ memories by subject, sum cost by epic). Rules:
 | 9.5 | An index is never fsynced (§5) — it is disposable. |
 | 9.6 | A query answerable by reading fewer than ~100 files does not need an index. Measure before adding one. |
 
-**Enforced by:** a test that deletes `.modus/index/` between every integration test case
-and asserts identical API responses.
+**Enforcement gap:** the test that deletes `.modus/index/` between every integration test
+case and asserts identical API responses does not exist — there is no `.modus/index/`
+code yet. `bean:0017` carries it.
 
 ---
 

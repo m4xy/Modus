@@ -4,6 +4,7 @@ title: The domainmgmt bounded context
 status: todo
 type: feature
 priority: high
+order: A
 created_at: 2026-08-29T00:00:00Z
 parent: modus-0011
 ---

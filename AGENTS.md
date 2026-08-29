@@ -38,6 +38,11 @@ Style rules: `doc:30-code-style`. Layering rules: `doc:10-architecture`. Neither
 ## Workflow
 
 1. Bean — `.beans/<prefix>NNNN--slug.md` (`.beans.yml`). It is the source of truth for what is being done.
+   Selecting the next one: skip `type: epic` (not directly actionable — pick one of its
+   unblocked children instead); among `status: todo` beans whose every `blocked_by` id is
+   `completed`, the highest `priority` wins; ties break on `order`, ascending (the upstream
+   `beans` fractional-index field for manual sort — a bean with no `order` sorts after every
+   bean that has one).
 2. Branch from `main` (`feat|fix|docs|chore/…`). No direct commits to `main`.
 3. Conventional commits. PR body: fill `.github/pull_request_template.md`; do not narrate.
 4. Review — every thread ends in a change, a new rule, or a stated refusal.

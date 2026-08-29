@@ -6,7 +6,7 @@ type: feature
 priority: normal
 created_at: 2026-08-29T00:00:00Z
 parent: modus-0011
-blocked_by: [modus-0013]
+blocked_by: [modus-0013, modus-0014]
 ---
 
 # The memory bounded context
@@ -25,5 +25,11 @@ Success criteria:
   aggregate, so a schema validator is defence in depth and not the mechanism.
 - `MemoryRecorded`, `MemoryInvalidated` published; `WorkItemClosed` and
   `AgentRunCompleted` consumed.
+- Wires `execution`'s `MemoryRecorded` consumption, deferred from `bean:0014`: that bean
+  lands first and cannot import a type this bean has not yet published.
 
-`bean:0014` is not a blocking edge either way: §3.1 states the cycle is intentional.
+`blocked_by` adds `modus-0014` (not just `modus-0013`): `doc:10-architecture#bounded-contexts`
+§3.1's `memory`/`execution` published-language cycle is intentional and not mutual
+`blocked_by` — the edge runs one way only, this bean after `bean:0014`, so this bean's own
+`AgentRunCompleted` consumption always has a type to import. The reverse is deliberately
+absent: `bean:0014` needs nothing of this context's internals to land.
