@@ -142,7 +142,7 @@ cost game (`60-cost-model.md` §5.4).
 Explicit, checkable, binary. Not "the code is clean" but:
 
 ```
-- [ ] `./gradlew check` exits 0
+- [ ] `./gradlew qualityCheck` exits 0
 - [ ] The new endpoint's path begins with /domains/{domainId}
 - [ ] An integration test asserts 404 for an actor without a grant on that domain
 - [ ] The OpenAPI document regenerates with no unrelated diff
@@ -158,7 +158,7 @@ Each criterion names the evidence kind that satisfies it (`50-memory-and-evidenc
 
 ```
 validation:
-  argv: ["./gradlew", "check", "--console=plain"]
+  argv: ["./gradlew", "qualityCheck", "--console=plain"]
   cwd: "."
   timeoutSeconds: 900
   successExitCode: 0

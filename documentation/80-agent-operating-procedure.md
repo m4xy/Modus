@@ -186,8 +186,8 @@ was asked to do?* Then continue.
 | 5.1 | **Smallest correct change.** No drive-by refactors, no unrelated fixes, no "while I was in here". Note them as follow-up work items instead. |
 | 5.2 | **Layer discipline.** Domain first (aggregates, VOs, ports), then use cases, then adapters, then wiring. If you are writing an adapter before the port exists, you are designing outside-in and will leak infrastructure inwards. |
 | 5.3 | **Test alongside, not after.** Every invariant gets an accepting test and a rejecting test (`20-ddd-practices.md` §7.3). |
-| 5.4 | **Run the fast gate frequently.** `./gradlew :core:core-domain:check` should stay under 10 seconds. Fail fast and locally. |
-| 5.5 | **Format continuously.** `./gradlew spotlessApply` before every commit. Never think about formatting. |
+| 5.4 | **Run the fast gate frequently.** `./gradlew :core-domain:check` should stay under 10 seconds. Fail fast and locally. Project names are flat (`settings.gradle.kts`), so the path is `:core-domain`, not `:core:core-domain` — the latter fails with `project 'core' is ambiguous`. |
+| 5.5 | **Format continuously.** `./gradlew ktlintFormat` before every commit. Never think about formatting. |
 | 5.6 | **No `TODO`, no commented-out code, no `@Suppress` without a reason** — the build enforces all three (`30-code-style.md`). |
 | 5.7 | **Commit in logical increments**, conventional-commit messages, on your branch. A commit that does not compile is acceptable mid-branch; the PR head must be green. |
 | 5.8 | **If the approach is failing, stop.** Two failed attempts at the same thing means the approach is wrong. Return to step 3, record what did not work as evidence, and pick a different approach. Do not brute-force — that is what `overhead` spend measures, and it will show. |
@@ -212,8 +212,9 @@ system.
 
 **The gate is `00-constitution.md` §7.2.4.** Run exactly what that block says — this step
 does not carry its own command list, because a gate written down in three places is a gate
-that gets run in three different ways. In short: `spotlessApply`, then `check` (which
-includes the backoffice checks), then `e2eTest` only if user-visible behaviour changed.
+that gets run in three different ways. In short: `ktlintFormat`, then `qualityCheck`. That
+block also carries the `Enforcement gap:` for the backoffice and Playwright checks, which
+no task runs; read it before assuming a green `qualityCheck` covered `backoffice/`.
 
 If a **skill** governs this task, its validation command is the gate (`70-skills.md`
 §3.6), and its exit code is the verdict.
@@ -287,7 +288,7 @@ One paragraph. What changed and why. Not a file list — the diff is the file li
 
 | # | Criterion | Evidence | Result |
 |---|-----------|----------|--------|
-| 1 | `./gradlew check` exits 0 | test-run `01JB…`: 412 passed, 0 failed, exit 0 | met |
+| 1 | `./gradlew qualityCheck` exits 0 | test-run `01JB…`: 412 passed, 0 failed, exit 0 | met |
 | 2 | Cross-domain access returns 404 | test-run `01JB…`: `DomainIsolationIT` 18 passed | met |
 | 3 | ADR recorded for the storage choice | diff `01JB…`: `documentation/adr/0002-…` added | met |
 

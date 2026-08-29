@@ -43,21 +43,24 @@ The three-tool division of labour:
 
 | Tool | Answers | Failure mode it prevents |
 |---|---|---|
-| **ktlint** (via Spotless) | "Is it formatted?" | Diff noise, formatting debates |
+| **ktlint** | "Is it formatted?" | Diff noise, formatting debates |
 | **Detekt** | "Is it written well, and does it avoid our known hazards?" | Complexity, dangerous APIs, project-specific mistakes |
 | **ArchUnit** | "Is it in the right place, depending on the right things?" | Architectural drift |
 
-All three run in the `check` task. `./gradlew check` is the gate; CI runs exactly the
-same task with no extra arguments, so a green local run means a green CI run. The gate is
-stated once, in `00-constitution.md` §7.2.4; this document and
-`80-agent-operating-procedure.md` step 6 cite it rather than restating its commands.
+All three run in every module's `check`, which `qualityCheck` aggregates.
+`./gradlew qualityCheck` is the gate; CI runs exactly that task with no extra arguments, so
+a green local run means a green CI run. The gate is stated once, in `00-constitution.md`
+§7.2.4; this document and `80-agent-operating-procedure.md` step 6 cite it rather than
+restating its commands.
 
 ---
 
-## 1. Formatting — ktlint via Spotless <a id="formatting"></a>
+## 1. Formatting — ktlint <a id="formatting"></a>
 
-Spotless owns formatting. ktlint's `ktlint_official` code style is the ruleset. There is
-no negotiation about formatting; run `./gradlew spotlessApply` and move on.
+ktlint owns Kotlin formatting, through `org.jlleitschuh.gradle.ktlint` applied in the
+`modus.kotlin-base` convention plugin and in the root project. Its `ktlint_official` code
+style is the ruleset. There is no negotiation about formatting; run
+`./gradlew ktlintFormat` and move on.
 
 | Setting | Value |
 |---|---|
@@ -71,20 +74,18 @@ no negotiation about formatting; run `./gradlew spotlessApply` and move on.
 | Blank lines at block start/end | Forbidden |
 | String templates | No redundant braces (`$name`, not `${name}`) |
 
-Also under Spotless:
+Tasks: `./gradlew ktlintCheck` (part of `check`), `./gradlew ktlintFormat` (fixes).
+Both cover `*.kt` and `*.kts`, the root project's build scripts included.
 
-| Target | Tool |
-|---|---|
-| `*.kt`, `*.kts` | ktlint |
-| `*.ts`, `*.tsx`, `*.css` in `backoffice/`, `e2e/` | Prettier |
-| `*.md` in `documentation/`, `beans/` | Trailing-whitespace + final-newline + no-tabs only. Prose is not reflowed by a tool. |
-| `*.yaml`, `*.json` | Two-space indent, sorted keys where order is not semantic |
-| Every source file | License/`@file:` header check is **off** — headers are noise |
+**Never** commit with a ktlint violation and "fix it in review". `ktlintFormat` takes under
+two seconds.
 
-Tasks: `./gradlew spotlessCheck` (part of `check`), `./gradlew spotlessApply` (fixes).
-
-**Never** commit with a Spotless violation and "fix it in review". `spotlessApply` takes
-under two seconds.
+**Enforcement gap:** Kotlin is the only language the build formats. `*.ts`, `*.tsx` and
+`*.css` are covered by `backoffice/`'s own Prettier scripts, which no Gradle task or CI
+step invokes; `*.md`, `*.yaml` and `*.json` are covered by nothing at all. An earlier
+version of this section described a single Spotless configuration spanning all five — that
+plugin is not in the build and never was. Choosing between adopting it and standardising on
+ktlint plus the backoffice's own Prettier is `bean:0029`'s first success criterion.
 
 ---
 
@@ -140,7 +141,7 @@ Detekt runs with `buildUponDefaultConfig = true` and a project config at
 | `LabeledExpression` | `error` | |
 | `UseCheckOrError`, `UseRequire` | `error` | Consistent invariant expression (`20` §7.2) |
 | Naming rules | all `error` | |
-| Formatting ruleset | **disabled entirely** | Spotless/ktlint owns formatting |
+| Formatting ruleset | **disabled entirely** | ktlint owns formatting (§1) |
 
 **Test sources:** relaxed for `LongMethod`, `MagicNumber`, `TooManyFunctions`, and
 `MaxLineLength`. Everything else applies — test code is code.
@@ -251,7 +252,7 @@ reference, so they are **forbidden outright** in this repository; disable a test
 
 | Concern | Tool | Setting |
 |---|---|---|
-| Formatting | Prettier (via Spotless) | 2-space indent, 100 columns, single quotes, trailing commas |
+| Formatting | Prettier (`backoffice/package.json`) | 2-space indent, 100 columns, single quotes, trailing commas |
 | Linting | ESLint | `@typescript-eslint` strict + `react-hooks` + `jsx-a11y` |
 | Types | `tsc --noEmit` | `strict: true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride` |
 | `any` | ESLint `no-explicit-any` | `error`. Use `unknown` and narrow. |
@@ -259,10 +260,13 @@ reference, so they are **forbidden outright** in this repository; disable a test
 | Import cycles | ESLint `import/no-cycle` | `error` |
 | Accessibility | `jsx-a11y` recommended | `error`; plus axe assertions in Playwright |
 | API types | Generated from the OpenAPI document | Hand-written API types are forbidden — they drift |
-| Dead code | `knip` | `error` in CI |
+| Dead code | `knip` | **Enforcement gap:** knip is not a dependency, a script or a workflow step anywhere in the repository. `bean:0029` installs it or strikes this row. |
 
-`./gradlew check` runs the backoffice checks above too. The complete gate — and the only
-normative statement of it — is `00-constitution.md` §7.2.4.
+**Enforcement gap:** nothing runs the checks above. `backoffice/` and `e2e/` are not
+Gradle projects, so no Gradle task reaches their `typecheck`, `lint` or `format:check`
+scripts, and CI runs only `./gradlew qualityCheck`. Until `bean:0029` wires them in, run them by hand as `00-constitution.md` §7.2.4's
+`Enforcement gap:` describes — that block carries the commands, this one does not. The complete gate — and the only normative statement of it — is
+`00-constitution.md` §7.2.4.
 
 ---
 
