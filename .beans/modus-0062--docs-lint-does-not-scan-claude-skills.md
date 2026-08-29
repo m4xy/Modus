@@ -80,24 +80,63 @@ So the enforceable subset is narrower than "lint the skills". Candidates, none c
 | leave it; skills are reviewed by the humans and agents who read them | nothing | the status quo, which produced the drift above |
 
 **The narrowest option would find nothing today, and that is an argument about it rather than
-against it.** Every typed reference in the skills resolves:
+against it.** Every typed reference in the skills resolves.
+
+**The count is stated with the command that produces it, because three people counted it and
+got three answers.** A reviewer said 23, this bean first said 21, the orchestrator measured 24
+twice with two different regexes. None of the three was wrong; none of the three stated its
+method, and the method is the whole disagreement. `adr:0005-evidence-lives-in-the-work-item#evidence-home`
+requires the command, the expectation and the verbatim output, and a bare integer is none of
+them. So:
 
 ```
-cmd:      resolve each doc:/bean:/adr:/rule: reference in .claude/skills/*/SKILL.md the way
-          check 6 does — prefix-glob the kind's directory, then require any `#anchor` to be
-          declared by an `<a id>` in the matched file
-observed: typed refs in .claude/skills/**: 21   distinct: 13
-          unresolved: []
-          anchor missing: []
+cmd:      grep -ohE '(doc:[0-9]{2}[a-z0-9-]*|doc:README|bean:[0-9]{4}[a-z0-9-]*|adr:[0-9]{4}[a-z0-9-]*|rule:[a-z]+/[A-Za-z][A-Za-z0-9]*)(#[a-z0-9-]+)?' \
+            .claude/skills/*/SKILL.md | grep -c .
+observed: 23
+exit:     0
+
+cmd:      the same with -oHE, then `| sort -u | grep -c .`
+observed: 20
 exit:     0
 ```
 
-Measured at 21 on `origin/main` and at 21 again after the skills fix; a reviewer's count of 23
-is two high. No skill carries a `rule:` reference at all. So check 6 over the skills is a
-**regression guard**, not a repair: it goes green on day one and catches the next `bean:NNNN`
-that a renamed or split bean invalidates. Whether a guard that finds nothing today earns its
-wiring is the decision this bean owes, and the count is what makes it a decision rather than
-a guess.
+The pattern is `REF_RE` copied verbatim from `tools/docs-lint.sh`, so these are the references
+check 6 would extract and not a private definition of "reference". What each number counts:
+
+| figure | counts | why it differs |
+|---|---|---|
+| **23** | every occurrence | the raw match count |
+| **20** | distinct `(file, reference)` pairs | what would land in `refs.uniq` and grow the `OK` line's `references` denominator; check 6 resolves each pair once |
+| 15 | distinct reference strings, anchor included | a reference used in two skills counts once |
+| 13 | distinct reference strings, anchor stripped | treats a bare id and the same id with `#anchor` as one |
+
+Three decisions produce that spread, and each was silently different across the three counts:
+
+- **An `#anchor` suffix is part of the reference.** The same document cited twice, once bare
+  and once with an anchor, is two references — check 6 resolves them differently, one needing
+  an `<a id>` and the other not.
+- **A repeated reference counts every time.** Check 6 deduplicates per `(file, reference)`,
+  not per reference, so the same id in two skills is two resolutions.
+- **A bare two-digit id is a reference.** `REF_RE` allows the slug to be empty, so a shorthand
+  citation of a document by number alone matches. Requiring a hyphen after the digits is what
+  produced this bean's original 21: two shorthand citations in `modus-work-package` were
+  dropped. Fenced blocks are excluded by check 6, and in this corpus that changes nothing —
+  no skill puts a typed reference inside a fence — which is why the fence rule cannot be the
+  source of any of the three disagreeing counts.
+
+Every one of the 23 resolves, on `origin/main` and again on the skills fix branch; both trees
+give 23 and 20, so the figure is not sensitive to which merges first. So check 6 over the
+skills is a **regression guard**, not a repair: it goes green on day one and catches the next
+`bean:NNNN` that a renamed or split bean invalidates. Whether a guard that finds nothing today
+earns its wiring is the decision this bean owes.
+
+**The general form is worth more than the number.** An unqualified count is unreproducible
+evidence. This one was measured three times by three readers before anyone noticed they were
+measuring three different things, and the same failure is what
+`doc:05-authoring-for-agents#one-fact-one-place` records for `tools/docs-lint.sh`'s header
+saying "the eleven mechanical checks" — a count restated away from the thing it counts. The
+correction there was *delete the count; cite the anchor*. The correction here is *state the
+command*, because this count has no anchor to cite.
 
 ## Success criteria
 
