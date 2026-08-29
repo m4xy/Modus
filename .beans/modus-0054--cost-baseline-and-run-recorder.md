@@ -45,17 +45,17 @@ and `--check` fails if it drifts from the artifact. *Not done* says why that rul
 |---|---:|
 | runs replayed | 65 (2 root session(s), 63 subagent run(s)) |
 | input files hashed | 129 |
-| assistant messages / transcript frames | 4,847 / 8,903 (**1.837x** overcount if frames are summed) |
-| tokens | 739,560,837 |
+| assistant messages / transcript frames | 4,853 / 8,914 (**1.837x** overcount if frames are summed) |
+| tokens | 741,026,373 |
 | cache-read ratio | **98.15%** |
 | fresh input + output | 0.31% of all tokens |
-| derived cost | **$468.098671** |
-| delegated share of cost | **61.17%** — included, not excluded |
+| derived cost | **$469.206347** |
+| delegated share of cost | **61.26%** — included, not excluded |
 | largest peak context | 865,375 tokens, 2.9x the 300k ceiling (`doc:00-constitution#context-budget`) |
 | pull requests attributed | 39 — min $1.066690, median $5.885065, max $56.710674 |
-| attributed exactly / by timestamp / not at all | 20.99% / 58.14% / 20.87% of dollars |
-| `gitBranch` == the literal `HEAD` | 4,847 of 4,847 messages |
-| output tokens recovered by taking the largest frame, not the first | 1,094,414 (47.55% of all output) |
+| attributed exactly / by timestamp / not at all | 20.94% / 58.01% / 21.06% of dollars |
+| `gitBranch` == the literal `HEAD` | 4,853 of 4,853 messages |
+| output tokens recovered by taking the largest frame, not the first | 1,103,772 (47.69% of all output) |
 | frames disagreeing on input or cache tokens | 0 |
 | subagent parent edges unresolved | 0 of 63 |
 
@@ -63,12 +63,12 @@ Verbatim, for criteria 2 and 3 (`doc:00-constitution#evidence-rule`):
 
 ```
 cmd:      python3 tools/cost-replay.py
-observed: Delegated spend is INCLUDED: 61.17% of the dollar total is subagent runs
+observed: Delegated spend is INCLUDED: 61.26% of the dollar total is subagent runs
             (63 of 65 runs)
           repeated frames of one `message.id` agree on input and cache tokens
             | 0 disagreement(s)
           output tokens recovered by taking the largest frame, not the first
-            | 1,094,414 (47.55% of all output)
+            | 1,103,772 (47.69% of all output)
 exit:     0
 ```
 
@@ -247,6 +247,15 @@ cannot. That is additive: it does not weaken the table, which is written for
   else's machine. `--transcripts DIR` and `MODUS_COST_TRANSCRIPTS` win over the derivation. A
   baseline a stranger cannot regenerate is not a baseline; the review found this by having to
   monkeypatch the path resolver to reproduce the run at all.
+- **The stale-figure guard covers the generated block, not the document.** `--check` reads
+  `runs.ndjson`, `baseline.md` and the region between the markers. Bean prose outside them,
+  pull-request bodies and source comments pass silently — proved by a reviewer planting a
+  fabricated cost sentence outside the markers and watching `--check` exit 0. Two live
+  instances slipped through in this very change and are fixed; the hole is `bean:0059`.
+- **The cursor refusal is all-or-nothing on count.** One message surviving at or before the
+  previous record's `endedAt` turns a near-total re-bill into a `timestamp-fallback` partial:
+  a reviewer seeded 5 messages, kept 1 before the boundary, and 4 of 5 were billed again.
+  Bounded and flagged rather than silent, but not proportional. `bean:0060`.
 - **A missing cursor refuses to bill rather than silently re-billing.** `Stop` fires per turn,
   so a record is a delta keyed on the previous record's `lastMessageId`. The first version fell
   back to billing every message when that id was not in the transcript — compaction, a rewrite,

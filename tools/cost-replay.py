@@ -409,9 +409,9 @@ def main(argv):
             "shareOfCostPct": ratio(delegated_micros, total_micros),
         },
         "attribution": {
-            "exactMicros": sum(b["exactMicros"] for b in per_pr.values()),
-            "segmentedMicros": segmented_micros,
-            "unattributedMicros": unattributed_micros + tail_micros,
+            "exactUsd": sum(b["exactMicros"] for b in per_pr.values()),
+            "segmentedUsd": segmented_micros,
+            "unattributedUsd": unattributed_micros + tail_micros,
         },
         "gitBranchHeadMessages": sum(r["messages"] for r in runs.values() if r["gitBranches"] == ["HEAD"]),
         "gitBranchTotalMessages": sum(r["messages"] for r in runs.values()),
@@ -494,9 +494,9 @@ def splice_bean(s, per_pr):
         "| pull requests attributed | %d — min %s, median %s, max %s |"
         % (len(per_pr), C.usd(costs[0]) if costs else "-", C.usd(mid), C.usd(costs[-1]) if costs else "-"),
         "| attributed exactly / by timestamp / not at all | %s%% / %s%% / %s%% of dollars |"
-        % (ratio(s["attribution"]["exactMicros"], s["costUsd"]),
-           ratio(s["attribution"]["segmentedMicros"], s["costUsd"]),
-           ratio(s["attribution"]["unattributedMicros"], s["costUsd"])),
+        % (ratio(s["attribution"]["exactUsd"], s["costUsd"]),
+           ratio(s["attribution"]["segmentedUsd"], s["costUsd"]),
+           ratio(s["attribution"]["unattributedUsd"], s["costUsd"])),
         "| `gitBranch` == the literal `HEAD` | %s of %s messages |"
         % ("{:,}".format(s["gitBranchHeadMessages"]), "{:,}".format(s["gitBranchTotalMessages"])),
         "| output tokens recovered by taking the largest frame, not the first | %s (%s%% of all output) |"
@@ -636,9 +636,9 @@ def render(s, runs, per_pr, merged, root_of):
             "{:,}".format(toks), C.usd(b["costMicros"]), C.usd(b["exactMicros"]), C.usd(b["segmentedMicros"])))
     a = s["attribution"]
     w("")
-    w("| attribution | micro-dollars | share |")
+    w("| attribution | integer micro-dollars | share |")
     w("|---|---:|---:|")
-    for label, key in (("exact (run opened the PR)", "exactMicros"), ("segmented (orchestrator, by timestamp)", "segmentedMicros"), ("unattributed", "unattributedMicros")):
+    for label, key in (("exact (run opened the PR)", "exactUsd"), ("segmented (orchestrator, by timestamp)", "segmentedUsd"), ("unattributed", "unattributedUsd")):
         w("| %s | %s | %s%% |" % (label, "{:,}".format(a[key]), ratio(a[key], s["costUsd"])))
     w("")
     w("## Per run")

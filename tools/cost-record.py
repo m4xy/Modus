@@ -256,6 +256,10 @@ def build_record(payload):
         "cacheWrite5mTokens": usage["cacheWrite5mTokens"],
         "cacheWrite1hTokens": usage["cacheWrite1hTokens"],
         "costUsd": micros,  # integer micros, per doc:60 §3.2. Never a float.
+        # Beside it, never instead of it: doc:60 §7.2 forbids rounding a sub-cent figure to
+        # zero, and a reader scanning the log should not have to divide by a million to see
+        # whether a run cost four dollars or four cents.
+        "costUsdDisplay": C.usd(micros),
         "costBasis": "derived",
         "peakContextTokens": C.peak_context_tokens(messages),
         "outcome": OUTCOME_BY_EVENT.get(event),

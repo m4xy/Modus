@@ -5,7 +5,7 @@ this file no longer matches a replay of the same transcripts.
 
 | | |
 |---|---|
-| repo sha at generation | `b7d2b8fa85d6dde05ff8a2fad9467a0292ab26bc` |
+| repo sha at generation | `b14f289391d81da0ace124265cb5255d76d1fb51` |
 | transcripts | 2 root session(s), 63 subagent run(s) |
 | input files hashed | 129 |
 
@@ -13,16 +13,16 @@ this file no longer matches a replay of the same transcripts.
 
 | | tokens | share |
 |---|---:|---:|
-| input (fresh) | 9,670 | 0.0% |
-| output | 2,301,468 | 0.31% |
-| cache read | 725,842,757 | 98.15% |
-| cache write 5m | 9,752,884 | 1.32% |
+| input (fresh) | 9,682 | 0.0% |
+| output | 2,314,404 | 0.31% |
+| cache read | 727,285,271 | 98.15% |
+| cache write 5m | 9,762,958 | 1.32% |
 | cache write 1h | 1,654,058 | 0.22% |
-| **total** | **739,560,837** | |
+| **total** | **741,026,373** | |
 
 - **Cache-read ratio: 98.15%** of all tokens.  
-- **Cost: $468.098671** (derived — see *Prices* below; no billed figure exists in the transcript).  
-- **Delegated spend is INCLUDED**: 61.17% of the dollar total is subagent runs (63 of 65 runs).
+- **Cost: $469.206347** (derived — see *Prices* below; no billed figure exists in the transcript).  
+- **Delegated spend is INCLUDED**: 61.26% of the dollar total is subagent runs (63 of 65 runs).
 
 Fresh input plus output is 0.31% of all tokens. A baseline reporting only those two would
 describe almost none of the spend; the cache classes are the bill.
@@ -31,10 +31,10 @@ describe almost none of the spend; the cache classes are the bill.
 
 | asked for | obtainable | why |
 |---|---|---|
-| per-branch totals | **no** | `gitBranch` is the literal string `HEAD` on 4847 of 4847 assistant messages in this corpus. Not a detached checkout — the repository was on named branches throughout. The field is unusable as a join key, and the pull-request join above uses `gh pr create` results instead. |
+| per-branch totals | **no** | `gitBranch` is the literal string `HEAD` on 4853 of 4853 assistant messages in this corpus. Not a detached checkout — the repository was on named branches throughout. The field is unusable as a join key, and the pull-request join above uses `gh pr create` results instead. |
 | `durationMs` per message | **no** | the field does not exist on an assistant line. Wall clock above is `max(timestamp) - min(timestamp)` per run, so it includes think time, tool time and idle time, and for a root session it includes the human being away. |
 | a billed dollar figure | **no** | the stored transcript carries no cost field. Every dollar here is derived from token counts and the rate table below. |
-| delegated spend | **yes** | in `<sessionId>/subagents/agent-*.jsonl`, one transcript per subagent, with an `agent-*.meta.json` sidecar. It is absent from the parent transcript, so reading only `*.jsonl` at the top of the project directory hides 61.17% of the spend. |
+| delegated spend | **yes** | in `<sessionId>/subagents/agent-*.jsonl`, one transcript per subagent, with an `agent-*.meta.json` sidecar. It is absent from the parent transcript, so reading only `*.jsonl` at the top of the project directory hides 61.26% of the spend. |
 | `parentRunId` | **yes** | the sidecar's `toolUseId` is the id of the `Task` tool_use block in the spawning run. All 63 subagent edges resolved, at depth 1 and depth 2. There is no `parent_tool_use_id` field on a stored assistant line. |
 | `peakContextTokens` | **yes** | `input + cache_read + cache_creation` on the largest single request of the run. The largest here is **865,375 tokens**, 2.9x `doc:00-constitution` §6's 300k ceiling. |
 
@@ -85,11 +85,11 @@ describe almost none of the spend; the cache classes are the bill.
 | 40 | no | — | 1 | 17,330,790 | $12.784062 | $12.784062 | $0.000000 |
 | 41 | no | — | 1 | 4,072,085 | $3.130266 | $0.000000 | $3.130266 |
 
-| attribution | micro-dollars | share |
+| attribution | integer micro-dollars | share |
 |---|---:|---:|
-| exact (run opened the PR) | 98,232,878 | 20.99% |
-| segmented (orchestrator, by timestamp) | 272,174,147 | 58.14% |
-| unattributed | 97,691,646 | 20.87% |
+| exact (run opened the PR) | 98,232,878 | 20.94% |
+| segmented (orchestrator, by timestamp) | 272,174,147 | 58.01% |
+| unattributed | 98,799,322 | 21.06% |
 
 ## Per run
 
@@ -97,14 +97,14 @@ describe almost none of the spend; the cache classes are the bill.
 |---|---|---|---:|---:|---:|---:|---:|
 | `ffd4977c-3d34-41e` | root | — | 548 | 244,759,223 | $146.465476 | 865,375 | 24893s |
 | `1d5c6709-7c3c-457` | root | — | 199 | 46,674,698 | $35.294958 | 397,750 | 44854s |
-| `agent-a7f91f80670` | general-purpose | `ffd4977c-3d34-41e` | 118 | 21,811,457 | $16.693951 | 265,526 | 3750s |
+| `agent-a7f91f80670` | general-purpose | `ffd4977c-3d34-41e` | 121 | 22,619,046 | $17.246163 | 269,671 | 3852s |
 | `agent-a030c7398d1` | general-purpose | `1d5c6709-7c3c-457` | 171 | 27,185,014 | $16.066595 | 232,007 | 1773s |
 | `agent-a0896f9eb8e` | general-purpose | `1d5c6709-7c3c-457` | 138 | 20,700,452 | $13.287499 | 266,112 | 2080s |
 | `agent-a2d88edc8d6` | general-purpose | `ffd4977c-3d34-41e` | 114 | 17,330,790 | $12.784062 | 273,833 | 4070s |
 | `agent-a662955d9ce` | general-purpose | `1d5c6709-7c3c-457` | 116 | 18,703,952 | $12.344965 | 242,133 | 1231s |
 | `agent-a2a90790971` | general-purpose | `1d5c6709-7c3c-457` | 128 | 19,158,737 | $12.178263 | 229,629 | 1785s |
+| `agent-ae3eab60823` | general-purpose | `ffd4977c-3d34-41e` | 109 | 14,687,159 | $11.225514 | 217,936 | 3597s |
 | `agent-a484cbf07cf` | general-purpose | `1d5c6709-7c3c-457` | 105 | 18,242,577 | $10.919647 | 238,088 | 1149s |
-| `agent-ae3eab60823` | general-purpose | `ffd4977c-3d34-41e` | 106 | 14,029,212 | $10.670050 | 212,007 | 3544s |
 | `agent-a548ccdede2` | general-purpose | `1d5c6709-7c3c-457` | 99 | 15,107,796 | $9.845197 | 211,722 | 1322s |
 | `agent-af61db74cd8` | general-purpose | `ffd4977c-3d34-41e` | 110 | 12,243,216 | $9.652413 | 184,148 | 3292s |
 | `agent-a781dd791ea` | general-purpose | `ffd4977c-3d34-41e` | 110 | 11,061,115 | $9.065629 | 160,492 | 2679s |
@@ -177,7 +177,7 @@ skill's `shared/prompt-caching.md`, which `doc:60#price-book` names as their sou
 | assertion | result |
 |---|---|
 | repeated frames of one `message.id` agree on input and cache tokens | 0 disagreement(s) |
-| output tokens recovered by taking the largest frame, not the first | 1,094,414 (47.55% of all output) |
+| output tokens recovered by taking the largest frame, not the first | 1,103,772 (47.69% of all output) |
 | every subagent's parent edge resolved | 0 unresolved |
 
 ## Input hashes
@@ -294,7 +294,7 @@ fe03162a2fe2df51b68d7dc69f0bb98cc38ebee771412e5f9eb19ee5a2f4a9ea  .claude/projec
 92db814a94faaaf769cb5075dc494a79e16b74aca39b51769c1360afd0b1d3f5  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a781dd791eaa56886.meta.json
 e4498989a4a02f33892f62d2c441e1dd02e1a09bb5b74dfd98963fb93ee85a27  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7ada704ae8ddde1e.jsonl
 4c1b026433e1e6d064938e3d448e84c9b46ac680a881636cd016c5472a09ca00  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7ada704ae8ddde1e.meta.json
-1c22e5b1310e6896a084a239db0179b1570f4f64a9105cad74adec1160e56183  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7f91f80670cd9b10.jsonl
+9b5b69e1df1c258619d38d8cf87bbcfd3f58f27c86090a9ece28f338566e2215  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7f91f80670cd9b10.jsonl
 a1c22a2f76cf3ae20c11b4f7d37151d58631668e090335d76bd1f4ad25404dcb  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7f91f80670cd9b10.meta.json
 2a50c72381b0acb7f31d6e3ffd1aea030bdbeae4d1b7ec8628967f9e25d3f47a  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a9451064578c8b7fd.jsonl
 3ec60940c27a531eeef2d93299c03b8f1bdc1acf1a99e4ba319efe88fe3e8d51  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a9451064578c8b7fd.meta.json
@@ -304,7 +304,7 @@ dc6facaacab3b8d387ae8fe55c4dd35eab15132dc75a668a0088b31f746d93dc  .claude/projec
 fd68526d8ca8022a3a3f38874d87710674c58ce4ebb106596e797ff02417fa89  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ac0a330b5d5988ba8.meta.json
 a527de1ab16e39cd7ef2ac6038a6d21dafb5c5dce4d9d4f781720350d90752b2  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-aca03df582fc3a019.jsonl
 97c7e186030ebb60f370074f5e64c945bf4e30b9e9482420e4df254fefb9e380  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-aca03df582fc3a019.meta.json
-41fcb433614723318c4c147b5ba9ebf23c7262ad8657c54b28912e11c315d304  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae3eab60823f11f8c.jsonl
+9c458536f3a91e2e96f08005619c80ccccfa3280b9890db21942e5a25fc39d4c  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae3eab60823f11f8c.jsonl
 b05961f02f0fcaf328e9a5690440d518df502b379094f9f05489283ef487230e  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae3eab60823f11f8c.meta.json
 fed6927433779e8a5b2b79db1238d0bcae06558d535162523929cfe73cc6605c  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae93785cd345bbbe1.jsonl
 84d6acdf584f8b51e65ce468b9eba853f3fa869469a8a35824d035877e97a7af  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae93785cd345bbbe1.meta.json
