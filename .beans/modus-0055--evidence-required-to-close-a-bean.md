@@ -124,7 +124,7 @@ closed, against the change that closes it.
 | 4 | An evidence cell holding only an evidence-kind name fails the build | the same, with plant 4 — row 2's cell reading `test-run` | exit 1, quoting the cell back and naming it a kind | ``FAIL check 14 …: criterion 2 records 'test-run' — an evidence KIND, not evidence; the cell must carry the command, the expectation and the verbatim observed output``, exit 1; and closing plant C4 |
 | 5 | An empty evidence cell fails the build | the same, with plant 5 | exit 1, naming the criterion whose cell is empty | `FAIL check 14 …: criterion 2 closes with an empty evidence cell (adr:0005-evidence-lives-in-the-work-item#evidence-home)`, exit 1; and closing plant C5 |
 | 6 | A fully evidenced closure passes, and the two corpus shapes both pass | `bash tools/docs-lint.sh` on the control, and on this change | exit 0, with the closing-transition denominator moving off zero | control: `docs-lint: OK — … 1 closing transitions, 3 criteria checked, 0 unnumbered.`, exit 0. **The closing run is the stronger control**: four beans closing at once, two in shape A and two in shape B — `docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.`, exit 0 |
-| 7 | The check is not inert in CI, and its output distinguishes "ran and found nothing" from "could not run" | `GITHUB_TOKEN= gh run view <id> --json conclusion,event,headBranch`, and a clone with `refs/remotes/origin/main` deleted | a planted closure turns CI red where the check is claimed to run, and a run with no merge base prints `-` rather than `0` | the two planted-closure runs are still on record and still red: `{"conclusion":"failure","event":"pull_request","headBranch":"feat/docs-lint-evidence-check","url":"…/runs/33264964045"}` and the same for `…/runs/33263152489`; the no-base run prints `- closing transitions, - criteria checked, - unnumbered`, exit 0 |
+| 7 | The check is not inert in CI, and its output distinguishes "ran and found nothing" from "could not run" | `GITHUB_TOKEN= gh run view <id> --json conclusion,event,headBranch`, a clone with `refs/remotes/origin/main` deleted, and the CI log of the pull request that closes this bean | a planted closure turns CI red where the check is claimed to run; a run with no merge base prints `-` rather than `0`; and a real closure is examined in CI rather than skipped | the two planted-closure runs are still on record and still red: `{"conclusion":"failure","event":"pull_request","headBranch":"feat/docs-lint-evidence-check","url":"…/runs/33264964045"}` and the same for `…/runs/33263152489`; the no-base run prints `- closing transitions, - criteria checked, - unnumbered`, exit 0; and CI on the closing pull request prints `4 closing transitions, 31 criteria checked, 0 unnumbered` — not `0`, not `-` — in the fence below |
 | 8 | The check count lives in `doc:05-authoring-for-agents#checks` and nowhere else | `grep -rn "checks" build.gradle.kts` and `sed -n '1,3p' tools/docs-lint.sh` | neither the build file nor the script states a number; both name the table that counts them | `build.gradle.kts:19:// The mechanical checks of doc:05-authoring-for-agents#checks — counted there and`; `# docs-lint — the mechanical checks of doc:05-authoring-for-agents#checks. That table` / `# is the one place the checks are counted; a count repeated here would drift, and did.` |
 | 9 | `./gradlew qualityCheck` green | `./gradlew qualityCheck` | green with `docsLint` inside it, on the tree that closes these four beans | `BUILD SUCCESSFUL in 15s`, `158 actionable tasks: 4 executed, 1 from cache, 153 up-to-date`, `> Task :docsLint` printing `docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.` — the same line the control in the plant block below carries, taken through the gate rather than through the script |
 | 10 | A criteria-and-evidence table with no evidence column fails the build, and so does one whose only extra column is `evidence kind` | `bash tools/docs-lint.sh` with plants 6, 7 and 8 | exit 1 on the table rather than on the criteria it fails to answer, so the message names the root cause | `FAIL check 14 …: the table under 'Success criteria and evidence' numbers criteria in an evidence section but carries no evidence column; 'evidence kind' states what will be produced, not what was observed`, exit 1 — the same input that exited 0 with `3 criteria checked` before the fix; and closing plant C6 |
@@ -197,6 +197,32 @@ restored: the four beans copied back from the pre-plant copies; `git status --sh
 observed: docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.
 exit:     0
 ```
+
+And the same closure through the gate in CI, where the check is claimed to run. This is the
+first time check 14 has examined a real closing transition in CI: every prior CI observation
+was of a plant, or of a branch that closed nothing.
+
+```
+run:      33278170814 (pull_request, https://github.com/m4xy/Modus/actions/runs/33278170814)
+head:     b643f08 — the commit that closes these four beans
+observed: build + mechanical gates
+            docs-lint: OK — 19 documents, 106 anchors, 918 references, 64 beans,
+            28 graph edges, 21 selectable, 64 bean ids, 0 introduced, 64 on origin/main,
+            4 closing transitions, 31 criteria checked, 0 unnumbered.
+            BUILD SUCCESSFUL in 27s
+            162 actionable tasks: 48 executed, 114 from cache
+jobs:     which halves             pass
+          build + mechanical gates pass
+          backoffice + e2e         skipping
+          gate                     pass
+exit:     0
+```
+
+Byte-identical to the local `docsLint` line, which is the property `bean:0045`'s escape and
+check 11's two inert runs both lacked: the same denominators locally and in CI, on the same
+input. The commit that carries this transcript is the one after `b643f08`, so the run named
+here is the run of the closure without this paragraph in it — stated rather than smoothed
+over, because a transcript of a run cannot also be inside the tree that run examined.
 
 One figure in that control moves as it is read, and it is left as observed rather than
 quietly corrected: writing this transcript into this file added a typed reference, so the
