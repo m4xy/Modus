@@ -114,16 +114,6 @@ export function DomainSwitcher({ current, domains }: { current: Domain; domains:
           aria-label="Switch domain"
           ref={menuRef}
           data-testid="domain-menu"
-          onKeyDown={(event) => {
-            if (event.key === 'ArrowDown') {
-              event.preventDefault();
-              moveFocus(1);
-            }
-            if (event.key === 'ArrowUp') {
-              event.preventDefault();
-              moveFocus(-1);
-            }
-          }}
         >
           <p className={styles.menuHeading}>Domains you can access</p>
           {domains.map((domain) => {
@@ -135,6 +125,21 @@ export function DomainSwitcher({ current, domains }: { current: Domain; domains:
                 role="menuitem"
                 className={cx(styles.option, isCurrent && styles.optionCurrent)}
                 onClick={() => select(domain)}
+                // The arrow keys live on the item, not on the role="menu"
+                // container: focus is always on an item while the menu is open,
+                // so the container only ever saw these events by bubbling, and a
+                // container carrying handlers has to be focusable itself
+                // (jsx-a11y/interactive-supports-focus) — which a menu is not.
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    moveFocus(1);
+                  }
+                  if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    moveFocus(-1);
+                  }
+                }}
               >
                 <span className={styles.optionName}>{domain.name}</span>
                 <Badge tone={environmentTone[domain.environment]} dot>

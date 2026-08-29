@@ -38,7 +38,13 @@ export function Tabs({ tabs, value, onChange, label }: TabsProps) {
       ?.focus();
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  /**
+   * On the tab, not on the tablist: with a roving tabindex the focused element is
+   * always a tab, so the list only ever saw these events by bubbling, and a
+   * container that carries handlers has to be focusable itself
+   * (jsx-a11y/interactive-supports-focus) — which a tablist is not.
+   */
+  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     switch (event.key) {
       case 'ArrowRight':
         event.preventDefault();
@@ -52,10 +58,12 @@ export function Tabs({ tabs, value, onChange, label }: TabsProps) {
         event.preventDefault();
         if (tabs[0]) onChange(tabs[0].id);
         break;
-      case 'End':
+      case 'End': {
         event.preventDefault();
-        if (tabs.length > 0) onChange(tabs[tabs.length - 1]!.id);
+        const last = tabs[tabs.length - 1];
+        if (last) onChange(last.id);
         break;
+      }
       default:
         break;
     }
@@ -65,13 +73,7 @@ export function Tabs({ tabs, value, onChange, label }: TabsProps) {
 
   return (
     <div>
-      <div
-        className={styles.tablist}
-        role="tablist"
-        aria-label={label}
-        ref={listRef}
-        onKeyDown={onKeyDown}
-      >
+      <div className={styles.tablist} role="tablist" aria-label={label} ref={listRef}>
         {tabs.map((tab) => {
           const selected = tab.id === value;
           return (
@@ -85,6 +87,7 @@ export function Tabs({ tabs, value, onChange, label }: TabsProps) {
               tabIndex={selected ? 0 : -1}
               className={cx(styles.tab, selected && styles.selected)}
               onClick={() => onChange(tab.id)}
+              onKeyDown={onKeyDown}
             >
               {tab.label}
               {tab.count !== undefined && <span className={styles.count}>{tab.count}</span>}

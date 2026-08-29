@@ -281,12 +281,12 @@ reference, so they are **forbidden outright** in this repository; disable a test
 | Concern | Tool | Setting |
 |---|---|---|
 | Formatting | Prettier (`backoffice/.prettierrc.json` + `.editorconfig`) | 2-space indent, 100 columns, single quotes, trailing commas. The indent comes from `.editorconfig`'s `[*.{ts,tsx,css}]` block, which exists because Prettier reads `.editorconfig` and would otherwise inherit `[*]`'s `indent_size = 4` — a ktlint setting. |
-| Linting | ESLint | `@typescript-eslint` strict + `react-hooks` + `jsx-a11y` |
+| Linting | ESLint | `@typescript-eslint` recommended-type-checked + `react-hooks` + `jsx-a11y` + `import`. Two flat configs, one per tree: `backoffice/eslint.config.js` and `e2e/eslint.config.js`. |
 | Types | `tsc --noEmit` | `strict: true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride` |
 | `any` | ESLint `no-explicit-any` | `error`. Use `unknown` and narrow. |
-| Non-null assertion `!` | ESLint `no-non-null-assertion` | `error` |
-| Import cycles | ESLint `import/no-cycle` | `error` |
-| Accessibility | `jsx-a11y` recommended | `error`; plus axe assertions in Playwright |
+| Non-null assertion `!` | ESLint `no-non-null-assertion` | `error`, set as its own rule in both configs. `!` is the assumption `doc:20-ddd-practices#domain-prohibitions` bans as `!!` in Kotlin. |
+| Import cycles | ESLint `import/no-cycle` | `error`, in both configs. Needs `settings['import/parsers']` as well as a resolver, or it parses no TypeScript dependency and reports nothing. |
+| Accessibility | `jsx-a11y` recommended | `error` on `**/*.tsx`; plus axe assertions in Playwright. `no-noninteractive-tabindex` additionally allows `role="log"`, for the reason `tabpanel` is already allowed: a scrollable region has to be keyboard-scrollable. |
 | API types | Generated from the OpenAPI document | Hand-written API types are forbidden — they drift |
 
 
@@ -295,19 +295,25 @@ reference, so they are **forbidden outright** in this repository; disable a test
 (`bean:0029`). The complete gate — and the only normative statement of it — is
 `00-constitution.md` §7.2.4.
 
-**Enforcement gap:** `backofficeLint` runs `eslint .` with the working directory set to
-`backoffice/`, so **`e2e/` is not linted at all** — it has no ESLint configuration. Observed:
-two unused bindings and a non-null assertion added to `e2e/tests/smoke.spec.ts` leave
-`./gradlew backofficeLint` green, while a type error in the same file does fail
-`backofficeTypecheck`. `bean:0046` closes it.
+**Enforced by:** `backofficeLint` over **both** trees. `e2e/` has its own flat config —
+ESLint 9 resolves one from the working directory — and the `lint` script in
+`backoffice/package.json` chains it, exactly as `typecheck` and `format:check` already
+chain theirs, so `npm run lint` by hand covers what the gate covers. Observed
+(`bean:0046`): two unused bindings and a non-null assertion in `e2e/tests/smoke.spec.ts`
+now fail `./gradlew backofficeLint` on `@typescript-eslint/no-unused-vars` and
+`@typescript-eslint/no-non-null-assertion`, where before they left it green.
 
-**Enforcement gap:** three rows above are documented and absent. `backoffice/package.json`
-carries neither `eslint-plugin-jsx-a11y` nor `eslint-plugin-import`, and
-`backoffice/eslint.config.js` uses `recommendedTypeChecked` rather than `strict` — so
-`jsx-a11y`, `import/no-cycle` and `no-non-null-assertion` are not enforced. Observed:
-`export const bang = (s: string | null) => s!.length;` in `backoffice/src/App.tsx` leaves
-`backofficeLint` green. They are the same class of claim as the struck `knip` row and
-survived that audit; `bean:0046` installs them or strikes them.
+**Enforced by:** `backofficeLint`, for the three rows that named no mechanism before
+`bean:0046`. Each was observed rejecting a planted violation through the Gradle task:
+`export const bang = (s: string | null) => s!.length;` in `backoffice/src/App.tsx` →
+`Forbidden non-null assertion`; `<img src="/logo.png" />` → `jsx-a11y/alt-text`; a
+`cx.ts` ⇄ `Tabs.tsx` re-export and a two-file cycle under `e2e/tests/` →
+`Dependency cycle detected`. `no-non-null-assertion` is set as its own rule rather than by
+swapping `recommendedTypeChecked` for `strictTypeChecked`, which would have turned on
+twenty rules nobody assessed. Switching the rules on surfaced seven real violations in
+`backoffice/src/` — six `jsx-a11y`, one `!`. Six were fixed in the source. The seventh is
+the `tabIndex` on the scrollable `role="log"` transcript, which is kept and which the
+`no-noninteractive-tabindex` row above accounts for; no rule was demoted below `error`.
 
 ---
 

@@ -3,6 +3,8 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
+import importPlugin from 'eslint-plugin-import';
 import prettier from 'eslint-config-prettier';
 
 /**
@@ -45,9 +47,25 @@ export default tseslint.config(
         plugins: {
             'react-hooks': reactHooks,
             'react-refresh': reactRefresh,
+            import: importPlugin,
+        },
+        settings: {
+            // `import/parsers` is what makes `no-cycle` real: without it the plugin
+            // cannot parse a TypeScript dependency, so it follows nothing and reports
+            // nothing — green on a planted cx.ts <-> Tabs.tsx cycle (bean:0046).
+            ...importPlugin.flatConfigs.typescript.settings,
+            // The TypeScript resolver, so `./App` resolves to `App.tsx` and a cycle
+            // through it is seen rather than skipped as unresolvable.
+            'import/resolver': { typescript: { project: './tsconfig.json' } },
         },
         rules: {
             ...reactHooks.configs.recommended.rules,
+            'import/no-cycle': 'error',
+            // `!` is the same unproven assumption Detekt bans as `!!` in Kotlin
+            // (doc:20-ddd-practices#domain-prohibitions). Set as its own rule rather
+            // than by swapping recommendedTypeChecked for strictTypeChecked, which
+            // would turn on twenty unrelated rules this work item never assessed.
+            '@typescript-eslint/no-non-null-assertion': 'error',
             'react-refresh/only-export-components': [
                 'warn',
                 {
@@ -66,6 +84,26 @@ export default tseslint.config(
                 ...NETWORK_GLOBALS.map((name) => ({ name, message: NETWORK_MESSAGE })),
             ],
             'no-restricted-properties': ['error', ...restrictedProperties],
+        },
+    },
+    {
+        // Accessibility is a deliverable (doc:00-constitution §10), and the axe
+        // assertions in e2e/tests/accessibility.spec.ts only run against a built and
+        // running system. This is the half that runs in the fast gate. Every rule in
+        // `recommended` is already `error`; nothing here relaxes one.
+        files: ['**/*.tsx'],
+        ...jsxA11y.flatConfigs.recommended,
+        rules: {
+            ...jsxA11y.flatConfigs.recommended.rules,
+            // `tabpanel` is in this rule's default allowlist because a scrollable
+            // panel has to be keyboard-scrollable (WCAG 2.1.1). The agent transcript
+            // is the same shape — role="log", 26rem tall, overflow-y: auto, measured
+            // at scrollHeight 1119 against clientHeight 416 — so `log` is allowed for
+            // the same reason and nothing else is. axe accepts the region with or
+            // without the tabindex (`scrollable-region-focusable` passes either way,
+            // observed in bean:0046), so deleting it to satisfy this rule would have
+            // removed real keyboard access that no other gate would have missed.
+            'jsx-a11y/no-noninteractive-tabindex': ['error', { roles: ['tabpanel', 'log'] }],
         },
     },
     {

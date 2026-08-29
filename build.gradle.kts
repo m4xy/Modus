@@ -76,7 +76,12 @@ val backofficeTypecheck =
         "typecheck",
         "tsc --noEmit over backoffice/ and e2e/.",
     )
-val backofficeLint = registerNpmCheck("backofficeLint", "lint", "ESLint over backoffice/.")
+// Each of the three scripts runs its own tree and then chains e2e/'s, so one task per
+// concern covers both trees and `npm run <script>` by hand covers what the gate covers.
+// A separate e2eLint task would have left the hand-run command short of the gate, which
+// is the shape of the hole bean:0046 closes: e2e/ keeps its own flat config, because
+// ESLint 9 resolves one from the working directory, but not its own Gradle task.
+val backofficeLint = registerNpmCheck("backofficeLint", "lint", "ESLint over backoffice/ and e2e/.")
 val backofficeFormatCheck =
     registerNpmCheck(
         "backofficeFormatCheck",

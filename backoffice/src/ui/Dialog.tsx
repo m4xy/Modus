@@ -29,6 +29,26 @@ export function Dialog({ open, onClose, title, description, children, footer }: 
     if (!open && element.open) element.close();
   }, [open]);
 
+  /**
+   * Backdrop-to-close, bound to the element rather than declared as an `onClick`
+   * prop. A click handler in the JSX puts a pointer interaction on an element
+   * whose role is not interactive, which jsx-a11y rejects and cannot be talked
+   * out of — it has no way to see that the keyboard equivalent is the platform's
+   * own Escape, arriving below as `onCancel`. Keeping it here also puts every
+   * piece of native <dialog> behaviour in one place.
+   */
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return undefined;
+    const onClick = (event: MouseEvent) => {
+      // A click that lands on the dialog element itself is a backdrop click:
+      // the padding-free panel means real content never receives it.
+      if (event.target === element) onClose();
+    };
+    element.addEventListener('click', onClick);
+    return () => element.removeEventListener('click', onClick);
+  }, [onClose]);
+
   return (
     <dialog
       ref={ref}
@@ -38,11 +58,6 @@ export function Dialog({ open, onClose, title, description, children, footer }: 
       onCancel={(event) => {
         event.preventDefault();
         onClose();
-      }}
-      onClick={(event) => {
-        // A click that lands on the dialog element itself is a backdrop click:
-        // the padding-free panel means real content never receives it.
-        if (event.target === ref.current) onClose();
       }}
     >
       <div className={styles.header}>

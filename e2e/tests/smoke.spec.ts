@@ -88,3 +88,21 @@ test('a sixth model never reuses a series colour', async ({ page }) => {
   await expect(page.getByText('Other (2 models)').first()).toBeVisible();
   await expect(page.getByRole('row', { name: /Other \(2 models\)/ })).toContainText('$55.90');
 });
+
+/**
+ * The tooltip's Escape handler sits on the trigger rather than on the wrapper
+ * span, which is not interactive and may not carry a key handler (bean:0046).
+ * Focus opens it, Escape dismisses it, and the trigger keeps its own name.
+ */
+test('a tooltip opens on focus and dismisses on Escape', async ({ page }) => {
+  await page.goto('/domains/modus/work');
+
+  const toggle = page.getByTestId('theme-toggle');
+  await toggle.focus();
+  const tip = page.getByRole('tooltip');
+  await expect(tip).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-describedby', /.+/);
+
+  await page.keyboard.press('Escape');
+  await expect(tip).toBeHidden();
+});
