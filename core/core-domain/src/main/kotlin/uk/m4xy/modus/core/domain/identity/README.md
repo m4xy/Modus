@@ -1,14 +1,14 @@
 # Bounded context: `identity`
 
-Who is acting: users, agents, service principals, and the credentials and permissions attached to them.
+Who is acting, and what they may reach: actors, and the per-domain grants that are the
+only source of authority in Modus.
 
-This package is currently a placeholder. The domain model is owned by a later
-work item; only the package boundary is established here so that the
-architecture tests have something real to enforce.
+Package layout follows `doc:20-ddd-practices#ports-and-adapters` §5.1: `published`
+(`ActorId`, `DomainId`, `GrantId`, `Capability`, `ActorKind`), `event`, `aggregate`,
+`port`, and the context root (`AccessDecision`, `PermissionResolver`).
 
-Rules that already apply to this package:
+An aggregate depends only on `published` and `event`; `AccessDecision` and
+`PermissionResolver` depend on the aggregates. That direction is what keeps
+`rule:archunit/thereAreNoPackageCycles` satisfied inside the context.
 
-- No framework types. Kotlin stdlib only.
-- No dependency on `core-application`, any `adapter-*` or any `module-*`.
-- No dependency on another bounded context's internals without an explicit,
-  reviewed reason (cross-context references are caught by the cycle check).
+`identity` imports no other context (`doc:10-architecture#bounded-contexts`).
