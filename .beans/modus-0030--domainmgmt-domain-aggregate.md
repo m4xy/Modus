@@ -94,8 +94,7 @@ means inventing its vocabulary twice and reconciling later. `bean:0015` adds the
 
 ## Evidence
 
-33 new tests (`DomainTest` 11, `ProcessDefinitionTest` 15, `PublishedLanguageTest` 7);
-`:core-domain` goes 43 → 76. `./gradlew qualityCheck` green.
+44 new tests; `:core-domain` goes 43 → 87. `./gradlew qualityCheck` green.
 
 Criterion 10, targeted mutation per `doc:35-testing#load-bearing-evidence` — ten planted,
 ten killed, each by the test whose name describes the behaviour and each with a real
@@ -134,6 +133,81 @@ observed: Rule violated for package uk.m4xy.modus.core.domain.domainmgmt.aggrega
             branches covered ratio is 0.6, but expected minimum is 1.0
 reverted: yes
 ```
+
+## Review cycle
+
+Two blocking defects. Both are absent-guard defects, which is why a 10/10 mutation kill rate
+did not touch them: every mutation targets a line that exists, and neither of these was a
+line at all.
+
+### 1. `ProcessDefinition` published its four backing collections — `bean:0009` verbatim
+
+All four were `public val` constructor parameters, copied neither in nor out. Kotlin's `Set`
+is a read-only view, not an immutable type, so every invariant in the factory held exactly
+once, at construction, against a set the caller still held. `PermissionGrant` states this
+rule in a comment in this repository, as the fix for `bean:0009`, and `bean:0030`'s own
+fixture KDoc quotes the lesson.
+
+Reached through the aggregate's published getter chain with no mutable reference handed over,
+because `setOf(a, b, c, d)` is a `LinkedHashSet`:
+
+```
+(domain.processDefinition.terminal as MutableSet).add(DOING)
+  -> domain.processDefinition.isTerminal(DOING) == true
+  -> (domain.pendingEvents.single() as DomainCreated).process.isTerminal(DOING) == true
+```
+
+The last line is the worst of it: the payload of an **already-raised** event mutated, so the
+event stopped being a statement about the past. It also defeated `adoptProcess`'s idempotence
+guard — mutate the aliased set so the `==` holds at the instant it is checked, and the
+process differs for every consumer while no `ProcessDefinitionChanged` is raised.
+
+Fixed as `PermissionGrant.issue` does it: private constructor, a named factory copying on the
+way in, getters copying on the way out, hand-written `equals`/`hashCode`. That makes
+`review_focus` question 1 answerable — a `ProcessDefinition` in an event payload is now a
+value rather than a live alias, so carrying it is an ordinary versioning trade again.
+
+### 2. Reachability-from-initial was the wrong property; work could be trapped
+
+The invariants claimed to cover "it can never finish". They covered only the case where a
+state is unreachable. Two definitions passed every check and still trapped work:
+
+| shape | why it passed | why it is unusable |
+|---|---|---|
+| `{todo, blocked, done}`, `todo→blocked`, `todo→done` | every state reachable from `todo` | `blocked` is not terminal and has no outgoing transition — an item there can never move or close |
+| `{todo, a, b, done}`, `todo→a`, `a→b`, `b→a`, `todo→done` | every state reachable | from `a` the item moves forever and never finishes |
+
+`doc:00-constitution#evidence-rule`'s close guard never runs for a trapped item — the same
+harm the `initial !in terminal` check prevents at the other end. Added **co-reachability**: a
+backward walk from the terminal set, requiring every state to reach one. Forward reachability
+is kept beside it; they catch different failures, dead configuration and inescapable
+configuration, and answering `review_focus` question 3 — the old rule was simultaneously too
+strict and too weak, and these two together are neither.
+
+### Also fixed
+
+- `StateName`'s regex bounded each hyphen-separated segment rather than the whole string, so
+  `a-a-a-…` was accepted at 399 characters while the message promised 64. Not caught by the
+  planted character-class mutation, which only probes which characters are legal. The length
+  is now checked separately, and has its own test — the first version of the fix shipped with
+  no test at all, which the mutation pass caught.
+- The fixture-variation rule was honoured in letter and not in effect: sizes 0/1/2+ were all
+  present, but no test at any size asserted the copy property on `ProcessDefinition`'s
+  collections. `MINIMAL_PROCESS.transitions` is `Collections.singleton`, so a copy test
+  written against it would have passed while proving nothing — the identical trap this bean
+  congratulated itself on catching in `pendingEvents`, three getters away. The copy tests are
+  written against a fixture where every collection is size two or more.
+- `DomainRepository`'s KDoc said the application layer drains `pendingEvents`; no drain
+  exists, and `create` is the only construction path, so a rehydrated root would carry a
+  spurious `DomainCreated`. Pre-existing and repo-wide — `Actor` and `PermissionGrant` have
+  the same shape — so it is pointed at `bean:0017` rather than fixed here.
+
+### Encoded
+
+`doc:20-ddd-practices#value-objects` §3.1 gains the rule that a value object holding a
+collection MUST NOT be a `data class`, with the reason. `bean:0036` carries the tool: this
+defect has now shipped twice, in two contexts, past two evidence passes, which is
+`doc:00-constitution#mechanical-enforcement`'s definition of a rule that needs one.
 
 ## What the work changed about the plan
 

@@ -136,6 +136,16 @@ Putting a megabyte-scale stream inside an aggregate would violate 2.1.6.
 
 - A value object is an immutable `data class` (or `@JvmInline value class` for a
   single-field wrapper) with **no identity**. Equality is structural.
+- **A value object holding a collection MUST NOT be a `data class`.** It cannot be immutable
+  as one: the generated constructor binds the caller's collection, and Kotlin's `Set`/`List`
+  are read-only *views* rather than immutable types, so a `public val` hands the backing
+  instance to anyone who asks and a caller keeps a live reference to what the object decides
+  with. Every invariant validated in `init` then holds exactly once, at construction. Use a
+  private constructor, a named factory that copies on the way in, getters that copy on the
+  way out, and hand-written `equals`/`hashCode` — the shape `PermissionGrant.issue` and
+  `ProcessDefinition.of` both use. **Enforcement gap:** review only; `bean:0036` carries a
+  Detekt or ArchUnit rule for a collection-typed property on a type in `..domain.published..`
+  or `..domain.aggregate..` that is not defensively copied.
 - **Validate in `init`.** An invalid value object cannot exist. Throw a domain exception,
   not `IllegalArgumentException`, when the failure is a business rule rather than a
   programming error.

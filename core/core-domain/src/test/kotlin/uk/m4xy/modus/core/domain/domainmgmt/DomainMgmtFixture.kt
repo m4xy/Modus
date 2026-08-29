@@ -34,7 +34,7 @@ object DomainMgmtFixture {
 
     /** todo -> doing -> {done, abandoned}, and todo -> abandoned. Two terminals, one branch. */
     val PROCESS: ProcessDefinition =
-        ProcessDefinition(
+        ProcessDefinition.of(
             states = setOf(TODO, DOING, DONE, ABANDONED),
             initial = TODO,
             terminal = setOf(DONE, ABANDONED),
@@ -49,7 +49,7 @@ object DomainMgmtFixture {
 
     /** The smallest legal process: one move, one terminal state. Size-one collections. */
     val MINIMAL_PROCESS: ProcessDefinition =
-        ProcessDefinition(
+        ProcessDefinition.of(
             states = setOf(TODO, DONE),
             initial = TODO,
             terminal = setOf(DONE),
@@ -61,5 +61,5 @@ object DomainMgmtFixture {
         initial: StateName = TODO,
         terminal: Set<StateName> = setOf(DONE),
         transitions: Set<StateTransition> = setOf(StateTransition(TODO, DOING), StateTransition(DOING, DONE)),
-    ): ProcessDefinition = ProcessDefinition(states, initial, terminal, transitions)
+    ): ProcessDefinition = ProcessDefinition.of(states, initial, terminal, transitions)
 }

@@ -22,10 +22,19 @@ public value class StateName(
     public val value: String,
 ) {
     init {
-        require(SHAPE.matches(value)) { "stateName must be lower kebab, 1-64 characters: '$value'" }
+        require(value.length <= MAX_LENGTH && SHAPE.matches(value)) {
+            "stateName must be lower kebab, 1-$MAX_LENGTH characters: '$value'"
+        }
     }
 
     private companion object {
-        private val SHAPE = Regex("^[a-z0-9]{1,64}(-[a-z0-9]{1,64})*$")
+        /**
+         * The length is checked separately because the regex cannot carry it: the segment
+         * quantifier bounds each run between hyphens, not the whole string, so `a-a-a-…` was
+         * accepted at 399 characters while the message promised 64. Found in review — the
+         * message and the KDoc were the specification, and the regex was not meeting it.
+         */
+        private const val MAX_LENGTH = 64
+        private val SHAPE = Regex("^[a-z0-9]+(-[a-z0-9]+)*$")
     }
 }

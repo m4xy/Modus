@@ -73,6 +73,23 @@ class PublishedLanguageTest {
             }
     }
 
+    /**
+     * The regex bounds each run between hyphens, not the whole string, so `a-a-a-…` was
+     * accepted at 399 characters while the message promised 64 — found in review, and not
+     * caught by the character-class mutation because that only probes which characters are
+     * legal. The length is checked separately from the shape for exactly this reason.
+     */
+    @Test
+    fun `refuses a state name whose segments are each legal but whose total is not`() {
+        val many = List(50) { "segment" }.joinToString("-")
+
+        many.length shouldBe 399
+        shouldThrow<IllegalArgumentException> { StateName(many) }.message shouldBe stateNameMessage(many)
+        StateName("s".repeat(64)).value.length shouldBe 64
+        shouldThrow<IllegalArgumentException> { StateName("s".repeat(65)) }
+            .message shouldBe stateNameMessage("s".repeat(65))
+    }
+
     private fun domainNameMessage(value: String) = "domainName must be 1-120 trimmed characters with no control characters: '$value'"
 
     private fun stateNameMessage(value: String) = "stateName must be lower kebab, 1-64 characters: '$value'"
