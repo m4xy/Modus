@@ -1,7 +1,7 @@
 ---
 # modus-0034
 title: publishedLanguageIsLeaf is blind to value classes in erased positions
-status: todo
+status: in-progress
 type: fix
 priority: high
 order: AD
@@ -68,3 +68,39 @@ language are exposed, not one.
 - Consider whether ArchUnit's source-set analysis, a Detekt rule with type resolution, or
   requiring published value objects to be data classes is the right mechanism. The third is
   cheapest and is checkable; it also removes the asymmetry with `..event..`.
+
+## Evidence
+
+The fix is a **second rule reading source**, not a repair to the bytecode one. `bean:0026`
+is still unbuilt so a Detekt rule with type resolution was unavailable, and requiring every
+published type to be a `data class` would fail `ProcessDefinition`, which is deliberately a
+plain class because it holds collections (`bean:0030`). Source has neither problem: an
+import and a qualified name both survive erasure.
+
+The same planted violation, both rules, one run apart:
+
+```
+planted:  domainmgmt/published/Probe.kt —
+            class Probe(val owner: uk.m4xy.modus.core.domain.identity.published.ActorId)
+          (a plain class, so no data-class synthetics)
+
+cmd:      ./gradlew :architecture-tests:test --tests '*ArchitectureRulesTest*'
+observed: BUILD SUCCESSFUL                       <- the bytecode rule cannot see it
+
+cmd:      ./gradlew :architecture-tests:test --tests '*PublishedLanguageSourceTest*'
+observed: PublishedLanguageSourceTest > no published or event source references another
+          context() FAILED
+            core/core-domain/.../domainmgmt/published/Probe.kt: references 'identity'
+
+reverted: yes
+```
+
+That is the whole finding in two commands: one rule green, the other red, on one violation.
+
+Criteria met: the rule rejects an erased reference (above); it does not lean on
+`EventsAreDataClasses`, which does not exist; `doc:10-architecture` §4.2 now states what each
+rule decides and pairs them rather than claiming one covers everything; and the mechanism
+choice is recorded with its two rejected alternatives.
+
+Non-vacuity is asserted in the test itself rather than assumed — it fails if it scans fewer
+than eight files, so a scan that silently found the wrong directory cannot pass forever.
