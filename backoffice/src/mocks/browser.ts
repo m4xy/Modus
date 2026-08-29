@@ -8,9 +8,9 @@ export const worker = setupWorker(...handlers);
  * lands, this start-up is what gets dropped — nothing in the components changes.
  */
 export async function startMockApi(): Promise<void> {
-    await worker.start({
-        onUnhandledRequest: 'bypass',
-        quiet: true,
-        serviceWorker: { url: '/mockServiceWorker.js' },
-    });
+  await worker.start({
+    onUnhandledRequest: 'bypass',
+    quiet: true,
+    serviceWorker: { url: '/mockServiceWorker.js' },
+  });
 }

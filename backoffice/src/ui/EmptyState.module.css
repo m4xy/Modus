@@ -1,33 +1,33 @@
 .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-12) var(--space-6);
-    text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
 }
 
 .mark {
-    display: grid;
-    place-items: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    border: 1px dashed var(--line-strong);
-    border-radius: var(--radius-md);
-    color: var(--ink-3);
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  color: var(--ink-3);
 }
 
 .title {
-    font-size: var(--text-md);
-    font-weight: var(--weight-semibold);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
 }
 
 .description {
-    max-width: 42ch;
-    font-size: var(--text-sm);
-    color: var(--ink-2);
+  max-width: 42ch;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
 }
 
 .action {
-    margin-top: var(--space-2);
+  margin-top: var(--space-2);
 }

@@ -279,7 +279,7 @@ reference, so they are **forbidden outright** in this repository; disable a test
 
 | Concern | Tool | Setting |
 |---|---|---|
-| Formatting | Prettier (`backoffice/package.json`) | 2-space indent, 100 columns, single quotes, trailing commas |
+| Formatting | Prettier (`backoffice/.prettierrc.json` + `.editorconfig`) | 2-space indent, 100 columns, single quotes, trailing commas. The indent comes from `.editorconfig`'s `[*.{ts,tsx,css}]` block, which exists because Prettier reads `.editorconfig` and would otherwise inherit `[*]`'s `indent_size = 4` — a ktlint setting. |
 | Linting | ESLint | `@typescript-eslint` strict + `react-hooks` + `jsx-a11y` |
 | Types | `tsc --noEmit` | `strict: true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride` |
 | `any` | ESLint `no-explicit-any` | `error`. Use `unknown` and narrow. |
@@ -289,11 +289,24 @@ reference, so they are **forbidden outright** in this repository; disable a test
 | API types | Generated from the OpenAPI document | Hand-written API types are forbidden — they drift |
 
 
-**Enforcement gap:** nothing runs the checks above. `backoffice/` and `e2e/` are not
-Gradle projects, so no Gradle task reaches their `typecheck`, `lint` or `format:check`
-scripts, and CI runs only `./gradlew qualityCheck`. Until `bean:0029` wires them in, run them by hand as `00-constitution.md` §7.2.4's
-`Enforcement gap:` describes — that block carries the commands, this one does not. The complete gate — and the only normative statement of it — is
+**Enforced by:** `qualityCheck`, through `backofficeTypecheck`, `backofficeLint` and
+`backofficeFormatCheck` (`build.gradle.kts`), each observed rejecting a planted violation
+(`bean:0029`). The complete gate — and the only normative statement of it — is
 `00-constitution.md` §7.2.4.
+
+**Enforcement gap:** `backofficeLint` runs `eslint .` with the working directory set to
+`backoffice/`, so **`e2e/` is not linted at all** — it has no ESLint configuration. Observed:
+two unused bindings and a non-null assertion added to `e2e/tests/smoke.spec.ts` leave
+`./gradlew backofficeLint` green, while a type error in the same file does fail
+`backofficeTypecheck`. `bean:0046` closes it.
+
+**Enforcement gap:** three rows above are documented and absent. `backoffice/package.json`
+carries neither `eslint-plugin-jsx-a11y` nor `eslint-plugin-import`, and
+`backoffice/eslint.config.js` uses `recommendedTypeChecked` rather than `strict` — so
+`jsx-a11y`, `import/no-cycle` and `no-non-null-assertion` are not enforced. Observed:
+`export const bang = (s: string | null) => s!.length;` in `backoffice/src/App.tsx` leaves
+`backofficeLint` green. They are the same class of claim as the struck `knip` row and
+survived that audit; `bean:0046` installs them or strikes them.
 
 ---
 

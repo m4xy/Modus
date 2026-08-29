@@ -122,3 +122,48 @@ Also corrected: the install step was `npx --prefix e2e playwright install`. `--p
 `npm` option, not an `npx` one — `npx` passes it through to `playwright`, so the version
 installed was whatever `npx` resolved from the registry rather than the one `e2e` pins. It is
 `npm --prefix e2e exec -- playwright install`, which resolves the pinned binary.
+
+## Review cycle
+
+Three blocking, six should-fix. All three plants reproduced exactly; the reviewer also ran
+plant 1 through the **full** `qualityCheck` rather than the sub-task, which is the check I
+should have run and did not.
+
+| finding | resolution |
+|---|---|
+| **blocking** — CI red on the head: `Timed out waiting 120000ms from config.webServer`, with no webServer stderr because the config sets `stdout: 'ignore'` | fixed before the review landed: `vite preview` binds `localhost`, which resolves `::1` first on the runner, while the config polls `127.0.0.1`. A latent break in the e2e setup that only surfaced because something finally ran Playwright outside a laptop |
+| **blocking** — `doc:30` §6 still carried the pre-change `Enforcement gap:`, now false, and my earlier edit had mangled its tail | replaced properly, and two **real** gaps stated in its place |
+| **blocking** — `doc:00` §7.2.4 said "CI runs this task and no other Gradle invocation" while CI now runs two, and a "the gap below is why" sentence dangled after the gap it referred to was removed | rewritten: two invocations named, and the promise stated one-directionally — green local `qualityCheck` **plus** `e2eTest` implies green CI, and `qualityCheck` alone does not |
+| `qualityCheck` never lints `e2e/` — `eslint .` runs with `workingDir = backoffice` and `e2e/` has no ESLint config | demoted to an `Enforcement gap:` naming `bean:0046`. My `Enforced by:` claimed both trees |
+| **`jsx-a11y`, `import/no-cycle` and `no-non-null-assertion` are documented `error` and do not exist** — the same class as the `knip` row, and they survived that audit | second `Enforcement gap:`, `bean:0046` |
+| coverage publishing was silently suppressed by an e2e failure — no `always()`, so GitHub ANDs an implicit `success()` | `always()` added; a Playwright failure no longer costs an unrelated signal |
+| the artifact upload globs `**/build/reports/`, which matches nothing Playwright writes — so the one new failure mode was undiagnosable | `e2e/playwright-report/` and `e2e/test-results/` added |
+| `npx --prefix` is not an npx option | `npm --prefix e2e exec --`, already fixed |
+
+### The finding I would not have looked for
+
+**Prettier's indent was coming from `.editorconfig`'s `[*]` block — a ktlint setting.**
+`backoffice/.prettierrc.json` sets no `tabWidth`, and Prettier 3 reads `.editorconfig` by
+default, so every TypeScript file was formatted at `indent_size = 4`.
+
+```
+cmd:      npx prettier --check src/App.tsx
+observed: All matched files use Prettier code style!
+cmd:      npx prettier --no-editorconfig --check src/App.tsx
+observed: [warn] src/App.tsx
+```
+
+Three consequences. `doc:30-code-style` §6 documents "2-space indent", which was false and
+which this bean was about to make *enforced* and false. The "no Spotless — the backoffice
+already has Prettier with its own config" rationale was wrong about where the config lives.
+And changing `indent_size` for ktlint would have invalidated every TypeScript file in the
+gate.
+
+Fixed at the right layer: `.editorconfig` gains `[*.{ts,tsx,css}] indent_size = 2`, beside
+the `[*.{yml,yaml,json}]` block that was already there for the same reason.
+
+**This collapses the reformat from 77 files and 5,883 lines to 9 files and 191.** The
+"drift" `bean:0028` measured was real — `format:check` did fail — but the cause was a Kotlin
+knob bleeding into TypeScript, not four months of neglect. The corrected figure is what this
+bean should have reported, and the original claim is left above with this correction beside
+it rather than edited away.

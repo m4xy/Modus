@@ -10,19 +10,19 @@ import './styles/global.css';
  * MSW out of the bundle entirely.
  */
 async function bootstrap() {
-    if (import.meta.env['VITE_MOCK_API'] !== 'false') {
-        const { startMockApi } = await import('./mocks/browser');
-        await startMockApi();
-    }
+  if (import.meta.env['VITE_MOCK_API'] !== 'false') {
+    const { startMockApi } = await import('./mocks/browser');
+    await startMockApi();
+  }
 
-    const container = document.getElementById('root');
-    if (!container) throw new Error('Missing #root element.');
+  const container = document.getElementById('root');
+  if (!container) throw new Error('Missing #root element.');
 
-    createRoot(container).render(
-        <StrictMode>
-            <App />
-        </StrictMode>,
-    );
+  createRoot(container).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
 }
 
 void bootstrap();

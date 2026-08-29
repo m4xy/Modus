@@ -1,101 +1,101 @@
 .button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    font-weight: var(--weight-medium);
-    letter-spacing: 0;
-    white-space: nowrap;
-    transition:
-        background-color var(--dur-fast) var(--ease-out),
-        border-color var(--dur-fast) var(--ease-out),
-        color var(--dur-fast) var(--ease-out),
-        transform var(--dur-fast) var(--ease-out);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 
 .button:active:not(:disabled) {
-    transform: translateY(0.5px);
+  transform: translateY(0.5px);
 }
 
 .button:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 /* ---- Sizes ---- */
 .sm {
-    height: 1.75rem;
-    padding-inline: var(--space-3);
-    font-size: var(--text-sm);
+  height: 1.75rem;
+  padding-inline: var(--space-3);
+  font-size: var(--text-sm);
 }
 
 .md {
-    height: 2.125rem;
-    padding-inline: var(--space-4);
-    font-size: var(--text-base);
+  height: 2.125rem;
+  padding-inline: var(--space-4);
+  font-size: var(--text-base);
 }
 
 .lg {
-    height: 2.5rem;
-    padding-inline: var(--space-5);
-    font-size: var(--text-md);
+  height: 2.5rem;
+  padding-inline: var(--space-5);
+  font-size: var(--text-md);
 }
 
 .iconOnly.sm {
-    width: 1.75rem;
-    padding-inline: 0;
+  width: 1.75rem;
+  padding-inline: 0;
 }
 
 .iconOnly.md {
-    width: 2.125rem;
-    padding-inline: 0;
+  width: 2.125rem;
+  padding-inline: 0;
 }
 
 .iconOnly.lg {
-    width: 2.5rem;
-    padding-inline: 0;
+  width: 2.5rem;
+  padding-inline: 0;
 }
 
 /* ---- Variants ---- */
 .primary {
-    background: var(--accent);
-    color: var(--ink-on-accent);
+  background: var(--accent);
+  color: var(--ink-on-accent);
 }
 
 .primary:hover:not(:disabled) {
-    background: var(--accent-hover);
+  background: var(--accent-hover);
 }
 
 .secondary {
-    background: var(--surface);
-    border-color: var(--line-strong);
-    color: var(--ink);
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--ink);
 }
 
 .secondary:hover:not(:disabled) {
-    background: var(--surface-hover);
-    border-color: var(--ink-3);
+  background: var(--surface-hover);
+  border-color: var(--ink-3);
 }
 
 .ghost {
-    background: transparent;
-    color: var(--ink-2);
+  background: transparent;
+  color: var(--ink-2);
 }
 
 .ghost:hover:not(:disabled) {
-    background: var(--surface-hover);
-    color: var(--ink);
+  background: var(--surface-hover);
+  color: var(--ink);
 }
 
 .danger {
-    background: var(--danger-soft);
-    border-color: var(--danger);
-    color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .danger:hover:not(:disabled) {
-    background: var(--danger);
-    color: var(--surface);
+  background: var(--danger);
+  color: var(--surface);
 }

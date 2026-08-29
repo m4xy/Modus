@@ -15,88 +15,88 @@ import { Work } from './routes/Work';
 import { ToastProvider } from './ui';
 
 const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            retry: 1,
-            refetchOnWindowFocus: false,
-            staleTime: 30_000,
-        },
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 30_000,
     },
+  },
 });
 
 export function App() {
-    return (
-        <QueryClientProvider client={queryClient}>
-            <ThemeProvider>
-                <ToastProvider>
-                    <BrowserRouter>
-                        <Routes>
-                            <Route path="/" element={<RootRedirect />} />
-                            {/* Every product surface hangs off the tenant root. */}
-                            <Route path="/domains/:domainId" element={<DomainRoute />}>
-                                <Route index element={<Navigate to="work" replace />} />
-                                <Route
-                                    path="work"
-                                    element={
-                                        <RequireCapability capability="work.read">
-                                            <Work />
-                                        </RequireCapability>
-                                    }
-                                />
-                                <Route
-                                    path="repositories"
-                                    element={
-                                        <RequireCapability capability="repositories.read">
-                                            <Repositories />
-                                        </RequireCapability>
-                                    }
-                                />
-                                <Route
-                                    path="agents"
-                                    element={
-                                        <RequireCapability capability="agents.read">
-                                            <AgentConsole />
-                                        </RequireCapability>
-                                    }
-                                />
-                                <Route
-                                    path="memories"
-                                    element={
-                                        <RequireCapability capability="memories.read">
-                                            <Memories />
-                                        </RequireCapability>
-                                    }
-                                />
-                                <Route
-                                    path="cost"
-                                    element={
-                                        <RequireCapability capability="cost.read">
-                                            <Cost />
-                                        </RequireCapability>
-                                    }
-                                />
-                                <Route
-                                    path="skills"
-                                    element={
-                                        <RequireCapability capability="skills.read">
-                                            <Skills />
-                                        </RequireCapability>
-                                    }
-                                />
-                                <Route
-                                    path="settings"
-                                    element={
-                                        <RequireCapability capability="settings.read">
-                                            <Settings />
-                                        </RequireCapability>
-                                    }
-                                />
-                            </Route>
-                            <Route path="*" element={<NotFound />} />
-                        </Routes>
-                    </BrowserRouter>
-                </ToastProvider>
-            </ThemeProvider>
-        </QueryClientProvider>
-    );
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<RootRedirect />} />
+              {/* Every product surface hangs off the tenant root. */}
+              <Route path="/domains/:domainId" element={<DomainRoute />}>
+                <Route index element={<Navigate to="work" replace />} />
+                <Route
+                  path="work"
+                  element={
+                    <RequireCapability capability="work.read">
+                      <Work />
+                    </RequireCapability>
+                  }
+                />
+                <Route
+                  path="repositories"
+                  element={
+                    <RequireCapability capability="repositories.read">
+                      <Repositories />
+                    </RequireCapability>
+                  }
+                />
+                <Route
+                  path="agents"
+                  element={
+                    <RequireCapability capability="agents.read">
+                      <AgentConsole />
+                    </RequireCapability>
+                  }
+                />
+                <Route
+                  path="memories"
+                  element={
+                    <RequireCapability capability="memories.read">
+                      <Memories />
+                    </RequireCapability>
+                  }
+                />
+                <Route
+                  path="cost"
+                  element={
+                    <RequireCapability capability="cost.read">
+                      <Cost />
+                    </RequireCapability>
+                  }
+                />
+                <Route
+                  path="skills"
+                  element={
+                    <RequireCapability capability="skills.read">
+                      <Skills />
+                    </RequireCapability>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <RequireCapability capability="settings.read">
+                      <Settings />
+                    </RequireCapability>
+                  }
+                />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ToastProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
 }

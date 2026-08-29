@@ -1,197 +1,197 @@
 .figure {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    margin: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
 }
 
 .chart {
-    width: 100%;
-    height: auto;
-    overflow: visible;
+  width: 100%;
+  height: auto;
+  overflow: visible;
 }
 
 .grid {
-    stroke: var(--grid);
-    stroke-width: 1;
+  stroke: var(--grid);
+  stroke-width: 1;
 }
 
 .axisText {
-    fill: var(--ink-3);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-variant-numeric: tabular-nums;
+  fill: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 .valueLabel {
-    fill: var(--ink-2);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
+  fill: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .bar {
-    transition: opacity var(--dur-fast) var(--ease-out);
+  transition: opacity var(--dur-fast) var(--ease-out);
 }
 
 .dimmed {
-    opacity: 0.45;
+  opacity: 0.45;
 }
 
 .hit {
-    fill: transparent;
-    cursor: crosshair;
+  fill: transparent;
+  cursor: crosshair;
 }
 
 /* ---- Tooltip -------------------------------------------------------- */
 .tooltip {
-    position: absolute;
-    z-index: var(--z-popover);
-    min-width: 9rem;
-    padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-sm);
-    background: var(--surface-raised);
-    box-shadow: var(--shadow-2);
-    pointer-events: none;
-    translate: -50% -100%;
+  position: absolute;
+  z-index: var(--z-popover);
+  min-width: 9rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+  pointer-events: none;
+  translate: -50% -100%;
 }
 
 .tooltipLabel {
-    font-family: var(--font-mono);
-    font-size: var(--text-2xs);
-    letter-spacing: var(--tracking-eyebrow);
-    text-transform: uppercase;
-    color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
 
 .tooltipValue {
-    font-size: var(--text-base);
-    font-weight: var(--weight-semibold);
-    font-variant-numeric: tabular-nums;
-    color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
 }
 
 .tooltipNote {
-    font-size: var(--text-xs);
-    color: var(--ink-2);
+  font-size: var(--text-xs);
+  color: var(--ink-2);
 }
 
 /* ---- Legend --------------------------------------------------------- */
 .legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2) var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
 }
 
 .legendItem {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-size: var(--text-xs);
-    color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--ink-2);
 }
 
 .swatch {
-    width: 0.625rem;
-    height: 0.625rem;
-    border-radius: 2px;
-    flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 2px;
+  flex: none;
 }
 
 /* ---- Horizontal bar rows -------------------------------------------- */
 .rows {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .row {
-    display: grid;
-    grid-template-columns: 6.5rem minmax(0, 1fr) 5rem;
-    align-items: center;
-    gap: var(--space-3);
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr) 5rem;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .rowLabel {
-    font-size: var(--text-sm);
-    color: var(--ink-2);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
 }
 
 .track {
-    height: 14px;
-    border-radius: 2px;
-    background: var(--surface-sunken);
-    overflow: hidden;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--surface-sunken);
+  overflow: hidden;
 }
 
 .fill {
-    height: 100%;
-    border-radius: 0 4px 4px 0;
-    transition: width var(--dur-slow) var(--ease-out);
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  transition: width var(--dur-slow) var(--ease-out);
 }
 
 .rowValue {
-    text-align: right;
-    font-size: var(--text-sm);
-    font-variant-numeric: tabular-nums;
-    color: var(--ink);
+  text-align: right;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
 }
 
 .rowNote {
-    grid-column: 2 / -1;
-    font-family: var(--font-mono);
-    font-size: var(--text-2xs);
-    color: var(--ink-3);
+  grid-column: 2 / -1;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
 }
 
 /* ---- Stacked share bar ---------------------------------------------- */
 .stack {
-    display: flex;
-    gap: 2px;
-    height: 20px;
-    margin-bottom: var(--space-4);
+  display: flex;
+  gap: 2px;
+  height: 20px;
+  margin-bottom: var(--space-4);
 }
 
 .segment {
-    height: 100%;
-    border-radius: 2px;
+  height: 100%;
+  border-radius: 2px;
 }
 
 .table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--text-sm);
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
 }
 
 .table th,
 .table td {
-    padding: var(--space-2) 0;
-    text-align: left;
-    border-bottom: 1px solid var(--line);
+  padding: var(--space-2) 0;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
 }
 
 .table th {
-    font-family: var(--font-mono);
-    font-size: var(--text-2xs);
-    font-weight: var(--weight-medium);
-    letter-spacing: var(--tracking-eyebrow);
-    text-transform: uppercase;
-    color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
 
 .table td:last-child,
 .table th:last-child,
 .table td:nth-child(2),
 .table th:nth-child(2) {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .keyCell {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }

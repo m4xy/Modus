@@ -8,28 +8,28 @@ import styles from './DomainRoute.module.css';
  * sends the actor to the first domain they hold a grant for.
  */
 export function RootRedirect() {
-    const session = useSession();
+  const session = useSession();
 
-    if (session.isPending) {
-        return (
-            <div className={styles.boot} role="status" aria-live="polite">
-                <p className={styles.bootLabel}>Opening Modus</p>
-                <SkeletonList rows={2} label="Opening Modus" />
-            </div>
-        );
-    }
+  if (session.isPending) {
+    return (
+      <div className={styles.boot} role="status" aria-live="polite">
+        <p className={styles.bootLabel}>Opening Modus</p>
+        <SkeletonList rows={2} label="Opening Modus" />
+      </div>
+    );
+  }
 
-    const first = session.data?.domains[0];
-    if (!first) {
-        return (
-            <div className={styles.boot}>
-                <EmptyState
-                    title="No domains available"
-                    description="Your account holds no domain grants yet. Ask a domain owner to invite you."
-                />
-            </div>
-        );
-    }
+  const first = session.data?.domains[0];
+  if (!first) {
+    return (
+      <div className={styles.boot}>
+        <EmptyState
+          title="No domains available"
+          description="Your account holds no domain grants yet. Ask a domain owner to invite you."
+        />
+      </div>
+    );
+  }
 
-    return <Navigate to={`/domains/${first.id}/work`} replace />;
+  return <Navigate to={`/domains/${first.id}/work`} replace />;
 }

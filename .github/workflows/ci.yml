@@ -94,7 +94,10 @@ jobs:
       # which has already failed the job if coverage moved, so min-coverage-* are
       # 0 rather than a second threshold to keep in sync (doc:35-testing#coverage).
       - name: Publish coverage on the pull request
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        # always(): without it GitHub ANDs an implicit success() onto this condition, so a
+        # Playwright failure in the step above silently suppresses coverage reporting — a
+        # second, unrelated signal lost to the first. bean:0029 review found it.
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         # Pinned to the immutable commit behind v1.8.0. This is the only
         # third-party action in the workflow and the only reason the job holds
         # `pull-requests: write`; a moving tag would let its publisher run
@@ -116,4 +119,6 @@ jobs:
           path: |
             **/build/reports/
             **/build/test-results/
+            e2e/playwright-report/
+            e2e/test-results/
           retention-days: 7
