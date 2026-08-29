@@ -27,6 +27,31 @@
 # unanswered. One of the two was a REGRESSION against the toggle being replaced. A verdict
 # assertion on either would have shown it in this file before review did.
 #
+# ONE MUTATION PER MECHANISM, NOT PER FILE. A mutation suite proves only that the tests
+# can detect THE MUTATION THAT WAS MADE. This analyser is two mechanisms — the classifier
+# decides where a fence is, the citation-site requirement decides where a citation counts
+# — and a single mutation leaves the second one unexercised while the suite still reports
+# green. Both are mutated here, separately:
+#
+#   classifier only      fence_classify replaced by the pre-bean:0063 toggle, the real
+#                        measurement helpers kept    ->  17 passed, 14 failed
+#   citation site only   citation_site() bypassed, `s = tolower(line)` restored
+#                                                    ->  28 passed,  3 failed
+#
+# Neither mutation reaches the other's assertions, which is the whole point: the second
+# mutation was added after the first was found to say nothing about the citation scanner.
+#
+# A third mutation is the complement of the second, and it is why the negative control
+# below exists. Narrowing the citation scanner and DELETING it are different faults, and
+# the three container assertions pass under both:
+#
+#   citation scanner deleted   `s = ""`, so nothing is ever cited
+#                                                    ->  29 passed,  2 failed
+#
+# The two that fail are "control: the same citation at top level answers its criterion"
+# and the DEFECT pin. Without that control the container assertions would be satisfied by
+# a scanner that answers nothing at all.
+#
 # Fixtures are heredocs beside their assertions rather than a fixture directory: the
 # repository had no fixture location for docs-lint, and a fixture whose expected output
 # lives in another file is read twice and updated once.

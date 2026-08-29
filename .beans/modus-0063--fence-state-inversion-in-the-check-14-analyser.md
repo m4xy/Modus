@@ -461,6 +461,27 @@ about the outcome, not about the parse. Asserting the classification documents t
 without ever asking what it costs. The rule is now in `tools/docs-lint-test.sh`'s header,
 where the next author of a residual will read it.
 
+A second rule is in that header for the same reason. **A mutation suite proves only that the
+tests can detect the mutation that was made, so it needs one mutation per MECHANISM, not per
+file.** This analyser is two mechanisms — the classifier decides where a fence is, the
+citation-site requirement decides where a citation counts — and the single classifier
+mutation this bean shipped first left the second one entirely unexercised while the suite
+reported green. Measured, all three on the same 31 assertions:
+
+```
+cmd:      bash tools/docs-lint-test.sh, against each mutation in turn
+observed: classifier only (fence_classify -> the pre-bean:0063 toggle)   17 passed, 14 failed
+          citation site only (citation_site bypassed)                    28 passed,  3 failed
+          citation scanner deleted (s = "")                              29 passed,  2 failed
+          unmutated                                                      31 passed,  0 failed
+exit:     1, 1, 1, 0
+```
+
+The third is the complement of the second and is why the negative control exists: narrowing
+the scanner and deleting it are different faults, and the three container assertions pass
+under both. The two assertions that catch a deleted scanner are the top-level-prose control
+and the open defect's pin.
+
 ### F5 — the coupling the refactor created
 
 Moving the analyser to two files on disk made it possible for it to go **missing**, which an
