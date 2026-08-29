@@ -165,6 +165,13 @@ packages are limited to the row above. Plus `PublishedLanguageIsLeaf` (§4.2) an
 "no cycles" rule over the internals slices only, `com.modus.core.(*)..` minus the two
 published packages. Assigned to `ContextIsolationRules` (`30-code-style.md` §5).
 
+`PublishedLanguageIsLeaf` and the no-cycles rule are implemented and non-vacuous.
+**Enforcement gap:** `ContextInternalsAreSealed` and `PublishedLanguageAllowlist` are not.
+Both compare one context against another and `identity` is the only modelled context, so
+both would pass on an empty set of dependencies today — an implementation now would be a
+rule that cannot fail. `bean:0009` records this; the bean that models the second bounded
+context closes it, and is the first point at which either rule can be shown to fire.
+
 ---
 
 ## 4. Dependency rules — machine-readable
@@ -207,7 +214,7 @@ This is the source table an ArchUnit test is derived from. One row per (module, 
 | `NoReflection` | No `java.lang.reflect..`, no `::class.java` beyond `equals`/`hashCode` support. |
 | `AggregatesAreSealedOrFinal` | Every type in `..domain.aggregate..` is `final` (Kotlin default) — no `open` aggregate. The package convention (`20-ddd-practices.md` §5.1) is what gives this rule a decidable scope. |
 | `EventsAreDataClasses` | Every type in `..domain.event..` is a `data class` and every property is `val`. |
-| `PublishedLanguageIsLeaf` | No type in `..domain.event..` or `..domain.published..` depends on anything beyond the Kotlin stdlib, `java.time` types, and its own context's `..domain.published..`. This is the rule §3.1 rests on. |
+| `PublishedLanguageIsLeaf` | No type in `..domain.event..` or `..domain.published..` depends on anything beyond the Kotlin stdlib, `java.time` types, its own context's `..domain.published..`, and the shared-kernel `DomainEvent` marker. This is the rule §3.1 rests on. The `DomainEvent` exemption is the whole of it and is named in the rule: an event must implement the marker to be dispatchable across contexts, and without the exemption every context would declare an identical interface of its own and there would be no type to dispatch as. |
 | `PortsAreInterfaces` | Every type in `..domain.port..` is an `interface` with no default implementations that perform IO. |
 
 ### 4.3 Adapter rules

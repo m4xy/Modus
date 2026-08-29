@@ -317,9 +317,12 @@ service" is mostly calling ports and coordinating, it is a use case — move it 
 Each invariant has a test named for it, in `core-domain`'s test source set, asserting
 both the accepting and the rejecting case.
 
-**Enforced by:** a Jacoco `violationRules` entry in the `modus.test` convention plugin
-requiring **100% `BRANCH` coverage** with the rule element scoped to
-`com.modus.core.*.domain.aggregate.*`. "Aggregate method" is not a concept Jacoco can
+**Enforced by:** a Jacoco `violationRules` entry on `coverageRatchet` in the
+`modus.kotlin-base` convention plugin requiring **100% `BRANCH` coverage** with the rule
+element scoped to `PACKAGE`, `includes = ["uk.m4xy.modus.core.domain.*.aggregate"]`. It is
+a ratio, so it needs no baseline row and never blocks a deletion; the module-wide exact
+ratchet beside it is a regression trip-wire on a count, not a behavioural floor.
+"Aggregate method" is not a concept Jacoco can
 resolve; the package is, which is why §5.1 makes `..domain.aggregate` a convention rather
 than a suggestion. Value objects, events and ids are covered by their own tests but are
 outside this floor — their generated `data class` members would make 100% meaningless.

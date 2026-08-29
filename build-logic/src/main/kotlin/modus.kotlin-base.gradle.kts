@@ -516,6 +516,24 @@ if (coverageSources.asFile.isDirectory) {
                         maximum = coveredBranches.toBigDecimal()
                     }
                 }
+
+                // doc:20-ddd-practices §7.3. The module-wide rule above is a regression
+                // trip-wire on a number that includes constructors and getters; this one
+                // is the behavioural floor, and it is a ratio rather than a count so it
+                // needs no baseline row and never blocks a deletion. "Aggregate method"
+                // is not a concept JaCoCo can resolve — the package is, which is why
+                // doc:20 §5.1 makes `..aggregate` a convention rather than a suggestion.
+                // Vacuous in a module with no aggregate package, and proven non-vacuous
+                // in :core-domain by bean:0009's planted uncovered branch.
+                rule {
+                    element = "PACKAGE"
+                    includes = listOf("uk.m4xy.modus.core.domain.*.aggregate")
+                    limit {
+                        counter = "BRANCH"
+                        value = "COVEREDRATIO"
+                        minimum = "1.0".toBigDecimal()
+                    }
+                }
             }
         }
 
