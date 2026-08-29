@@ -1,10 +1,11 @@
 ---
 # modus-0010
 title: Close the merged work items, publish the backlog, encode the session learnings
-status: in-progress
+status: completed
 type: task
 priority: high
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T10:05:48Z
 ---
 
 # Close the merged work items, publish the backlog, encode the session learnings
@@ -91,3 +92,25 @@ Five threads, all fixed in this PR (no follow-up).
 | `bean:0027` scope | "Start from" named only `doc:00-constitution`, missing `doc:40-durability`/`doc:60-cost-model`'s ~9 lines for `adapter-persistence-flatfile`/`module-cost` | added a second "Start from" bullet naming both documents and both empty-placeholder modules explicitly | `find adapters/adapter-persistence-flatfile -path '*test*'` and `find modules/module-cost -type f` — no test directory, two/three skeleton files only, in either |
 | memory/execution mutual wall | both beans unblock off `bean:0013` simultaneously, each needing the other's not-yet-published event | sequenced, did not split: `bean:0015 blocked_by: [modus-0013, modus-0014]` (one-way only — `bean:0014` keeps `blocked_by: [modus-0013]`); `bean:0014`'s success criteria drop `MemoryRecorded` consumption, `bean:0015`'s success criteria gain "wires `execution`'s deferred `MemoryRecorded` consumption"; `bean:0011`'s epic text restated to describe the one-way edge, not "neither direction" | `.beans/modus-0014--execution-bounded-context.md`, `.beans/modus-0015--memory-bounded-context.md`, `.beans/modus-0011--remaining-bounded-contexts.md` diffs |
 | `bean:0018` missing edge | `blocked_by: [modus-0017]` only; §5.3 step 4 needs domainmgmt's `ModuleInstallation` (`bean:0012`) | added the edge (`blocked_by: [modus-0017, modus-0012]`) rather than narrowing the criteria — narrowing would ship the authorisation contract with a known hole and a second bean to patch it later; the edge lands it whole, once | `.beans/modus-0018--domain-scoped-rest-layer.md` diff |
+
+## Summary of Changes
+
+Merged as PR #10 (`0bc47e0`, `2026-08-29T10:05:48Z`). `bean:0007`, `bean:0008` and
+`bean:0009` are `completed` with three drifted claims corrected in place; `bean:0011`
+through `bean:0027` publish the remaining scope as `todo` beans with a real dependency
+graph; the four session learnings are in the document that owns each topic; and
+`doc:00-constitution#observed-failing` is the new governing principle, applied
+immediately to 34 substantive `Enforced by:` claims — 9 verified, 27 demoted to
+`Enforcement gap:` lines naming their owning bean.
+
+This bean could not close itself: criterion 1 is about work items merged *before* it, and
+its own status is decided by the merge it is part of. Closing it is therefore the one
+piece of its own scope it had to leave behind, and this edit is that piece. The gap is
+structural rather than an oversight — every bean has it — and it is why the first act of
+the session after a merge is to close the bean that merge completed.
+
+Two corrections landed inside the PR and are recorded in `doc:00-constitution` §7.1
+rather than here: the audit had demoted `main` branch protection on a `404` from the
+classic branch-protection endpoint, which returns `404` for any repository using
+rulesets — the ruleset `main-protected` has been active throughout — and it had left five
+references to a `documentation/90-work-items.md` that was never written.
