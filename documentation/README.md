@@ -11,7 +11,7 @@ provides:
   - doc:README#encoding-rule
   - doc:README#changing-this-package
   - doc:README#conventions
-depends_on: [doc:00-constitution, doc:05-authoring-for-agents, doc:10-architecture, doc:20-ddd-practices, doc:30-code-style, doc:40-durability, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills, doc:80-agent-operating-procedure]
+depends_on: [doc:00-constitution, doc:05-authoring-for-agents, doc:10-architecture, doc:15-repository-layout, doc:20-ddd-practices, doc:30-code-style, doc:40-durability, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills, doc:80-agent-operating-procedure]
 ---
 
 # Modus Documentation Package
@@ -41,7 +41,8 @@ is a human gloss on it. On disagreement `read_when` wins and this table is the b
 | — | [`README.md`](README.md) | You are new to the repository. Start here. |
 | 00 | [`00-constitution.md`](00-constitution.md) | **Always.** Non-negotiable rules. ~10 min. |
 | 05 | [`05-authoring-for-agents.md`](05-authoring-for-agents.md) | You are writing or editing a document, a bean, `AGENTS.md`, or a PR body. |
-| 10 | [`10-architecture.md`](10-architecture.md) | You are adding a module, a class, or an endpoint. |
+| 10 | [`10-architecture.md`](10-architecture.md) | You are writing a Modus Module, or changing anything one can observe. |
+| 15 | [`15-repository-layout.md`](15-repository-layout.md) | You are adding a class, a package, a Gradle module, a bounded context, or an adapter to this repository. |
 | 20 | [`20-ddd-practices.md`](20-ddd-practices.md) | You are writing anything in `core/`. |
 | 30 | [`30-code-style.md`](30-code-style.md) | You are writing Kotlin or TypeScript, or a build check fails. |
 | 40 | [`40-durability.md`](40-durability.md) | You are touching persistence, file IO, or locking. |
@@ -111,6 +112,11 @@ carries evidence.
 - Line budget for `documentation/*.md`: `max_lines: 500`, `min_lines: none` (`adr:0003`).
   A file that outgrows the ceiling is two files, or it contains material that belongs in
   an ADR or in a skill. Enforced by: `docs-lint` check 8, which reads both values here.
+- Section numbers are **never reallocated**. When one document becomes two, each half keeps
+  the numbers its sections already had, so `doc:10-architecture` holds §1, §3, §4.1, §5 and
+  §7 and `doc:15-repository-layout` holds §2, §4.2, §4.3, §6, §8 and §9. Beans and ADRs cite
+  sections by number and a `completed` bean cannot be corrected (`adr:0005#finalisation`), so
+  a reallocated number silently misdirects a record nobody may edit.
 - Prefer tables and imperatives. Avoid aspiration: "the code should be clean" is not a
   rule. "Cyclomatic complexity above 10 fails the Detekt build" is a rule.
 

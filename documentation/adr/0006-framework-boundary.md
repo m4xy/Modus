@@ -13,7 +13,7 @@ provides:
   - adr:0006-framework-boundary#the-test
   - adr:0006-framework-boundary#classification
   - adr:0006-framework-boundary#domain-tooling
-depends_on: [doc:00-constitution, doc:10-architecture, doc:20-ddd-practices]
+depends_on: [doc:00-constitution, doc:10-architecture, doc:15-repository-layout, doc:20-ddd-practices]
 ---
 
 # ADR 0006 — The framework boundary, and where a domain's own tooling lives
@@ -85,8 +85,8 @@ nobody anticipated. A new artifact carries its tier or it is misfiled by default
 | artifact | tier | why |
 |---|---|---|
 | `core/`, `adapters/`, `modules/`, `app/` | 1 | the running system |
-| `doc:10-architecture` §3.1, §4.1, §5, §7 | 1 | the extension contract: published-language rules, what a `modules/*` may depend on, the `/domains/{domainId}` route convention, and the Module system itself |
-| `doc:10-architecture` §2, §4.2, §4.3, §6, §8 | 2 | this repository's tree, the package rules inside `core-domain`, adapter rules, testing architecture |
+| `doc:10-architecture` | 1 | the extension contract: published-language rules, what a `modules/*` may depend on, the `/domains/{domainId}` route convention, and the Module system itself |
+| `doc:15-repository-layout` | 2 | this repository's tree, the package rules inside `core-domain`, adapter rules, cross-cutting flows, testing architecture |
 | `doc:20-ddd-practices`, `doc:30-code-style`, `doc:35-testing` | 2 | **not** tier 1 — see below |
 | `doc:40-durability` | 1 | the on-disk format is what a tenant's data is stored in |
 | `doc:50-memory-and-evidence` | 1 | the memory model is a shipped bounded context (`bean:0015`); its authoring conventions are tier 3 and are extracted |
@@ -105,9 +105,9 @@ construction never writes there. The same holds for the ktlint/Detekt configurat
 unit/integration split, both of which are enforced by convention plugins a third-party build
 does not apply.
 
-**`doc:10-architecture` is two documents.** Rather than split a 464-line file in this
-decision, the sections are classified above and the split is deferred to the work item that
-writes the tier-1 surface, which is where the seam becomes concrete rather than notional.
+**`doc:10-architecture` is two documents**, cut along that seam by `bean:0041`. Section
+numbers are not reallocated across the cut (`doc:README#changing-this-package`), so a
+citation of a section number resolves in whichever half now holds it.
 
 ### A domain's own tooling is a Module <a id="domain-tooling"></a>
 
@@ -142,9 +142,9 @@ checks as part of that domain's process — but until then tier-3 build-time too
 
 - Three tiers is more structure than a young repository needs, and every new file now carries
   a classification question. The test exists to make that question cheap, not to remove it.
-- `doc:10-architecture` and `doc:50-memory-and-evidence` are each classified at section
-  granularity, so until they are split the tier is a property of a passage rather than a file.
-  That is weaker than a per-file rule and cannot be checked mechanically yet.
+- `doc:50-memory-and-evidence` is still classified at section granularity, so until it is
+  split the tier is a property of a passage rather than a file. That is weaker than a per-file
+  rule and cannot be checked mechanically yet.
 
 ### Neutral
 

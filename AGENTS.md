@@ -34,7 +34,8 @@ Two routing facts README does not carry:
 ```
 
 JDK 25 toolchain. Versions live in `gradle/libs.versions.toml` and nowhere else.
-Style rules: `doc:30-code-style`. Layering rules: `doc:10-architecture`. Neither is repeated here.
+Style rules: `doc:30-code-style`. The Module extension contract: `doc:10-architecture`.
+This repository's own layout and layering rules: `doc:15-repository-layout`. None is repeated here.
 
 ## Workflow
 

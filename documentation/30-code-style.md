@@ -21,7 +21,7 @@ provides:
   - doc:30-code-style#archunit-synthetic-classes
   - doc:30-code-style#testing-style
   - doc:30-code-style#changing-a-style-rule
-depends_on: [doc:00-constitution, doc:10-architecture, doc:20-ddd-practices, doc:80-agent-operating-procedure]
+depends_on: [doc:00-constitution, doc:10-architecture, doc:15-repository-layout, doc:20-ddd-practices, doc:80-agent-operating-procedure]
 ---
 
 # 30 — Code Style
@@ -186,7 +186,7 @@ carries implementing them or striking them.
 | **`NoFloatingPointMoney`** | `Float`/`Double` in any type whose name or property name matches money/cost/price/spend/usd. | Cost is the product. Floating-point money produces spend figures that do not add up, and nobody notices until an invoice does not reconcile. |
 | **`UnevidencedMemoryWrite`** | A call to a `MemoryRepository.save`-shaped API whose argument is constructed without a non-empty evidence collection, where statically determinable. | The evidence rule (`00` §3) is the product's core promise. A best-effort static check plus the runtime schema validation is better than runtime alone. |
 | **`ForbiddenTypeNameSuffix`** | Types under `core/` named `*Impl`, `*Manager`, `*Helper`, `*Util(s)`, `*Data`, `*Info`, `*Dto`, `*Entity`, `*Bean`, or `*Service` outside the domain-service allowlist. | These names describe position, not behaviour, and they attract unrelated code. Enforcing naming prevents the "junk drawer class". |
-| **`DomainScopedRoute`** | A Spring mapping annotation in `adapter-rest` or `modules/*` whose path neither starts with `/domains/{domainId}` nor matches the **non-domain-scoped route allowlist** (`10-architecture.md` §5.1 — the rule reads that list; it does not carry its own copy). | Permissions are domain-scoped (`00` §8). One un-scoped route is a cross-domain data leak. Detekt catches it at the annotation, before ArchUnit sees the compiled class. |
+| **`DomainScopedRoute`** | A Spring mapping annotation in `adapter-rest` or `modules/*` whose path neither starts with `/domains/{domainId}` nor matches the **non-domain-scoped route allowlist** (`doc:10-architecture#domain-root-convention` §5.1 — the rule reads that list; it does not carry its own copy). | Permissions are domain-scoped (`00` §8). One un-scoped route is a cross-domain data leak. Detekt catches it at the annotation, before ArchUnit sees the compiled class. |
 | **`NoBlockingInSuspend`** | `Thread.sleep`, `runBlocking`, blocking IO, or `.get()` on a future inside a `suspend` function. | The streaming adapters are the hot path for backoffice output; one blocking call stalls a shared dispatcher and every live stream stutters. |
 | **`JustifiedSuppression`** | `@Suppress` with no trailing `//` comment explaining it. | A suppression with a reason is a decision; one without is an unexplained hole. |
 | **`JustifiedVar`** | A `var` property in a class under `core/` with no explanatory comment. | Mutable aggregate state is legitimate but must be conscious. |
@@ -212,7 +212,8 @@ annotation attribute. §5's `@Disabled` rule is the worked example.
 ## 5. ArchUnit <a id="archunit-rules"></a>
 
 ArchUnit enforces structure — what depends on what, what lives where, what a type must
-implement. The complete rule set is derived from the tables in `10-architecture.md` §4.
+implement. The complete rule set is derived from the tables in
+`doc:10-architecture#module-dependencies` §4.1 and `doc:15-repository-layout` §4.2-§4.3.
 
 Rule groups:
 

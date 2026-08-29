@@ -23,7 +23,7 @@ Success criteria:
   whole 404-not-403 decision in `domainIsVisible`, so the mapping is total over the sealed
   class and has no `else`.
 - Controllers return DTOs; domain types do not cross the boundary
-  (`doc:10-architecture#module-dependencies` §4.3). An OpenAPI document is generated —
+  (`doc:15-repository-layout#adapter-rules` §4.3). An OpenAPI document is generated —
   `doc:30-code-style` §6 forbids hand-written backoffice API types.
 - 404-not-403 asserted in `src/integrationTest` for every cross-domain access path, each
   assertion observed failing on a planted leak (`doc:00-constitution#observed-failing`).
