@@ -183,6 +183,161 @@ observed: > Task :modus-server:coverageReport
           153 actionable tasks: 144 executed, 9 up-to-date
 ```
 
+## Review cycle — PR #8
+
+Seven threads. Six are fixed here; thread 5 (the `beans/` → `.beans/` rebase) is
+deliberately left open, because PR #7 performs that migration and is still running its own
+fix cycle — rebasing now would race it, and an unresolved thread is what correctly blocks
+this branch from merging before #7.
+
+### R1. `coverageBaselineWrite` was an unguarded downward ratchet
+
+The reset task was freely runnable, so a regression could be recorded as a one-line diff
+indistinguishable from the improvement with its digits swapped. The writer now reads the
+existing row, prints the per-module delta, and refuses to raise a missed count without an
+explicit opt-out; the reason is written into the baseline so the regression is
+self-documenting in the same diff.
+
+```
+planted:  :core-domain's single assertion weakened to assertEquals(6, 6)
+cmd:      ./gradlew --no-build-cache coverageBaselineWrite
+observed: coverageBaselineWrite: missed instructions, missed branches, covered instructions, covered branches
+            :core-domain                   0 0 33 0 -> 33 0 0 0  <-- REGRESSION
+          > Task :coverageBaselineWrite FAILED
+          > coverageBaselineWrite refuses to record worse coverage: :core-domain (missed
+            instructions 0 -> 33). Restore the coverage, or re-run with
+            -Pcoverage.regress=<reason>; the reason is written into the baseline and
+            belongs in the pull request body too.
+
+cmd:      ./gradlew --no-build-cache coverageBaselineWrite \
+            "-Pcoverage.regress=proving the opt-out; reverted immediately"
+observed: BUILD SUCCESSFUL, and in config/coverage/baseline.tsv:
+          # REGRESSION accepted with -Pcoverage.regress: proving the opt-out; reverted immediately
+          #   :core-domain: missed instructions 0 -> 33
+          :core-domain                   33	0	0	0
+post:     test restored; coverageBaselineWrite rewrote :core-domain 33 0 0 0 -> 0 0 33 0,
+          the note gone with it; BUILD SUCCESSFUL
+```
+
+### R2. The rule bounded `MISSEDCOUNT` only
+
+Deleting fully covered production code left the missed count exactly where the row said
+and passed silently while the ratio fell. The baseline gained covered instructions and
+covered branches, and `coverageRatchet` pins both with `COVEREDCOUNT`. `doc:35-testing`
+§8.2's claim that "every movement is a line in the diff" is now true rather than an
+overstatement; §8.1 states the covered half explicitly.
+
+```
+planted:  one element deleted from BoundedContexts.names, the test adjusted to expect 5,
+          so the missed count is unchanged at 0 and only the covered count falls
+cmd:      ./gradlew --no-build-cache :core-domain:coverageRatchet
+observed: > Task :core-domain:coverageRatchet FAILED
+          > Rule violated for bundle core-domain: instructions covered count is 29, but
+            expected minimum is 33
+post:     element and test restored; BUILD SUCCESSFUL
+```
+
+### R3. The per-module exec set diverged from the aggregate
+
+The gate named `test.exec` and `integrationTest.exec` literally while the aggregate
+globbed `*.exec`, so a third suite would be counted in the report and not in the gate. The
+per-module set is now the same glob, and the task dependencies are derived from
+`tasks.withType<Test>()` rather than named.
+
+```
+planted:  a throwaway third suite `smokeTest` in modus.kotlin-base, plus one smoke test
+          against :module-cost, whose row records 6 missed instructions and 0 covered
+cmd:      ./gradlew --no-build-cache :module-cost:coverageRatchet
+observed: > Task :module-cost:smokeTest
+          > Task :module-cost:coverageRatchet FAILED
+          > Rule violated for bundle module-cost: instructions missed count is 3, but
+            expected minimum is 6
+            Rule violated for bundle module-cost: instructions covered count is 3, but
+            expected maximum is 0
+
+cmd:      # the literal two-name set restored, nothing else changed
+          ./gradlew --no-build-cache :module-cost:coverageRatchet --rerun
+observed: > Task :module-cost:smokeTest UP-TO-DATE
+          > Task :module-cost:coverageRatchet
+          BUILD SUCCESSFUL          <-- the suite ran and escaped the gate
+post:     glob restored; suite and smoke test removed
+```
+
+### R4. A third-party action on a mutable tag with `pull-requests: write`
+
+`madrapps/jacoco-report@v1.8.0` is the only reason the job holds `pull-requests: write`,
+and a tag its publisher can move onto arbitrary code. It is pinned to the immutable commit
+behind v1.8.0. Audit of the other four: `actions/checkout`, `actions/setup-java` and
+`actions/upload-artifact` are GitHub's own; `gradle/actions/setup-gradle` is not — it is
+published by the Gradle organisation, so `v4` is equally movable and it is pinned too, at
+exactly the commit `v4` resolves to today.
+
+```
+cmd:      gh api repos/madrapps/jacoco-report/commits/v1.8.0 --jq .sha
+observed: e51ce1f46f7f8b5331593f935e59cbaf44b84920
+
+cmd:      gh api repos/gradle/actions/commits/v4 --jq .sha
+observed: ed408507eac070d1f99cc633dbcf757c94c7933a   (tags v4, v4.4.3)
+
+pinned:   uses: madrapps/jacoco-report@e51ce1f46f7f8b5331593f935e59cbaf44b84920 # v1.8.0
+          uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+```
+
+### R6. The writer parsed XML by regex and declared no inputs or outputs
+
+The pattern demanded an exact attribute order and a self-closing tag, and its failure mode
+was `?: "0"` — a parse failure indistinguishable from genuine zero coverage, which would
+have silently reset the baseline. It now parses with the JDK's `DocumentBuilderFactory`
+(no new dependency, external DTD loading off) and reads the `<counter>` elements that are
+direct children of `<report>`, failing loudly and naming the file when a report carries
+none. The task declares `inputs.files(reports.values)`, `inputs.property` for the regress
+opt-out, and `outputs.file(target)`, so it is no longer always out of date. The
+cross-project configuration-time reads in `modus.coverage` are kept — they are what makes
+the aggregate work today — but are now headed by a `PROJECT ISOLATION:` comment naming the
+constraint and the migration, so the eventual isolation work finds it.
+
+### R7. The branch column had never fired, and the baseline is boilerplate
+
+Branch coverage is measured, not merely declared:
+
+```
+planted:  isKnown(name) = name.isNotEmpty() && names.contains(name) in BoundedContexts,
+          with tests exercising all four condition outcomes
+cmd:      ./gradlew --no-build-cache coverageBaselineWrite
+observed: :core-domain                   0 0 33 0 -> 0 0 49 6
+
+planted:  the assertFalse(isKnown("")) assertion removed
+cmd:      ./gradlew --no-build-cache :core-domain:coverageRatchet
+observed: > Task :core-domain:coverageRatchet FAILED
+          > Rule violated for bundle core-domain: branches missed count is 2, but expected
+            maximum is 0
+            Rule violated for bundle core-domain: branches covered count is 4, but
+            expected minimum is 6
+post:     function and tests removed; baseline back to :core-domain 0 0 33 0
+```
+
+The reviewer's second point is recorded in `doc:35-testing#coverage` §8.3 rather than
+argued away: three rows are `33 0 0 0` and three are `6 0 0 0`, so the day the placeholders
+are replaced every row moves at once and review becomes rubber-stamping. R1's guard is what
+makes that day safe.
+
+### R5. Not fixed here, deliberately
+
+The `beans/` → `.beans/` move waits for PR #7 to merge. This file stays at
+`beans/0007-coverage.md` until then; the thread stays unresolved so the sequencing is
+enforced by the merge button rather than by memory.
+
+### The gate after the cycle
+
+```
+cmd:      ./gradlew clean && ./gradlew --no-build-cache qualityCheck
+observed: > Task :docsLint
+          docs-lint: OK — 15 documents, 81 anchors, 234 references.
+          > Task :coverageAggregateReport
+          > Task :qualityCheck
+          BUILD SUCCESSFUL
+```
+
 ## Decisions taken and their reasons
 
 | decision | reason |
@@ -193,6 +348,11 @@ observed: > Task :modus-server:coverageReport
 | provisional code counted, not excluded | an exclusion outlives the placeholder and is invisible in the figure it changed. Counting it is what makes the ratchet fire today |
 | exact bounds, not "may not increase" | a one-sided ratchet accumulates slack that a later regression spends silently |
 | per-module, not aggregate, ratchet | an aggregate figure lets one module's integration test pay for another module's untested code |
+| covered counts recorded too, not only missed | `MISSEDCOUNT` alone pins the uncovered surface. Deleting covered code leaves it untouched while the ratio falls |
+| the writer refuses a downward write | a reset task anyone can run is not a ratchet. `-Pcoverage.regress=<reason>` makes the regression deliberate, named, and recorded in the file |
+| the exec set is a glob, not a list of suite names | the aggregate already globs. A literal list lets a third suite be reported and not gated, with no error anywhere |
+| XML parsed with the JDK parser, not a regex | the regex's failure mode was a silent `0`, indistinguishable from genuine zero coverage |
+| third-party actions pinned to commits | `madrapps/jacoco-report` is why the job holds `pull-requests: write`; a movable tag would run arbitrary code with it |
 
 ## Follow-ups this bean carries
 

@@ -52,7 +52,10 @@ jobs:
             21
             25
 
-      - uses: gradle/actions/setup-gradle@v4
+      # Pinned to a commit, not a tag. `gradle/actions` is published by the
+      # Gradle organisation rather than by GitHub, so `v4` is a tag its
+      # publisher can move; this SHA is exactly what `v4` resolves to today.
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
@@ -72,7 +75,12 @@ jobs:
       # 0 rather than a second threshold to keep in sync (doc:35-testing#coverage).
       - name: Publish coverage on the pull request
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: madrapps/jacoco-report@v1.8.0
+        # Pinned to the immutable commit behind v1.8.0. This is the only
+        # third-party action in the workflow and the only reason the job holds
+        # `pull-requests: write`; a moving tag would let its publisher run
+        # arbitrary code with a write-scoped GITHUB_TOKEN on every pull request.
+        # Verify a bump with `gh api repos/madrapps/jacoco-report/commits/<tag>`.
+        uses: madrapps/jacoco-report@e51ce1f46f7f8b5331593f935e59cbaf44b84920 # v1.8.0
         with:
           paths: build/reports/jacoco/aggregate/coverage.xml
           token: ${{ secrets.GITHUB_TOKEN }}

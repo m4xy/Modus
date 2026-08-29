@@ -1,13 +1,16 @@
 # The coverage ratchet baseline — doc:35-testing#coverage.
-# module, missed instructions, missed branches. Both figures are EXACT bounds:
-# the build fails when a module misses more than its row, and when it misses less.
-# Regenerate with ./gradlew coverageBaselineWrite, and review the diff.
-:adapter-agent-claude          33	0
-:adapter-persistence-flatfile  33	0
-:adapter-rest                  3	0
-:adapter-vcs-git               33	0
-:core-application              6	0
-:core-domain                   0	0
-:module-beans                  6	0
-:module-cost                   6	0
-:modus-server                  9	0
+# module, missed instructions, missed branches, covered instructions, covered branches.
+# All four figures are EXACT bounds: the build fails when a module's count differs from
+# its row in either direction, so both halves of the ratio move only through this file.
+# Regenerate with ./gradlew coverageBaselineWrite, and review the diff. The writer
+# REFUSES to raise a missed count; a deliberate regression needs
+# -Pcoverage.regress=<reason>, and the reason is recorded below.
+:adapter-agent-claude          33	0	0	0
+:adapter-persistence-flatfile  33	0	0	0
+:adapter-rest                  3	0	0	0
+:adapter-vcs-git               33	0	0	0
+:core-application              6	0	0	0
+:core-domain                   0	0	33	0
+:module-beans                  6	0	0	0
+:module-cost                   6	0	0	0
+:modus-server                  9	0	3	0
