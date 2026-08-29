@@ -260,3 +260,51 @@ docs-lint: OK — 19 documents, 101 anchors, 768 references, 51 beans, 25 graph 
 BUILD SUCCESSFUL in 15s
 167 actionable tasks: 54 executed, 113 from cache
 ```
+
+## Criterion 4, continued — the counts found a live gap on their first CI run
+
+The vacuity counts were added because check 11 shipped inert. They found check 11 still
+inert, in CI, on the first run of this branch. The gate job's `actions/checkout` used the
+default depth of 1, which creates no `refs/remotes/origin/main`, so
+`git rev-parse --verify origin/main` fails and both check 11 and check 13's third condition
+skip themselves while `docs-lint` exits 0.
+
+```
+observed: $ gh run view --job 99121072357 --log | grep -i "docs-lint:"
+          docs-lint: OK — 19 documents, 101 anchors, 772 references, 51 beans, 25 graph edges, 12 selectable, 51 bean ids, - introduced, - on origin/main.
+```
+
+`- introduced, - on origin/main` against the local run's `0 introduced, 51 on origin/main`
+is the whole signal. Without the counts the two runs are indistinguishable: both print
+`docs-lint: OK` and exit 0.
+
+Fixed by giving the `build` job `fetch-depth: 0`, matching the `changes` job that already
+has it (`.github/workflows/ci.yml`). Confirmed on the next run of the same pull request:
+
+```
+$ gh run view --job 99121455384 --log | grep -i "docs-lint:"
+docs-lint: OK — 19 documents, 101 anchors, 772 references, 51 beans, 25 graph edges, 12 selectable, 51 bean ids, 0 introduced, 51 on origin/main.
+```
+
+`0 introduced` is correct on a pull-request run: GitHub checks out the `refs/pull/N/merge`
+ref, so the merge base with `origin/main` is `main`'s tip and this branch introduces nothing
+relative to it. That is also why the *cross-branch* condition is a **push-time** check, not
+a CI one: on the merge ref a real collision has already become two files with one id in a
+single tree, which condition (a) catches. Condition (c) is what refuses it earlier, on the
+branch, before a reviewer is spent.
+
+## Learnings
+
+- **A count is the only difference between an inert check and a passing one.** Two CI runs
+  of the same commit, one with the comparison skipped and one with it live, both print
+  `docs-lint: OK` and exit 0. The `-` versus `0` in the counts is the entire signal, and it
+  is the second time in this repository that a diff-shaped check was found inert only
+  because someone printed what it examined (`bean:0038`, and here).
+- **`Enforced by:` claims about diff-shaped checks are claims about the checkout, too.** A
+  check that resolves `origin/main` enforces nothing under `actions/checkout@v4`'s default
+  `fetch-depth: 1`. The mechanism was observed failing locally and was still inert where it
+  mattered.
+- **Bean front-matter carries free-form `#` comments.**
+  `.beans/modus-0047--require-the-gate-check.md` has a second one, so "the marker is the
+  only `#` line" and "the marker is line 2" are both wrong rules; the marker is the unique
+  front-matter comment shaped `# <prefix>…`.
