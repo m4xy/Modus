@@ -1,17 +1,25 @@
 ---
 # modus-0039
-title: Decide whether the work store becomes its own repository
+title: Repository topology — what becomes its own repository, and when
 status: todo
 type: epic
 priority: normal
 created_at: 2026-08-29T00:00:00Z
-blocked_by: [modus-0038, modus-0017, modus-0022]
+blocked_by: [modus-0038, modus-0017, modus-0022, modus-0044, modus-0045]
 ---
 
-# Decide whether the work store becomes its own repository
+# Repository topology — what becomes its own repository, and when
 
-An open question with the analysis recorded, not a decision already taken. It exists so the
-next session inherits the measurements rather than re-deriving them.
+Three cut lines have been proposed and they are not the same line. This bean holds all three
+with their measurements, so the next session inherits them rather than re-deriving.
+
+| axis | separates | what it buys |
+|---|---|---|
+| SDLC vs production | records from code | independent review gates, throughput |
+| framework vs tenant (`adr:0006-framework-boundary`) | what every tenant gets from what one domain chose | stops one domain's tooling shipping as product |
+| **deployable component** | frontend from backend from store | parallel CI, independent release cadence |
+
+The third is the classic polyrepo question and is orthogonal to the other two.
 
 ## The proposal
 
@@ -83,3 +91,53 @@ repository, with no reader.
 repository a reviewer on GitHub cannot see it. The backoffice rendering the store is what
 replaces that, and splitting before it exists moves the evidence away from the only place
 anyone reads it.
+
+## The component axis, and the one thing that gates it
+
+Splitting the frontend out is the most obviously attractive of the three: `backoffice/` is a
+self-contained Vite application with its own toolchain, its own tests and its own release
+cadence, and `adr:0006-framework-boundary` classifies it tier 1 — it is product, not this
+domain's tooling.
+
+**The gate is the API contract, and it is hand-written.** `doc:30-code-style` §6 states the
+rule already:
+
+> | API types | Generated from the OpenAPI document | Hand-written API types are forbidden — they drift |
+
+`backoffice/src/api/types.ts` carries 22 hand-written declarations, including
+`export type DomainId = string`. The rule has been false since the backoffice was written and
+carried no `Enforcement gap:`. `bean:0044` closes it.
+
+Why that decides the order: in one repository, contract drift is caught by a person noticing
+— `bean:0009` verified `Capability`'s vocabulary against `types.ts` by hand, once, and
+recorded it as evidence. Across a repository boundary nothing notices, and the failure is
+silent: a renamed field ships green on both sides and breaks in a tenant's browser. A
+generated client makes the boundary a versioned artifact, which is what makes a split safe
+rather than merely faster. **Generate first, split second.**
+
+## The local layout is free and should be adopted regardless
+
+Treating the working tree as a domain directory — `/domains/{id}/repositories/{…}` — is not a
+consequence of splitting. It is the product's own model made concrete on disk: the
+Repositories screen already renders the `modus` domain owning `Modus` and `modus-skills`,
+each with a default branch and a sync status. `doc:00-constitution` §12 says to take every
+decision as if Modus were already running this repository, and this is that decision at
+roughly zero cost.
+
+Note that `doc:10-architecture#domain-root-convention` §5.1's route list does **not** include
+`/domains/{domainId}/repositories`, though the shipped backoffice serves it. The architecture
+document lags both the UI and this proposal.
+
+## Why the CI argument is real but does not settle it
+
+| | duration |
+|---|---|
+| `main`, Kotlin only, before `bean:0029` | ~50–53s |
+| after wiring the backoffice in | ~2m |
+
+`bean:0029` closed a real hole and made this worse: every Kotlin-only change now runs
+`npm ci`, `tsc`, ESLint and Prettier, and CI runs Playwright on top. That cost is genuine —
+and it is a **CI topology** problem, which `bean:0045` fixes with per-path jobs at a fraction
+of the effort a repository split takes. If per-path jobs recover most of the time, the
+component split has to justify itself on release cadence and ownership rather than on
+minutes, which is a different and much smaller argument. Try the cheap thing first.
