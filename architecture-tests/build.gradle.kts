@@ -112,6 +112,14 @@ sourceSets.named("test") {
     resources.srcDir(analysedPackagesDir)
 }
 
+// `PublishedLanguageSourceTest` reads Kotlin SOURCE, not bytecode, because the rule it
+// enforces is invisible in bytecode: a `@JvmInline value class` erases to its underlying
+// type, so a published type holding another context's identifier leaves no edge for
+// ArchUnit to find (bean:0034). Source is where the reference is still a reference.
+tasks.withType<Test>().configureEach {
+    systemProperty("modus.repoRoot", rootProject.projectDir.absolutePath)
+}
+
 tasks.named<ProcessResources>("processTestResources") {
     dependsOn(writeAnalysedPackages, writeUnitTestPackages)
 }
