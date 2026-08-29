@@ -40,7 +40,7 @@ nothing else. No command was reconstructed to stand in for one that was never ru
 
 | # | reported observation | durable artefact |
 |---|---|---|
-| 1 | Across seven review rounds of the defensive-copy gate every escape entered through the parser's input surface; the decision logic was correct each time, and the rule's own test passed each time because its fixture supplied an enabling condition the real code omitted | `bean:0036`, `bean:0064` |
+| 1 | Across the defensive-copy gate's review rounds the defect was repeatedly in what the parser could see rather than in what the rules decided, and the rule's own test passed each round because its fixture supplied an enabling condition the real code omitted | `bean:0036`, `bean:0064` — **as relayed this said "seven rounds" and "every escape"; both are corrected below and neither is what the cited beans say** |
 | 2 | Three rounds of allowlists failed on the same gate; the requirement — a non-private function mentioning a backing field MUST declare a return type — held under direct attack | `bean:0036`; `doc:20-ddd-practices#value-objects` §3.1 |
 | 3 | Four shapes in which a claim read as verified and was not: an `Enforced by:` line for a mechanism nobody had watched reject anything; a number with no command; a citation to an anchor that did not carry the claim made at it; a fabricated justification for a *declined* fix | (a) `doc:00-constitution#observed-failing`; (c) `bean:0058`, criterion 4's note; (b) and (d) the sprint |
 | 4 | A bean whose closure needed evidence authored first was treated as bookkeeping and shipped as a closure | the sprint |
@@ -80,7 +80,7 @@ build file, and every bean but this one.
 | 3 | `doc:80-agent-operating-procedure` step 6 states that a closure needing evidence authored is a work item, and that every criterion is walked against the run the closing change produced | citation |
 | 4 | `doc:80-agent-operating-procedure` §0 carries the three orchestration anti-patterns, each with what it actually cost | citation |
 | 5 | `doc:50-memory-and-evidence` §2.2 rejects an unsourced figure, an unqualified count, an arithmetic check offered as a measurement, and a citation that does not carry its claim | citation |
-| 6 | `doc:50-memory-and-evidence` states the four shapes in which a claim reads as verified and is not, in one place, with the fabricated justification for a declined fix among them | citation |
+| 6 | `doc:50-memory-and-evidence` states the shapes in which a claim reads as verified and is not, in one place, uncounted, with the fabricated justification for a declined fix among them | citation |
 | 7 | `doc:05-authoring-for-agents#one-fact-one-place` states that restating a removed fact in the same change reintroduces it, and that a pointer carrying content its target does not is an unowned rule | citation |
 | 8 | `doc:00-constitution#observed-failing` binds a fix as it binds an `Enforced by:` line | citation |
 | 9 | `doc:00-constitution` §9 states the allowlist-versus-requirement rule and the condition under which an allowlist is admissible | citation |
@@ -91,6 +91,7 @@ build file, and every bean but this one.
 | 14 | `doc:60-cost-model#spend-record` names the token kinds the recorder actually writes, and §2's model can price them | citation |
 | 15 | `doc:20-ddd-practices` §5.1 has a row for the context-free port package, stating that it is not the shared kernel and does not inherit `adr:0004`'s membership gate | citation |
 | 16 | Every package named in §5.1's tables carries the root and segment order this repository uses, and the section names the command that says which of them have members rather than answering it | command |
+| 17 | The negative half of `doc:00-constitution#observed-failing` is written down somewhere, and where it could not go is recorded | citation |
 
 ## Evidence
 
@@ -109,21 +110,28 @@ Routed in by the orchestrator mid-task: `doc:00-constitution` §1.3 named `Clock
 the one this bean first gave.** The first version said precedence "settles two documents
 stating the same rule differently" and so did not reach this case. That scoping is nowhere in
 `doc:00-constitution`, whose line 28 reads flatly *"this file > every other file in
-`documentation/`"*. It was a gloss stated as if it were the clause — the third of the four shapes stack entry 3
+`documentation/`"*. It was a gloss stated as if it were the clause — one of the shapes stack entry 3
 adds to `doc:50-memory-and-evidence` §2.5, a citation that resolves without carrying the
 claim made at it, committed inside the bean that encodes it, and caught in review. It is replaced
 here rather than deleted, because a bad argument left where a later reader can cite it as
 settled is the failure `doc:50-memory-and-evidence#primary-sources` exists to stop.
 
-Three textual grounds, each checked against `origin/main` at `8181726`:
+Three textual grounds, each checked against `origin/main` at `8181726`. They are keyed by
+name rather than numbered: `docs-lint` check 14 reads a **numbered** table inside the Evidence
+region as criteria evidence, so numbering the grounds 1-3 had them answering criteria 1-3,
+which they have nothing to do with. That credit was redundant — those three are answered by
+their own rows in the agent-loop section, and unnumbering changed the audit not at all
+(`17 criteria checked, 0 unnumbered` either way) — but a construct that can answer a criterion
+it is not about should not be left standing because it currently answers one that was already
+answered.
 
-| # | ground | verified |
+| ground | statement | observed |
 |---|---|---|
-| 1 | **`doc:00` already defers to an owning document against its own precedence line.** §1.1 ends: "The table in `10-architecture.md` §4.1 is the machine-readable form … If they disagree, §4.1 wins and this table is the bug." Ownership-over-precedence is a pattern the constitution already applies to itself | `git show origin/main:documentation/00-constitution.md` line 74 |
-| 2 | **Precedence produces an incoherent result.** §1.3 covers time and identifiers and never mentions randomness, so it cannot name a third port. Reading precedence as decisive yields `{Clock, IdGenerator, RandomPort}` — two names from one document and one from another, for three ports of one kind | same file, lines 86–87 |
-| 3 | **The naming rule pre-existed and `doc:00` states nothing contrary.** §5.2's outbound-port row already gives `<Noun>Port` with `ClockPort` as its own example, and §7's prohibitions table already names `ClockPort` as the replacement for `Instant.now()` — both on `main`, before this change | `git show origin/main:documentation/20-ddd-practices.md` lines 311 and 430 |
+| deference | **`doc:00` already defers to an owning document against its own precedence line.** §1.1 ends: "The table in `10-architecture.md` §4.1 is the machine-readable form … If they disagree, §4.1 wins and this table is the bug." Ownership-over-precedence is a pattern the constitution already applies to itself | `git show origin/main:documentation/00-constitution.md` line 74 |
+| incoherence | **Precedence produces an incoherent result.** §1.3 covers time and identifiers and never mentions randomness, so it cannot name a third port. Reading precedence as decisive yields `{Clock, IdGenerator, RandomPort}` — two names from one document and one from another, for three ports of one kind | same file, lines 86–87 |
+| pre-existing | **The naming rule pre-existed and `doc:00` states nothing contrary.** §5.2's outbound-port row already gives `<Noun>Port` with `ClockPort` as its own example, and §7's prohibitions table already names `ClockPort` as the replacement for `Instant.now()` — both on `main`, before this change | `git show origin/main:documentation/20-ddd-practices.md` lines 311 and 430 |
 
-Ground 1 cites a clause that entry 4 of this stack deletes with §1.1's table. The deference
+The deference ground cites a clause that entry 4 of this stack deletes with §1.1's table. The deference
 survives in stronger form — §1.1 becomes "`doc:10-architecture#module-dependencies` §4.1 is
 the one dependency table" — so the precedent holds after the stack lands, but a reader
 checking the citation on a later `main` should look there.
@@ -261,7 +269,7 @@ body that no reading of `git diff --numstat` produces; and a normative sentence 
 completeness the same file refutes three times. None came from carelessness. Each was written
 at the moment it was true of the intention and never re-derived against the finished artefact.
 
-That is a distinct failure from the four shapes stack entry 3 encodes, and entry 3 now carries
+That is a distinct failure from the shapes stack entry 3 encodes, and entry 3 now carries
 it: a claim is re-derived against the artefact at the moment it is certified, not at the moment
 it is believed. The three instances here are its evidence.
 
@@ -461,7 +469,7 @@ the line is, and was re-run to prove it.
 | # | criterion | observed |
 |---|---|---|
 | 5 | §2.2 rejects the four unsourced shapes | `documentation/50-memory-and-evidence.md` — four rows added to *What is explicitly not evidence*: a figure with no command, a count with no command and no tree, arithmetic over a table of figures, and a citation that resolves without carrying its claim |
-| 6 | the four shapes are named in one place, the fabricated decline among them | `documentation/50-memory-and-evidence.md` §2.5, `The four shapes in which a claim reads as verified` — a marked derived table of shape/tell/rule, closing on why the fabricated justification is the worst of the four; `documentation/80-agent-operating-procedure.md` step 9 resolution 3 cites that anchor rather than restating it |
+| 6 | the shapes are named in one place and uncounted, the fabricated decline among them | `documentation/50-memory-and-evidence.md` §2.5, `The shapes in which a claim reads as verified` — a marked derived table of shape/tell/rule which states that the set "is deliberately not counted, here or in the heading", closing on why the invented reason for a declined fix is the worst of them; `documentation/80-agent-operating-procedure.md` step 9 resolution 3 cites that anchor rather than restating it |
 | 7 | §3 states both authoring rules | `documentation/05-authoring-for-agents.md` — "Removing a copy and restating it in the same change is how the duplication comes back", and "A pointer that carries content its target does not is an unowned rule", worked against `bean:0058` |
 | 11 | budgets held | the `wc -l` below, each of 500 |
 | 12 | the gate | the run below, on this branch |
@@ -494,3 +502,192 @@ observed: docs-lint: OK — 19 documents, 109 anchors, 1212 references, 83 beans
 tree:     this branch rebased onto origin/main at 161a7c3
 exit:     0
 ```
+
+### `docs/encode-sprint-1-gate-design` — gates
+
+| # | criterion | observed |
+|---|---|---|
+| 8 | `observed-failing` binds a fix | `documentation/00-constitution.md` §9.1 — "The rule binds a **fix** as it binds a gate: a fix nothing can be observed to protect is not yet enforced", a fourth bullet in §9.1's list |
+| 9 | the allowlist rule and its admissible case | `documentation/00-constitution.md` §9.1, the paragraph after that list — "Enumerating the shapes a gate accepts fails open; requiring the token that settles the question fails closed", closing on the one set an allowlist may bind over |
+| 10 | the input surface is separated from the decision, and the plant covers the enabling condition | `documentation/35-testing.md` §6, a bullet: "What a mechanism perceives is a separate subject from what it decides, and takes its own tests… Plant the claim's *enabling condition*, not only the claim" |
+| 11 | `doc:00-constitution` did not grow | 500 of 500, unchanged from `main`, which already carries the §1.3 rewrite this stack's base landed. `doc:35-testing` likewise |
+| 17 | the negative half is written down | `documentation/50-memory-and-evidence.md` §2.2 gains the row "A mechanism observed firing, never observed silent" — three observations, not one — and the paragraph on a retained "best" value corrupting the state it compares against, with the count assertion that is the only thing that catches it. It belongs at `doc:00-constitution#observed-failing` beside the positive half and could not go there; `bean:0089` records that as the second casualty of the ceiling |
+| 12 | the gate | the run below, on this branch |
+
+The retention instance was **reported, not reproduced** — it is a live detector on PR #45,
+`fix/per-request-usage-vocabulary`, which this agent does not own and did not run
+(`doc:80-agent-operating-procedure#reports-are-evidence`). The rule it produced is general
+and stands on its own; the instance is attributed rather than claimed. Verified only that the
+pull request exists and is open: `GITHUB_TOKEN= gh pr view 45` → `state=OPEN`,
+`headRefName=fix/per-request-usage-vocabulary`.
+
+`doc:00-constitution` §9.1's superseded "and in the pull-request body" clause is corrected
+here too, at **zero line cost** — the phrase sat inside one line and striking it left one
+line. `bean:0089` had claimed that correction was impossible at 500 of 500 and has withdrawn
+the claim: the wall binds what must be **added**, not what can be **struck**, and pricing a
+correction before declaring it unaffordable is one subtraction.
+
+The wall this branch hit while making that room is raised as `bean:0089`, with the pinned-anchor
+count measured rather than estimated, per `doc:80-agent-operating-procedure#encode-the-learnings`:
+something noticed and not fixed is a work item. Its measurement was taken before `bean:0091`,
+`bean:0095` and `bean:0098` reached `main`, so its pinned-set figure is a snapshot against the
+sha it names, and criterion 2 of that bean already requires re-measurement at the time of the
+fix rather than reuse of this one.
+
+```
+cmd:      wc -l documentation/00-constitution.md documentation/35-testing.md documentation/50-memory-and-evidence.md
+observed: 500 documentation/00-constitution.md
+          500 documentation/35-testing.md
+          450 documentation/50-memory-and-evidence.md
+         1450 total
+exit:     0
+
+cmd:      ./gradlew qualityCheck
+observed: docs-lint: OK — 19 documents, 109 anchors, 1263 references, 84 beans, 37 graph
+          edges, 34 selectable, 84 bean ids, 1 introduced, 83 on origin/main, 0 closing
+          transitions, 0 criteria checked, 0 unnumbered.
+tree:     this branch rebased onto origin/main at 905a5f9
+exit:     0
+```
+
+The counts are unchanged across that rebase, and the reason is worth one line rather than a
+re-assertion: `#52` merged, so the commit this branch used to carry is now carried by `main`.
+The tree is byte-identical either way, so `docs-lint` reads the same corpus and prints the
+same figures. They were re-run rather than carried — the run is what established that they
+had **not** moved, which is not a fact that could be assumed in either direction.
+
+The `BUILD SUCCESSFUL in Ns` line is dropped from this block. A duration does not reproduce —
+this branch has printed 17s, 19s, 20s and 22s for the same command on the same tree — so
+pasting one makes the block unverifiable for a reason that has nothing to do with the claim.
+**Quote what reproduces, not what merely got printed.**
+
+Room was made rather than taken. §1.1's dependency table was a self-declared prose
+rendering of `doc:10-architecture#module-dependencies` §4.1; it is deleted, and the two rows
+§4.1 did not carry — `backoffice/` and `e2e/` — moved into §4.1 rather than being dropped.
+In `doc:35-testing`, two closing recaps and one clause duplicating
+`doc:00-constitution#observed-failing` were removed (`doc:05-authoring-for-agents#prose-ban`).
+
+#### Two figures promoted into normative documents without checking the beans beside them
+
+Row 1 of the provenance table above was relayed as "seven review rounds" and "every escape
+entered through the parser's input surface". Both went into `doc:35-testing` §6. A third,
+"held under direct attack", went into `doc:00-constitution` §9.1. All three were wrong, and
+the artefacts that refute them are the two beans cited in the same row.
+
+| claim as written | what `bean:0036` and `bean:0064` say |
+|---|---|
+| seven review rounds | six. `bean:0036:690` — "the defect **these six rounds** exist to close"; `bean:0064:12` — "after **six** review rounds"; the last round heading is *Review round six* |
+| **every** escape entered through the input surface | round six had four escapes and **one** was a parse bug — `bean:0036:598` says so in terms, and X3, `get() = held.register().toList()`, is a rule-logic gap that passed the round-four rule. The bean's claim is per **round**: "the fourth consecutive round in which the defect was in what the parser could see rather than in what the rules decided" |
+| the requirement held under **direct attack** | it was *introduced* as X4's fix in the final round, so nothing attacked it afterwards. `bean:0036:628` is prospective — "cannot be walked around by writing an expression the list does not name" — and `bean:0064` §2 records it **misfiring** on `internal fun isFrozen() = frozen` |
+
+**The rules survive; only the evidence sentences were wrong.** X4 alone establishes the
+input-surface rule, and the requirement genuinely replaced three allowlists that each failed
+open and genuinely fails closed. So the cost was not a false rule — it was three unearned
+strengtheners, each making a true claim sound better than its evidence.
+
+**This is the sharpest instance in the bean, because of where it happened.** Every other
+figure on this branch was checked against source — the ArchUnit predicate, the fourteen-row
+count, the package roots. These three came from a relay, went into the provenance table, and
+were promoted from there into two normative documents without anyone re-opening the beans
+sitting in the citation column beside them. A provenance table is not a source; it is a
+record of what was said, and the source is the artefact it names. **Two paragraphs away, this
+same branch corrects an over-claim in `doc:15` §4.2 for exactly this reason.**
+
+#### A relocation is a deletion plus an addition, and only the deletion is guaranteed
+
+That deletion was safe **only if** §4.1 already carried every rule §1.1 stated. Two did not
+survive, and review found both. `core:core-application` lost its `Kotlin stdlib` ALLOW, so
+the surviving table denied the standard library to a core module. `modules:*` lost its
+`app:*` DENY, so §4.1 — which calls itself the source table an ArchUnit test is derived from
+— understated `rule:archunit/modulesDoNotDependOnAdaptersOrApp`, whose predicate is
+`resideInAnyPackage(ADAPTERS, APP)`, the predicate at `ArchitectureRulesTest.kt:132` under the
+val at `:126`. The only document
+stating the modules-to-app prohibition was the one being deleted. Both rows are restored
+above.
+
+**The failure is in what was checked, not in the care taken.** The two rows §4.1 visibly
+lacked — `backoffice/` and `e2e/` — were transferred deliberately and verified. The rows
+assumed already present were never enumerated, so the check ran over exactly the subset that
+could not fail it. That is this branch's own input-surface rule
+(`doc:35-testing#load-bearing-evidence`) arriving in prose rather than in code: the
+verification's *input* was selected by the belief it was meant to test.
+
+**The check is mechanical and takes a minute.** Enumerate the deleted rows, enumerate the
+destination's rows, diff the sets; do not re-read the destination for the ones you remember
+moving. Run here over all nineteen MAY/MUST-NOT pairs the deleted table stated:
+
+```
+cmd:      python3 - <<'EOF'   (each deleted pair tested for presence in §4.1)
+observed: LOST: 2 ['core-application MAY Kotlin stdlib', 'modules MUST NOT adapters+app']
+          re-run after restoring both rows:
+          LOST: 0
+exit:     0
+```
+
+Its first run reported all nineteen lost, because the section slice terminated on the table's
+own `|---|` separator. A check reporting total failure is as untrustworthy as one reporting
+total success; this one was wrong in the safe direction by luck, not by design.
+
+**A relocation MUST be verified as a set difference, never by re-reading the destination.**
+`doc:05-authoring-for-agents#one-fact-one-place`'s fix pattern — "replace every other copy
+with a reference" — is a relocation every time it is applied, so this binds it.
+
+Two corrections were made in passing, both in the family this bean is about:
+
+- `doc:35-testing` §6 required the evidence "in the pull-request body's `verify` block",
+  which `adr:0005-evidence-lives-in-the-work-item#evidence-home` moved to the work item. The
+  document had been left behind by the ADR that governs it.
+- `doc:00-constitution` §1.3 and `doc:15-repository-layout` §4.2 both over-claimed the time
+  ban. Verified against source rather than relayed:
+  `architecture-tests/src/test/kotlin/uk/m4xy/modus/architecture/ArchitectureRulesTest.kt:310`
+  — `timeIsInjectedNeverReadFromAStaticClock` is `noClasses().should().callMethod(Instant,
+  "now").orShould().callMethod(LocalDate, "now").orShould().callMethod(LocalDateTime,
+  "now")`, and `callMethod` with no parameter types matches the zero-argument overload only.
+  Three of the six methods the `NoAmbientTime` row names are reached at all, and those three
+  only in that one overload; the rule binds the whole repository rather than `core-domain`,
+  because it carries no `.that()`.
+
+  **That citation was `:258` until review caught it, and the rebase is what moved it.**
+  `bean:0065` added **52** lines above the rule — the val moved `258` → `310`, and the change
+  deleted nothing — so `:258` now lands in KDoc prose. It added 167 lines to the whole file;
+  that figure was relayed to me, I wrote it into this paragraph as "above the rule", and 167
+  is true of the file while only 52 explains the move. **It landed in the paragraph whose own
+  thesis is that a count beside a fact being corrected is invisible**, three lines from the
+  sentence stating it, in the round that added that sentence.
+
+  The `:258` citation itself was checked against source when written and was true then. It is
+  the rebase-dependent class this bean already records for its own line numbers — and it
+  survived a pass in which I corrected the `tree:` sha in the same fence, because I
+  re-derived the figure the rebase was visibly about and not the citations the same rebase
+  had moved. **A rebase invalidates every line number in the change, not the ones you are
+  thinking about.**
+
+  **I did it twice more while fixing it.** The first rebuild of §4.2's gap paragraph opened
+  "Three further rows are reached in part" and closed "Five of these rows" — two counts, both
+  wrong, inside the paragraph whose thesis is that the section should give no count. The rows
+  are named now. A second draft then recorded that fact *in the document*, which review
+  rejected: an uncommitted draft cannot be checked against any ref, so a normative document
+  asserting one is unverifiable by construction. The rule stays in `doc:15`; the instance is
+  here, which is where process that never reached a commit can legitimately live.
+
+  `doc:15`'s gap paragraph
+  also said "five of the thirteen rules in §4.2" over a table that has fourteen rows
+  (`awk '/^### 4.2/,/^### 4.3/' documentation/15-repository-layout.md | grep -c '^| \`'` →
+  `14`); the count is deleted rather than corrected, per
+  `doc:05-authoring-for-agents#one-fact-one-place`.
+
+  **And it came back, which is a sharper fact than it first looked.** While this branch
+  waited, `bean:0065` landed and its author rewrote that sentence as "four of the thirteen
+  rules". The numerator changed and was right both times; **`thirteen` is byte-identical
+  across the two versions.** The table has had fourteen rows at every commit that has ever
+  touched the file, so `thirteen` never went stale — it was wrong on arrival, and then
+  survived a deliberate rewrite of its own sentence by an author who was actively editing the
+  numbers standing next to it.
+
+  That is a stronger argument than the one this paragraph first made. A stale count at least
+  announces itself by drifting; this one could not drift, because it was never right, and the
+  one act most likely to catch it — rewriting the sentence it sits in — did not. **A count
+  beside a fact being corrected is invisible precisely because the corrector's attention is
+  on the fact.** Deleting it is not tidiness, it is the only intervention the evidence
+  supports.
+

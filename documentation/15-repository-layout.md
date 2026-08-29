@@ -129,17 +129,52 @@ package- and adapter-level rules that sit under it.
 | `ControllersAreDomainScoped` | Every `@RequestMapping`/`@GetMapping`/… path starts with `/domains/{domainId}`, unless it matches the **non-domain-scoped route allowlist** in `doc:10-architecture#domain-root-convention` §5.1. The rule reads that list; it does not restate it. |
 | `NoFieldInjection` | No `@Autowired` on a field or setter anywhere. Constructor injection only. |
 
-**Enforcement gap (§4.2):** four of the thirteen rules in §4.2 do not exist —
-`EventsAreDataClasses`, `NoAmbientRandom`, `NoAmbientConcurrency` and `NoReflection`.
-`architecture-tests` implements the other nine, and `domainIsFrameworkFree` covers the first
-four rows as one rule rather than four. Until they exist, an event that is not a data class
-and a call to `UUID.randomUUID()` in the domain both merge green.
+**Enforcement gap (§4.2):** `EventsAreDataClasses`, `NoAmbientRandom` and `NoReflection` do
+not exist, so an event that is not a data class and a call to `UUID.randomUUID()` in the
+domain both merge green.
 
-`PortsAreInterfaces` is **half implemented** (`bean:0065`), so it is on neither list without
-qualification. `rule:archunit/portsAreInterfaces` rejects a non-interface in any `..port..`
+`NoIoInDomain` does not exist either, in the sense that row states it: nothing scoped to
+`core-domain` names `java.io..`, `java.nio.file..` or `java.net..`, and the only rule that
+names them — `TestPurityRulesTest.unitTestsDoNotTouchTheFilesystemOrTheNetwork` — is scoped
+`.that(unitTestClasses)`.
+
+`NoLoggingInDomain` and `NoAmbientConcurrency` are reached in part, and are stated by clause
+rather than by row. `domainIsFrameworkFree` covers `NoSpringInDomain` and `NoJacksonInDomain`
+whole; of `NoLoggingInDomain` it covers `org.slf4j..` only, while
+`rule:archunit/nothingWritesToTheStandardStreams` covers `println` repository-wide
+(`bean:0003`) and `java.util.logging..` is covered by nothing. Of `NoAmbientConcurrency`,
+`rule:archunit/nothingSleepsTheThread` bans `Thread.sleep` repository-wide, and nothing covers
+`java.util.concurrent..` or `Dispatchers`.
+
+No count of what is implemented is given here, and none should be, including a count of the
+partial rows. `NoLoggingInDomain`, `NoAmbientConcurrency`,
+`PortsAreInterfaces` and `NoAmbientTime` are each reached in part, so any partition into
+implemented and missing has to place them somewhere and none of them belongs in either
+bucket. Read the rows and their clauses.
+
+`PortsAreInterfaces` is **half implemented** (`bean:0065`).
+`rule:archunit/portsAreInterfaces` rejects a non-interface in any `..port..`
 package — observed on a planted class in `identity.port`, a package that already existed. The
 row's second requirement, "no default implementations that perform IO", is enforced by
-nothing. `bean:0027` carries the audit; `bean:0034` carries the consequence
+nothing.
+
+`NoAmbientTime` is implemented **in part** in the same way, which reads worse than not at all,
+because its row in §4.2 reads as covered: `rule:archunit/timeIsInjectedNeverReadFromAStaticClock`
+bans the **zero-argument overloads only** of `Instant.now`, `LocalDate.now` and
+`LocalDateTime.now`, which its own KDoc states is deliberate — `Instant.now(clock)` is the
+shape the rule pushes code towards and stays legal. So `Clock.systemUTC`,
+`System.currentTimeMillis` and `System.nanoTime` merge green, and so do
+`LocalDate.now(ZoneId)` and `LocalDateTime.now(ZoneId)`: the row names six methods and the
+rule reaches three of them, in one overload each (`doc:00-constitution#observed-failing`).
+Being `noClasses()` **with no `.that()`**,
+`rule:archunit/timeIsInjectedNeverReadFromAStaticClock` binds the whole repository and not
+`core-domain` alone — the scope comes from the missing predicate, not from `noClasses()`,
+which `domainIsFrameworkFree` also uses while scoping itself to `DOMAIN`. Wider than this
+section claims, and not a defect. Detekt's `ForbiddenMethodCall` once carried three of these
+bans and is `active: false` (`config/detekt/detekt.yml`), which is why they live in
+`architecture-tests` now.
+
+`bean:0027` carries the audit; `bean:0034` carries the consequence
 that `PublishedLanguageIsLeaf` cannot lean on `EventsAreDataClasses` to see a value class in
 an erased position — which `bean:0034` has since closed with `PublishedLanguageSourceIsLeaf`,
 reading source rather than bytecode.

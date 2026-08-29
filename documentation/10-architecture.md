@@ -142,6 +142,7 @@ This is the source table an ArchUnit test is derived from. One row per (module, 
 | `core:core-domain` | `java.time.*` (types only, no `now()`) | ALLOW |
 | `core:core-domain` | anything else | DENY |
 | `core:core-application` | `core:core-domain` | ALLOW |
+| `core:core-application` | Kotlin stdlib | ALLOW |
 | `core:core-application` | `kotlinx.coroutines` | ALLOW |
 | `core:core-application` | anything else | DENY |
 | `adapters:*` | `core:core-domain`, `core:core-application` | ALLOW |
@@ -151,9 +152,17 @@ This is the source table an ArchUnit test is derived from. One row per (module, 
 | `modules:*` | `core:core-domain`, `core:core-application` | ALLOW |
 | `modules:*` | `org.springframework.*`, its own third-party libs | ALLOW |
 | `modules:*` | another `modules:*` | DENY |
-| `modules:*` | `adapters:*` | DENY |
+| `modules:*` | `adapters:*`, `app:*` | DENY |
 | `app:modus-server` | any Gradle module | ALLOW |
 | any Kotlin module | `java.sql`, `javax.sql`, `jakarta.persistence`, `org.hibernate`, `org.jooq` | DENY |
+| `backoffice/` | the REST API contract, over HTTP | ALLOW |
+| `e2e/` | the running system, over HTTP | ALLOW |
+| `backoffice/`, `e2e/` | any Kotlin source | DENY |
+
+The last three rows are here rather than in a table of their own because this is the one
+dependency table. Neither tree is a Gradle module (`doc:15-repository-layout#repository-layout`
+§2), so ArchUnit cannot reach either; both are held by having no Kotlin on their side of the
+HTTP boundary at all.
 
 ---
 

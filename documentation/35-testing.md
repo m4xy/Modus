@@ -243,11 +243,17 @@ Procedure, per test:
 
 - The recorded failure MUST be the assertion the test's name describes. A test that fails
   with `NullPointerException` when its subject is broken has proved nothing.
-- The evidence MUST appear in the pull-request body's `verify` block, verbatim, per
-  `doc:00-constitution` §3.
+- The evidence MUST appear verbatim in the work item, beside the criterion it satisfies
+  (`adr:0005-evidence-lives-in-the-work-item#evidence-home`, `doc:00-constitution` §3).
 - The same procedure applies to every rule added to `architecture-tests`: plant a real
-  violation at a real call site, observe the named rule fail, revert. A rule that cannot
-  be made to fail is worse than an admitted gap — it also stops anyone looking.
+  violation at a real call site, observe the named rule fail, revert.
+- **What a mechanism perceives is a separate subject from what it decides, and takes its
+  own tests.** Plant the claim's *enabling condition*, not only the claim: a fixture that
+  hands the subject a well-formed input has not tested the code that builds it. Four
+  consecutive rounds of the defensive-copy gate closed on a defect in what the parser could
+  see rather than in what the rules decided, while the rule's own test passed each round on a
+  fixture supplying an enabling condition the real code omitted (`bean:0036`). A feature of
+  the input surface that nothing enumerates is a feature nothing guards.
 - `const val` references are inlined by the Kotlin compiler and leave no trace in the
   referring class file. Plant violations at call sites, never at a constant.
 
@@ -308,8 +314,7 @@ reader can cite it as settled:
 | PIT declines to support Kotlin | **Overstated.** hcoles wrote the Apache-2.0 `pitest/pitest-kotlin` himself and core PIT merged Kotlin source-dir handling (`pitest#1347`). What is true is narrower: that plugin is archived and unmaintained since 2023 and its README points at the commercial Arcmutate, whose Kotlin integration states `Before you can use the integration, you must first acquire a licence`. |
 | the `else` of an exhaustive `when` over a sealed class yields an unkillable mutant | **Overstated, and self-cancelling.** The unkillable mutants come from the compiler's redundant equality and null checks on the *final branch*, not from the `else` — and Arcmutate suppressed both (kotlin-plugin 1.1.2, 1.2.1). It is therefore an argument about which tooling you buy, not about mutation testing. |
 
-Licence cost and an unmaintained free plugin are a cost to weigh, not a rejection. `#402`
-is the rejection.
+Licence cost and an unmaintained free plugin are a cost to weigh, not a rejection.
 
 **Chosen substitute: targeted agent mutation.** For each success criterion in a bean, the
 agent MUST break the specific behaviour under test, record the observed failure verbatim,
@@ -412,9 +417,6 @@ Rule violated for bundle core-domain: instructions missed count is 33, but expec
 | a threshold per module | nine invented numbers, each defensible only by the coverage that happens to exist |
 | an exact per-module ratchet | non-vacuous on all nine today. The recorded missed *and* covered counts are the measurement, and every movement in either is a line in the diff |
 
-The ratchet states no number anyone invented, and it fails in both directions, so it
-cannot go stale while the build is green.
-
 ### 8.3 Provisional code is counted, not excluded
 
 Every module holds provisional placeholder code — the bounded-context markers, the module
@@ -485,8 +487,6 @@ closes.
 ---
 
 ## 9. Gaps <a id="gaps"></a>
-
-Stated so they can be closed rather than discovered.
 
 | gap | closing condition |
 |---|---|
