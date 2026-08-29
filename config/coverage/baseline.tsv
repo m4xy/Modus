@@ -7,13 +7,13 @@
 # -Pcoverage.regress=<reason>, and the reason is recorded below.
 # REGRESSION accepted with -Pcoverage.regress: identity validators replaced two three-branch isNotBlank() && none{} checks with single whole-string regex matches; six branches disappear from the source, none become uncovered (missed branches stay 0)
 #   :core-domain: covered branches 44 -> 38
-# Restored by hand in bean:0032 after coverageBaselineWrite erased it; bean:0033 makes it survive.
+# Restored by hand in bean:0032 and again in bean:0030 after coverageBaselineWrite erased it; bean:0033 makes it survive.
 :adapter-agent-claude          33	0	0	0
 :adapter-persistence-flatfile  33	0	0	0
 :adapter-rest                  3	0	0	0
 :adapter-vcs-git               33	0	0	0
 :core-application              6	0	0	0
-:core-domain                   0	0	619	38
+:core-domain                   0	0	1265	102
 :module-beans                  6	0	0	0
 :module-cost                   6	0	0	0
 :modus-server                  9	0	3	0

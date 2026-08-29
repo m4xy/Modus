@@ -1,7 +1,7 @@
 ---
 # modus-0030
 title: The Domain aggregate and per-domain process definitions
-status: todo
+status: in-progress
 type: feature
 priority: high
 order: AM
@@ -82,3 +82,82 @@ need a port back into this context — which is the coupling §3.1 exists to pre
 Out of scope, explicitly: persistence (`bean:0017`), any REST surface (`bean:0018`), the
 two context-isolation ArchUnit rules (`bean:0023` — this bean supplies the second context
 they need, and does not implement them).
+
+**Per-domain required evidence kinds are deferred, deliberately.** `doc:00-constitution#domain-scoping`
+lists them beside states and definition of done as things a domain defines for itself, so
+they belong in `ProcessDefinition` eventually. They are not modelled here because the thing
+they override does not exist: `doc:50-memory-and-evidence#evidence-kinds` is a closed set of
+six owned by `memory`, which is `bean:0015`. Modelling an override of an unbuilt closed set
+means inventing its vocabulary twice and reconciling later. `bean:0015` adds the field, with
+`domainmgmt` holding opaque names — it may not import `memory` (`doc:10-architecture#bounded-contexts`
+§3.1) — and this paragraph is the record that it was a decision, not an omission.
+
+## Evidence
+
+33 new tests (`DomainTest` 11, `ProcessDefinitionTest` 15, `PublishedLanguageTest` 7);
+`:core-domain` goes 43 → 76. `./gradlew qualityCheck` green.
+
+Criterion 10, targeted mutation per `doc:35-testing#load-bearing-evidence` — ten planted,
+ten killed, each by the test whose name describes the behaviour and each with a real
+assertion rather than an incidental exception. Planted, observed, reverted:
+
+| planted | test that caught it | observed |
+|---|---|---|
+| `adoptProcess` drops the idempotence guard | `adopting the process already in force raises nothing` | `AssertionFailedError: Unexpected elements from index 1` |
+| `equals` falls back to reference identity | `two instances of one domain id are the same domain, whatever their process` | `expected:<…aggregate.Domain@d506082c> but was:<…>` |
+| `pendingEvents` hands out the backing list | `pendingEvents is a copy, so draining it cannot empty the root` | `expected:<2> but was:<0>` |
+| `ProcessDefinition` drops the reachability check | `refuses a process with a state unreachable from its initial state` | `Expected exception java.lang.IllegalArgumentException but no exception was thrown.` |
+| `initial` allowed to be terminal | `refuses a process whose initial state is also terminal` | `expected:<processDefinition initial state 'todo' is also terminal, …> but was:<…>` |
+| a transition may leave a terminal state | `refuses a transition out of a terminal state` | `Expected exception java.lang.IllegalArgumentException but no exception was thrown.` |
+| `allows` ignores the target state | `permits exactly the moves it declares` | `expected:<false> but was:<true>` |
+| `StateTransition` permits a self-transition | `refuses a self-transition, in the pair and in the query` | `Expected exception java.lang.IllegalArgumentException but no exception was thrown.` |
+| `DomainName` stops rejecting control characters | `refuses a domain name carrying control characters` | `Expected exception java.lang.IllegalArgumentException but no exception was thrown.` |
+| `StateName` accepts upper case | `refuses a state name that could not survive a URL, a file name or a log field` | `Expected exception java.lang.IllegalArgumentException but no exception was thrown.` |
+
+Criterion 7 — `rule:archunit/publishedLanguageIsLeaf`, planted on the real event type
+rather than a probe:
+
+```
+planted:  DomainCreated gains `val probe: Capability get() = Capability("work.read")`
+observed: ArchitectureRulesTest > publishedLanguageIsLeaf FAILED … was violated (1 times):
+          Method <uk.m4xy.modus.core.domain.domainmgmt.event.DomainCreated.getProbe-OlfN_Ag()>
+            calls method <uk.m4xy.modus.core.domain.identity.published.Capability.constructor-impl(
+            java.lang.String)> in (DomainMgmtEvents.kt:25)
+reverted: yes
+```
+
+Criterion 9 — the 100% aggregate branch floor, shown non-vacuous over the **new** package:
+
+```
+planted:  Domain gains `fun probe() = if (name.value.isEmpty()) "empty" else "present"`
+observed: Rule violated for package uk.m4xy.modus.core.domain.domainmgmt.aggregate:
+            branches covered ratio is 0.6, but expected minimum is 1.0
+reverted: yes
+```
+
+## What the work changed about the plan
+
+**`allows` was rewritten mid-implementation.** It read
+`from != to && StateTransition(from, to) in transitions`, which constructs a value object
+whose `init` refuses a self-transition — so `allows(x, x)` threw where it must answer
+`false`. The mutation pass is what exposed it: killing the guard produced an
+`IllegalArgumentException`, and `doc:35-testing#load-bearing-evidence` says a test that
+fails with an exception rather than its named assertion has proved nothing. It now matches
+on the pair's parts. A query never throws because its argument is uninteresting.
+
+**Criterion 4 was sharpened before any code, not weakened after.** It read "refuses a `done`
+transition whose target is not terminal", which names a `done` concept this context does not
+have. It is now "refuses a transition leaving a terminal state" — the rule that was actually
+meant, and one a test can state.
+
+**`doc:35-testing#fixture-variation` caught a test that passed for the wrong reason.** The
+`pendingEvents` copy test was written against a domain with one event. At size one
+`toList()` returns `Collections.singletonList`, whose `clear()` throws
+`UnsupportedOperationException` before proving anything about copying; at size two it is an
+`ArrayList` the cast genuinely reaches. Rewritten against two events. This is the same
+size-one degeneracy that hid `bean:0009`'s privilege escalation, in a different `toList()`.
+
+**The coverage ratchet found five unread public accessors** — `ProcessDefinition.initial`
+and `.transitions`, `Domain.id` and `.name`, and every property of both events. Nothing
+asserted on the contract those getters *are*. Covered by asserting on them, not by
+deleting them.

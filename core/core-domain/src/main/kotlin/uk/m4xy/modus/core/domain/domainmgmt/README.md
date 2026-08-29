@@ -1,14 +1,22 @@
 # Bounded context: `domainmgmt`
 
-Domains themselves: creation, configuration, the rules a domain imposes, and which Modules are installed in it.
+Domains themselves: creation, the process a domain imposes on its work, and — once
+`bean:0031` lands — which Modules are installed in one and who may see them.
 
-This package is currently a placeholder. The domain model is owned by a later
-work item; only the package boundary is established here so that the
-architecture tests have something real to enforce.
+Package layout follows `doc:20-ddd-practices#ports-and-adapters` §5.1: `published`
+(`DomainName`, `StateName`, `StateTransition`, `ProcessDefinition`), `event`, `aggregate`,
+`port`.
 
-Rules that already apply to this package:
+`DomainId` is not declared here. It is shared kernel, beside `DomainEvent`
+(`adr:0004-domain-id-shared-kernel`) — this context's events name a domain, and a published
+package may not reach into another context's.
 
-- No framework types. Kotlin stdlib only.
-- No dependency on `core-application`, any `adapter-*` or any `module-*`.
-- No dependency on another bounded context's internals without an explicit,
-  reviewed reason (cross-context references are caught by the cycle check).
+That is the whole of what this context imports from outside itself. The allowlist of
+`doc:10-architecture#bounded-contexts` §3.1 also permits `identity`'s published language,
+and `bean:0031` uses it to consume `GrantRevoked`; nothing here does yet.
+
+`ProcessDefinition` is published rather than internal because it appears in this context's
+events, and because `doc:20-ddd-practices#aggregates` §2.2 passes it into
+`WorkItem.transitionTo` — `work` needs the type, not a copy of the data. States are opaque
+names, never an enum and never `work`'s `WorkItemState`: `doc:00-constitution#domain-scoping`
+forbids hardcoding one process, and this context may not import `work` at all.
