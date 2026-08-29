@@ -212,9 +212,9 @@ system.
 
 **The gate is `00-constitution.md` §7.2.4.** Run exactly what that block says — this step
 does not carry its own command list, because a gate written down in three places is a gate
-that gets run in three different ways. In short: `ktlintFormat`, then `qualityCheck`. That
-block also carries the `Enforcement gap:` for the backoffice and Playwright checks, which
-no task runs; read it before assuming a green `qualityCheck` covered `backoffice/`.
+that gets run in three different ways. In short: `ktlintFormat`, then `qualityCheck`, which
+since `bean:0029` covers `backoffice/` and `e2e/` too. `e2eTest` is separate and is required
+only when user-visible behaviour changed.
 
 If a **skill** governs this task, its validation command is the gate (`70-skills.md`
 §3.6), and its exit code is the verdict.

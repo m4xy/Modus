@@ -1,7 +1,7 @@
 ---
 # modus-0029
 title: Put the backoffice and e2e checks inside the gate
-status: todo
+status: in-progress
 type: feature
 priority: high
 order: AZ
@@ -44,3 +44,61 @@ Success criteria:
   `doc:30-code-style` §1 and §6 — are removed, each replaced by an `Enforced by:` line
   naming the task that was observed rejecting a planted violation. Those three are the
   complete set; `doc:30` §0 and `doc:80` step 6 cite the gap rather than carrying one.
+
+## Decisions taken
+
+**No Spotless.** The choice was between adopting it — one formatter across Kotlin,
+TypeScript, Markdown, YAML and JSON, as `doc:30-code-style` §1 used to describe — and
+standardising on one tool per language. Standardised: ktlint already owns Kotlin through
+`org.jlleitschuh.gradle.ktlint` and works; `backoffice/` already has Prettier with its own
+config and works. Spotless would add a second Kotlin formatter beside ktlint and a second
+Prettier configuration beside `backoffice/.prettierrc` — one fact in two places, which is
+what `doc:05-authoring-for-agents#one-fact-one-place` forbids and what `bean:0028` found
+this section had already produced once.
+
+**knip is struck, not installed.** `doc:30-code-style` §6 claimed it was `error` in CI; it
+was never a dependency, a script or a workflow step. Installing a tool to make a document
+true is backwards — the claim was aspiration, so the row goes. If dead TypeScript becomes a
+real problem, that is a bean with a reason behind it.
+
+**`*.md`, `*.yaml` and `*.json` stay unformatted, and that is now stated as accepted rather
+than pending.** `docs-lint` already checks what matters about Markdown here, and no rule in
+the package depends on YAML or JSON layout.
+
+**The backoffice does not become a Gradle project.** `settings.gradle.kts` stays the one
+home for the module set. The checks are `Exec` tasks invoking the npm scripts the backoffice
+already declares, so its build stays a normal front-end build that a front-end developer can
+run without Gradle.
+
+## Evidence
+
+| # | criterion | observed |
+|---|---|---|
+| 1 | the formatter decision is taken and recorded | above, with the alternative and why it loses |
+| 2 | `qualityCheck` runs `typecheck`, `lint` and `format:check`, and fails when any fails | three plants, below |
+| 3 | `e2eTest` exists, runs Playwright, sits outside `check` | `./gradlew e2eTest` → 31 passed; `qualityCheck` does not depend on it |
+| 4 | knip installed or struck | struck |
+| 5 | the drifted files are reformatted in a commit of their own | first commit on the branch: 77 files, mechanical, `npm run format` output only |
+| 6 | the `Enforcement gap:` lines become `Enforced by:` naming a mechanism observed rejecting a planted violation | `doc:00` §7.2.4, `doc:30` §1 and §6, `doc:80` step 6, `AGENTS.md` |
+
+Criterion 2, planted one at a time against `backoffice/src/App.tsx` and reverted:
+
+```
+planted:  const planted: number = "not a number";
+observed: src/App.tsx(104,7): error TS2322: Type 'string' is not assignable to type 'number'.
+          > Task :backofficeTypecheck FAILED
+
+planted:  const unused = 1
+observed: 104:7  error  'unused' is assigned a value but never used  @typescript-eslint/no-unused-vars
+          ✖ 1 problem (1 error, 0 warnings)
+          > Task :backofficeLint FAILED
+
+planted:  const   badly=  formatted   ;
+observed: [warn] src/App.tsx
+          [warn] Code style issues found in the above file. Run Prettier with --write to fix.
+          > Task :backofficeFormatCheck FAILED
+```
+
+The drift this closes, measured before the reformat: `bean:0028` recorded 71 files failing
+`format:check`; four commits later it was 77. Nothing had checked them since the backoffice
+was written.

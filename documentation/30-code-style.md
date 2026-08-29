@@ -81,12 +81,16 @@ Both cover `*.kt` and `*.kts`, the root project's build scripts included.
 **Never** commit with a ktlint violation and "fix it in review". `ktlintFormat` takes under
 two seconds.
 
-**Enforcement gap:** Kotlin is the only language the build formats. `*.ts`, `*.tsx` and
-`*.css` are covered by `backoffice/`'s own Prettier scripts, which no Gradle task or CI
-step invokes; `*.md`, `*.yaml` and `*.json` are covered by nothing at all. An earlier
-version of this section described a single Spotless configuration spanning all five — that
-plugin is not in the build and never was. Choosing between adopting it and standardising on
-ktlint plus the backoffice's own Prettier is `bean:0029`'s first success criterion.
+**One tool per language, configured where its ecosystem expects.** ktlint owns `*.kt` and
+`*.kts`; `backoffice/`'s own Prettier owns `*.ts`, `*.tsx` and `*.css`, and `qualityCheck`
+now runs it. Spotless was considered and rejected in `bean:0029`: it would add a second
+Kotlin formatter beside ktlint and a second Prettier configuration beside
+`backoffice/.prettierrc`, which is one fact in two places.
+
+**Enforcement gap:** `*.md`, `*.yaml` and `*.json` are formatted by nothing. That is
+accepted rather than pending — `docs-lint` already checks what matters about Markdown here
+(front-matter, anchors, references, line budget), and no rule in this package depends on
+YAML or JSON layout. Raise a bean if one ever does.
 
 ---
 
@@ -283,7 +287,7 @@ reference, so they are **forbidden outright** in this repository; disable a test
 | Import cycles | ESLint `import/no-cycle` | `error` |
 | Accessibility | `jsx-a11y` recommended | `error`; plus axe assertions in Playwright |
 | API types | Generated from the OpenAPI document | Hand-written API types are forbidden — they drift |
-| Dead code | `knip` | **Enforcement gap:** knip is not a dependency, a script or a workflow step anywhere in the repository. `bean:0029` installs it or strikes this row. |
+
 
 **Enforcement gap:** nothing runs the checks above. `backoffice/` and `e2e/` are not
 Gradle projects, so no Gradle task reaches their `typecheck`, `lint` or `format:check`

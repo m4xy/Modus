@@ -280,23 +280,18 @@ reading it as such once produced a false `Enforcement gap:` here.
    Today the gate is **not** one command, and the paragraph above describes where it is
    going rather than where it is. The gap below is why.
 
-   **Enforcement gap:** the backoffice half of this gate does not exist. `backoffice/` and
-   `e2e/` are not Gradle projects (`settings.gradle.kts` declares ten modules and neither is
-   among them), no task invokes their `typecheck`, `lint`, `format:check` or Playwright
-   scripts, and there is no `e2eTest` task — so a TypeScript error, an ESLint error or a
-   broken Playwright spec merges green. `bean:0029` builds the mechanism. Until it lands,
-   run `npm --prefix backoffice ci && npm --prefix e2e ci` once per checkout, then
-   `npm --prefix backoffice run typecheck` and `npm --prefix backoffice run lint` by hand
-   when you touch `backoffice/` or `e2e/`, and say in the pull request that you did. Both
-   exit 0 today; without the `ci` step the first fails with `sh: tsc: command not found`.
-   Its third script, `format:check`, does **not** exit 0 — 71 files have drifted because
-   nothing checks them — so do not run it as a gate and do not reformat them as a drive-by
-   (`80-agent-operating-procedure.md` §5.1). `bean:0029` owns that diff.
+   **Enforced by:** `qualityCheck` reaches `backoffice/` and `e2e/` through the npm
+   scripts they already declare (`build.gradle.kts`, `bean:0029`). Each was observed
+   rejecting a planted violation: `error TS2322: Type 'string' is not assignable to
+   type 'number'`, `error 'unused' is assigned a value but never used`, and
+   `[warn] Code style issues found`. `backoffice/` and `e2e/` are still not Gradle
+   projects — one tool per language, each configured where its ecosystem expects.
 
-   **Playwright stays outside the gate when `bean:0029` builds it.** It needs a built and
-   running system and takes minutes; inside `check` it would make the fast gate slow enough
-   that agents stop running it. That rationale is recorded here because it is a constraint
-   on the work, not a description of a task that exists — there is no `e2eTest` today.
+   **Playwright stays outside the gate**, as `./gradlew e2eTest`. It needs a built and
+   running system and takes minutes; inside `check` it would make the fast gate slow
+   enough that agents stop running it. CI runs it as a second step, which it can afford
+   and a local gate cannot.
+
 5. **Pull request.** Conventional-commit title. The body states what changed, the success
    criteria from the work item, and the **evidence** each was met by. A PR body with a
    claim and no evidence is rejected without further review (§3).
