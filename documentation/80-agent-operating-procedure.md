@@ -6,6 +6,7 @@ superseded_by: null
 read_when: always
 provides:
   - doc:80-agent-operating-procedure#worktree-per-agent
+  - doc:80-agent-operating-procedure#report-as-you-go
   - doc:80-agent-operating-procedure#orchestrating
   - doc:80-agent-operating-procedure#reports-are-evidence
   - doc:80-agent-operating-procedure#pick-up-the-work-item
@@ -53,6 +54,22 @@ repository root is a shared checkout that several agents hold at once. Cut the b
 `git worktree add`; `git checkout -b` in the root switches the tree every other agent is
 reading, so two reads of one file taken either side of it are not comparable.
 
+## Reporting <a id="report-as-you-go"></a>
+
+**Report a finding when you have it. Do not save it for one message at the end.** A finding
+is not delivered until the reader has it, and an agent that is interrupted, cancelled or out
+of budget takes whatever it was holding with it — work that is complete and unreported costs
+what unfinished work costs, plus what it took to do. Six of those were reported in one
+sprint, each from an agent briefed to report once at the end (`bean:0068`).
+
+- **Implementing:** report each finding at the point it is established, and write its
+  evidence into the bean in the same moment
+  (`adr:0005-evidence-lives-in-the-work-item#evidence-home`). The final message then carries
+  only what is genuinely final: the verdict, the pull-request number, what remains.
+- **Orchestrating:** brief for it. A brief that asks for one dense return has asked the agent
+  to hold every finding in the one buffer that can be dropped whole, and the loss is silent —
+  nothing distinguishes an agent that found nothing from one that never got to say.
+
 ## Step 0 — If you are the orchestrator <a id="orchestrating"></a>
 
 `doc:00-constitution#orchestrator` states the rule: you decide what happens next and spawn
@@ -66,6 +83,14 @@ the agent that does it. These are the operating details it defers here.
 | 0.4 | Read what agents return, not what they read. If you find yourself opening the files an agent already read, you have taken its job. |
 | 0.5 | Encode the learnings before starting the next round, in the same cycle they were found. |
 
+### Anti-patterns, each reported from one sprint (`bean:0068`)
+
+| pattern | why it is a failure of the role |
+|---|---|
+| Choosing a merge order so that a gate does not fire | The gate was pointing at something. Two beans were frozen behind the append-only rule this way (`doc:00-constitution#workflow` §7.2.5): what the gate would have caught is now reachable only as an amendment to a record that may not be edited. Sequencing is yours to decide; what a check reports is not. |
+| Stating to one agent, as accomplished fact, an action queued to another | A brief is the receiving agent's whole world and it cannot check the claim. What you send binds as `#reports-are-evidence` binds what comes back — that section states the inbound half only, so this is the rule's other half and is stated here rather than cited there. A queued action is briefed as queued, with the bean it depends on named. |
+| Allocating a bean id centrally, then accepting a branch that ships no work item | The branch violates `doc:00-constitution#workflow` §7.2's first step, *Work item first*, and no mechanism can say so: `docs-lint` check 13 compares the ids that exist, and an id nobody wrote is invisible to it. Allocating the id is not creating the work item. |
+
 ### What a brief must contain
 
 1. **What to read, exhaustively** — and that it is the whole list. Without this an agent
@@ -75,6 +100,7 @@ the agent that does it. These are the operating details it defers here.
    observed failing, evidence in the bean.
 4. **A required `LEARNINGS` section** in the return: what was non-obvious, with `file:line`
    or command output, and an instruction to say "nothing" rather than invent.
+5. **When to report** — as each finding lands, never only at the end (`#report-as-you-go`).
 
 ### Briefing a reviewer
 
@@ -257,6 +283,7 @@ was asked to do?* Then continue.
 | 5.6 | **No `TODO`, no commented-out code, no `@Suppress` without a reason** — the build enforces all three (`30-code-style.md`). |
 | 5.7 | **Commit in logical increments**, conventional-commit messages, on your branch. A commit that does not compile is acceptable mid-branch; the PR head must be green. |
 | 5.8 | **If the approach is failing, stop.** Two failed attempts at the same thing means the approach is wrong. Return to step 3, record what did not work as evidence, and pick a different approach. Do not brute-force — that is what `overhead` spend measures, and it will show. |
+| 5.9 | **Read `git diff --name-only origin/main` before every push, and account for every path it lists.** A history-rewriting command stages the difference between two trees rather than the change you made: an agent that ran `git reset --soft origin/main` force-pushed a staged revert of `main`'s entire history — three beans deleted, two documents rolled back, live about four minutes and self-reported (`bean:0068`). The name list is one line per file and it is the only artefact that would have said so before the push. A path you did not intend to touch is a stop, not a surprise to explain in the body. |
 
 ### Context checkpoint at 200k
 
@@ -311,6 +338,14 @@ For each success criterion from step 2:
   `@Disabled` **annotation value** — `@Disabled("bean:NNNN: reason")`. ArchUnit reads the
   annotation value and fails the build without it (`30-code-style.md` §5.1). A comment
   beside the annotation is not enough and never was: comments are not in bytecode.
+- **A closure that still needs evidence authored is a work item, not bookkeeping.** Closing
+  a bean records observations that have already been made. If one has not, the closing
+  change is the work of making it: it gets success criteria, a gate run and a place in the
+  queue like any other. Sized as a status edit, it is how a criterion comes to be answered
+  by a sentence (`bean:0068`).
+- **When the closing change produces its own gate or CI run, walk every criterion against
+  that run.** An earlier run measured a different tree, whatever it printed. Re-run rather
+  than reuse; the run costs less than a criterion that was true once (`bean:0068`).
 - Re-run the full gate after your **last** change. "It passed before that last tweak" is
   how broken PRs get opened.
 

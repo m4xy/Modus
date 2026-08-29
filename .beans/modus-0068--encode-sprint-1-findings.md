@@ -417,3 +417,41 @@ here; when this was written it did not, for the reason the paragraph above gives
 looking for it, is stronger than a plant: a plant proves the mechanism can fail, and this
 proves it does.
 
+### `docs/encode-sprint-1-agent-loop` — the agent loop
+
+| # | criterion | observed |
+|---|---|---|
+| 1 | report-as-you-go is stated to every agent, and the brief cites it | `documentation/80-agent-operating-procedure.md`, the `## Reporting` section carrying `<a id="report-as-you-go"></a>`, placed outside the orchestrator-only step 0, with an *Implementing* and an *Orchestrating* bullet; brief item 5 under *What a brief must contain*, `**When to report** — as each finding lands, never only at the end (\`#report-as-you-go\`)`, which states no rule of its own |
+| 2 | the name list is required before every push, with the shapes that make it necessary | `documentation/80-agent-operating-procedure.md`, step 5's rule 5.9, naming `git diff --name-only origin/main`, `git reset --soft origin/main` and the force-push, and "a path you did not intend to touch is a stop" |
+| 3 | a closure needing evidence is a work item; criteria are walked against this run | `documentation/80-agent-operating-procedure.md`, two rules in step 6's `### Rules` list, "Closing a bean records observations that have already been made. If one has not, the closing change is the work of making it" and "An earlier run measured a different tree, whatever it printed" |
+| 4 | the three orchestration anti-patterns, each with why it is a failure of the role | `documentation/80-agent-operating-procedure.md`, `### Anti-patterns, each reported from one sprint` in step 0, three rows: merge order chosen against a gate, a queued action stated as fact, an id allocated without a work item |
+| 11 | budgets held | `doc:80` at 491 of 500; `doc:00-constitution` untouched by this branch |
+| 12 | the gate | the run below, on this branch |
+
+```
+cmd:      wc -l documentation/80-agent-operating-procedure.md
+observed: 491 documentation/80-agent-operating-procedure.md
+exit:     0
+
+cmd:      git diff --name-only origin/main
+observed: .beans/modus-0068--encode-sprint-1-findings.md
+          documentation/80-agent-operating-procedure.md
+exit:     0
+
+cmd:      ./gradlew qualityCheck
+observed: docs-lint: OK — 19 documents, 108 anchors, 1114 references, 77 beans, 37 graph
+          edges, 28 selectable, 77 bean ids, 0 introduced, 77 on origin/main, 0 closing
+          transitions, 0 criteria checked, 0 unnumbered.
+          BUILD SUCCESSFUL in 17s
+tree:     this branch rebased onto origin/main at bd9da18
+exit:     0
+```
+
+Re-derived after `bean:0068`'s base branch merged as `97f13b0`. The name list was four paths
+and is now two: `doc:00-constitution` and `doc:20-ddd-practices` are on `main` and are no
+longer this branch's diff.
+
+`68 on origin/main` and `0 introduced` are the **externally dependent** fields of that line —
+they count a ref this branch does not contain, and both moved when the base merged. They are
+quoted against the named sha above and are not reproducible for a later reader; the rest of
+the line is, and was re-run to prove it.
