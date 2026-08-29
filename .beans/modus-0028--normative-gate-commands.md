@@ -1,11 +1,12 @@
 ---
 # modus-0028
 title: Correct the normative gate to the commands that exist
-status: in-progress
+status: completed
 type: task
 priority: high
 order: A
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T12:55:02Z
 ---
 
 # Correct the normative gate to the commands that exist
@@ -76,3 +77,17 @@ constitution instructing agents to run a task that is not there.
    invocation in `documentation/**` and `AGENTS.md` is enumerated and run, not just the ones
    in the gate block. Review found a second `:core:core-domain:check` the first pass missed;
    this criterion exists so that cannot recur silently.
+
+## Summary of Changes
+
+Merged as PR #12 (`5f8b569`). `doc:00-constitution` §7.2.4's gate is `ktlintFormat` then
+`qualityCheck` — the commands that exist and the task CI actually runs. Ten divergences are
+tabulated above; the ones needing build work are `Enforcement gap:` lines naming `bean:0029`
+rather than deletions, per `doc:00-constitution#observed-failing`.
+
+Review found the sweep incomplete: `doc:20-ddd-practices` §10 carried the same broken
+`:core:core-domain:check` path in identical wording, in a document the first pass never
+opened — so criterion 1 was false when written. Criterion 7 was added to make the sweep
+exhaustive rather than sampled. Row 5 was narrowed after review showed
+`./gradlew build ktlintCheck detekt` actually passes; only the claim that it is what CI runs
+was false.

@@ -66,3 +66,15 @@ Both children are `completed`, the `domainmgmt` row of
 `doc:10-architecture#bounded-contexts` §3 is real in `core-domain`, and `bean:0023` can
 show `ContextInternalsAreSealed` and `PublishedLanguageAllowlist` failing against a second
 modelled context.
+
+## Split merged
+
+The split merged as PR #16 (`2792a8d`); this epic stays `todo` until both children close.
+
+Review of the split found it deadlocked three beans: `bean:0013`, `bean:0018` and
+`bean:0023` pointed `blocked_by` at this bean, and step 1 skips epics — so it would never be
+worked, never complete, and those edges would never clear. Their edges now name the child
+that actually unblocks each. The rule is stated above and `bean:0035` enforces it.
+
+PR #14 was the original; GitHub auto-closed it when `bean:0032`'s merge deleted its base
+branch. `bean:0037` records the procedure that would have prevented it.
