@@ -5,6 +5,7 @@ status: active
 superseded_by: null
 read_when: always
 provides:
+  - doc:80-agent-operating-procedure#worktree-per-agent
   - doc:80-agent-operating-procedure#orchestrating
   - doc:80-agent-operating-procedure#reports-are-evidence
   - doc:80-agent-operating-procedure#pick-up-the-work-item
@@ -45,6 +46,13 @@ At every step: hold the 300k context budget (`00-constitution.md` §6) and recor
 
 ---
 
+## Working tree <a id="worktree-per-agent"></a>
+
+**Every agent works in a worktree of its own, orchestrator and implementer alike.** The
+repository root is a shared checkout that several agents hold at once. Cut the branch with
+`git worktree add`; `git checkout -b` in the root switches the tree every other agent is
+reading, so two reads of one file taken either side of it are not comparable.
+
 ## Step 0 — If you are the orchestrator <a id="orchestrating"></a>
 
 `doc:00-constitution#orchestrator` states the rule: you decide what happens next and spawn
@@ -54,7 +62,7 @@ the agent that does it. These are the operating details it defers here.
 |---|---|
 | 0.1 | Delegate plan, implement, review and QA as separate briefs. Review independence is a rule, not a preference (`doc:00-constitution#independent-review`); the mechanics are below. |
 | 0.2 | Spawn another orchestrator for a work package with its own internal sequence. Delegating a decision is not abdicating it — you still own the priority. |
-| 0.3 | Run independent work concurrently, in isolated worktrees. Two agents editing one tree is a merge conflict you scheduled. |
+| 0.3 | Run independent work concurrently. Two agents editing one tree is a merge conflict you scheduled; the isolation rule is `#worktree-per-agent` and it binds the agents you spawn, not only you. |
 | 0.4 | Read what agents return, not what they read. If you find yourself opening the files an agent already read, you have taken its job. |
 | 0.5 | Encode the learnings before starting the next round, in the same cycle they were found. |
 

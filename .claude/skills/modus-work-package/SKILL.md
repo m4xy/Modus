@@ -29,9 +29,8 @@ gh auth status                          # see step 0 — the token trap
 
 ## Procedure
 
-0. **`env -u GITHUB_TOKEN` prefixes every `gh` call.** A stale `GITHUB_TOKEN` in the
-   environment shadows the working keyring credential and every call returns
-   `HTTP 401: Bad credentials`. `deterministic`
+0. **Clear `GITHUB_TOKEN` on every `gh` call** — `AGENTS.md`'s Commands block states the
+   trap, the working form and the diagnostic. `deterministic`
 
 > **In an isolated worktree the prefix form is refused.** The sandbox rejects
 > `env -u GITHUB_TOKEN gh …` — it cannot verify what `env` does to the command it wraps —
