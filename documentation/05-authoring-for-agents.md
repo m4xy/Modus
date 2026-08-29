@@ -175,15 +175,23 @@ Each check is decidable from repository contents alone.
 | 8 | line budget | a `documentation/*.md` is outside the line range `documentation/README.md` states, or `AGENTS.md` exceeds 120 lines |
 | 9 | derived listings | a row in `AGENTS.md` marked derived omits the `doc:` id it derives from, or itself states a `path:`/`task:` predicate value instead of citing that id |
 | 10 | no bare bean paths | a bare `beans/NNNN` or `.beans/NNNN` path appears in `documentation/*.md`, `AGENTS.md` or `CLAUDE.md` prose, instead of a typed `bean:NNNN` reference (§2) |
-
 | 11 | completed beans are final | a bean that was `completed` on the merge base changes in any way other than gaining entries under a trailing `## Amendments` section, or an amendment omits its date, its authoring bean, `**Claimed:**`, `**Found:**` or `**Evidence:**` (`adr:0005-evidence-lives-in-the-work-item#amendments`) |
+| 12 | bean graph | a `blocked_by` or `parent` id matches other than exactly one bean file, a `blocked_by` edge names a `type: epic` bean, the `blocked_by` graph has a cycle, two beans that reach `AGENTS.md` step 1's tiebreak together share an `order` value, or no bean is selectable at all |
 
 **Enforced by:** `tools/docs-lint.sh`, run by the `docsLint` task inside `qualityCheck`
 (`rule:ci/build`). Each check has been observed rejecting a planted violation; check 11's
-four rejections and its one accepted amendment are recorded in `bean:0038`.
+four rejections and its one accepted amendment are recorded in `bean:0038`, check 12's
+six rejections and its one negative control in `bean:0035`.
 
 Check 11 classifies by the `status:` on the **merge base**, not on the branch, and diffs the
 base against the **working tree**. A bean moving `in-progress` → `completed` in the change
 under review is a legal edit to a not-yet-completed bean; the identical edit to one already
 `completed` is not. Reading the branch would block every closure; reading only committed
 content would pass locally and fail in CI.
+
+Check 12's *selectable* set is exactly what `AGENTS.md` step 1 returns: `status: todo`, not
+`type: epic`, every `blocked_by` id resolving to a `completed` bean. The `order` collision is
+scoped to that set grouped by `priority`, because only beans that reach the tiebreak together
+can be tied by it; a bean with no `order` is not a collision, since absence is itself a
+defined position. The counts on the `OK` line — beans, graph edges, selectable — are the
+check's vacuity assertion: a run that parsed nothing reports zero rather than success.
