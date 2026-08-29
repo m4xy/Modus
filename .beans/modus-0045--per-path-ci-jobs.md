@@ -94,7 +94,7 @@ while the local command is the superset, and that is now stated there as one-dir
 | 1 | separate jobs with path filters — three clauses, **two of them not observed on a real run** | Kotlin-only skips the frontend half: run `33261902606`, `backoffice + e2e` **skipped**. Frontend-only skips the Kotlin half, and a change touching both runs both: **classifier only** — the decision function below, never a CI run, because no such change has been pushed since the split landed |
 | 2 | branch protection still passes when a job is skipped | `gate` observed `success` on run `33261902606`, in which `backoffice + e2e` was skipped — the aggregating job reports green rather than never reporting. The ruleset also carries no `required_status_checks` rule at all, so nothing is blocked today either way (`bean:0047`) |
 | 3 | `doc:00-constitution` §7.2.4 states the promise one-directionally | citation below |
-| 4 | measure and record the result | runs `33261902606` (66s) against `33256259515` (134s), both `.beans/`-only changes, both run wall clock — a 51% saving, n=1 against n=1. Below, with the two unsourced figures this bean inherited and what they should have been |
+| 4 | measure and record the result | runs `33261902606` (67s) against `33256259515` (134s), both `.beans/`-only changes, both `updatedAt - createdAt` — a 50% saving, n=1 against n=1. Below, with the two unsourced figures this bean inherited and what they should have been |
 
 ### Criterion 1 — a half observed skipped on a real pull request
 
@@ -184,9 +184,15 @@ CI gaining a task local runs do not have.
 
 The claim under test is that per-path jobs recover most of the time a repository split
 would. It needs a **like-for-like pair**: the same shape of change, the same measure, one
-run under each topology. Every figure below is **run wall clock**, `createdAt` to
-`updatedAt`, for a push run on `main` or the pull request run of the change itself. Job
+run under each topology. Every figure below is **run wall clock**, `updatedAt` minus
+`createdAt`, for a push run on `main` or the pull request run of the change itself. Job
 durations are quoted separately and always named as such.
+
+The unit is stated because it was got wrong once here: the `after` figure was first written
+as `16:04:13Z`, which is the `gate` job's `completedAt`, against a `before` figure that used
+the run's `updatedAt`. One second, no effect on the conclusion, and still a stated unit the
+number did not follow — in the block of this bean that exists to insist figures follow their
+units. Both rows now use `updatedAt`, which is why the saving reads 50% and not 51%.
 
 ```
 cmd:      gh run list --branch main --limit 40 \
@@ -194,12 +200,12 @@ cmd:      gh run list --branch main --limit 40 \
           (wall clock = updatedAt - createdAt, successful runs only)
 
 after:    33261902606  pull request #35, `.beans/` only, frontend skipped
-          16:03:07Z -> 16:04:13Z                                        =  66s
+          16:03:07Z -> 16:04:14Z                                        =  67s
 before:   33256259515  b812a9b `.beans/` only, after bean:0029 wired the
           backoffice in, before this split landed
           13:55:49Z -> 13:58:03Z                                        = 134s
 
-saving:   68s, 51%
+saving:   67s, 50%
 ```
 
 `b812a9b` is the like-for-like partner and is the reason the pair is worth anything: it
@@ -212,14 +218,14 @@ Per-job durations on `33261902606`, for completeness and not as the measurement:
 
 **n=1 against n=1, inside a wide spread.** The twenty-one successful `main` runs in the
 history range 47s to 209s, and cache state, runner allocation and change size all move them.
-The pair above is two single runs, matched on change shape and nothing else. A saving of 51%
+The pair above is two single runs, matched on change shape and nothing else. A saving of 50%
 is the honest reading of that pair; it is not a measured mean and this bean does not have one.
 
 #### Two figures this bean inherited, both wrong
 
 **`2m02s` (122s) — the post-`bean:0029` baseline.** Unsourced. The two post-`bean:0029`,
 pre-split successful runs on `main` are `33256259515` = 134s and `33256630231` = 133s. The
-real baseline is 12s slower than the bean claimed, so the saving is 51% and not the 46% first
+real baseline is 12s slower than the bean claimed, so the saving is 50% and not the 46% first
 recorded here. **The error did not flatter the work**, which is the point: an unsourced
 number is not safe just because it happens to understate.
 
@@ -229,9 +235,9 @@ supports it. The twelve successful pre-`bean:0029` runs on `main` are 47, 50, 67
 and beans, no code — are `33255099872` (e4dbc48) 47s and `33247011196` (0bc47e0) 50s, which
 is probably where the figure came from and is not what the row says.
 
-**The ceiling claim, restated against real runs.** 66s against 47–50s for the same shape
+**The ceiling claim, restated against real runs.** 67s against 47–50s for the same shape
 means the split **restores most of what `bean:0029` cost and does not beat what came
-before** — it lands 16 to 19 seconds above it. That is the same conclusion this bean drew
+before** — it lands 17 to 20 seconds above it. That is the same conclusion this bean drew
 from the wrong numbers, now with runs behind it. Whether it settles `bean:0039` is
 `bean:0039`'s call; what it rules out is settling it on the unsourced pair.
 
