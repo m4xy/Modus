@@ -101,7 +101,16 @@ step 4 for a reason: it is cheap compared to human attention, but not free.
 
 Every skill is a document (`40-durability.md` §2.1) at
 `domains/<domainId>/skills/<skillId>.md`, or in the repository's `.claude/skills/` for
-skills that operate on this repository. The required sections:
+skills that operate on this repository.
+
+**In `.claude/skills/` the path is `<skillId>/SKILL.md`, not `<skillId>.md`**, and the file
+opens with YAML front-matter carrying `name` and `description`. That is what the agent
+harness discovers and offers; a flat `<skillId>.md` is loaded by nothing, so a skill written
+to the older spelling reads correctly and is invoked by nobody (`bean:0048`). The
+`description` is the trigger an agent matches on, so it states when the skill applies in the
+words someone would use asking for it.
+
+The required sections:
 
 ### 3.1 Identity
 
