@@ -163,6 +163,25 @@ Appended to `domains/<domainId>/cost/NNNN.ndjson` — an append-only log
 | `peakContextTokens` | For budget accounting (`00-constitution.md` §6) |
 | `rationale` | Why this model/effort was chosen. Required, non-empty. |
 
+### 3.2.1 What a harness-edge recorder can supply
+
+The table above is written for `adapters/adapter-agent-claude`, which sees the API response.
+A recorder at the **agent-harness edge** — a Claude Code `Stop`/`SubagentStop` hook — sees
+less, and the difference is measured rather than assumed (`bean:0054`).
+
+| field | at the harness edge |
+|---|---|
+| `runId`, `parentRunId`, `role`, `modelId`, `effort`, `speed`, all four token kinds, `peakContextTokens`, `startedAt`, `endedAt` | **yes** |
+| `gitBranch` | **yes, but only if resolved live from the hook's `cwd`.** The stored transcript's own `gitBranch` is the literal string `HEAD` on every line this repository has produced |
+| `outcome` | **partial.** `Stop` means the turn ended, not that it succeeded. `failed` and `retried` are unreachable from a hook and need the runner (`bean:0020`) |
+| `costUsd` | **derived, not billed.** No hook payload and no stored transcript carries a cost field |
+| `stage`, `workItemId`, `epicId`, `skillId`, `rationale`, `priceBookEntryId` | **no.** None is a property the harness knows |
+
+A field it cannot supply is **omitted**, never nulled and never guessed: a null is
+indistinguishable from a measured zero, and a guess is the estimate the paragraph below
+forbids. The record names its own gaps in an `unavailable` map so a consumer sees the shape
+of what is missing rather than inferring it.
+
 Token counts come from the API response's `usage` block, captured by
 `adapters/adapter-agent-claude` — never estimated. Where a pre-flight estimate is needed
 (a projection before running), use the token-counting endpoint, and label the figure

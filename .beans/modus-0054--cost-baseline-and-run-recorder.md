@@ -104,10 +104,40 @@ into the exact figure.
 | 3 | Delegated spend is included and its share stated | the block's verbatim `observed:`, regenerated with the artifact it quotes | A |
 | 4 | Dollars are integer micro-dollars, with cache read and both cache-write TTLs priced separately | `tools/cost_lib.py` `cost_micros`; rate table rendered into the baseline | A |
 | 5 | Input hashes recorded, and re-checkable | `command`: `python3 tools/cost-replay.py --check`; observed `baseline inputs have moved on: 2 changed, 0 gone.` when a live session appended, exit 1 | A |
-| 6 | One spend record per agent run is appended at the harness edge | `domains/modus/cost/0001.ndjson` | B |
-| 7 | `parentRunId` is populated for a subagent run | `command`: recorder self-test | B |
-| 8 | Fields the harness cannot supply are omitted, never invented | `tools/cost-record.py`; the table below | B |
+| 6 | One spend record per agent run is appended at the harness edge | `domains/modus/cost/0001.ndjson`, two records; `.claude/settings.json` registers `Stop` and `SubagentStop` | B |
+| 7 | `parentRunId` is populated for a subagent run | `command`: `python3 tools/cost-record.py --self-test`; observed below | B |
+| 8 | Fields the harness cannot supply are omitted, never invented | `tools/cost-record.py` `UNAVAILABLE`; `doc:60-cost-model` §3.2.1 | B |
 | 9 | `./gradlew ktlintFormat && ./gradlew qualityCheck` green | `test-run` | A, B |
+
+### Criterion 7, verbatim
+
+```
+cmd:      python3 tools/cost-record.py --self-test
+observed: "runId": "a7f91f80670cd9b10"
+          "parentRunId": "ffd4977c-3d34-41e9-a3ae-f60919540688"
+          "role": "general-purpose", "spawnDepth": 1
+          "gitBranch": "feat/cost-recorder"
+          "peakContextTokens": 198216
+          "outcomeBasis": "hook event SubagentStop means the turn ended, not that it succeeded"
+          self-test OK — every required field populated
+exit:     0
+```
+
+`gitBranch` is the branch, not `HEAD`: the recorder resolves it from the hook's `cwd` at
+record time instead of reading the transcript's own field, which is the one moment the real
+branch is knowable.
+
+Idempotence, driven through the hook entry point rather than the self-test:
+
+```
+cmd:      <SubagentStop payload> | python3 tools/cost-record.py
+          <Stop payload>         | python3 tools/cost-record.py
+          <Stop payload>         | python3 tools/cost-record.py   # again
+observed: domains/modus/cost/0001.ndjson  2 lines, then still 2 lines
+```
+
+`Stop` fires at the end of every turn, so records are deltas keyed on the previous record's
+`lastMessageId`. The log is its own cursor; a replayed payload adds nothing.
 
 ### Criterion 5, verbatim
 
@@ -178,6 +208,13 @@ exactly; it is the moving corpus underneath it that does not.
   else's machine. `--transcripts DIR` and `MODUS_COST_TRANSCRIPTS` win over the derivation. A
   baseline a stranger cannot regenerate is not a baseline; the review found this by having to
   monkeypatch the path resolver to reproduce the run at all.
+- **The spend log will conflict in git.** `domains/modus/cost/0001.ndjson` is append-only and
+  several agents append to it on different branches at once, so every merge is a textual
+  conflict at the last line. The fix is a `merge=union` attribute, which lives in a root
+  `.gitattributes` this work does not own. Until then the log is merged by hand.
+- **The recorder is not registered for sibling agents.** `.claude/settings.json` only takes
+  effect on a branch that has it, so nothing is being recorded on the four branches in flight
+  beside this one. Their spend is recoverable by replay (deliverable A) and only by replay.
 - **No price book.** `doc:60-cost-model` §2.1 requires `domains/<domainId>/cost/price-book.md`
   with `fetch` evidence per entry; it does not exist (`bean:0001`), so every dollar here is
   derived from a rate table inside the tool and is labelled derived wherever it is printed.
