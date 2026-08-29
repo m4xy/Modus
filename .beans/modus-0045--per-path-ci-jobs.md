@@ -84,10 +84,10 @@ while the local command is the superset, and that is now stated there as one-dir
 
 | # | criterion | observed |
 |---|---|---|
-| 1 | separate jobs with path filters; Kotlin-only skips the frontend half, frontend-only skips the Kotlin half, both runs both | run `33261902606` — `backoffice + e2e` **skipped** on a real pull request; plus the classifier's decision function over five path sets, below |
+| 1 | separate jobs with path filters — three clauses, **two of them not observed on a real run** | Kotlin-only skips the frontend half: run `33261902606`, `backoffice + e2e` **skipped**. Frontend-only skips the Kotlin half, and a change touching both runs both: **classifier only** — the decision function below, never a CI run, because no such change has been pushed since the split landed |
 | 2 | branch protection still passes when a job is skipped | `gate` observed `success` on run `33261902606`, in which `backoffice + e2e` was skipped — the aggregating job reports green rather than never reporting. The ruleset also carries no `required_status_checks` rule at all, so nothing is blocked today either way (`bean:0047`) |
 | 3 | `doc:00-constitution` §7.2.4 states the promise one-directionally | citation below |
-| 4 | measure and record the result | run `33256522531`, below |
+| 4 | measure and record the result | run `33261902606` — 66s wall clock on a Kotlin-only change against the 2m02s baseline above, a 46% saving. Below |
 
 ### Criterion 1 — a half observed skipped on a real pull request
 
@@ -119,24 +119,51 @@ dependency was skipped still reports green, so requiring it would not block this
 
 ### Criterion 1, continued — the classifier's decision function
 
-The `case` block from `.github/workflows/ci.yml`'s `filter` step, extracted verbatim and
-driven by a path list:
+The two unobserved clauses are evidenced by **running** the classifier, not by reading it.
+The command extracts the decision function from `.github/workflows/ci.yml` by line range —
+so it cannot drift from the workflow — and drives it with a path list:
 
 ```
-Kotlin-only change (core/core-domain/…/A.kt, build.gradle.kts):
--> kotlin=true frontend=false
-backoffice/e2e-only change (backoffice/src/App.tsx, e2e/tests/smoke.spec.ts):
--> kotlin=false frontend=true
-change touching both:
--> kotlin=true frontend=true
-.editorconfig alone:
--> kotlin=true frontend=true
+cmd:      bash -s <<'EOF'
+          sets=(
+            "core/core-domain/src/main/kotlin/A.kt build.gradle.kts"
+            "backoffice/src/App.tsx e2e/tests/smoke.spec.ts"
+            "core/core-domain/src/main/kotlin/A.kt backoffice/src/App.tsx"
+            ".editorconfig"
+            ".beans/modus-0045--per-path-ci-jobs.md"
+          )
+          for s in "${sets[@]}"; do
+            export changed="$(printf '%s\n' $s)"
+            printf '%-62s' "$s"
+            bash -c "$(sed -n '57,65p;68p' .github/workflows/ci.yml | sed 's/^ *//')"
+          done
+          EOF
+
+expect:   kotlin-only -> kotlin=true frontend=false; frontend-only -> the reverse;
+          both -> both true; .editorconfig -> both true
+
+observed: core/core-domain/src/main/kotlin/A.kt build.gradle.kts        -> kotlin=true frontend=false
+          backoffice/src/App.tsx e2e/tests/smoke.spec.ts                -> kotlin=false frontend=true
+          core/core-domain/src/main/kotlin/A.kt backoffice/src/App.tsx  -> kotlin=true frontend=true
+          .editorconfig                                                 -> kotlin=true frontend=true
+          .beans/modus-0045--per-path-ci-jobs.md                        -> kotlin=true frontend=false
 ```
 
-`build` carries `if: needs.changes.outputs.kotlin == 'true'` and `frontend` carries
-`if: needs.changes.outputs.frontend == 'true'`, so `false` is a skipped job. The fourth row
-is the `bean:0029` trap held: a Kotlin indent knob reindented every TypeScript file, so
-`.editorconfig` runs both halves rather than either.
+`bash -s` is load-bearing and is the reason this is written as a command rather than as a
+result. Run under `zsh`, `printf '%s\n' $s` does not word-split, every multi-path set
+arrives as one path, and row 3 silently reports `frontend=false` — a wrong classification
+from a green command. A pasted snippet that is right in one shell and quietly wrong in
+another is the failure `doc:00-constitution#observed-failing` is about, one level down.
+
+This is still weaker than a CI run: it proves the decision function, not that GitHub Actions
+skips the job the function excludes. `build` carries
+`if: needs.changes.outputs.kotlin == 'true'` and `frontend` carries
+`if: needs.changes.outputs.frontend == 'true'`, and only the `frontend` half has been
+observed skipping. The frontend-only direction stays unobserved until a backoffice change
+is pushed.
+
+The `.editorconfig` row is the `bean:0029` trap held: a Kotlin indent knob reindented every
+TypeScript file, so `.editorconfig` runs both halves rather than either.
 
 `qualityCheck` stays the superset locally; CI subtracts with
 `-x backofficeTypecheck -x backofficeLint -x backofficeFormatCheck` (`ci.yml`) rather than
@@ -144,17 +171,37 @@ CI gaining a task local runs do not have.
 
 ### Criterion 4 — the measurement
 
+The claim under test is that per-path jobs recover most of the time a repository split
+would. Measured on a **one-half change** — the only shape where a split saves anything:
+
 ```
-run:      33256522531 (pull request #22, this bean's own)
-observed: build 50s, frontend 1m32s, gate 4s — gate green
+run:      33261902606 (pull request #35, `.beans/` only, so frontend skipped)
+cmd:      gh run view 33261902606 --json createdAt,updatedAt
+observed: created=2026-08-29T16:03:07Z  gate completed 2026-08-29T16:04:13Z
+          = 66s wall clock
+baseline: 2m02s (122s) — main after bean:0029 wired npm and Playwright into every run
+saving:   56s, 46%
 ```
 
-Recorded in `bean:0047`, which is the bean this observation was held back for: the `gate`
-check name exists, always runs, and reports, which is the precondition for requiring it.
-That run exercised both halves — the change touched `.github/workflows/ci.yml`, which the
-classifier routes to both by design — so the two halves ran in parallel rather than in the
-2m02s serial sequence measured above. Requiring the check is `bean:0047` and is blocked on
-a human: the harness refuses branch-protection edits to an agent.
+Per-job durations on that run: `which halves` 4s, `build` 48s, `backoffice + e2e` skipped,
+`gate` 4s.
+
+**The measurement first written here was the wrong one and overstated nothing — it measured
+the wrong thing.** It cited run `33256522531` (pull request #22) at build 50s / frontend
+1m32s / gate 4s. Both halves ran in that one, because the change touched
+`.github/workflows/ci.yml` and the classifier routes that to both by design. End to end it
+was 1m53s against the 2m02s baseline — `gh run view 33256522531 --json createdAt,updatedAt`
+→ `created=2026-08-29T14:02:09Z updated=2026-08-29T14:04:02Z`, 113s — about 8%, and it
+measures job parallelism rather than the path split. A both-halves run cannot measure the saving on a one-half change. The
+figure above replaces it.
+
+That 46% is against the post-`bean:0029` baseline. Against the pre-`bean:0029` Kotlin-only
+time of ~50–53s the split does not beat the original — it restores it, which is the honest
+reading: this recovers the cost `bean:0029` added rather than improving on what came before.
+Whether that answers `bean:0039` is `bean:0039`'s call.
+
+Requiring the `gate` check is `bean:0047` and is blocked on a human: the harness refuses
+branch-protection edits to an agent.
 
 ### Criterion 3 — the asymmetry is stated, not glossed
 
