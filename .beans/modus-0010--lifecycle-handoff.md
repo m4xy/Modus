@@ -100,8 +100,8 @@ Merged as PR #10 (`0bc47e0`, `2026-08-29T10:05:48Z`). `bean:0007`, `bean:0008` a
 through `bean:0027` publish the remaining scope as `todo` beans with a real dependency
 graph; the four session learnings are in the document that owns each topic; and
 `doc:00-constitution#observed-failing` is the new governing principle, applied
-immediately to 34 substantive `Enforced by:` claims — 9 verified, 27 demoted to
-`Enforcement gap:` lines naming their owning bean.
+immediately to the corpus's substantive `Enforced by:` claims — the counts are in §4 and
+review cycle 2 above and are not restated here (`doc:05-authoring-for-agents#one-fact-one-place`).
 
 This bean could not close itself: criterion 1 is about work items merged *before* it, and
 its own status is decided by the merge it is part of. Closing it is therefore the one
