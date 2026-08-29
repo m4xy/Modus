@@ -9,6 +9,10 @@ detekt = "1.23.8"
 ktlintPlugin = "14.2.0"
 ktlint = "1.8.0"
 archunit = "1.5.0"
+# JaCoCo 0.8.14 is the first release with official Java 25 support and 0.8.15 the
+# current one. Gradle 9.7.1 defaults jacoco.toolVersion to 0.8.13, which is only
+# EXPERIMENTAL on class file version 69 — so this pin is load-bearing, not cosmetic.
+jacoco = "0.8.15"
 kotest = "6.2.4"
 coroutines = "1.10.2"
 javaToolchain = "25"

@@ -12,6 +12,9 @@ concurrency:
 
 permissions:
   contents: read
+  # The coverage comment, and only that. A fork's GITHUB_TOKEN is read-only
+  # regardless, which is why the publish step is guarded on the head repository.
+  pull-requests: write
 
 jobs:
   build:
@@ -62,6 +65,20 @@ jobs:
       # second step to forget. See doc:35-testing#source-sets.
       - name: qualityCheck (both test suites, ktlint, Detekt, ArchUnit, build-logic)
         run: ./gradlew qualityCheck --stacktrace
+
+      # Reporting only, and no second Gradle invocation: qualityCheck already
+      # built this XML. The GATE is the per-module ratchet inside qualityCheck,
+      # which has already failed the job if coverage moved, so min-coverage-* are
+      # 0 rather than a second threshold to keep in sync (doc:35-testing#coverage).
+      - name: Publish coverage on the pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: madrapps/jacoco-report@v1.8.0
+        with:
+          paths: build/reports/jacoco/aggregate/coverage.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Coverage (all modules, both test suites)
+          min-coverage-overall: 0
+          min-coverage-changed-files: 0
 
       - name: Upload reports
         if: failure()
