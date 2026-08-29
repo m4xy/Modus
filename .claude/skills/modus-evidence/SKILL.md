@@ -71,13 +71,10 @@ git status --porcelain          # must be empty; a dirty tree makes the revert a
   legitimate change is not a gate, it is an obstacle. The counts in the success line are
   what prove the comparison ran rather than skipped.
 
-## Sandbox, when running inside an isolated worktree
+## Sandbox
 
-`GITHUB_TOKEN= gh …` works; `env -u GITHUB_TOKEN gh …` is refused. Also refused: compound
-commands containing `>`/`>>` into a non-literal target, and multi-statement `for … do … done`
-loops that pipe. A single `awk` over a glob is the reliable substitute; `cat file >> target`
-is accepted; a `mv`, a run and a `mv` back must be three separate calls. Write new files with
-the Write tool.
+`AGENTS.md`'s Commands block states which command shapes the sandbox refuses and what to
+write instead. Every one of them bites while planting and reverting a violation.
 
 ## Success criteria
 

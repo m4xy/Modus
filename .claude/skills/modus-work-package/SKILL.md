@@ -24,19 +24,14 @@ description: Take one Modus work item from selection to a merge-ready pull reque
 ```
 git status --porcelain                  # empty
 gh auth status                          # see step 0 — the token trap
-./gradlew qualityCheck                  # green on main before you start
+./gradlew qualityCheck                  # green at your branch point, before you start
 ```
 
 ## Procedure
 
 0. **Clear `GITHUB_TOKEN` on every `gh` call** — `AGENTS.md`'s Commands block states the
-   trap, the working form and the diagnostic. `deterministic`
-
-> **In an isolated worktree the prefix form is refused.** The sandbox rejects
-> `env -u GITHUB_TOKEN gh …` — it cannot verify what `env` does to the command it wraps —
-> and also rejects compound commands containing a redirect into a non-literal target. Write
-> a script into the scratchpad that does `cd <worktree>; unset GITHUB_TOKEN; gh …` and run
-> `bash <path>`. Found by `bean:0035`'s implementation, which lost two attempts to it.
+   trap, the working form, the diagnostic, and the other command shapes the sandbox
+   refuses. `deterministic`
 
 1. **Select the bean.** `AGENTS.md` workflow step 1 is normative: skip `type: epic`; among
    `status: todo` beans whose every `blocked_by` is `completed`, highest `priority`, ties on
@@ -53,7 +48,9 @@ gh auth status                          # see step 0 — the token trap
    it into children under an epic — that is normal, not exceptional
    (`doc:00-constitution` §6.2).
 
-4. **Branch** `<kind>/<slug>`, `<kind>` ∈ feat|fix|docs|chore|refactor|test|perf|build.
+4. **Branch, in a worktree of your own.** `AGENTS.md` workflow step 2 is normative for the
+   name; `doc:80-agent-operating-procedure#worktree-per-agent` binds the tree, and binds
+   every agent rather than only parallel ones.
 
 5. **Implement the smallest correct change.** Domain first, then use cases, then adapters.
    No drive-by fixes — note them as beans.
