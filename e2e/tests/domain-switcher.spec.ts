@@ -53,3 +53,19 @@ test('the switcher opens from the keyboard and closes on Escape', async ({ page 
   await expect(page.getByTestId('domain-menu')).toBeHidden();
   await expect(page.getByTestId('domain-switcher')).toBeFocused();
 });
+
+test('arrow keys move focus between the menu items', async ({ page }) => {
+  await page.goto('/domains/modus/work');
+
+  await page.getByTestId('domain-switcher').click();
+  const items = page.getByRole('menuitem');
+  await expect(items.first()).toBeFocused();
+
+  // The handler sits on the item rather than on the role="menu" container, which
+  // is not focusable and may not carry one (bean:0046).
+  await page.keyboard.press('ArrowDown');
+  await expect(items.nth(1)).toBeFocused();
+
+  await page.keyboard.press('ArrowUp');
+  await expect(items.first()).toBeFocused();
+});

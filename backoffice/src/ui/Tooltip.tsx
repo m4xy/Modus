@@ -6,7 +6,10 @@ import styles from './Tooltip.module.css';
 export interface TooltipProps {
   label: string;
   placement?: 'top' | 'bottom';
-  children: ReactElement<{ 'aria-describedby'?: string | undefined }>;
+  children: ReactElement<{
+    'aria-describedby'?: string | undefined;
+    onKeyDown?: ((event: KeyboardEvent<HTMLElement>) => void) | undefined;
+  }>;
 }
 
 /**
@@ -18,7 +21,13 @@ export function Tooltip({ label, placement = 'top', children }: TooltipProps) {
   const id = useId();
   const [open, setOpen] = useState(false);
 
-  const onKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
+  /**
+   * On the trigger, not on the wrapper span. Escape only ever reaches a keydown
+   * handler when focus is inside, and focus lands on the trigger — so the wrapper
+   * saw these events by bubbling, while carrying a key handler made a plain span
+   * look interactive (jsx-a11y/no-static-element-interactions).
+   */
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === 'Escape' && open) {
       event.stopPropagation();
       setOpen(false);
@@ -32,9 +41,8 @@ export function Tooltip({ label, placement = 'top', children }: TooltipProps) {
       onMouseLeave={() => setOpen(false)}
       onFocusCapture={() => setOpen(true)}
       onBlurCapture={() => setOpen(false)}
-      onKeyDown={onKeyDown}
     >
-      {cloneElement(children, { 'aria-describedby': open ? id : undefined })}
+      {cloneElement(children, { 'aria-describedby': open ? id : undefined, onKeyDown })}
       {open && (
         <span
           role="tooltip"
