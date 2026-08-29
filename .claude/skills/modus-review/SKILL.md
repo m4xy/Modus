@@ -28,7 +28,8 @@ git fetch origin && git checkout <branch>
 ```
 Work in a worktree of your own — `doc:80-agent-operating-procedure#worktree-per-agent`,
 which binds every agent unconditionally. The `GITHUB_TOKEN=` prefix above is `AGENTS.md`'s
-Commands block, which states the trap, the working form and the diagnostic.
+Commands block, which states the trap, the working form, the diagnostic, and the other
+command shapes the sandbox refuses.
 
 ## Procedure
 

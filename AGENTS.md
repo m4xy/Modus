@@ -40,6 +40,12 @@ otherwise use, and surfaces as `HTTP 401: Bad credentials` on an unrelated comma
 `env -u GITHUB_TOKEN gh …` is equivalent and is refused by default in an agent sandbox,
 which cannot verify what `env` does to the command it wraps.
 
+The sandbox refuses further shapes for the same reason — it cannot decide what they touch
+before they run. A compound command redirecting `>`/`>>` into a non-literal target, and a
+multi-statement `for … do … done` loop that pipes. `cat file >> target` is accepted; one
+`awk` over a glob replaces the loop; a `mv`, a run and a `mv` back are three separate calls.
+Write new files with the Write tool.
+
 JDK 25 toolchain. Versions live in `gradle/libs.versions.toml` and nowhere else.
 Style rules: `doc:30-code-style`. The Module extension contract: `doc:10-architecture`.
 This repository's own layout and layering rules: `doc:15-repository-layout`. None is repeated here.
