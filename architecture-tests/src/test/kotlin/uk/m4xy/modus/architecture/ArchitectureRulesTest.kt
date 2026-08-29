@@ -214,7 +214,7 @@ class ArchitectureRulesTest {
     val sharedKernelIsLeaf: ArchRule =
         classes()
             .that(areSharedKernel())
-            .should(dependOnlyOnLeafSafeTypes())
+            .should(dependOnlyOnLeafSafeTypes("the Kotlin stdlib, java.time and the rest of the shared kernel"))
             .because("every context imports the shared kernel, so anything it drags behind it is imported unseen")
 
     @ArchTest
@@ -334,16 +334,27 @@ class ArchitectureRulesTest {
         private val SHARED_KERNEL = setOf(SHARED_KERNEL_EVENT, SHARED_KERNEL_DOMAIN_ID)
 
         /**
-         * Membership is decided on the **outermost** enclosing class, because Kotlin
+         * Membership is decided on the **outermost enclosing class**, because Kotlin
          * generates classes the source does not name. A `private companion object` becomes
-         * `DomainId$Companion`, and a top-level `private val` becomes a `DomainIdKt`
-         * file facade. Matching the exact name alone put the companion outside its own
-         * kernel and the facade outside it permanently — both observed, on the first two
-         * runs of [sharedKernelIsLeaf]. Splitting on `$` covers the nested case; the
-         * facade is deliberately still excluded, which is why [SHARED_KERNEL_DOMAIN_ID]
-         * keeps its regex in a companion rather than at file scope.
+         * `DomainId${'$'}Companion`, and a top-level `private val` becomes a `DomainIdKt` file
+         * facade. Matching the exact name alone put the companion outside its own kernel and
+         * the facade outside it permanently — both observed, on the first two runs of
+         * [sharedKernelIsLeaf]. The facade stays excluded by design, which is why
+         * [SHARED_KERNEL_DOMAIN_ID] keeps its regex in a companion rather than at file scope.
+         *
+         * The walk is structural, via [JavaClass.getEnclosingClass]. An earlier version split
+         * the binary name on `${'$'}`, which is textual and therefore forgeable: Kotlin permits
+         * `${'$'}` in a backticked type name, so a **top-level** `` `DomainId${'$'}Evil` `` in this
+         * package joined the shared kernel without anyone editing [SHARED_KERNEL]. Review
+         * planted exactly that and the build stayed green — so the claim that the exemption
+         * cannot widen without a visible edit here was false as written.
          */
-        private fun isSharedKernel(javaClass: JavaClass): Boolean = javaClass.name.substringBefore('$') in SHARED_KERNEL
+        private fun isSharedKernel(javaClass: JavaClass): Boolean = outermost(javaClass).name in SHARED_KERNEL
+
+        private tailrec fun outermost(javaClass: JavaClass): JavaClass {
+            val enclosing = javaClass.enclosingClass.orElse(null) ?: return javaClass
+            return outermost(enclosing)
+        }
 
         /**
          * The Kotlin standard library plus the `java.*` packages it erases to. `java.util`
@@ -358,8 +369,22 @@ class ArchitectureRulesTest {
          */
         private val LEAF_SAFE_PACKAGES = setOf("kotlin", "java.lang", "java.util", "org.jetbrains.annotations")
 
-        /** The context segment of `uk.m4xy.modus.core.domain.<ctx>.…`. */
-        private fun contextOf(javaClass: JavaClass): String = javaClass.packageName.removePrefix("$DOMAIN_ROOT.").substringBefore('.')
+        /**
+         * The context segment of `uk.m4xy.modus.core.domain.<ctx>.…`, or [NO_CONTEXT] for a
+         * type that sits directly in `$DOMAIN_ROOT` — the shared kernel, and
+         * `BoundedContexts`. Those belong to no context, so no `..published..` package is
+         * their own, which is what [NO_CONTEXT] makes explicit: an earlier version let
+         * `removePrefix` no-op and yielded `"uk"`, reaching the right answer by accident.
+         */
+        private fun contextOf(javaClass: JavaClass): String =
+            javaClass.packageName
+                .takeIf { it.startsWith("$DOMAIN_ROOT.") }
+                ?.removePrefix("$DOMAIN_ROOT.")
+                ?.substringBefore('.')
+                ?: NO_CONTEXT
+
+        // No context owns this type, so no context's published language is "its own".
+        private const val NO_CONTEXT = ""
 
         private fun isLeafSafe(
             target: JavaClass,
@@ -379,12 +404,12 @@ class ArchitectureRulesTest {
                 override fun test(javaClass: JavaClass): Boolean = isSharedKernel(javaClass)
             }
 
-        private fun dependOnlyOnLeafSafeTypes(): ArchCondition<JavaClass> =
-            object : ArchCondition<JavaClass>(
-                "depend on nothing beyond the Kotlin stdlib, java.time, " +
-                    "their own context's published language and the shared kernel " +
-                    SHARED_KERNEL.joinToString(", "),
-            ) {
+        private fun dependOnlyOnLeafSafeTypes(
+            permitted: String =
+                "the Kotlin stdlib, java.time, their own context's published language " +
+                    "and the shared kernel " + SHARED_KERNEL.joinToString(", "),
+        ): ArchCondition<JavaClass> =
+            object : ArchCondition<JavaClass>("depend on nothing beyond $permitted") {
                 override fun check(
                     item: JavaClass,
                     events: ConditionEvents,

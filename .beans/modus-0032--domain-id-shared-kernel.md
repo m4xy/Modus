@@ -65,13 +65,28 @@ Not owned: `domainmgmt/**` and every other context — `bean:0012` is the first 
 does not land here. No behaviour changes; `DomainId`'s invariant, message and tests are
 moved unaltered.
 
+## Review cycle
+
+Reviewed against the branch, every claim re-run rather than read. Nothing blocking; three
+findings changed the code or the record.
+
+| finding | resolution |
+|---|---|
+| membership by `name.substringBefore('$')` is textual and therefore forgeable — a top-level `` `DomainId$Evil` `` joined the kernel, build green | walked structurally via `JavaClass.getEnclosingClass()`. Re-planted the same forgery: 7 violations where there were none |
+| `publishedLanguageIsLeaf` never sees a value class in an erased position, so criterion 4 asserted more than the rule delivers | `bean:0034` raised; §4.2's row carries the gap. Pre-existing, not introduced here — and the three original plants all fired incidentally, via `data class` synthetics |
+| the ADR rejected "relax the leaf rule" on two grounds, one of which does not hold, and omitted the strongest alternative | the "weakens a ratified rule" ground is struck — §3.1's two statements contradict, so declining to weaken one does not choose between them. The omitted alternative (`DomainId` is `domainmgmt`'s, leaf rule consults the allowlist) is added, and `#deferred-conflict` says plainly that `bean:0023` settles what this ADR only defers |
+
+Also corrected from review: `contextOf` returned `"uk"` for a kernel member and reached the
+right answer by accident; it now returns an explicit `NO_CONTEXT`. `sharedKernelIsLeaf`
+described a permitted set belonging to a different rule.
+
 ## Success criteria and evidence
 
 | # | criterion | evidence kind |
 |---|---|---|
 | 1 | `DomainId` resides outside every bounded context, and no context declares one | `grep`, and the compiled package |
 | 2 | Its invariant, its failure message and its KDoc reasoning survive the move unaltered, and its three tests move with it | diff of the extracted text; `git diff` on both files |
-| 3 | `rule:archunit/publishedLanguageIsLeaf` exempts the shared kernel by **name**, not by package wildcard, so the exemption cannot silently widen | citation |
+| 3 | `rule:archunit/publishedLanguageIsLeaf` exempts the shared kernel by **name**, and membership is walked structurally to the outermost enclosing class, so the exemption cannot silently widen | test-run: plant a forged member, observe rejection. Review disproved the first attempt — a textual split on `$` admitted a top-level `` `DomainId$Evil` `` with the build green |
 | 4 | A published type in one context still may not reach another context's published package | test-run: plant, observe the rule fail, revert |
 | 5 | The shared kernel itself is leaf-checked — it may not grow a dependency the contexts importing it cannot see | test-run: plant, observe, revert |
 | 6 | `identity`'s 43 tests pass unchanged in substance; only imports move | test-run |
@@ -79,3 +94,5 @@ moved unaltered.
 | 8 | `./gradlew qualityCheck` green, `config/coverage/baseline.tsv` moved by exactly the move | test-run |
 | 9 | The learning that made the rule fail twice is encoded where the next agent writing an ArchUnit rule will read it, not only in the ADR | `doc:30-code-style#archunit-synthetic-classes` |
 | 10 | The regression provenance `coverageBaselineWrite` erased is restored, and the erasure itself is raised rather than absorbed | `bean:0033`, and the restored comment in `config/coverage/baseline.tsv` |
+| 11 | Where the rule enforces less than §4.2 claims, the document says so rather than the bean quietly relying on it | `bean:0034` (value-class erasure), and §4.2's new `Enforcement gap:` naming the five rules of the thirteen that do not exist |
+| 12 | The ADR states which question it settles and which it defers | `adr:0004-domain-id-shared-kernel#deferred-conflict` |

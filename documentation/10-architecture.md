@@ -218,7 +218,7 @@ This is the source table an ArchUnit test is derived from. One row per (module, 
 | `NoReflection` | No `java.lang.reflect..`, no `::class.java` beyond `equals`/`hashCode` support. |
 | `AggregatesAreSealedOrFinal` | Every type in `..domain.aggregate..` is `final` (Kotlin default) — no `open` aggregate. The package convention (`20-ddd-practices.md` §5.1) is what gives this rule a decidable scope. |
 | `EventsAreDataClasses` | Every type in `..domain.event..` is a `data class` and every property is `val`. |
-| `PublishedLanguageIsLeaf` | No type in `..domain.event..` or `..domain.published..` depends on anything beyond the Kotlin stdlib, `java.time` types, its own context's `..domain.published..`, and the shared kernel. This is the rule §3.1 rests on. The shared kernel is the whole of the exemption and its members are named in the rule, never matched by package: `DomainEvent`, without which every context would declare an identical marker of its own and there would be no type to dispatch a cross-context event as; and `DomainId`, without which every context would declare its own tenant identifier and no two would be equal (`adr:0004-domain-id-shared-kernel`). |
+| `PublishedLanguageIsLeaf` | No type in `..domain.event..` or `..domain.published..` depends on anything beyond the Kotlin stdlib, `java.time` types, its own context's `..domain.published..`, and the shared kernel. **Enforcement gap:** it decides only what reaches bytecode — a `@JvmInline value class` held in a plain field erases to its underlying type and leaves no edge to see (`bean:0034`). This is the rule §3.1 rests on. The shared kernel is the whole of the exemption and its members are named in the rule, never matched by package: `DomainEvent`, without which every context would declare an identical marker of its own and there would be no type to dispatch a cross-context event as; and `DomainId`, without which every context would declare its own tenant identifier and no two would be equal (`adr:0004-domain-id-shared-kernel`). |
 | `SharedKernelIsLeaf` | The shared kernel depends on nothing beyond the Kotlin stdlib and `java.time`. Every context imports it, so a dependency added there is one every context inherits unseen. Scoped on the outermost enclosing class, because a `private companion object` and a top-level `private val` both generate classes the source does not name. |
 | `PortsAreInterfaces` | Every type in `..domain.port..` is an `interface` with no default implementations that perform IO. |
 
@@ -232,7 +232,16 @@ This is the source table an ArchUnit test is derived from. One row per (module, 
 | `ControllersAreDomainScoped` | Every `@RequestMapping`/`@GetMapping`/… path starts with `/domains/{domainId}`, unless it matches the **non-domain-scoped route allowlist** in §5.1. The rule reads that list; it does not restate it. |
 | `NoFieldInjection` | No `@Autowired` on a field or setter anywhere. Constructor injection only. |
 
-**Enforcement gap:** none of the five rules above exist. `DomainTypesDoNotEscape`,
+**Enforcement gap (§4.2):** five of the thirteen rules in §4.2 do not exist either —
+`EventsAreDataClasses`, `PortsAreInterfaces`, `NoAmbientRandom`, `NoAmbientConcurrency` and
+`NoReflection`. `architecture-tests` implements the other eight, and `domainIsFrameworkFree`
+covers the first four rows as one rule rather than four. Until they exist, an event that is
+not a data class, a port that is not an interface, and a call to `UUID.randomUUID()` in the
+domain all merge green. `bean:0027` carries the audit; `bean:0034` carries the consequence
+that `PublishedLanguageIsLeaf` cannot lean on `EventsAreDataClasses` to see a value class in
+an erased position.
+
+**Enforcement gap (§4.3):** none of the five rules above exist. `DomainTypesDoNotEscape`,
 `NoDtoInCore` and `ControllersAreDomainScoped` are `adapter-rest`-specific and every
 adapter today, including it, is a placeholder with no controllers to check; `bean:0018`
 carries them. `AdaptersImplementPorts` and `NoFieldInjection` apply to any adapter;

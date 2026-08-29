@@ -9,6 +9,7 @@ read_when:
 provides:
   - adr:0004-domain-id-shared-kernel#shared-kernel-decision
   - adr:0004-domain-id-shared-kernel#shared-kernel-membership
+  - adr:0004-domain-id-shared-kernel#deferred-conflict
 depends_on: [doc:10-architecture, doc:20-ddd-practices]
 ---
 
@@ -84,6 +85,23 @@ things get added quietly. At three, move them to `..domain.kernel` and scope bot
 structurally, the way `..domain.aggregate` scopes `AggregatesAreSealedOrFinal`
 (`doc:20-ddd-practices` §5.1).
 
+### What this ADR does not settle <a id="deferred-conflict"></a>
+
+It resolves one instance and **defers the rule conflict itself**. §3.1's allowlist table and
+its leaf paragraph still contradict each other for any type that is genuinely a context's
+own; moving `DomainId` out of the argument does not reconcile them. `bean:0023` —
+`ContextInternalsAreSealed` and `PublishedLanguageAllowlist` — is where that is settled, and
+this decision should be re-read when it lands.
+
+The pressure recurs immediately and cannot be answered the same way twice. `execution`'s
+`AgentRunStarted` and `cost`'s `SpendRecorded` both attribute to an actor, so both will want
+`ActorId` in a published signature. `ActorId` **fails** membership test 1: `identity`
+genuinely owns what an actor is, and no other context can name one without asking. So the
+kernel cannot absorb it, and the next occurrence must be resolved by the allowlist rather
+than by promotion. Promoting a type to dodge the leaf rule is precisely how a shared kernel
+becomes the junk drawer the Negative consequences below warn about — which is also why the
+three-member trigger is a brake on the symptom rather than a plan.
+
 ## Consequences
 
 ### Positive
@@ -101,8 +119,16 @@ structurally, the way `..domain.aggregate` scopes `AggregatesAreSealedOrFinal`
 - Scoping by name means Kotlin's generated classes must be handled explicitly: a
   `private companion object` is `DomainId$Companion` and a top-level `private val` is a
   `DomainIdKt` file facade. Both were observed failing `sharedKernelIsLeaf` on its first two
-  runs. Membership is decided on the outermost enclosing class, and `DomainId` keeps its
-  regex in a companion rather than at file scope so no facade is generated at all.
+  runs. Membership is decided on the outermost enclosing class — walked structurally via
+  `JavaClass.getEnclosingClass()`, not by splitting the binary name on `$`. Review showed the
+  textual split was forgeable: Kotlin permits `$` in a backticked type name, so a top-level
+  `` `DomainId$Evil` `` in this package joined the kernel with the build green and nobody
+  editing the member list. `DomainId` also keeps its regex in a companion rather than at file
+  scope so no facade is generated at all.
+- The rule sees only what reaches bytecode. A `@JvmInline value class` held in a plain field
+  erases to its underlying type and leaves no edge, so `publishedLanguageIsLeaf` does not
+  catch every cross-context reference it claims to. `bean:0034` carries that; it is older
+  than this ADR and is not created by it.
 
 ### Neutral
 
@@ -114,6 +140,7 @@ structurally, the way `..domain.aggregate` scopes `AggregatesAreSealedOrFinal`
 
 | alternative | rejected because |
 |---|---|
-| Relax `publishedLanguageIsLeaf` to allow any context's published package, leaving the per-context restriction to `PublishedLanguageAllowlist` | weakens a ratified rule, and `PublishedLanguageAllowlist` does not exist (`bean:0023`). Until it does, every cross-context published import would pass — `cost.event → memory.published` included, which §3.1's table forbids outright |
+| Relax `publishedLanguageIsLeaf` to allow any context's published package, leaving the per-context restriction to `PublishedLanguageAllowlist` | `PublishedLanguageAllowlist` does not exist (`bean:0023`), so until it does every cross-context published import would pass — `cost.event → memory.published` included, which §3.1's table forbids outright. That is the whole of the rejection, and it is a **timing** argument. "It weakens a ratified rule" is not a second reason and was struck: §3.1's two statements contradict each other, so declining to weaken one does not select between them |
+| `DomainId` belongs to `domainmgmt.published` — that context owns domain lifecycle and publishes `DomainCreated` — with the leaf rule consulting §3.1's allowlist | the strongest alternative, and it is the end state `bean:0023` builds toward. Rejected **for now** on the same timing ground: it needs the allowlist rule to exist first. It also fails membership test 1 below in the opposite direction — `identity` would have to ask `domainmgmt` permission to name a tenant, and `identity` predates it |
 | Give `domainmgmt` its own `DomainId` | two structurally identical, mutually unequal types for one tenant, at every boundary between the two contexts. `identity`'s case-sensitivity reasoning — `Modus-Core/` and `modus-core/` are one directory on APFS and NTFS — would be duplicated or silently lost in the copy |
 | Move `DomainEvent` into the kernel package now, and `DomainId` with it | the right end state, and out of scope for a bean that moves one type. Recorded above as the trigger at three members |
