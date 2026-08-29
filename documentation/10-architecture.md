@@ -15,6 +15,7 @@ read_when:
 provides:
   - doc:10-architecture#repository-layout
   - doc:10-architecture#placement-table
+  - doc:10-architecture#tiers
   - doc:10-architecture#bounded-contexts
   - doc:10-architecture#module-dependencies
   - doc:10-architecture#domain-root-convention
@@ -68,7 +69,7 @@ app/
 backoffice/                             React + Vite + TypeScript
 e2e/                                    Playwright
 documentation/                          this package
-beans/                                  work items
+.beans/                                 work items — the modus domain's own store
 tools/                                  repository-wide checks that are not Kotlin rules
 ```
 
@@ -93,6 +94,23 @@ tools/                                  repository-wide checks that are not Kotl
 
 If you cannot place your code using this table, you have discovered a gap. Do not guess:
 add a row here in the same pull request, with a rationale.
+
+### 2.2 Which tier <a id="tiers"></a>
+
+Placement answers *where*; it does not answer *who receives it*. Three tiers share this tree
+and `adr:0006-framework-boundary` is their single normative statement — including the
+per-section classification of this document, which is tier 1 in §3.1, §4.1, §5 and §7 and
+tier 2 elsewhere.
+
+| tier | receives it | in this tree |
+|---|---|---|
+| 1 — framework | every tenant | `core/`, `adapters/`, `modules/`, `app/` |
+| 2 — build discipline | nobody outside this repository | `build-logic/`, `architecture-tests/`, `config/` |
+| 3 — the `modus` domain's SDLC | one domain, which happens to be this one | `.beans/`, `tools/`, `AGENTS.md`, the pull-request template |
+
+The test, stated once in `adr:0006-framework-boundary#the-test`: tier 1 if a tenant's running
+system still needs it once this repository is deleted; tier 3 if another domain adopting
+Modus would plausibly want it different; tier 2 otherwise.
 
 ---
 
