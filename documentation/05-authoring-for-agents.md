@@ -232,7 +232,11 @@ conventions:
   evidence section that carries no evidence column restates its criteria and answers none of
   them. Check 14 rejects that table rather than letting its rows stand as their own evidence.
 - A criterion is **answered** by an evidence row bearing its number, or by a `criterion N` or
-  `criteria N–M` citation anywhere in the bean. A criterion whose evidence is a section that
+  `criteria N–M` citation anywhere in the bean **outside a fenced block**. A fence is an entry
+  but is not a citation site: it holds verbatim output, and in this repository that output
+  quotes this check's own `criterion N is not answered` message, so reading citations inside
+  fences would let pasted output answer the criterion it reports as unanswered (`bean:0061`).
+  A criterion whose evidence is a section that
   never names it is unanswered however long that section is, because
   `adr:0005-evidence-lives-in-the-work-item#evidence-home` puts the evidence beside the
   criterion it satisfies and a reader must be able to find the pairing.
