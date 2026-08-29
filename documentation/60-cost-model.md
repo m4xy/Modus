@@ -66,7 +66,7 @@ the source of truth.** Prices per **million tokens**, Anthropic first-party API 
 > before the lapse must stay computable, not because they are current. §2.1 models this as
 > a price-book entry with an `effectiveTo`, so no code changes when it lapses; what does
 > need to happen is a `fetch`-evidenced entry for the standard rate, which is why
-> "populate the initial price book" is a live follow-up in `beans/0001`. Any spend
+> "populate the initial price book" is a live follow-up in `bean:0001`. Any spend
 > projection quoting $2.00/$10.00 for a run after the lapse is wrong.
 
 The **effort column is normative** and is the only statement of effort support in this

@@ -174,5 +174,6 @@ Each check is decidable from repository contents alone.
 | 7 | predicate shape | a `read_when` entry is neither the scalar `always` nor a single `path:` or `task:` key |
 | 8 | line budget | a `documentation/*.md` is outside the line range `documentation/README.md` states, or `AGENTS.md` exceeds 120 lines |
 | 9 | derived listings | a row in `AGENTS.md` marked derived omits the `doc:` id it derives from, or itself states a `path:`/`task:` predicate value instead of citing that id |
+| 10 | no bare bean paths | a bare `beans/NNNN` or `.beans/NNNN` path appears in `documentation/*.md`, `AGENTS.md` or `CLAUDE.md` prose, instead of a typed `bean:NNNN` reference (§2) |
 
-Enforcement gap: all nine. `bean:0004` carries them; they land as a `docs-lint` step in `rule:ci/build`.
+Enforcement gap: all ten. `bean:0004` carries them; they land as a `docs-lint` step in `rule:ci/build`.

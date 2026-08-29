@@ -47,13 +47,26 @@ resolution a flat, one-directory glob.
 
 ## Relationships recorded
 
-- `modus-0006` (test taxonomy) gets `parent: modus-0003` (build foundation) — the
-  taxonomy work is mechanically enforced by the Gradle foundation build 0003
-  establishes, and the task brief names this relationship explicitly.
+- `modus-0006` (test taxonomy) gets `parent: modus-0003` (build foundation) — `modus-0006`'s
+  own scope lists `build-logic/` convention plugins and module `build.gradle.kts` files as
+  owned (`.beans/modus-0006--test-taxonomy.md` §Scope); `modus-0003`'s scope is the work
+  item that created those same convention plugins and skeleton build files
+  (`.beans/modus-0003--build-foundation.md` §Scope). `modus-0006` modifies infrastructure
+  `modus-0003` built — a parent/child dependency, not inferred from topic overlap.
 - `modus-0005` (front-matter and docs-lint) gets `blocked_by: [modus-0004]` — its own
   body states it "closes the four back-fill and enforcement follow-ups of `bean:0004`".
 - No other relationship is invented; the remaining four beans are independent
   top-level work.
+
+## Review cycle 1
+
+Three threads, all fixed in this PR (no follow-up).
+
+| thread | finding | fix | evidence |
+|---|---|---|---|
+| `tools/docs-lint.sh:36` | nine bare `beans/NNNN` prose references survive the migration, invisible to check 6 (typed references only) | all nine converted — seven to typed `bean:0001`, two (`30-code-style.md`, `80-agent-operating-procedure.md`, the `@Disabled` examples) to the new `bean:NNNN` convention from thread 2; added check 10 (`grep -noE '\bbeans/[0-9]'` over `documentation/*.md`, `AGENTS.md`, `CLAUDE.md`) so a bare path is a lint failure, not a silent gap | planted `beans/0001` in `documentation/00-constitution.md`, ran `tools/docs-lint.sh`, observed `FAIL check 10  documentation/00-constitution.md:138: bare beans/ path in prose; use a typed bean:NNNN reference (doc:05#reference-syntax)`, reverted |
+| `.beans/modus-0008--beans-schema-migration.md:50` | `TestPurityRulesTest.kt`'s `disabledCarriesAWorkItem` rule and its failure message still mandate `beans/NNNN`, a path this PR deletes; `30-code-style.md` and `80-agent-operating-procedure.md` document the same dead format | fixed in this PR (the no-`architecture-tests/`-touch restriction was scoped to avoid a concurrent agent that has since finished): `WORK_ITEM` regex, the violation message and both doc citations changed from `beans/NNNN` to `bean:NNNN` | planted `@Disabled("wrong-format")`, ran the test, observed the rule fail with the updated message; planted `@Disabled("bean:0006: proving the rule fires")`, observed `BUILD SUCCESSFUL`; both reverted |
+| `.beans/modus-0006--test-taxonomy.md:8` | `parent: modus-0003` cited "the task brief" as evidence, which the reviewer had no access to and could not verify | relationship kept (correct — the brief did name it, and `modus-0006`'s scope genuinely depends on convention plugins `modus-0003` created); evidence reworded above to the concrete scope-overlap dependency instead of an unverifiable citation | `.beans/modus-0006--test-taxonomy.md` §Scope and `.beans/modus-0003--build-foundation.md` §Scope both list `build-logic/` / module `build.gradle.kts` |
 
 ## Success criteria and evidence
 

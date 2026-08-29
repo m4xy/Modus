@@ -237,7 +237,7 @@ For each success criterion from step 2:
   (`50-memory-and-evidence.md` §2.3).
 - **Read the failure tail, not the whole output.** Test output is a context sink.
 - A flaky test is a failing test. Fix it, or open a work item and put its id in the
-  `@Disabled` **annotation value** — `@Disabled("beans/0042: reason")`. ArchUnit reads the
+  `@Disabled` **annotation value** — `@Disabled("bean:NNNN: reason")`. ArchUnit reads the
   annotation value and fails the build without it (`30-code-style.md` §5.1). A comment
   beside the annotation is not enough and never was: comments are not in bytecode.
 - Re-run the full gate after your **last** change. "It passed before that last tweak" is

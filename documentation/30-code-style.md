@@ -212,11 +212,11 @@ to every Kotlin module, so a new module gets them automatically. Freezing (ArchU
 
 ### 5.1 `DisabledCarriesWorkItem`
 
-> Every `@Disabled` / `@Ignored` **annotation value** matches `^beans/\d{4}`, and the rest
+> Every `@Disabled` / `@Ignored` **annotation value** matches `^bean:\d{4}`, and the rest
 > of the value is a non-blank reason.
 
 ```kotlin
-@Disabled("beans/0042: flaky under parallel execution — shared temp dir")
+@Disabled("bean:0042: flaky under parallel execution — shared temp dir")
 ```
 
 The reference is an **annotation attribute**, not a comment. `@Disabled`'s `value` is
@@ -262,7 +262,7 @@ normative statement of it — is `00-constitution.md` §7.2.4.
 | Mocks | Forbidden in `core/` — hand-written fakes only. Permitted in adapters for genuinely external systems. |
 | Time | Always injected. A test that calls `Instant.now()` fails ArchUnit's `TestRules`. |
 | Filesystem | Every filesystem test gets a fresh temp directory and deletes it on teardown. |
-| Flakes | A flaky test is a failing test. `@Disabled`/`@Ignored` requires its **annotation value** to name the work item that will fix it — `@Disabled("beans/0042: reason")` — which ArchUnit reads and asserts (§5.1). Not a comment: comments do not exist in bytecode. |
+| Flakes | A flaky test is a failing test. `@Disabled`/`@Ignored` requires its **annotation value** to name the work item that will fix it — `@Disabled("bean:NNNN: reason")` — which ArchUnit reads and asserts (§5.1). Not a comment: comments do not exist in bytecode. |
 | Determinism | No random data without a fixed, logged seed. |
 
 ---

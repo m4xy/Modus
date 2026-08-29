@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs-lint — the nine mechanical checks of doc:05-authoring-for-agents#checks.
+# docs-lint — the ten mechanical checks of doc:05-authoring-for-agents#checks.
 #
 # Bash, not Kotlin: the checks are line- and glob-shaped, bash already runs in CI
 # and locally, and a JavaExec task would need a source set, a toolchain and a test
@@ -282,6 +282,17 @@ while IFS= read -r row; do
     fail 9 "AGENTS.md:$ln: derived row states a path:/task: value instead of citing its doc: id"
   fi
 done < "$TMP/derived.txt"
+
+# ---------------------------------------------------------------- check 10 ---
+# A bare `beans/NNNN` or `.beans/NNNN` path in prose is structurally invisible
+# to check 6, which only resolves typed `bean:NNNN` references
+# (doc:05#reference-syntax). This migration proved a bare path survives the
+# directory it names being deleted with no lint signal at all — a typed
+# reference is the only legal way to point at a bean.
+grep -noE '\bbeans/[0-9]' documentation/*.md AGENTS.md CLAUDE.md 2>/dev/null |
+  while IFS=: read -r f ln _; do
+    fail 10 "$f:$ln: bare beans/ path in prose; use a typed bean:NNNN reference (doc:05#reference-syntax)"
+  done
 
 # -------------------------------------------------------------------- done ---
 n_fail="$(grep -c . "$TMP/fails.txt")"
