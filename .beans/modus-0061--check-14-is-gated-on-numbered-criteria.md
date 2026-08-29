@@ -93,21 +93,55 @@ protection. The criteria requirement is §7.2 step 1.)
 ## The citation matcher cannot tell a citation from a mention
 
 Found while checking that this bean is itself visible to check 14. Flipped to `completed` as
-written, with no `## Evidence` section at all:
+written, with no `## Evidence` section at all — so **every** one of its six criteria is
+unanswered, and the check should name all six:
 
 ```
 planted:  .beans/modus-0061 status: todo -> completed, nothing appended
-observed: FAIL check 14 …/modus-0061…: closes with no evidence section; …
-          FAIL check 14 …/modus-0061…: criterion 3 is not answered …
-          FAIL check 14 …/modus-0061…: criterion 4 is not answered …
-          FAIL check 14 …/modus-0061…: criterion 5 is not answered …
+observed: FAIL check 14 .beans/modus-0061-…: closes with no evidence section; a
+          criterion's command, expectation and verbatim observed output live in the bean
+          (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+          FAIL check 14 .beans/modus-0061-…: criterion 4 is not answered in the evidence;
+          no evidence row bears its number and nothing cites it (adr:0005-…)
+          FAIL check 14 .beans/modus-0061-…: criterion 5 is not answered … (adr:0005-…)
+          FAIL check 14 .beans/modus-0061-…: criterion 6 is not answered … (adr:0005-…)
+          docs-lint: 4 failure(s).
 exit:     1
 ```
 
-Criteria 1 and 2 are absent from that list. They are "answered" by the sentence in
-`#fence` above that reads *the words `criterion 1 and criterion 2` moved one line above the
-fence* — prose **about** a citation, matched as a citation. A bean discussing criterion
-numbering silently satisfies its own per-criterion condition.
+It names three. The other three are suppressed by prose **about** criterion numbers, matched
+as citations of them. Replicating the matcher over this file, outside fences, finds every
+match:
+
+```
+cmd:      awk over this bean — skip fenced lines, then apply check 14's own matcher
+          /criteri(on|a)[^0-9a-z]*[0-9]+([^0-9a-z]{1,3}[0-9]+)?/ to each remaining line
+observed: 62:  [criterion 11]      <- 'criterion 11 exists to give', about bean:0055
+          176: [criteria 2]        <- 'criteria 2 through 9', an elision being described
+          191: [criteria **{1, 2]  <- the SET a fence-reading scan would answer, in #fence
+          196: [criteria 2]        <- the same elision, twice more in #fence
+          198: [criteria 2]
+          199: [criterion 1]       <- #fence quoting its own example sentence
+          200: [criterion 1]
+          245: [criteria 1, 3]     <- the note under the criteria table, read as a range,
+                                      which sets A[1], A[2] and A[3] in one line
+exit:     0
+```
+
+Not one of those eight is a citation. Every one sets `A[n]`, and a pair of numbers separated
+by one to three non-alphanumeric characters sets the whole inclusive span — so the `1, 3`
+line at the end answers three of them on its own.
+
+The sharpest instance is not in that list, because writing it down removed it. An earlier
+revision of this section reported the result as a sentence naming the flagged criteria by
+number. That sentence matched, the numbers it named became answered, and the transcript above
+changed under it — **the sentence reporting which criteria the check flagged is what stopped
+it flagging them.** This paragraph is therefore worded to avoid naming them, which is not a
+style choice: in a bean about criterion numbering, plain prose is unsafe.
+
+`bean:0063`, which discusses fences rather than criterion numbers, is the control. Flipped the
+same way, with five criteria and no evidence section, it produces six failures — one for the
+missing section and one for every criterion, with nothing suppressed.
 
 This is the same widening `bean:0055` refused for a different reason: a matcher that accepts
 "some section somewhere mentions this number" accepts too much. It is the counterpart to the
@@ -138,24 +172,32 @@ exit:     0
 
 **Ruling: the code is right and the document was wrong.** A fence holds verbatim output, and
 in this repository that output quotes this check's own messages. Six fenced lines in
-`bean:0055` name a criterion by number, five of them being `criterion N is not answered in
-the evidence`:
+`bean:0055` name a criterion by number — three of them the verbatim `criterion N is not
+answered in the evidence`, one an elision standing in for criteria 2 through 9, and two a
+different check-14 message (`records 'test-run'`, `closes with an empty evidence cell`):
 
 ```
 cmd:      awk over .beans/*.md — toggle a flag on every fence-marker line, and print
           each line INSIDE a fence matching /criteri(on|a)[^0-9a-z]*[0-9]/
-observed: modus-0055: FAIL check 14 …: criterion 4 is not answered in the evidence;
-          modus-0055:                  criterion 5 is not answered in the evidence;
-          modus-0055: FAIL check 14 …: criterion 2 records 'test-run' — an evidence
-          modus-0055: FAIL check 14 …: criterion 2 closes with an empty evidence
-          modus-0055: FAIL check 14 …: criterion 1 is not answered in the evidence; …
-          modus-0055:                  (identically for criteria 2 through 9)
+observed: modus-0055:146  FAIL check 14 …: criterion 4 is not answered in the evidence;
+          modus-0055:149                       criterion 5 is not answered in the evidence;
+          modus-0055:156  FAIL check 14 …: criterion 2 records 'test-run' — an evidence
+          modus-0055:163  FAIL check 14 …: criterion 2 closes with an empty evidence
+          modus-0055:328  FAIL check 14 …: criterion 1 is not answered in the evidence; …
+          modus-0055:329                   (identically for criteria 2 through 9)
 exit:     0
 ```
 
-A scan that read inside fences would let `bean:0055` answer criteria 1, 2, 4, 5 and the range
-2–9 with pasted output stating that they are unanswered. Evidence would launder itself, in
-the bean that built the check. This change therefore corrects
+A scan that read inside fences would let `bean:0055` answer criteria **{1, 2, 4, 5}** with
+pasted output stating that they are unanswered. Evidence would launder itself, in the bean
+that built the check.
+
+The range on line 329 is **not** captured, and the count matters more than the rhetoric.
+The matcher is `criteri(on|a)[^0-9a-z]*[0-9]+([^0-9a-z]{1,3}[0-9]+)?`: on `criteria 2 through
+9` the optional group needs 1–3 **non-alphanumeric** characters before the second number, and
+` through ` is letters, so the match ends at `criteria 2` and only `A[2]` is set. Four
+criteria, not five and not a range — which is enough, because criterion 1 of the bean that
+built this check would be answered by output saying criterion 1 is unanswered. This change therefore corrects
 `doc:05-authoring-for-agents#checks` to say *outside a fenced block* and leaves
 `tools/docs-lint.sh` alone. No bean in the corpus is affected: the failing shape is planted,
 not live.
@@ -200,6 +242,11 @@ Deciding between them is this bean's work, not its premise.
 | 5 | A prose mention of a criterion number that is not a citation no longer answers it, or the looseness is stated as accepted | test-run |
 | 6 | `./gradlew qualityCheck` green | test-run |
 
+Criteria 1, 3, 4 and 5 are each satisfiable by acting **or** by stating the exemption. That is
+deliberate and not an oversight in `doc:80-agent-operating-procedure` step 2's sense: this is a
+decision bean, and what it owes is a decision on the record with its reason, not a
+predetermined code change. A stated exemption closes it; silence does not.
+
 ## Not in scope
 
 - `doc:05-authoring-for-agents#checks`'s fence wording and the `evidence (verbatim)` header.
@@ -208,3 +255,6 @@ Deciding between them is this bean's work, not its premise.
 - Beans already `completed` on `main`. Check 11 freezes them and check 14 never re-reads them.
 - The residuals `bean:0055` already owns: the qualified-kind cell, and zero-denominator
   citation.
+- The analyser's fence **state**, as opposed to its fence rule. An odd number of fence markers
+  inverts it for the rest of the file; that is `bean:0063`, and it is a defect rather than a
+  residual.
