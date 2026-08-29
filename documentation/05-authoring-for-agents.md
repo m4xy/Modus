@@ -185,11 +185,12 @@ Each check is decidable from repository contents alone.
 | 10 | no bare bean paths | a bare `beans/NNNN` or `.beans/NNNN` path appears in `documentation/*.md`, `AGENTS.md` or `CLAUDE.md` prose, instead of a typed `bean:NNNN` reference (§2) |
 | 11 | completed beans are final | a bean that was `completed` on the merge base changes in any way other than gaining entries under a trailing `## Amendments` section, or an amendment omits its date, its authoring bean, `**Claimed:**`, `**Found:**` or `**Evidence:**` (`adr:0005-evidence-lives-in-the-work-item#amendments`) |
 | 12 | bean graph | a `blocked_by` or `parent` id matches other than exactly one bean file, a `blocked_by` edge names a `type: epic` bean, the `blocked_by` graph has a cycle, two beans that reach `AGENTS.md` step 1's tiebreak together share an `order` value, or no bean is selectable at all |
+| 13 | bean id uniqueness | a bean id names two files in the tree, a filename's id and its front-matter `# <id>` marker disagree, a bean filename is not `<prefix><id>--<slug>.md` at `.beans.yml`'s `id_length`, or an id this branch **introduces** already exists on `origin/main` |
 
 **Enforced by:** `tools/docs-lint.sh`, run by the `docsLint` task inside `qualityCheck`
 (`rule:ci/build`). Each check has been observed rejecting a planted violation; check 11's
 four rejections and its one accepted amendment are recorded in `bean:0038`, check 12's
-six rejections and its one negative control in `bean:0035`.
+six rejections and its one negative control in `bean:0035`, check 13's three in `bean:0051`.
 
 Check 11 classifies by the `status:` on the **merge base**, not on the branch, and diffs the
 base against the **working tree**. A bean moving `in-progress` → `completed` in the change
@@ -203,3 +204,14 @@ scoped to that set grouped by `priority`, because only beans that reach the tieb
 can be tied by it; a bean with no `order` is not a collision, since absence is itself a
 defined position. The counts on the `OK` line — beans, graph edges, selectable — are the
 check's vacuity assertion: a run that parsed nothing reports zero rather than success.
+
+Check 13's third condition is the only one in this table that reads a ref this branch does
+not contain. `.beans/` **is** the id allocator, it is read at branch time, and nothing
+serialises two readers, so two agents in parallel worktrees can both take the next free id
+and both be right within their own tree (`bean:0051`). Allocate against `origin/main` — the
+next id free there, fetched, not the next free in the worktree — and check 13 will say so
+if a sibling branch got there first. The check compares the ids the merge base carries
+against the ids `origin/main` carries; with no `origin/main` it is inert by construction and
+reports `-` for both counts rather than `0`, so an inert run is distinguishable from a clean
+one. It cannot see a *second unmerged* branch: two open branches still collide until one
+merges, which is the accepted residual of detecting rather than preventing.
