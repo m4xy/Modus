@@ -24,6 +24,27 @@ function isevcol(h) {
   return (h == "evidence" || h == "observed" || h == "observed output" ||
           h == "output" || h == "result")
 }
+# Where a `criterion N` citation counts. A fence is not the only way to paste output into
+# a bean, and it is not the only container this line-oriented analyser cannot enter:
+#
+#   CommonMark §4.4  a line indented four or more columns is an indented code block
+#   CommonMark §5.1  a `>`-prefixed line is a block quote, and a fence inside one is a
+#                    fence this analyser does not see
+#
+# Both RENDER AS code on GitHub while a line-oriented reader sees prose, so a transcript
+# pasted either way had its `criterion N is not answered` lines citation-scanned, and they
+# answered the criteria they report unanswered. The classifier is NOT loosened to reach
+# them: an indented marker that opened a fence would be back to inverting state on a line
+# whose meaning the file does not fix. Instead the citation is REQUIRED to stand in
+# unambiguous top-level prose. A criterion cited only from inside a container is
+# unanswered, which is the direction that fails closed.
+function citation_site(line,   lead, body) {
+  lead = fence_lead(line)
+  if (fence_cols(line, lead) >= 4) { return 0 }
+  body = substr(line, lead + 1)
+  if (substr(body, 1, 1) == ">") { return 0 }
+  return 1
+}
 function allkinds(c,   t, i, n, a) {
   t = norm(c)
   if (t == "") { return 0 }
@@ -107,9 +128,9 @@ function allkinds(c,   t, i, n, a) {
     }
   }
 
-  # A criterion is answered by an evidence row bearing its number, or by being
-  # cited by number anywhere: `### Criterion 3`, `Criteria 1-5`, `criterion 6`.
-  s = tolower(line)
+  # A criterion is answered by an evidence row bearing its number, or by being cited by
+  # number from top-level prose: `### Criterion 3`, `Criteria 1-5`, `criterion 6`.
+  s = citation_site(line) ? tolower(line) : ""
   while (match(s, /criteri(on|a)[^0-9a-z]*[0-9]+([^0-9a-z]{1,3}[0-9]+)?/)) {
     t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
     gsub(/[^0-9]+/, " ", t); nn = split(t, ar, /[ \t]+/)

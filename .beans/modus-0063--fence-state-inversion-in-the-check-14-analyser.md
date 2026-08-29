@@ -202,17 +202,19 @@ status and appending the shape, then reverted with `git checkout -- .beans`; `gi
 ### Criterion 1 — a quoted marker no longer changes how any other line is classified
 
 `tools/docs-lint-test.sh` asserts the classification of individual lines directly, as tests
-distinct from any verdict: 18 on perception, 9 on the verdict. The perception half is the
-half that matters here, because every escape from this gate so far entered through the parse
-while the decision tests passed.
+distinct from any verdict, and every residual carries a verdict assertion as well as a
+perception one — the rule F4 below states. The perception half is not the half that matters
+on its own: F1 and F2 are perception divergences that were only visible as verdicts.
 
 The tests were observed failing against the toggle they replace. The state machine was
 swapped for a stand-in reproducing the old behaviour behind the same three function names,
 the suite was run, and the stand-in was reverted:
 
 ```
-cmd:      cp <old-toggle stand-in> tools/lib/docs-lint-fence.awk && bash tools/docs-lint-test.sh
-expected: the perception assertions fail; the decision assertions largely pass
+cmd:      cp <classifier-only stand-in> tools/lib/docs-lint-fence.awk && bash tools/docs-lint-test.sh
+expected: the perception assertions fail; the decision assertions largely pass. The stand-in
+          keeps the real measurement helpers and replaces only fence_classify, so the
+          mutation isolates the classifier
 observed: FAIL perception: a three-backtick marker inside a four-backtick fence is content
           FAIL perception: an odd number of markers leaves a block open, and says so
           FAIL perception: a tilde fence is a fence, and a backtick marker inside it is content
@@ -227,13 +229,25 @@ observed: FAIL perception: a three-backtick marker inside a four-backtick fence 
           FAIL perception: RESIDUAL: a fence indented into a list item is not seen
           FAIL perception: the length rule applies to tilde fences too
           FAIL perception: a shorter tilde marker does not close a longer tilde fence
-          docs-lint-test: 13 passed, 14 failed.
+          docs-lint-test: 17 passed, 14 failed.
 exit:     1
 
-cmd:      <stand-in reverted> && bash tools/docs-lint-test.sh
-observed: docs-lint-test: 27 passed, 0 failed.
+cmd:      <the citation-site guard reverted to `s = tolower(line)`> && bash tools/docs-lint-test.sh
+expected: the three container-block verdicts fail and nothing else does
+observed: FAIL verdict: a fenced transcript indented into a list item cannot answer its criteria
+          FAIL verdict: a block-quoted transcript cannot answer its criteria
+          FAIL verdict: an indented chunk with no marker at all cannot answer its criterion
+          docs-lint-test: 28 passed, 3 failed.
+exit:     1
+
+cmd:      <both mutations reverted> && bash tools/docs-lint-test.sh
+observed: docs-lint-test: 31 passed, 0 failed.
 exit:     0
 ```
+
+Two mutations, because there are two mechanisms: the classifier decides where a fence is,
+and the citation-site requirement decides where a citation counts. A single mutation would
+have left one of them untested.
 
 ### Criterion 2 — the fails-OPEN plant is observed rejected
 
@@ -335,7 +349,7 @@ today, and a balanced file that never nests is read identically by both implemen
 ```
 cmd:      ./gradlew qualityCheck
 observed: > Task :docsLintTest
-          docs-lint-test: 27 passed, 0 failed.
+          docs-lint-test: 31 passed, 0 failed.
           > Task :docsLint
           docs-lint: OK — 19 documents, 106 anchors, 914 references, 64 beans, 28 graph
           edges, 19 selectable, 64 bean ids, 0 introduced, 64 on origin/main, 0 closing
@@ -356,6 +370,9 @@ build rather than being rediscovered.
 
 | attack | outcome |
 |---|---|
+| a fenced transcript indented into a list item | **F1 — regression, found in review, now closed** by the citation-site requirement |
+| a `>`-prefixed transcript, and an indented chunk with no marker at all | **F2/F3 — escapes older than this bean, now closed** by the same requirement |
+| deleting one of the analyser's two files | **F5 — created by this bean's refactor, now closed**: a non-zero exit and a missing `STATS` line each fail the file |
 | nested fences — three backticks inside a four-backtick block | survives; the inner marker is content and the outer block is not released |
 | tildes as fence markers | survives; tilde fences are tracked, and the length rule applies to them. This was a *new* hole closed: the old toggle knew only backticks, so a tilde-fenced transcript was prose and every citation in it answered its criterion |
 | a fence marker inside an inline-code span at line start | survives; a backtick in the info string means the line is not an opening fence |
@@ -367,25 +384,123 @@ build rather than being rediscovered.
 | a closing marker longer than the opening one | closes, per CommonMark |
 | CRLF line endings | close their fences; the carriage return is whitespace to the closing rule |
 
-## Residuals, found by looking
+## What review found, and what it cost
 
-None of these is fixed here. Each is asserted in `tools/docs-lint-test.sh` so it is a
-recorded fact rather than an unknown.
+The first version of this fix shipped three residuals asserted at the **perception** layer
+only. Independent review turned two of them into verdicts and both changed the outcome; one
+was a regression against the very toggle being replaced. The findings and their answers:
 
-- **An EVEN number of quoted markers still reads the segment between them as prose**, and so
-  can still answer a criterion with pasted output. This is not a misreading: CommonMark and
-  every renderer read that segment as prose too. The endpoint the fix reaches is that the
-  analyser now perceives what a reviewer sees rendered, so laundering by this route means
-  writing the false output as visible prose in the bean rather than hiding it in a
-  transcript. Closing it further belongs to the citation matcher (`bean:0061`), not to fence
-  tracking.
-- **A four-column indented chunk is code to a renderer and is not a fence**, and
-  `doc:05-authoring-for-agents#checks`' rule is written about fences. A citation inside one
-  is honoured.
-- **A fence inside a block quote, or indented into a list item, is not seen.** This analyser
-  reads lines, not a block structure. Widening the indent tolerance to cover it is what the
-  old toggle did; an unrecognised marker is inert, which is strictly better than one that
-  inverts.
+### F1 — a regression: a fenced transcript indented into a list item
+
+```
+cmd:      a closing bean whose `## Evidence` holds a `### ` sub-heading and, inside a list
+          item, a four-column-indented fenced transcript reading
+            FAIL check 14 …: criterion 1 is not answered in the evidence
+            FAIL check 14 …: criterion 2 is not answered in the evidence
+observed: this branch, first version:   docs-lint: OK — … 2 criteria checked   exit 0
+          the parent commit's docs-lint.sh: FAIL check 14 …: criterion 1 is not answered…
+                                            FAIL check 14 …: criterion 2 is not answered…
+                                            docs-lint: 2 failure(s).   exit 1
+```
+
+Strictly weaker than the code it replaced. The old toggle's `^[ \t]*` opened a fence at any
+indent and skipped the pasted output; the CommonMark rule correctly declines to treat a
+four-column marker as a delimiter, and nothing else stopped the lines being citation-scanned.
+
+### F2, F3 — block quotes and indented chunks, no marker required
+
+The same escape needs no fence marker at all. A `>`-prefixed transcript and an
+eight-column-indented one both closed the bean on the parent commit and on the first version
+of this fix — `2 criteria checked`, exit 0, both criteria answered by output stating they are
+unanswered. `> ` is how `.beans/modus-0033` already quotes text.
+
+### The answer, and why it is not a loosening
+
+The classifier is **not** widened. A marker indented four columns still does not open a
+fence: making it open one puts back a delimiter whose meaning the file does not fix, which is
+the inversion this bean exists to remove. The fix is in the **citation scanner**, as a
+requirement on where a citation may stand:
+
+> A `criterion N` citation answers its criterion only from top-level prose — not inside a
+> fenced block, not inside a block quote, not on a line indented four or more columns.
+
+CommonMark §4.4 and §5.1 render all three as code. A line-oriented reader sees prose. The
+requirement makes the disagreement fail closed: a criterion cited only from inside a
+container is unanswered. After it, all three plants are rejected, and F2 and F3 are rejected
+where the parent commit accepted them — so the change is now strictly stronger in both
+directions rather than weaker in one.
+
+```
+cmd:      the F1, F2 and F3 fixtures, after the citation-site requirement
+observed: F1  FAIL … criterion 1 is not answered …  FAIL … criterion 2 …   exit 1
+          F2  FAIL … criterion 1 is not answered …  FAIL … criterion 2 …   exit 1
+          F3  FAIL … criterion 1 is not answered …                          exit 1
+          parent commit on the same three: F1 exit 1, F2 exit 0, F3 exit 0
+```
+
+The corpus is unchanged by it: `clean=16 flagged=7 total=23`, the same seven files with
+byte-identical findings, so no completed bean cites a criterion from inside a container.
+
+### F4 — the rule this bean owes the next one
+
+**My argument for residual 3 was wrong, and the way it was wrong is the finding.** I wrote
+that an unrecognised marker is inert and therefore strictly better than one that inverts. The
+**marker** is inert. The **content it delimits** is not: it becomes prose, and prose is
+citation-scanned. F1 and F2 are that sentence failing.
+
+Worse, the test named for residual 2 was **vacuous** — its fixture already answered criterion
+1 from a filled evidence row, so its expected output held with or without the indented line,
+and it survived the classifier mutation. And the two highest-blast-radius residuals were
+asserted as `OUT OUT OUT OUT OUT` and nothing else.
+
+> **Every residual needs a verdict assertion showing the divergence does not change the
+> outcome. When it does change the outcome it is not a residual, it is a defect.**
+
+A residual's whole claim is that a divergence is acceptable, and acceptability is a claim
+about the outcome, not about the parse. Asserting the classification documents the divergence
+without ever asking what it costs. The rule is now in `tools/docs-lint-test.sh`'s header,
+where the next author of a residual will read it.
+
+### F5 — the coupling the refactor created
+
+Moving the analyser to two files on disk made it possible for it to go **missing**, which an
+inline program could not.
+
+```
+cmd:      one bean closing; delete tools/lib/docs-lint-fence.awk; bash tools/docs-lint.sh
+expected: before the fix — awk exits 2, writes nothing, the read loop finds nothing, no
+          failure fires, and the run reports OK
+observed: FAIL check 14 .beans/modus-0033-…: the check 14 analyser exited 2 and examined
+          nothing; tools/lib/docs-lint-fence.awk and tools/lib/docs-lint-c14.awk must both
+          be present and parse
+          docs-lint: 1 failure(s).
+exit:     1
+
+control:  the same bean with both files present
+observed: docs-lint: OK — … 1 closing transitions, 2 criteria checked, 0 unnumbered.
+exit:     0
+```
+
+Two conditions now stand between the analyser and a green run: a non-zero exit fails the
+file, and a run producing no `STATS` line fails it. The counts line called itself the vacuity
+assertion; until this it described rather than asserted.
+
+## Residuals — each with the verdict assertion that makes it one
+
+- **A fence inside a block quote, or indented into a list item, is not seen.** True at the
+  perception layer and asserted there. It no longer changes the verdict, and that is asserted
+  too: the transcript inside the container answers nothing, and a bean whose only evidence is
+  quoted or indented has no entry and cannot close. Both directions fail closed.
+
+## Defect, open, and owed a bean
+
+- **An EVEN number of quoted markers still answers the criterion.** Two quoted markers
+  balance, so the segment between them is top-level prose — to this analyser and to every
+  renderer alike, so unlike F1 and F2 there is no perception divergence to close and the
+  citation-site requirement does not reach it. The verdict assertion shows the outcome
+  changes, and by the rule above that makes it a **defect, not a residual**. It belongs to
+  the citation matcher (`bean:0061`), not to fence tracking. `tools/docs-lint-test.sh` pins
+  today's behaviour so the day it changes is visible, and it is reported for its own bean.
 
 ## Findings for the orchestrator
 

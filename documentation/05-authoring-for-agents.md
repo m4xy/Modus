@@ -242,10 +242,13 @@ conventions:
   reversed — in both directions, so a bean quoting this check's own output answers its own
   criteria and a filled evidence table is reported absent (`bean:0063`).
 - A criterion is **answered** by an evidence row bearing its number, or by a `criterion N` or
-  `criteria N–M` citation anywhere in the bean **outside a fenced block**. A fence is an entry
-  but is not a citation site: it holds verbatim output, and in this repository that output
-  quotes this check's own `criterion N is not answered` message, so reading citations inside
-  fences would let pasted output answer the criterion it reports as unanswered (`bean:0061`).
+  `criteria N–M` citation standing in the bean's **top-level prose**. A citation inside a
+  fenced block, inside a block quote, or on a line indented four or more columns does not
+  answer anything. Each of the three is a way verbatim output is pasted into a bean, and in
+  this repository that output quotes this check's own `criterion N is not answered` message,
+  so counting citations inside them lets pasted output answer the criterion it reports as
+  unanswered (`bean:0061`, `bean:0063`). A fence is an entry but is not a citation site; a
+  block quote and an indented chunk are neither.
   A criterion whose evidence is a section that
   never names it is unanswered however long that section is, because
   `adr:0005-evidence-lives-in-the-work-item#evidence-home` puts the evidence beside the

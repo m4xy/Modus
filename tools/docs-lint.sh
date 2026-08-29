@@ -653,10 +653,24 @@ if [ -n "$BASE" ]; then
     [ "$was" = "completed" ] && continue
     n_closing=$((n_closing + 1))
 
+    # The analyser is two files on disk now, so it can go MISSING in a way an inline
+    # program could not: awk exits 2, writes nothing, the read loop below finds nothing,
+    # no `fail` fires, and the run reports `0 criteria checked` beside `1 closing
+    # transitions` at exit 0. The counts line calls itself the vacuity assertion; these
+    # two conditions are what make it assert rather than describe.
     awk -v KINDS="$KINDS" \
       -f "$ROOT/tools/lib/docs-lint-fence.awk" \
       -f "$ROOT/tools/lib/docs-lint-c14.awk" \
       "$f" > "$TMP/c14.txt"
+    awk_rc=$?
+    if [ "$awk_rc" -ne 0 ]; then
+      fail 14 "$f: the check 14 analyser exited $awk_rc and examined nothing; tools/lib/docs-lint-fence.awk and tools/lib/docs-lint-c14.awk must both be present and parse"
+      continue
+    fi
+    if ! grep -q "^STATS" "$TMP/c14.txt"; then
+      fail 14 "$f: the check 14 analyser produced no STATS line; it examined nothing, and a run that examines nothing may not report OK (doc:00-constitution#observed-failing)"
+      continue
+    fi
 
     while IFS="$TAB" read -r code a b; do
       case "$code" in

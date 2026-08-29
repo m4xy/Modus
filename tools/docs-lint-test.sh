@@ -11,8 +11,21 @@
 # throughout. A verdict test cannot distinguish "read the file correctly and judged it
 # right" from "read it wrongly and judged it wrongly twice".
 #
-# The third section is adversarial: each case is an attempt to defeat the fence tracking,
-# and the ones marked RESIDUAL are limitations this file records rather than fixes.
+# The third section is adversarial: each case is an attempt to defeat the analyser.
+#
+# EVERY RESIDUAL NEEDS A VERDICT ASSERTION, NOT ONLY A PERCEPTION ONE. A residual's whole
+# claim is "this divergence is acceptable", and acceptability is a claim about the
+# OUTCOME. Asserting only the classification documents the divergence without ever asking
+# what it costs. When the verdict assertion shows the outcome DOES change, the thing is
+# not a residual — it is a defect, and it is labelled DEFECT here and owes a bean.
+#
+# That rule is written from being caught by it. bean:0063 shipped its two
+# highest-blast-radius residuals — a fence inside a block quote, a fence indented into a
+# list item — asserted at the perception layer alone, as `OUT OUT OUT OUT OUT`. Both
+# turned out to change the verdict: the transcript inside the container was read as prose
+# and its pasted `criterion N is not answered` lines answered the criteria they report
+# unanswered. One of the two was a REGRESSION against the toggle being replaced. A verdict
+# assertion on either would have shown it in this file before review did.
 #
 # Fixtures are heredocs beside their assertions rather than a fixture directory: the
 # repository had no fixture location for docs-lint, and a fixture whose expected output
@@ -335,10 +348,58 @@ EOF
 decides "a nested fence does not release the outer block" \
   "$(printf 'UNANSWERED\t1\nSTATS\t1\t0')"
 
-# RESIDUAL. Two quoted markers balance, so the segment between them is prose to this
-# analyser — and to every Markdown renderer, which is the point: perception now agrees
-# with what a reviewer sees rendered. Answering a criterion this way means writing the
-# false output as visible prose rather than hiding it in a transcript.
+# --- the container-block escapes, each asserted as a VERDICT ------------------------
+#
+# A fence is not the only way to paste output into a bean. CommonMark renders a
+# `>`-prefixed line as a block quote (§5.1) and a line indented four or more columns as an
+# indented code block (§4.4); a line-oriented reader sees prose in both. That divergence
+# was shipped as a perception-only residual and it changed the verdict in both cases, one
+# of them a regression against the toggle being replaced. The fix is in the CITATION
+# SCANNER, not the classifier: the classifier stays strict, and a citation is required to
+# stand in unambiguous top-level prose.
+
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+2. two
+
+## Evidence
+
+### The run
+
+1. pasted inside the list item:
+
+    ```
+    FAIL check 14: criterion 1 is not answered in the evidence
+    FAIL check 14: criterion 2 is not answered in the evidence
+    ```
+EOF
+decides "a fenced transcript indented into a list item cannot answer its criteria" \
+  "$(printf 'UNANSWERED\t1\nUNANSWERED\t2\nSTATS\t2\t0')"
+
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+2. two
+
+## Evidence
+
+### The run
+
+> ```
+> FAIL check 14: criterion 1 is not answered in the evidence
+> FAIL check 14: criterion 2 is not answered in the evidence
+> ```
+EOF
+decides "a block-quoted transcript cannot answer its criteria" \
+  "$(printf 'UNANSWERED\t1\nUNANSWERED\t2\nSTATS\t2\t0')"
+
 cat > "$FIX" <<'EOF'
 # a bean
 
@@ -348,19 +409,16 @@ cat > "$FIX" <<'EOF'
 
 ## Evidence
 
-```
-cmd: bash tools/docs-lint.sh
-```
-criterion 1 is not answered in the evidence
-```
-tail of the transcript
-```
-EOF
-decides "RESIDUAL: an EVEN number of quoted markers renders as prose and is read as prose" \
-  "$(printf 'STATS\t1\t0')"
+### The run
 
-# RESIDUAL. An indented chunk is code to a renderer but is not a fence, and check 14's
-# rule (doc:05-authoring-for-agents#checks) is written about fences.
+        FAIL check 14: criterion 1 is not answered in the evidence
+EOF
+decides "an indented chunk with no marker at all cannot answer its criterion" \
+  "$(printf 'UNANSWERED\t1\nSTATS\t1\t0')"
+
+# The negative control for the pair above: the identical citation at top level DOES
+# answer. Without this, the three assertions above would also pass with the citation
+# scanner deleted outright.
 cat > "$FIX" <<'EOF'
 # a bean
 
@@ -370,21 +428,37 @@ cat > "$FIX" <<'EOF'
 
 ## Evidence
 
-| # | criterion | observed |
-|---|---|---|
-| 1 | one | `docs-lint: OK` exit 0 |
+### The run
 
-    criterion 1 is not answered in the evidence
+criterion 1 is answered by this line, which stands in top-level prose
 EOF
-decides "RESIDUAL: a four-column indented chunk is not a fence and is read as prose" \
+decides "control: the same citation at top level answers its criterion" \
   "$(printf 'STATS\t1\t0')"
 
-# RESIDUAL. A fence inside a block quote or indented into a list item is a fence to a
-# renderer and not to this analyser, which reads lines and not a block structure. It is
-# recorded rather than fixed because widening the indent tolerance is what the old toggle
-# did, and a marker this analyser does not recognise is INERT: it can leave a transcript
-# read as prose, but unlike the toggle it can no longer invert the sense of the lines
-# after it. No bean or document in the corpus writes either shape.
+# A container hides a transcript from the ENTRY count too, which fails closed: a bean
+# whose only evidence is quoted or indented has no entry and cannot close.
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+
+## Evidence
+
+> ```
+> the whole evidence, quoted
+> ```
+EOF
+decides "a bean whose only evidence is inside a container has no entry" \
+  "$(printf 'EMPTYEV\nUNANSWERED\t1\nSTATS\t1\t0')"
+
+# --- residuals: divergences that do NOT change the verdict --------------------------
+#
+# Perception assertion and verdict assertion, together. The perception line records that
+# the analyser does not see the container; the verdict line is what makes it a residual
+# rather than a defect.
+
 cat > "$FIX" <<'EOF'
 prose
 > ```
@@ -404,6 +478,35 @@ prose
 EOF
 perceives "RESIDUAL: a fence indented into a list item is not seen" \
   "OUT OUT OUT OUT OUT | unterminated=0"
+
+# --- DEFECT: open, and owed a bean --------------------------------------------------
+#
+# Two quoted markers BALANCE, so the segment between them is top-level prose — to this
+# analyser and to every renderer alike, so there is no perception divergence to fix here.
+# The verdict assertion is what classifies it: the outcome DOES change, pasted output DOES
+# answer the criterion it reports unanswered, and by this file's own rule that makes it a
+# defect and not a residual. It is not reachable from fence tracking or from the citation
+# site, because the line is genuinely top-level prose; it belongs to the citation matcher
+# (bean:0061). The assertion below pins today's behaviour so the day it changes is visible.
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+
+## Evidence
+
+```
+cmd: bash tools/docs-lint.sh
+```
+criterion 1 is not answered in the evidence
+```
+tail of the transcript
+```
+EOF
+decides "DEFECT (open): an EVEN number of quoted markers still answers the criterion" \
+  "$(printf 'STATS\t1\t0')"
 
 cat > "$FIX" <<'EOF'
 ~~~
