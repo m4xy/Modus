@@ -113,12 +113,39 @@ likewise even. A single added transcript changes that for any of them.
 |---|---|---|
 | 1 | A bean whose transcript quotes a fence marker an odd number of times no longer changes how any other line is classified, or is refused outright with a message naming the cause | test-run per direction |
 | 2 | The fails-OPEN plant above is observed rejected, not merely no longer accepted | planted violation, reverted |
-| 3 | The fails-CLOSED plant above is observed passing | planted violation, reverted |
+| 3 | The fails-CLOSED plant above is observed **refused**, with a message that names the unterminated fence and tells the author how to disambiguate — amended, see below | planted violation, reverted |
 | 4 | The 23 beans `completed` on `main` and the beans in flight still parse as they do today | analyser run over the corpus, before and after |
 | 5 | `./gradlew qualityCheck` green | test-run |
 
 Every criterion here is binary, unlike `bean:0061`'s and `bean:0062`'s: this bean owes a code
 change, not a decision.
+
+## Criterion 3, amended
+
+**This criterion was changed after the work was done, and this section exists so that a
+reader sees the change rather than a criterion that quietly fits what was built.** A
+criterion edited to match its own implementation is decorative; the only defence is that the
+edit is visible and argued.
+
+**Was:** "The fails-CLOSED plant above is observed passing."
+
+**Is:** "The fails-CLOSED plant above is observed refused, with a message that names the
+unterminated fence and tells the author how to disambiguate."
+
+**Decided by:** the orchestrator, on the implementing agent's report, before review closed.
+Not by the author, and not for the author's convenience. `doc:00-constitution#bean-lifecycle`
+keeps this bean `in-progress` through its own pull request, so check 11's append-only rule
+does not bind it yet and the criteria table is edited in place rather than amended.
+
+**Argument.** The fails-CLOSED plant is one unterminated marker above a filled evidence
+table. CommonMark, and every renderer, put that table inside a code block. Making the plant
+pass therefore means deciding that this particular marker is content — a guess, and exactly
+the guess the option table above rejects, because an allowlist of contexts in which a marker
+is "really" content can always be written around. Refusing the file and naming the fence is
+the better outcome and it is what criterion 1's second clause already admits: *"or is refused
+outright with a message naming the cause"*. What the author is told changed from two false
+`criterion N is not answered` lines naming the wrong problem to one line naming the fence and
+the remedy.
 
 ## Not in scope
 
@@ -250,11 +277,11 @@ inside the fence, where it answers nothing, and check 14 reports both criteria u
 (`tools/docs-lint-test.sh`, "quoted correctly, the pasted output stays inside the fence and
 answers nothing").
 
-### Criterion 3 — the fails-CLOSED plant, and where this criterion was not met literally
+### Criterion 3 — the fails-CLOSED plant is observed refused, naming the fence
 
 ```
 cmd:      <fails-CLOSED plant: one lone marker above a filled table> ; bash tools/docs-lint.sh
-expected: OK, exit 0 — the criterion as written
+expected: refusal, naming the unterminated fence and the remedy
 observed: FAIL check 14 .beans/modus-0033-…: a fenced block opened at line 65 is never
           closed, so every line after it is read as code and no absence of evidence below it
           can be observed; close the fence, or — when the marker is part of a transcript's
@@ -268,15 +295,11 @@ observed: docs-lint: OK — 19 documents, … 1 closing transitions, 2 criteria 
 exit:     0
 ```
 
-**This criterion is met by criterion 1's second clause and not by its own wording, and the
-difference is the whole design.** A lone unterminated marker above a table is not a
-misreading to be corrected: CommonMark and every renderer put that table inside a code
-block, so making it "pass" means deciding that this particular marker is content — the guess
-the option table rejects, and the shape three rounds of allowlists failed on the last gate.
-What did change is what the author is told: two false `criterion N is not answered` lines
-naming the wrong problem became one line naming the fence and the remedy. Criterion 3 is
-recorded here as amended in substance rather than silently reinterpreted; the orchestrator
-owns whether that is acceptable.
+The criterion this answers is the amended one, and `## Criterion 3, amended` above records
+what it said before, who changed it and on what argument. Against the original wording —
+"observed passing" — this is a refusal, not a pass. The message names the line, the cause and
+the two ways to disambiguate; the two false `criterion N is not answered` lines naming the
+wrong problem are gone.
 
 ### Criterion 4 — the corpus parses as it did
 

@@ -193,7 +193,7 @@ Each check is decidable from repository contents alone.
 | 11 | completed beans are final | a bean that was `completed` on the merge base changes in any way other than gaining entries under a trailing `## Amendments` section, or an amendment omits its date, its authoring bean, `**Claimed:**`, `**Found:**` or `**Evidence:**` (`adr:0005-evidence-lives-in-the-work-item#amendments`) |
 | 12 | bean graph | a `blocked_by` or `parent` id matches other than exactly one bean file, a `blocked_by` edge names a `type: epic` bean, the `blocked_by` graph has a cycle, two beans that reach `AGENTS.md` step 1's tiebreak together share an `order` value, or no bean is selectable at all |
 | 13 | bean id uniqueness | a bean id names two files in the tree, a filename's id and its front-matter `# <id>` marker disagree, a bean filename is not `<prefix><id>--<slug>.md` at `.beans.yml`'s `id_length`, or an id this branch **introduces** already exists on `origin/main` |
-| 14 | a bean closes without evidence | a bean that is `completed` in the change and was not `completed` on the merge base carries no evidence section, an evidence section holding no entry, a numbered table in an evidence section with no evidence column, an unanswered numbered criterion, or an evidence cell that is empty or holds only a name from `doc:50-memory-and-evidence#evidence-kinds` |
+| 14 | a bean closes without evidence | a bean that is `completed` in the change and was not `completed` on the merge base carries no evidence section, an evidence section holding no entry, a numbered table in an evidence section with no evidence column, an unanswered numbered criterion, an evidence cell that is empty or holds only a name from `doc:50-memory-and-evidence#evidence-kinds`, or a fenced block that is never closed |
 
 **Enforced by:** `tools/docs-lint.sh`, run by the `docsLint` task inside `qualityCheck`
 (`rule:ci/build`). Each check has been observed rejecting a planted violation; check 11's
@@ -231,6 +231,16 @@ conventions:
   `evidence kind` column names what will be produced, not what was, so a numbered table in an
   evidence section that carries no evidence column restates its criteria and answers none of
   them. Check 14 rejects that table rather than letting its rows stand as their own evidence.
+- A **fence** opens on a line of three or more backticks or tildes, indented at most three
+  columns, and closes only on a line carrying at least as many of the SAME character and
+  then nothing but whitespace (CommonMark §4.5). A backtick fence's info string MUST NOT
+  contain a backtick. A transcript that quotes a fence marker MUST sit inside a longer
+  fence, which is what makes the quoted marker content rather than a delimiter.
+- A fenced block that is never closed fails check 14, naming the line it opened on. Which
+  marker is content and which is a delimiter is not decidable from a file that leaves one
+  open, and a check that guesses reads every line after it with its inside/outside sense
+  reversed — in both directions, so a bean quoting this check's own output answers its own
+  criteria and a filled evidence table is reported absent (`bean:0063`).
 - A criterion is **answered** by an evidence row bearing its number, or by a `criterion N` or
   `criteria N–M` citation anywhere in the bean **outside a fenced block**. A fence is an entry
   but is not a citation site: it holds verbatim output, and in this repository that output
