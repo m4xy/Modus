@@ -1,10 +1,11 @@
 ---
 # modus-0007
 title: Coverage measurement and an exact per-module ratchet
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T00:19:06Z
 parent: modus-0006
 ---
 
@@ -321,11 +322,13 @@ argued away: three rows are `33 0 0 0` and three are `6 0 0 0`, so the day the p
 are replaced every row moves at once and review becomes rubber-stamping. R1's guard is what
 makes that day safe.
 
-### R5. Not fixed here, deliberately
+### R5. Sequenced behind PR #7, then resolved
 
-The `beans/` → `.beans/` move waits for PR #7 to merge. This file stays at
-`beans/0007-coverage.md` until then; the thread stays unresolved so the sequencing is
-enforced by the merge button rather than by memory.
+The `beans/` → `.beans/` move waited for PR #7 to merge; the thread stayed unresolved so
+the sequencing was enforced by the merge button rather than by memory. Corrected on
+closure: the rebase landed before this branch merged, so this work item was added by the
+merge commit directly at `.beans/modus-0007--coverage.md` and `beans/0007-coverage.md`
+never existed on `main`.
 
 ### The gate after the cycle
 
@@ -358,3 +361,18 @@ observed: > Task :docsLint
 
 The remaining coverage row of `doc:35-testing#gaps`: a ratio floor, set from the recorded
 baselines once every analysed module has a `src/test`. It is not invented before then.
+
+## Summary of Changes
+
+Merged as PR #8 (`d9293fd`). JaCoCo 0.8.15 is applied by `modus.kotlin-base` and
+`modus.coverage`, measured over both suites, and gated by `coverageRatchet` against
+`config/coverage/baseline.tsv` — one row per module, all four figures exact bounds in
+both directions. `coverageBaselineWrite` regenerates the file and refuses a downward
+write without `-Pcoverage.regress=<reason>`; `coverageBaselineIsComplete` refuses a
+missing or extra row. `doc:35-testing#coverage` is the rule.
+
+Every criterion above was re-checked against `main` at closure and each still holds. The
+one drift is R5, corrected in place.
+
+Carried forward: the coverage **ratio** floor, first row of `doc:35-testing#gaps`, which
+stays open until every analysed module has a `src/test`.

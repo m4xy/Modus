@@ -12,6 +12,7 @@ provides:
   - doc:00-constitution#workflow
   - doc:00-constitution#domain-scoping
   - doc:00-constitution#mechanical-enforcement
+  - doc:00-constitution#observed-failing
 depends_on: [doc:10-architecture, doc:30-code-style, doc:40-durability, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills, doc:80-agent-operating-procedure]
 ---
 
@@ -86,8 +87,9 @@ locators, no reflection, no coroutine dispatchers.
 **Rationale:** `core-domain` must be testable with zero setup in under a second, and it
 must survive a change of persistence or transport without editing a single line.
 
-**Enforced by:** ArchUnit package-dependency rules plus the custom Detekt rule
-`ForbiddenDomainApi` (see `30-code-style.md` §4).
+**Enforced by:** ArchUnit package-dependency rules.
+**Enforcement gap:** the custom Detekt rule `ForbiddenDomainApi` this section relied on
+does not exist; see `30-code-style.md` §4 and `bean:0026`.
 
 ---
 
@@ -106,10 +108,11 @@ must survive a change of persistence or transport without editing a single line.
 
 **Rationale and alternatives considered:** `adr/0002-flat-file-over-database.md`.
 
-**Enforced by:** ArchUnit (no `java.sql`, `javax.sql`, `jakarta.persistence`,
-`org.hibernate`, `org.jooq` types anywhere in the repository) plus a Gradle
-dependency-verification rule in `build-logic` that fails the build if a database driver
-appears on any configuration.
+**Enforcement gap:** neither exists yet — no ArchUnit rule scans for `java.sql`,
+`javax.sql`, `jakarta.persistence`, `org.hibernate` or `org.jooq` types (`domainIsFrameworkFree`
+covers `jakarta..`/`javax..` for `core-domain` only, not `java.sql` and not the rest of the
+repository), and `build-logic` has no Gradle dependency-verification rule for database
+drivers. `bean:0027` carries the audit.
 
 ---
 
@@ -131,10 +134,10 @@ be written down; they may not be stored as memories, and they may not close a wo
 The evidence record shape, the accepted evidence kinds, and invalidation rules are in
 `50-memory-and-evidence.md`.
 
-**Enforced by:** schema validation on memory files at write time in
-`adapters/adapter-persistence-flatfile`; a transition guard in the `work` context that
-refuses `done` without at least one evidence record per success criterion.
-**Enforcement gap:** PR-body evidence is currently a review responsibility. A CI check on
+**Enforcement gap:** neither exists — schema validation on memory files at write time
+(`adapters/adapter-persistence-flatfile` is an empty placeholder with no tests, `bean:0017`)
+nor the transition guard in the `work` context refusing `done` without evidence (`work`
+is not built, `bean:0013`). PR-body evidence is currently a review responsibility. A CI check on
 PR body structure is owned by `bean:0001`, which lists it under "Follow-up work items to
 raise" and is accountable for raising it.
 
@@ -236,15 +239,21 @@ under "Follow-up work items to raise".
 `main` is protected. Every change — including documentation, including a one-character
 typo fix — arrives through a pull request.
 
-**Enforced by:** GitHub branch protection on `main` (owned by the CI work package), plus
-a local `pre-push` hook that refuses a push to `main`.
+**Enforced by:** repository ruleset `main-protected` (id `21765196`, `enforcement: active`)
+carrying the `pull_request`, `non_fast_forward` and `deletion` rules, plus
+`required_review_thread_resolution`, so an unresolved review thread blocks merge. Verify with
+`gh api repos/m4xy/Modus/rulesets`. Note the classic
+`gh api repos/m4xy/Modus/branches/main/protection` endpoint returns `404 Branch not protected`
+for a repository that uses rulesets — that 404 is not evidence of an unprotected branch, and
+reading it as such once produced a false `Enforcement gap:` here.
 
 ### 7.2 The sequence
 
 1. **Work item first.** Every branch has exactly one work item in `beans/`. If none
    exists, create it before you create the branch. The work item states the success
-   criteria **before** the work starts. On-disk schema: `documentation/90-work-items.md`
-   (owned separately). `beans/` **is** a work store in the sense of `40-durability.md` §3 —
+   criteria **before** the work starts. On-disk schema: the upstream `hmans/beans`
+   convention, `.beans/<prefix><id>--<slug>.md`. That store **is** a work store in the sense
+   of `doc:40-durability` §3 —
    specifically the one belonging to the `modus` domain, this repository. See
    `40-durability.md` §3.1: there is one work-item concept, not two.
 2. **Branch.** Named `<kind>/<slug>`, `<kind>` ∈ {`feat`, `fix`, `docs`, `chore`,
@@ -283,7 +292,9 @@ subject ≤ 72 characters. Scope is the module or bounded context (`core-domain`
 Agent-authored commits MUST end with a `Co-Authored-By:` trailer naming the model that
 produced them, so cost and quality can be attributed after the fact.
 
-**Enforced by:** a commit-message check in CI.
+**Enforcement gap:** no commit-message check exists in `.github/workflows/ci.yml`, and the
+history disagrees with this rule for every commit before it was stated. `bean:0024`
+carries reconciling the rule with the history.
 
 ### 7.4 Review
 
@@ -310,12 +321,12 @@ produced them, so cost and quality can be attributed after the fact.
   done, its own required evidence kinds, its own model and effort policy. Modus supplies
   defaults; a domain may override any of them. Code MUST NOT hardcode a single process.
 
-**Enforced by:** an ArchUnit rule (`ControllersAreDomainScoped`) and a Detekt rule
-(`DomainScopedRoute`) requiring every REST controller mapping to begin with
-`/domains/{domainId}` unless it matches the **non-domain-scoped route allowlist**, whose
-one normative copy is `10-architecture.md` §5.1. Neither rule, and not this section,
-carries a second copy of that list. Plus an integration suite asserting the 404-not-403
-property for every cross-domain access path.
+**Enforcement gap:** neither `ControllersAreDomainScoped` (ArchUnit) nor `DomainScopedRoute`
+(Detekt) exists — `adapters/adapter-rest` is a placeholder with no controllers to check —
+nor does the integration suite asserting 404-not-403 for every cross-domain access path.
+`bean:0018` carries all three. Once they exist, the **non-domain-scoped route allowlist**
+has one normative copy, `10-architecture.md` §5.1; neither rule, nor this section, carries
+a second.
 
 ---
 
@@ -329,6 +340,37 @@ Corollary: **the build is the definition of correct.** A green build with a bad 
 means the build is wrong. Fix the build.
 
 See `30-code-style.md`.
+
+### 9.1 A gate is unverified until it has been observed failing <a id="observed-failing"></a>
+
+> **A mechanism nobody has watched reject a real violation is not enforcement. It is a
+> claim.**
+
+- Every `Enforced by:` line MUST name a mechanism that has been observed rejecting a
+  planted violation of the rule it claims to enforce. The observation is recorded
+  verbatim (§3), in the work item and in the pull-request body.
+- The procedure is `35-testing.md` §6, applied to gates rather than to tests: plant,
+  observe the named mechanism fail, revert.
+- A mechanism that cannot be made to fail MUST be demoted to an `Enforcement gap:` naming
+  the work item that closes it. An unfalsifiable gate is worse than an admitted gap,
+  because it also stops anyone looking.
+
+Seven mechanisms in this repository reported success while enforcing less than they
+claimed. Each was found by trying to make it fail, and none by reading it.
+
+| mechanism | what it actually enforced |
+|---|---|
+| 33 enabled Detekt rules | nothing — the CLI analyses the PSI only, so every type-resolution rule was skipped in silence |
+| a passing test | nothing — it still passed with the feature it named deleted |
+| a `PIPE_BUF` atomic-append size threshold | nothing — the threshold was wrong, and is removed |
+| two `Enforced by:` lines | nothing — the rules they named did not exist |
+| `ContextInternalsAreSealed`, `PublishedLanguageAllowlist` | nothing — documented as enforcing, never implemented |
+| the coverage baseline | nothing — it was resettable to zero coverage with a green build |
+| the downward-write guard on that baseline | half of it — it checked the missed columns and not the covered ones |
+
+**Enforcement gap:** the `Enforced by:` lines already in this package predate this rule
+and have not been audited against it. `bean:0027` carries the audit; `bean:0026` carries
+the Detekt entries it has already reached.
 
 ---
 

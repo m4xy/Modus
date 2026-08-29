@@ -16,6 +16,7 @@ provides:
   - doc:35-testing#purity-rules
   - doc:35-testing#assertions
   - doc:35-testing#load-bearing-evidence
+  - doc:35-testing#fixture-variation
   - doc:35-testing#mutation-testing
   - doc:35-testing#coverage
   - doc:35-testing#gaps
@@ -210,7 +211,9 @@ One runner, and never a second one.
 | `src/integrationTest` | the above, plus `spring-boot-starter-test` (which brings AssertJ, Mockito and the Boot-managed JUnit Jupiter) |
 
 - Versions live in `gradle/libs.versions.toml`. Kotest MUST be pinned there: the Boot BOM
-  manages `org.junit` and `org.assertj`, but not `io.kotest`.
+  manages `org.junit` and `org.assertj`, but not `io.kotest`. Spring Boot 4.1.1 manages
+  **JUnit Jupiter 6**, so an artifact built against Jupiter 5 — `archunit-junit5` was the
+  one this repository hit — resolves against a platform that is not there.
 - `kotest-assertions-core-jvm` MUST remain the assertions artifact and MUST NOT be
   upgraded to `kotest-runner-junit5`. It carries no `junit-platform` artifact and no
   engine, which is the only reason it can sit beside Spring Boot's runner.
@@ -251,6 +254,22 @@ Procedure, per test:
 `Enforcement gap:` this is a review obligation on the `verify` block, not a machine check.
 `bean:0006` carries it.
 
+### 6.1 Uniform fixtures hide reachable defects <a id="fixture-variation"></a>
+
+A killed mutant proves the test detects it **on the paths the fixtures reach, and nothing
+about the paths they do not**. Coverage of the source is not coverage of the input space.
+
+- A fixture set MUST vary collection size across 0, 1 and 2-or-more, and identity shape
+  across distinct, duplicate and aliased, wherever the subject accepts a collection.
+- A suite in which every fixture has one shape MUST NOT be cited as evidence that the
+  behaviour holds for another.
+
+Observed: `bean:0009` shipped a privilege escalation past 32 tests and 30 verified
+mutations. Every fixture carried exactly one capability, and at size one Kotlin's
+`toSet()` returns an immutable set, so the down-cast the exploit needs throws. At size
+two the same call returns a `LinkedHashSet`, the cast succeeds, and the caller grants
+itself a capability nobody issued.
+
 ---
 
 ## 7. Mutation testing is rejected as a CI gate <a id="mutation-testing"></a>
@@ -288,9 +307,10 @@ Licence cost and an unmaintained free plugin are a cost to weigh, not a rejectio
 is the rejection.
 
 **Chosen substitute: targeted agent mutation.** For each success criterion in a bean, the
-agent breaks the specific behaviour under test and records the observed failure, per §6.
-It answers what a mutation score is a proxy for — did this test ever detect anything — and
-it produces the evidence the pull request has to carry anyway.
+agent MUST break the specific behaviour under test, record the observed failure verbatim,
+and revert, per §6. It answers what a mutation score is a proxy for — did this test ever
+detect anything — and it produces the evidence the pull request has to carry anyway. §6.1
+bounds what it proves.
 
 `Enforcement gap:` targeted mutation is exhaustive over a bean's criteria, not over the
 source, so it cannot report an untested branch nobody wrote a criterion for. `bean:0006`

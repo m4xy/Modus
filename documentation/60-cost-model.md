@@ -111,8 +111,9 @@ Notes that materially affect Modus's spend:
   (`50-memory-and-evidence.md` §6.2), which raises an operator action in the backoffice.
   Modus does not silently bill against a year-old price.
 - Model IDs are exact strings and are **never** constructed. No date suffixes, ever.
-  **Enforced by:** a validation rule in `module-cost` that rejects any `ModelId` not
-  present in the price book.
+  **Enforcement gap:** the validation rule in `module-cost` that would reject an unknown
+  `ModelId` does not exist; `module-cost` is an empty placeholder module with no tests
+  today (`bean:0016`).
 
 ---
 
@@ -167,9 +168,10 @@ Token counts come from the API response's `usage` block, captured by
 (a projection before running), use the token-counting endpoint, and label the figure
 `estimated`. **An estimate is never written into a spend record.**
 
-**Enforced by:** the `NoFloatingPointMoney` custom Detekt rule (`30-code-style.md` §4);
-schema validation rejecting a record with an empty `rationale`; an ArchUnit rule
-restricting spend-record construction to `module-cost`.
+**Enforcement gap:** none of the three exist — the `NoFloatingPointMoney` custom Detekt
+rule (`30-code-style.md` §4, `bean:0026`), schema validation on a spend record, and an
+ArchUnit rule restricting spend-record construction to `module-cost` (`bean:0016`, an
+empty placeholder module with no tests today).
 
 ### 3.3 Rollups
 
@@ -205,9 +207,9 @@ standard sweep: it is the "correctness matters more than cost" setting, so it is
 only for a category where `xhigh` failed to clear the success threshold. Add it as an
 extra row there rather than paying for it on every profile.
 
-**Enforced by:** a validation rule in `module-cost` — the same one that rejects an unknown
-`ModelId` (§2.1) — rejecting a `(modelId, effort)` pair the price book's effort column
-does not list. A benchmark that cannot be constructed is better than one that fails on its
+**Enforcement gap:** the same `module-cost` validation rule §2.1 names, rejecting a
+`(modelId, effort)` pair the price book's effort column does not list, does not exist
+(`bean:0016`). A benchmark that cannot be constructed is better than one that fails on its
 first cell.
 
 For every cell record:
@@ -312,10 +314,11 @@ The last two rows have no threshold `module-cost` can compute and are raised by
 observation. They are listed here anyway so that the trigger set has one home; a trigger
 kept somewhere else because it is not automatable is a trigger that gets forgotten.
 
-**Enforced by:** `module-cost` raises a `skill-extraction-candidate` action into the
-domain's action list (§7) for the five measurable rows. It does not create the skill; a
-human or an agent decides. **Enforcement gap:** the last two rows are review-and-judgement
-only, by construction.
+**Enforcement gap:** `module-cost` would raise a `skill-extraction-candidate` action into
+the domain's action list (§7) for the five measurable rows; the module is an empty
+placeholder with no tests today (`bean:0016`). It would not create the skill either way —
+a human or an agent decides. The last two rows are review-and-judgement only, by
+construction, and stay ungated regardless.
 
 ### 5.4 Extract
 

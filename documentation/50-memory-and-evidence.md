@@ -10,6 +10,7 @@ read_when:
 provides:
   - doc:50-memory-and-evidence#memory-scopes
   - doc:50-memory-and-evidence#evidence-kinds
+  - doc:50-memory-and-evidence#primary-sources
   - doc:50-memory-and-evidence#evidence-record
   - doc:50-memory-and-evidence#writing-a-memory
   - doc:50-memory-and-evidence#invalidation
@@ -124,6 +125,23 @@ lies about implementations more often than implementations lie about themselves.
 behavioural claim; it is sufficient for a structural claim ("the config key is named
 `store.root`").
 
+### 2.4 A citation names a primary source, re-read <a id="primary-sources"></a>
+
+- A `citation` or a `fetch` MUST name the artefact that decides the claim — the source
+  file, the merged commit, the issue body and its resolution. An issue title, a changelog
+  line, a search-result snippet or another reader's summary decides nothing.
+- The cited artefact MUST be re-read at the moment it is relied on. A conclusion carried
+  forward from an unread citation is a hypothesis (§7), whatever it was when first read.
+- One verified reason MUST be preferred to several plausible ones. A reason that does not
+  survive re-reading is recorded as struck, with what the source actually says, never
+  silently dropped — otherwise the next reader finds the argument and cites it as settled.
+
+Observed: a spike recommended rejecting mutation testing on four grounds, "each
+sufficient". Re-read against the primary sources, one held; one collapsed, the cited
+issue being an unmerged draft build-modernisation PR whose companion recorded the
+opposite result; and two were overstated. The worked table is
+`doc:35-testing#mutation-testing`.
+
 ---
 
 ## 3. The evidence record <a id="evidence-record"></a>
@@ -169,9 +187,10 @@ that reads it.
 | `failureText` | 8 KB | Same as stdout |
 | Evidence records per memory | 10 | More than ten means the memory is really several memories |
 
-**Enforced by:** schema validation in `adapter-persistence-flatfile` at write time; the
-write is rejected, not silently truncated. Silent truncation would make the evidence a
-lie about what was observed.
+**Enforcement gap:** the schema validation in `adapter-persistence-flatfile` that would
+reject an over-cap write, rather than silently truncating it, does not exist —
+`adapter-persistence-flatfile` is an empty placeholder with no tests today. `bean:0017`
+carries it.
 
 ### 3.4 On disk
 
@@ -242,14 +261,15 @@ A memory write is refused unless all five pass:
 5. **No active memory in the same scope contradicts it.** If one does, resolve the
    conflict first (§6.3) — do not stack contradictory memories.
 
-**Enforced by:** the `RecordMemoryUseCase` in `core-application` plus schema validation
-at the adapter. Only gate 3 is fully mechanical — presence and kind of evidence are
-structural facts. Gates 1, 2, 4 and **5** are heuristic and are additionally checked at
-review time; gate 5 is the weakest of them, since semantic contradiction between two
-free-text assertions is not decidable, and the use case can do no more than surface the
-scope's active memories for the writer to compare against.
-**Enforcement gap:** gates 1, 2, 4 and 5 are best-effort checks plus review. Do not read
-"refused unless all five pass" as "a machine proved all five".
+**Enforcement gap:** neither the `RecordMemoryUseCase` in `core-application` nor the
+adapter schema validation exists yet — the `memory` context is not built (`bean:0015`).
+Once it is, only gate 3 is fully mechanical — presence and kind of evidence are structural
+facts. Gates 1, 2, 4 and **5** are heuristic and are additionally checked at review time;
+gate 5 is the weakest of them, since semantic contradiction between two free-text
+assertions is not decidable, and the use case can do no more than surface the scope's
+active memories for the writer to compare against. Gates 1, 2, 4 and 5 stay best-effort
+checks plus review even then. Do not read "refused unless all five pass" as "a machine
+proved all five".
 
 ### 4.2 Writing style for assertions
 
@@ -311,8 +331,9 @@ become the most expensive kind of lie: the confidently-cited stale fact.
 `superseded` and `expired` are not interchangeable. `superseded` means "we know the better
 version, here it is"; `expired` means "the thing this was about is over". A status that
 promises a `supersededBy` pointer must be able to produce one, so a memory whose subject
-merely ended is `expired`. **Enforced by:** schema validation rejecting a `superseded`
-memory with no `supersededBy`.
+merely ended is `expired`. **Enforcement gap:** the schema validation that would reject a
+`superseded` memory with no `supersededBy` does not exist — the `memory` context is not
+built (`bean:0015`).
 
 Memories are **never deleted**. The history of what we believed and why we stopped
 believing it is itself valuable, and deletion would let a bad memory disappear without
@@ -331,8 +352,8 @@ anyone learning why it was bad.
 | A more precise memory is recorded for the same claim | → `superseded`, `supersededBy` set | No |
 | A human marks it wrong in the backoffice | → `invalidated`, with the human as `capturedBy` and their reason as an `observation` | No |
 
-**Enforced by:** a `MemoryFreshnessChecker` in the `memory` context, run on memory load
-and on a schedule; the git-anchor checks use `adapter-vcs-git`.
+**Enforcement gap:** the `MemoryFreshnessChecker` that would run this on memory load and
+on a schedule does not exist — the `memory` context is not built (`bean:0015`).
 
 ### 6.3 Handling a contradiction
 
