@@ -217,6 +217,35 @@ class ArchitectureRulesTest {
             .should(dependOnlyOnLeafSafeTypes("the Kotlin stdlib, java.time and the rest of the shared kernel"))
             .because("every context imports the shared kernel, so anything it drags behind it is imported unseen")
 
+    /**
+     * The ambient-capability ports are leaf interfaces in a context-free package.
+     *
+     * `bean:0065` places [ClockPort][uk.m4xy.modus.core.domain.port.ClockPort] and its two
+     * siblings directly under `..core.domain.port`, belonging to no bounded context, because
+     * every context needs the time and none owns it. Nothing on `main` could see that
+     * package before this rule existed: [SHARED_KERNEL] is an exact name set and
+     * [PUBLISHED_LANGUAGE] is a `*.published..` wildcard, so a class — or a port handing out
+     * another context's identifier — sat there unexamined by every rule in this file.
+     *
+     * Leaf for the same reason the shared kernel is: every context injects these, so a
+     * dependency added here is one every context inherits without seeing it. In particular a
+     * port returning `identity.published.ActorId` would put one context's published language
+     * on the injection path of every other context, including the ones
+     * `doc:10-architecture#bounded-contexts` §3.1 forbids from importing `identity` at all.
+     *
+     * Interfaces, because a port with an implementation in `core-domain` is not a port —
+     * `doc:00-constitution` §1.2 puts the implementation outside.
+     */
+    @ArchTest
+    val ambientCapabilityPortsAreLeafInterfaces: ArchRule =
+        classes()
+            .that()
+            .resideInAPackage(DOMAIN_PORTS)
+            .should()
+            .beInterfaces()
+            .andShould(dependOnlyOnLeafSafeTypes("the Kotlin stdlib and java.time"))
+            .because("every context injects an ambient capability, so anything it drags behind it is imported unseen")
+
     @ArchTest
     val thereAreNoPackageCycles: ArchRule =
         slices()
@@ -296,6 +325,47 @@ class ArchitectureRulesTest {
         check(missing.isEmpty()) { "ArchUnit imported nothing for: $missing (imported ${packages.size} packages)" }
     }
 
+    /**
+     * A guard on [ambientCapabilityPortsAreLeafInterfaces], asserting what it **perceives**
+     * rather than what it decides.
+     *
+     * [everyModuleIsOnTheAnalysedClasspath] proves the module is on the classpath. It does
+     * not prove that this rule's package expression selects anything: `resideInAPackage`
+     * over a package that no longer exists, or that was never spelled the way the rule
+     * spells it, yields an empty set — and every `classes().that(...).should(...)` assertion
+     * over an empty set passes. The rule would then be green forever while examining
+     * nothing.
+     *
+     * That is not hypothetical here. `doc:20-ddd-practices` §5.1 — the section opening with
+     * *"a type in the wrong package silently removes it from a rule"* — was itself found
+     * naming packages no rule could see, wrong in both root (`com.modus` for `uk.m4xy.modus`)
+     * and segment order (`<ctx>.domain.aggregate` for `domain.<ctx>.aggregate`). A rule
+     * scoped from that table would have matched nothing and reported success.
+     *
+     * So the expected set is written out. Adding a port is an edit here, visible in review,
+     * exactly as adding a shared-kernel member is an edit to [SHARED_KERNEL].
+     */
+    @ArchTest
+    fun everyAmbientCapabilityPortIsSeenByItsOwnRule(classes: JavaClasses) {
+        val seen =
+            classes
+                .filter { it.packageName == DOMAIN_PORT_PACKAGE }
+                .map { it.simpleName }
+                .toSortedSet()
+
+        check(seen.isNotEmpty()) {
+            "ambientCapabilityPortsAreLeafInterfaces selected no class at all: nothing resides in " +
+                "$DOMAIN_PORT_PACKAGE, so the rule is vacuously satisfied and enforces nothing " +
+                "(doc:00-constitution#observed-failing)"
+        }
+        check(seen == AMBIENT_CAPABILITY_PORTS) {
+            "$DOMAIN_PORT_PACKAGE holds $seen, but the rule is declared to cover " +
+                "$AMBIENT_CAPABILITY_PORTS. A port added without being named here is a port nobody " +
+                "chose to put on every context's injection path; one removed is a rule quietly " +
+                "narrowing. Update this set deliberately."
+        }
+    }
+
     companion object {
         const val ROOT: String = "uk.m4xy.modus"
 
@@ -305,6 +375,21 @@ class ArchitectureRulesTest {
         private const val ADAPTERS = "$ROOT.adapter.."
         private const val MODULES = "$ROOT.module.."
         private const val APP = "$ROOT.app.."
+
+        /**
+         * The context-free ambient-capability port package (`bean:0065`). A sibling of the
+         * shared kernel, not a member of it: [SHARED_KERNEL] is a name set, so
+         * [sharedKernelIsLeaf] cannot see this package however it is spelled.
+         */
+        private const val DOMAIN_PORT_PACKAGE = "$DOMAIN_ROOT.port"
+        private const val DOMAIN_PORTS = "$DOMAIN_PORT_PACKAGE.."
+
+        /**
+         * The ports [ambientCapabilityPortsAreLeafInterfaces] is declared to cover, asserted
+         * by [everyAmbientCapabilityPortIsSeenByItsOwnRule]. Written out so that adding one is
+         * a visible edit rather than a silent widening of what every context injects.
+         */
+        private val AMBIENT_CAPABILITY_PORTS = sortedSetOf("ClockPort", "IdGeneratorPort", "RandomPort")
 
         private const val PUBLISHED_LANGUAGE = "$DOMAIN_ROOT.*.published.."
         private const val DOMAIN_EVENTS = "$DOMAIN_ROOT.*.event.."

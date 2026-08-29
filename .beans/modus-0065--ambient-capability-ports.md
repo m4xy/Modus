@@ -1,7 +1,7 @@
 ---
 # modus-0065
 title: The ambient-capability ports — ClockPort, IdGeneratorPort, RandomPort
-status: todo
+status: in-progress
 type: feature
 priority: high
 order: AP
@@ -173,16 +173,17 @@ a clock.
 
 | # | criterion | evidence |
 |---|---|---|
-| 1 | `ClockPort`, `IdGeneratorPort` and `RandomPort` are interfaces in `core-domain`, referencing nothing beyond the Kotlin stdlib and `java.time` | |
-| 2 | `IdGeneratorPort` returns the raw `String` a context's identifier value class wraps, and no type in `..core.domain.port` names any context's package. Observed by reverting to a typed return and watching criterion 3's mechanism reject it | |
-| 3 | A **new** ArchUnit rule scopes `..core.domain.port`: every type in it is an `interface`, and it depends on nothing beyond the Kotlin stdlib and `java.time`. Observed rejecting a planted class and a planted import of `identity.published` (`doc:00-constitution#observed-failing`). This criterion exists because no rule on `main` can see that package — `sharedKernelIsLeaf` is scoped by exact type name, `publishedLanguageIsLeaf` by `*.published..`, and a reviewer's plant of `fun newActorId(): ActorId` there was observed passing | |
-| 4 | The rule is asserted to **perceive** the package, separately from what it **decides** about it: a companion assertion fails if `..core.domain.port` contributed no type to the imported set, on the model of `rule:archunit/everyModuleIsOnTheAnalysedClasspath`. A `noClasses()` rule is vacuously satisfied by an empty input, so without this the rule passes identically whether the package is clean or absent. This is not hypothetical: `doc:20-ddd-practices` §5.1 — the section whose opening line is *"a type in the wrong package silently removes it from a rule"* — was itself found naming packages **no rule could see**, wrong in both root and segment order (`com.modus.core.<ctx>.domain.aggregate` for the live `uk.m4xy.modus.core.domain.<ctx>.aggregate`). A scope expression that matches nothing is vacuously green forever, and that is the defect this criterion exists to make impossible | |
-| 5 | `doc:20-ddd-practices` §5.1's package table carries a row for `..core.domain.port`, and `docs-lint` is green with it. Not this bean's edit to make: it closes only once the `documentation/` owner has landed it | |
-| 6 | A hand-written test double for each port lives where `doc:35-testing` puts it, with no mocking framework (`doc:30-code-style#testing-style` §7 forbids mocks in `core/`), and is deterministic: a fixed instant, a stated id sequence, a seeded random | |
-| 7 | The doubles' own behaviour is asserted, not merely relied on: the id generator observed returning **different** values on successive calls and values satisfying the opaque-id invariant; the clock observed returning the instant it was constructed with; the random source observed reproducing its sequence from one seed | |
-| 8 | The input surface is tested separately from the verdict: a test asserts what a double was *given*, distinct from what a caller *concludes* from it, so a fixture handing a double a well-formed value cannot stand in for testing the code that builds one (`doc:35-testing#fixture-variation`) | |
-| 9 | `config/coverage/baseline.tsv` moves by exactly the rows this change earns, and any comment or provenance line `coverageBaselineWrite` drops is restored by hand and reported against `bean:0033` | |
-| 10 | `./gradlew qualityCheck` green | |
+| 1 | `ClockPort`, `IdGeneratorPort` and `RandomPort` are interfaces in `core-domain`, referencing nothing beyond the Kotlin stdlib and `java.time` | `rule:archunit/ambientCapabilityPortsAreLeafInterfaces` green over all three; plant 1 below shows it rejecting a non-interface |
+| 2 | `IdGeneratorPort` returns the raw `String` a context's identifier value class wraps, and no type in `..core.domain.port` names any context's package. Observed by reverting to a typed return and watching criterion 3's mechanism reject it | plant 1 below — `newActorId-TPKKjuw() calls method ActorId.constructor-impl` reported as a violation, at the exact shape a reviewer had observed passing on `main` |
+| 3 | A **new** ArchUnit rule scopes `..core.domain.port`: every type in it is an `interface`, and it depends on nothing beyond the Kotlin stdlib and `java.time`. Observed rejecting a planted class and a planted import of `identity.published` (`doc:00-constitution#observed-failing`) | plant 1 below, which trips both arms at once — `2 times` |
+| 4 | The rule is asserted to **perceive** the package, separately from what it **decides** about it | plants 2 and 3 below. Plant 3 is the decisive one: the leaf rule stays **green** while the guard fails |
+| 5 | `doc:20-ddd-practices` §5.1's package table carries a row for `..core.domain.port`, and `docs-lint` is green with it | **UNMET — blocked, not failed.** Owned by the `documentation/` stack; this bean cannot close until it lands |
+| 6 | A hand-written test double for each port lives where `doc:35-testing` puts it, with no mocking framework, and is deterministic | `AmbientCapabilityDoubles.kt` in `core-domain/src/test`; no mocking dependency exists on the unit-test classpath allowlist (`doc:35-testing#unit-classpath`) |
+| 7 | The doubles' own behaviour is asserted, not merely relied on | `AmbientCapabilityDoublesTest`, 14 tests, green in the 109-test `:core-domain:test` run below |
+| 8 | The input surface is tested separately from the verdict | the same class, split under an `input surface` heading — see the note below on what that split caught |
+| 9 | `config/coverage/baseline.tsv` moves by exactly the rows this change earns, and any comment or provenance line `coverageBaselineWrite` drops is restored by hand and reported against `bean:0033` | it earns **none**: three interfaces generate no instructions, so every figure is byte-identical. The writer still erased six provenance lines — recorded below |
+| 10 | `./gradlew qualityCheck` green | `BUILD SUCCESSFUL`, `167 actionable tasks` |
+
 
 ## Sequencing
 
@@ -201,3 +202,125 @@ ahead of `bean:0031`'s `AT`.
 `bean:0013` does not depend on this — `work`'s `WorkItem` is read from a file that already
 carries its `created_at`, so `work` can be built while these ports do not exist. The edge is
 to `bean:0014` specifically, and to any later context that mints values.
+
+---
+
+## Evidence
+
+`doc:00-constitution#observed-failing`. Every plant was made at a real call site, run, and
+reverted (`doc:35-testing` §6).
+
+### Plant 1 — a class, and a typed identifier, in the port package
+
+Both arms of `rule:archunit/ambientCapabilityPortsAreLeafInterfaces` in one file. The second
+arm is the exact shape a reviewer observed passing on `main` before this rule existed.
+
+```
+planted:  core-domain/.../port/PlantedProbe.kt
+          public class PlantedProbe { public fun newActorId(): ActorId = ActorId("planted") }
+cmd:      ./gradlew :architecture-tests:test --tests '*ArchitectureRulesTest*'
+observed: ArchitectureRulesTest > ambientCapabilityPortsAreLeafInterfaces FAILED
+    Rule 'classes that reside in a package 'uk.m4xy.modus.core.domain.port..' should be
+    interfaces and should depend on nothing beyond the Kotlin stdlib and java.time, because
+    every context injects an ambient capability, so anything it drags behind it is imported
+    unseen' was violated (2 times):
+    Class <uk.m4xy.modus.core.domain.port.PlantedProbe> is no interface in (PlantedProbe.kt:0)
+    Method <uk.m4xy.modus.core.domain.port.PlantedProbe.newActorId-TPKKjuw()> calls method
+      <uk.m4xy.modus.core.domain.identity.published.ActorId.constructor-impl(java.lang.String)>
+      in (PlantedProbe.kt:7)
+    25 tests completed, 2 failed
+```
+
+`everyAmbientCapabilityPortIsSeenByItsOwnRule` failed in the same run, on the set mismatch.
+
+### Plant 2 — the rule scoped to a package that does not exist
+
+`doc:20-ddd-practices` §5.1's own error, reproduced: the wrong root. This is what a rule
+written from that table would have done.
+
+```
+planted:  DOMAIN_PORT_PACKAGE = "com.modus.core.domain.port"   (was "$DOMAIN_ROOT.port")
+observed: everyAmbientCapabilityPortIsSeenByItsOwnRule FAILED
+    java.lang.IllegalStateException: ambientCapabilityPortsAreLeafInterfaces selected no
+    class at all: nothing resides in com.modus.core.domain.port, so the rule is vacuously
+    satisfied and enforces nothing (doc:00-constitution#observed-failing)
+```
+
+**And a finding that cuts against this criterion's original framing, recorded because it is
+evidence against my own design.** The leaf rule *also* failed on this plant, and not on the
+merits — ArchUnit refuses an empty `should` by default:
+
+```
+    Rule '…com.modus.core.domain.port..…' failed to check any classes. This means either
+    that no classes have been passed to the rule at all, or that no classes passed to the
+    rule matched the `that()` clause. To allow rules being evaluated without checking any
+    classes you can either use `ArchRule.allowEmptyShould(true)` on a single rule or set the
+    configuration property `archRule.failOnEmptyShould = false`.
+```
+
+So for the **empty** case my guard is not the only protection, and claiming otherwise would
+have been an overclaim. What it still adds, and plant 3 isolates, is the case
+`failOnEmptyShould` cannot see: a scope that matches *something* but not the *right*
+something. It is also independent of that default — no `archunit.properties` exists in this
+repository today (`find . -name 'archunit*.properties'` returns nothing), so the protection
+currently rests on a library default that one config file could switch off globally for all
+nine `noClasses()` rules in this file.
+
+### Plant 3 — a port renamed, so the scope matches the wrong set
+
+The decisive one. The leaf rule is **green**: three interfaces, all leaf-safe, all checked.
+Only the perception assertion fails.
+
+```
+planted:  RandomPort renamed to RandomnessPort (file and type)
+observed: ArchitectureRulesTest > everyAmbientCapabilityPortIsSeenByItsOwnRule FAILED
+    java.lang.IllegalStateException: uk.m4xy.modus.core.domain.port holds
+    [ClockPort, IdGeneratorPort, RandomnessPort], but the rule is declared to cover
+    [ClockPort, IdGeneratorPort, RandomPort]. …Update this set deliberately.
+    25 tests completed, 1 failed
+```
+
+`ambientCapabilityPortsAreLeafInterfaces` passed in that run. That is the whole argument for
+criterion 4 in one line: the verdict was green and the perception was wrong.
+
+### Criteria 6–8 — the doubles
+
+```
+cmd:      ./gradlew :core-domain:test --rerun-tasks
+observed: BUILD SUCCESSFUL — 109 tests, of which AmbientCapabilityDoublesTest contributes 14
+```
+
+The input-surface/verdict split earned its keep while being written rather than in review.
+`SequenceIdGenerator.issued` and `SeededRandom.bounds` are copies, and the tests that say so
+(`the issued record is a copy…`, `the bounds record is a copy`) are input-surface tests with
+no verdict counterpart: nothing a caller concludes would ever have revealed a shared mutable
+record. Both use a **two**-element fixture, because `listOf(x)` of size one throws on
+mutation and the same test at size one passes while proving nothing
+(`doc:35-testing#fixture-variation`).
+
+### Criterion 9 — the baseline, and a sixth observation for `bean:0033`
+
+Three interfaces generate no instructions, so the ratchet does not move: every numeric row is
+byte-identical before and after, and `coverageBaselineIsComplete` still sees the same module
+set. `coverageBaselineWrite` nevertheless erased **six lines of provenance**:
+
+```
+cmd:      ./gradlew coverageBaselineWrite
+observed: diff baseline.before.tsv config/coverage/baseline.tsv
+          8,13d7
+          < # REGRESSION accepted with -Pcoverage.regress: identity validators replaced …
+          < #   :core-domain: covered branches 44 -> 38
+          < # REGRESSION accepted with -Pcoverage.regress: GrantIssued stores its capabilities …
+          < #   :core-domain: covered instructions 1549 -> 1543
+          < # Restored by hand in bean:0032, bean:0030 and twice in bean:0036 after …
+          < # it now also erases a PREVIOUS regression block when recording a new one. …
+```
+
+Restored by hand. This is the cleanest instance of `bean:0033` so far and sharpens its
+diagnosis: **the erasure is not conditional on a regression occurring.** The writer ends with
+`target.writeText(header + note + rows…)` where `header` is a constant and `note` is empty
+unless *this* run regressed (`modus.coverage.gradle.kts:245-259`). So a run that changes
+nothing at all destroys every hand-written line in the file — which is exactly what happened
+here, on a change whose figures were identical. Anyone running the writer to confirm "no
+movement" silently loses the history.
+
