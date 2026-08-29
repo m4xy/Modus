@@ -167,6 +167,13 @@ Required forms:
 - A bean MUST NOT restate a rule; it references the anchor and records evidence.
 - When a bean and a document disagree, the document is the rule and the bean is the work. If the rule is wrong, the same PR fixes the document.
 
+**A bean's front-matter carries free-form `#` comments as well as its id marker.**
+`.beans/modus-0047`'s second comment line records why it is blocked on a human. So "the id
+marker is line 2" and "the id marker is the only `#` line" are both wrong, and a parser
+built on either silently reads the wrong value — found by check 13 failing on the real tree
+before any plant was written (`bean:0051`). Match `# <prefix><digits>` and require exactly
+one.
+
 ## 6. Mechanical checks <a id="checks"></a>
 
 Each check is decidable from repository contents alone.

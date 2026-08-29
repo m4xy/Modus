@@ -39,3 +39,11 @@ to discover it.
   the claim is restored.
 - If struck: the header says which interpreter the script targets, and `bean:0035`'s
   awk-portability notes are re-read, since they were written for the same reason.
+
+## Until it is enforced, verifying costs one second
+
+`/bin/bash` on macOS is genuinely 3.2.57, so `/bin/bash tools/docs-lint.sh` is a real
+compatibility check that anyone editing the script can run before pushing. `bean:0051`'s
+implementation did exactly that. It does not close this bean — a check nobody is required to
+run is not a gate — but it removes any excuse for shipping a bash 4 construct in the
+meantime.

@@ -415,6 +415,19 @@ See `30-code-style.md`.
   the work item that closes it. An unfalsifiable gate is worse than an admitted gap,
   because it also stops anyone looking.
 
+**A gate can be real, correct, observed failing — and still not run.** `docs-lint` check 11
+was watched rejecting four planted violations and shipped with an `Enforced by:` line. It
+then never ran in CI once, for its entire life: the job used `actions/checkout@v4` at the
+default `fetch-depth: 1`, which creates no `refs/remotes/origin/main`, so every diff-shaped
+check silently skipped itself and `docs-lint` exited 0 (`bean:0051`). The observation was
+made locally and quietly generalised to CI, which was never part of it.
+
+**An `Enforced by:` line about a diff-shaped check is also a claim about the checkout
+configuration.** Observe it where it is claimed to run, not only where it is convenient to
+run it — and make the run say what it examined, because a check that examines nothing and a
+check that passes both print `OK`. Check 11's inert CI runs were distinguishable from real
+ones by exactly one character: `- introduced` rather than `0 introduced`.
+
 Reading a tool's own configuration is not verification either, and this is the sharpest
 form of the rule. `eslint-plugin-import`'s `no-cycle` was installed, registered, resolved,
 and reported by `eslint --print-config` as `[2]` — and passed a planted two-file cycle,
@@ -435,7 +448,7 @@ Each was found by trying to make it fail, and none by reading it.
 | `ContextInternalsAreSealed`, `PublishedLanguageAllowlist` | nothing — documented as enforcing, never implemented |
 | the coverage baseline | nothing — it was resettable to zero coverage with a green build |
 | the downward-write guard on that baseline | half of it — it checked the missed columns and not the covered ones |
-| `docs-lint` check 11 | nothing — it compared the merge base to `HEAD`, which are equal on a fresh branch, so it skipped and four plants "passed" |
+| `docs-lint` check 11 | nothing — twice. First it compared the merge base to `HEAD`, equal on a fresh branch, so four plants "passed". Then, fixed and proven locally, it never ran in CI at all: `fetch-depth: 1` leaves no `origin/main` to diff against |
 | `import/no-cycle`, installed and reported `[2]` | nothing — no parser, so no file was followed |
 | the Playwright suite, as evidence a refactor was safe | nothing — it passed identically before and after four component rewrites, because it never drove the paths they changed |
 
