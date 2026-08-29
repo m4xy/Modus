@@ -44,6 +44,12 @@ Style rules: `doc:30-code-style`. Layering rules: `doc:10-architecture`. Neither
    `completed`, the highest `priority` wins; ties break on `order`, ascending (the upstream
    `beans` fractional-index field for manual sort — a bean with no `order` sorts after every
    bean that has one).
+
+   `completed` means `completed`. A blocker that is `in-progress` does **not** satisfy the
+   edge: its output is unmerged, so work depending on it would be built against something
+   that can still change in review. A bean whose only blocker is in flight is correctly
+   unselectable, and the answer is to finish the blocker, not to relax the rule
+   (`doc:00-constitution#bean-lifecycle`).
 2. Branch from `main` (`feat|fix|docs|chore/…`). No direct commits to `main`.
 3. Conventional commits. PR body: fill `.github/pull_request_template.md`; do not narrate.
 4. Review — every thread ends in a change, a new rule, or a stated refusal.

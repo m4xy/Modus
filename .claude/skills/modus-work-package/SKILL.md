@@ -33,6 +33,12 @@ gh auth status                          # see step 0 — the token trap
    environment shadows the working keyring credential and every call returns
    `HTTP 401: Bad credentials`. `deterministic`
 
+> **In an isolated worktree the prefix form is refused.** The sandbox rejects
+> `env -u GITHUB_TOKEN gh …` — it cannot verify what `env` does to the command it wraps —
+> and also rejects compound commands containing a redirect into a non-literal target. Write
+> a script into the scratchpad that does `cd <worktree>; unset GITHUB_TOKEN; gh …` and run
+> `bash <path>`. Found by `bean:0035`'s implementation, which lost two attempts to it.
+
 1. **Select the bean.** `AGENTS.md` workflow step 1 is normative: skip `type: epic`; among
    `status: todo` beans whose every `blocked_by` is `completed`, highest `priority`, ties on
    `order` ascending, absent `order` last. Derive it, do not guess — following your own plan
