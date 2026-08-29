@@ -1,12 +1,18 @@
 package uk.m4xy.modus.architecture
 
 import com.tngtech.archunit.base.DescribedPredicate
+import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.domain.JavaMethodCall
+import com.tngtech.archunit.core.domain.JavaModifier
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.junit.AnalyzeClasses
 import com.tngtech.archunit.junit.ArchTest
+import com.tngtech.archunit.lang.ArchCondition
 import com.tngtech.archunit.lang.ArchRule
+import com.tngtech.archunit.lang.ConditionEvents
+import com.tngtech.archunit.lang.SimpleConditionEvent
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 import com.tngtech.archunit.library.Architectures.layeredArchitecture
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices
@@ -161,6 +167,41 @@ class ArchitectureRulesTest {
             .whereLayer("Domain")
             .mayOnlyBeAccessedByLayers("Application", "Adapters", "Modules", "App")
 
+    /**
+     * `doc:10-architecture` §4.2 `PublishedLanguageIsLeaf`, and the rule §3.1 rests on:
+     * one context may import another's published language precisely because that package
+     * drags nothing behind it.
+     *
+     * The origin's own context decides what is legal, which no `dependOnClassesThat`
+     * predicate can see — it is handed the target only — so this is an `ArchCondition`.
+     *
+     * The one exemption is the shared-kernel [uk.m4xy.modus.core.domain.DomainEvent]
+     * marker, named in §4.2. Without it every context would declare an identical event
+     * interface of its own and there would be no type to dispatch a cross-context event
+     * as.
+     */
+    @ArchTest
+    val publishedLanguageIsLeaf: ArchRule =
+        classes()
+            .that()
+            .resideInAnyPackage(PUBLISHED_LANGUAGE, DOMAIN_EVENTS)
+            .should(dependOnlyOnLeafSafeTypes())
+            .because("a published package that drags a dependency behind it is not safe for another context to import")
+
+    /**
+     * `doc:10-architecture` §4.2 `AggregatesAreSealedOrFinal`. An `open` aggregate root is
+     * neither `final` nor `sealed`, so a subclass outside the boundary could override an
+     * invariant check. `..domain.aggregate` is what gives the rule a decidable scope
+     * (`doc:20-ddd-practices` §5.1).
+     */
+    @ArchTest
+    val aggregatesAreSealedOrFinal: ArchRule =
+        classes()
+            .that()
+            .resideInAPackage(AGGREGATES)
+            .should(beFinalOrSealed())
+            .because("an open aggregate root lets a subclass outside the boundary override an invariant")
+
     @ArchTest
     val thereAreNoPackageCycles: ArchRule =
         slices()
@@ -243,11 +284,82 @@ class ArchitectureRulesTest {
     companion object {
         const val ROOT: String = "uk.m4xy.modus"
 
-        private const val DOMAIN = "$ROOT.core.domain.."
+        private const val DOMAIN_ROOT = "$ROOT.core.domain"
+        private const val DOMAIN = "$DOMAIN_ROOT.."
         private const val APPLICATION = "$ROOT.core.application.."
         private const val ADAPTERS = "$ROOT.adapter.."
         private const val MODULES = "$ROOT.module.."
         private const val APP = "$ROOT.app.."
+
+        private const val PUBLISHED_LANGUAGE = "$DOMAIN_ROOT.*.published.."
+        private const val DOMAIN_EVENTS = "$DOMAIN_ROOT.*.event.."
+        private const val AGGREGATES = "$DOMAIN_ROOT.*.aggregate.."
+
+        /** The shared-kernel event marker, exempt from [publishedLanguageIsLeaf] by `doc:10` §4.2. */
+        private const val SHARED_KERNEL_EVENT = "$DOMAIN_ROOT.DomainEvent"
+
+        /**
+         * The Kotlin standard library plus the `java.*` packages it erases to. `java.util`
+         * and `java.lang` are prefixes of themselves only in the sense that
+         * `java.util.concurrent` and `java.lang.reflect` are forbidden in the domain by
+         * their own rules, not by this one.
+         *
+         * `org.jetbrains.annotations` is stdlib, not a third-party dependency: `kotlinc`
+         * emits `@NotNull`/`@Nullable` onto every generated member, and `kotlin-stdlib`
+         * carries `org.jetbrains:annotations` as an `api` dependency. Excluding it would
+         * make the rule unsatisfiable for every Kotlin type ever written.
+         */
+        private val LEAF_SAFE_PACKAGES = setOf("kotlin", "java.lang", "java.util", "org.jetbrains.annotations")
+
+        /** The context segment of `uk.m4xy.modus.core.domain.<ctx>.…`. */
+        private fun contextOf(javaClass: JavaClass): String = javaClass.packageName.removePrefix("$DOMAIN_ROOT.").substringBefore('.')
+
+        private fun isLeafSafe(
+            target: JavaClass,
+            context: String,
+        ): Boolean {
+            if (target.isPrimitive || target.isArray) return true
+            val targetPackage = target.packageName
+            return LEAF_SAFE_PACKAGES.any { targetPackage == it || targetPackage.startsWith("$it.") } ||
+                targetPackage == "java.time" ||
+                targetPackage.startsWith("java.time.") ||
+                targetPackage == "$DOMAIN_ROOT.$context.published" ||
+                target.name == SHARED_KERNEL_EVENT
+        }
+
+        private fun dependOnlyOnLeafSafeTypes(): ArchCondition<JavaClass> =
+            object : ArchCondition<JavaClass>(
+                "depend on nothing beyond the Kotlin stdlib, java.time, " +
+                    "their own context's published language and $SHARED_KERNEL_EVENT",
+            ) {
+                override fun check(
+                    item: JavaClass,
+                    events: ConditionEvents,
+                ) {
+                    val context = contextOf(item)
+                    item.directDependenciesFromSelf
+                        .filterNot { isLeafSafe(it.targetClass, context) }
+                        .forEach { events.add(SimpleConditionEvent.violated(item, it.description)) }
+                }
+            }
+
+        private fun beFinalOrSealed(): ArchCondition<JavaClass> =
+            object : ArchCondition<JavaClass>("be final or sealed") {
+                override fun check(
+                    item: JavaClass,
+                    events: ConditionEvents,
+                ) {
+                    val sealedOrFinal = item.modifiers.contains(JavaModifier.FINAL) || item.reflect().isSealed
+                    if (!sealedOrFinal) {
+                        events.add(
+                            SimpleConditionEvent.violated(
+                                item,
+                                "${item.name} is neither final nor sealed, so it is an open aggregate",
+                            ),
+                        )
+                    }
+                }
+            }
 
         /** Generated by `:architecture-tests:writeAnalysedPackages`. */
         private const val ANALYSED_PACKAGES = "/analysed-packages.txt"

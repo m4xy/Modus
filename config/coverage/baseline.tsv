@@ -10,7 +10,7 @@
 :adapter-rest                  3	0	0	0
 :adapter-vcs-git               33	0	0	0
 :core-application              6	0	0	0
-:core-domain                   0	0	579	44
+:core-domain                   0	0	618	38
 :module-beans                  6	0	0	0
 :module-cost                   6	0	0	0
 :modus-server                  9	0	3	0

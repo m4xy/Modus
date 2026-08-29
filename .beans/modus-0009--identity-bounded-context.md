@@ -158,9 +158,15 @@ cmd:      ./gradlew coverageBaselineWrite
 observed: :core-domain                   0 0 33 0 -> 0 0 579 44
 ```
 
-No downward write, so no `-Pcoverage.regress` was needed. 579 covered instructions and 44
-covered branches with none missed: the new production code is fully exercised, including
-both outcomes of every `require` and `check`.
+No downward write, so no `-Pcoverage.regress` was needed. Missed instructions and missed
+branches are both `0`: the new production code is fully exercised, including both outcomes
+of every `require` and `check`. The **branch** figure is what carries that meaning — of the
+579 covered instructions roughly 242 are synthetics that no test could fail to cover
+(`<clinit>` 62, `<init>` ~105, trivial getters ~75), so the module-wide instruction count
+is a regression trip-wire and not a behavioural claim.
+
+Superseded by the review cycle below, which moves the row to `0 0 618 38` and adds a real
+behavioural floor: 100% `BRANCH` on `..domain.aggregate`.
 
 ### 10. The purity rules now guard two packages
 
@@ -188,3 +194,210 @@ See the `verify` block of the pull request.
 | `PermissionGrant` has no `narrowTo` | `doc:10-architecture#domain-root-convention` §5.5 names issue, narrow and revoke. Narrowing has no consumer until grant administration lands and would ship untested behaviour |
 | a revoked grant mutates in place rather than returning a new instance | a held reference must stop answering `permits`; a copy-on-revoke leaves the old one answering `true` |
 | `AccessDecision` is a sealed class with `isPermitted`/`domainIsVisible`, not an exception | the authorisation decision is a value the transport maps, not control flow. `doc:20-ddd-practices#invariants` §7.2 reserves named exceptions for business rules the caller surfaces; a denial is the expected outcome of a check, not an exceptional one |
+
+---
+
+## Review cycle — pull request #9
+
+Eight threads, two of them privilege-escalation defects. Every thread ended in a change.
+`documentation/**` and `build-logic/**` were outside this bean's Scope above; threads 7
+and 8 moved both, deliberately, because each is a rule this bean is the first to make
+binding. The Scope line is amended by this section rather than silently.
+
+### 1. `PermissionGrant.capabilities` handed out the live internal set — privilege escalation
+
+The property returned the backing collection. Kotlin's `Set` is a read-only *view*, not an
+immutable type, so for two or more capabilities the caller down-casts it to `MutableSet`
+and adds one nobody granted. Reproduced verbatim before the fix:
+
+```
+cmd:      PermissionResolver.decide(ALICE, MODUS, AGENTS_RUN, listOf(g))  // CapabilityNotGranted
+          (g.capabilities as MutableSet<Capability>).add(AGENTS_RUN)
+          PermissionResolver.decide(ALICE, MODUS, AGENTS_RUN, listOf(g))
+observed: AssertionFailedError: expected:<...AccessDecision$CapabilityNotGranted@733f1395>
+          but was:<...AccessDecision$Permitted@3e9beef2>
+```
+
+Fixed by holding the capabilities as a `private val granted: List<Capability>` and copying
+on the way out — `capabilities get() = granted.toSet()` — symmetric with `pendingEvents`.
+`GrantIssued` is constructed from a second copy, so the event's set is not an alias of the
+grant's either.
+
+The whole suite missed this because every fixture carried exactly one capability, where
+`toSet()` degenerates to the immutable `setOf(x)` and the cast throws. `IdentityFixture`'s
+default grant now carries **two**, and every test that does not assert on capability
+content inherits it; the uniformity was the defect, not just the getter.
+
+### 2. Two aliases of one `GrantId` failed open — privilege escalation
+
+`PermissionGrant` had reference identity, so a `Set<PermissionGrant>` held a live alias
+beside a revoked one and the live one outvoted the revocation. Reproduced verbatim before
+the fix, with the reviewer's exact input:
+
+```
+cmd:      fresh.revoke(AT); PermissionResolver.decide(ALICE, MODUS, AGENTS_RUN, setOf(fresh, stale))
+observed: AssertionFailedError: expected:<...AccessDecision$DomainNotVisible@26275b46>
+          but was:<...AccessDecision$Permitted@3e9beef2>
+```
+
+Fixed in two places, because either alone is insufficient:
+
+1. `PermissionGrant` is an entity, so `equals`/`hashCode` are on `id` alone. A
+   `Set<PermissionGrant>` can no longer represent two instances of one grant.
+2. **The duplicate-id rule, stated:** `PermissionResolver` groups by `GrantId` first, and
+   a grant id counts only when *every* instance under it qualifies. **Any revoked
+   instance of an id denies the whole id**, in either order, whatever the collection type.
+   An ambiguous read is a denial, never a permit.
+
+Equality alone is not enough: it makes a `Set` collapse to an arbitrary winner, which is
+*worse* than the original for the ordering where the stale alias wins. Grouping alone is
+not enough either, because a `Set` deduplicates before the resolver is called — which is
+why `PermissionGrantRepository`'s three reads now return `List` rather than `Set`, with
+the MUST beside the existing one: at most one instance per `GrantId`, and that instance is
+the current one. The `List` is what carries a violation through to the rule that denies it.
+
+### 3-5. Three surviving mutants, each re-planted and confirmed killed
+
+| # | invariant | new test | mutant re-planted | observed |
+|---|---|---|---|---|
+| 3 | `Capability` is exactly one `.`, both halves lower-kebab | `refuses a capability carrying more than one dot`, `refuses a capability whose halves are not kebab`, `accepts a capability whose halves are lower kebab` | `SHAPE` relaxed to `^[a-z][a-z0-9.-]*\.[a-z][a-z0-9-]*$` | both rejecting tests: `AssertionFailedError: Expected exception java.lang.IllegalArgumentException but no exception was thrown.` |
+| 4 | `DomainId` is lower case | `refuses a domain id that is not lower case` | `SLUG` relaxed to `^[a-zA-Z0-9][a-zA-Z0-9-]{1,62}[a-zA-Z0-9]$` | `AssertionFailedError: Expected exception java.lang.IllegalArgumentException but no exception was thrown.` |
+| 5 | `effectiveCapabilities` excludes revoked grants | `a revoked grant contributes no effective capability` | `covers(...)` replaced by `it.actorId == actorId && it.domainId == domainId` | `AssertionFailedError: expected:<[]> but was:<[Capability(value=agents.run), Capability(value=cost.read)]>` |
+
+`SHAPE` is now `^[a-z][a-z0-9]*(-[a-z0-9]+)*\.[a-z][a-z0-9]*(-[a-z0-9]+)*$`, which also
+refuses the trailing hyphen the reviewer found (`agents-.run` constructed before).
+
+Row 5 is treated as security, not hygiene: the leak-freedom argument rests on
+`effectiveCapabilities` returning `emptySet()` for a domain the actor may no longer know
+exists. A caller rendering "what can I do here" from a non-empty answer admits the domain,
+which is a `404`-not-`403` leak.
+
+### 6. `ActorId` and `GrantId` accepted what the KDoc promised they would not
+
+`isNotBlank() && none { isWhitespace() }` accepted `../../etc/passwd`, NUL, U+200B, upper
+case and unbounded length — and the KDoc authorises an adapter to use both unencoded as a
+file name. Both now require
+`^[a-z0-9]([a-z0-9._-]{0,62}[a-z0-9])?$`: 1..64 characters, no traversal, no invisible
+alias, no case collision on the case-insensitive volumes the flat-file store runs on. The
+KDoc and the `require` now say the same thing.
+
+### 7. Two documented rules that did not exist — implemented, not documented away
+
+`PublishedLanguageIsLeaf` and `AggregatesAreSealedOrFinal` were in `doc:10` §4.2 with no
+implementation, and as written the first would have failed this PR's
+`ActorRegistered : DomainEvent`. Implemented in `:architecture-tests`, because §3.1 is
+written as though the leaf property holds and this is the first PR to create a published
+package — documenting the gap would have left the rule §3.1 rests on unenforced at the
+moment it first became checkable.
+
+`PublishedLanguageIsLeaf` needs the origin's own context to decide what is legal, which no
+`dependOnClassesThat` predicate can see, so it is an `ArchCondition`. The one exemption is
+the shared-kernel `DomainEvent` marker, now named in §4.2: without it every context would
+declare an identical event interface and there would be no type to dispatch across
+contexts as. `org.jetbrains.annotations` is allowed as stdlib — `kotlinc` emits
+`@NotNull`/`@Nullable` on every generated member.
+
+Both proven to fire on a planted violation, then reverted:
+
+```
+planted:  ActorRegistered/GrantIssued/GrantRevoked gain `get() = BoundedContexts.names`
+observed: publishedLanguageIsLeaf FAILED ... was violated (6 times):
+          Method <...identity.event.ActorRegistered.getContexts()> calls method
+          <uk.m4xy.modus.core.domain.BoundedContexts.getNames()> in (IdentityEvents.kt:17)
+
+planted:  the same getter on `Capability`, in the published package
+observed: publishedLanguageIsLeaf FAILED
+          Method <...published.Capability.getContexts-impl(java.lang.String)> calls method
+          <uk.m4xy.modus.core.domain.BoundedContexts.getNames()> in (Capability.kt:27)
+
+planted:  `public open class PermissionGrant`
+observed: aggregatesAreSealedOrFinal FAILED ... was violated (1 times):
+          uk.m4xy.modus.core.domain.identity.aggregate.PermissionGrant is neither final
+          nor sealed, so it is an open aggregate
+```
+
+The other two rules §3.1 claims — `ContextInternalsAreSealed` and
+`PublishedLanguageAllowlist` — now carry an honest `Enforcement gap:` in `doc:10` §3.1
+instead. Both compare one context against another, and `identity` is the only modelled
+context, so an implementation today would be a rule that cannot fail. The bean that models
+the second context closes them and is the first point at which either can be shown to fire.
+
+### 8. The ratchet floor, and the aggregate branch floor that was missing
+
+**`BoundedContexts` stays, recorded.** Its 31 `<clinit>` instructions do pad the baseline,
+but it is not dead: `ListBoundedContexts`, `BeansModule` and `CostModule` read it, three
+adapters read it through the use case, and `doc:35-testing` §8 uses it as the worked
+example for two coverage evidence passages. Deleting it is a six-module change belonging
+with the removal of the other five markers, not with modelling one context. The exact
+ratchet makes that deletion a reviewable one-line diff in the baseline, not a blocked one.
+The reasoning is recorded in the type's own KDoc so it is found where it matters.
+
+**The `doc:20` §7.3 aggregate floor is now implemented.** `coverageRatchet` gains a second
+`violationRules` entry: `element = "PACKAGE"`,
+`includes = ["uk.m4xy.modus.core.domain.*.aggregate"]`, `BRANCH` `COVEREDRATIO` minimum
+`1.0`. It is a ratio, so it needs no baseline row and never blocks a deletion — unlike the
+module-wide count beside it, which is a regression trip-wire and not a behavioural floor.
+`doc:20` §7.3's `Enforced by:` line named a `modus.test` convention plugin that does not
+exist and a `com.modus.*` package that does not either; both corrected.
+
+Proven non-vacuous:
+
+```
+planted:  `permits` gains `&& id.value != "never-covered"`, an untestable branch
+observed: Rule violated for package uk.m4xy.modus.core.domain.identity.aggregate:
+          branches covered ratio is 0.9, but expected minimum is 1.0
+```
+
+### Evidence for the new and changed tests
+
+Procedure per row: green on unmodified source, break the named behaviour, run
+`./gradlew :core-domain:test`, record the assertion verbatim, revert, green again
+(`doc:35-testing#load-bearing-evidence`). All nine mutations reverted; the `qualityCheck`
+below is on the reverted tree.
+
+| test | source broken | observed failure |
+|---|---|---|
+| `permits every capability it was granted and denies one it was not` | `permits` reduced to `!revoked` | `AssertionFailedError: expected:<false> but was:<true>` |
+| `a revoked grant covers nothing and permits nothing` | `permits` reduced to `capability in granted` | `AssertionFailedError: expected:<false> but was:<true>` |
+| `does not share the capability set it was issued with` | `issue` keeps the caller's set as the backing collection | `AssertionFailedError: expected:<false> but was:<true>` |
+| `does not hand out the capability set it decides with` | `capabilities` returns the backing collection | `AssertionFailedError: expected:<false> but was:<true>` |
+| `is the same grant as any other instance carrying its id` | `equals`/`hashCode` removed | `AssertionFailedError: expected:<true> but was:<false>` |
+| `denies when any instance of a grant id was revoked, in either order` | `unanimous` uses `any` instead of `all` | `AssertionFailedError: expected:<...DomainNotVisible@76828577> but was:<...CapabilityNotGranted@38732372>` |
+| `refuses an actor id that could not survive being a path segment or a file name`, and the `GrantId` mirror | `OPAQUE_ID` relaxed back to `^\S+$` | `AssertionFailedError: Expected exception java.lang.IllegalArgumentException but no exception was thrown.` |
+| `accepts an actor id that is an opaque lower-case token` | `OPAQUE_ID` charset narrowed to kebab only | `IllegalArgumentException: actorId must be 1-64 characters of a-z, 0-9, '.', '_' or '-', starting and ending alphanumeric: 'agent.supervisor_2'` |
+| `accepts a capability whose halves are lower kebab` | `SHAPE` drops the hyphen groups | `IllegalArgumentException: capability must be '<resource>.<action>': 'work-items.bulk-read'` |
+
+The three mutants of threads 3-5 are in the table in that section and are not repeated.
+
+### Coverage after the review cycle
+
+```
+cmd:      ./gradlew coverageBaselineWrite
+observed: :core-domain                   0 0 579 44 -> 0 0 618 38
+```
+
+Upward on instructions, so no `-Pcoverage.regress`. Branches fall from 44 to 38 because
+`ActorId` and `GrantId` each traded a three-branch `isNotBlank() && none { … }` for a
+single regex match — a stricter rule expressed in fewer predicates. Missed instructions
+and missed branches are both still `0`, and the branch figure is now additionally floored
+at 100% for `..identity.aggregate` by the rule above.
+
+### The gate
+
+```
+cmd:      ./gradlew clean && ./gradlew --no-build-cache qualityCheck
+expect:   BUILD SUCCESSFUL
+observed: > Task :docsLint
+          docs-lint: OK — 15 documents, 81 anchors, 256 references.
+
+          > Task :modus-server:integrationTest
+          > Task :modus-server:coverageReport
+          > Task :modus-server:coverageRatchet
+          > Task :modus-server:check
+          > Task :coverageAggregateReport
+          > Task :check
+          > Task :qualityCheck
+
+          BUILD SUCCESSFUL in 9s
+          153 actionable tasks: 144 executed, 9 up-to-date
+```

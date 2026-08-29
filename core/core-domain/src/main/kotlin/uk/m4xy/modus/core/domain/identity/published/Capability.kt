@@ -10,8 +10,11 @@ package uk.m4xy.modus.core.domain.identity.published
  * Module declares the capabilities it defines (`doc:10-architecture#module-system`); the
  * domain owns the shape, never the membership.
  *
- * Invariant: exactly one `.`, both halves lower-kebab, so a capability can never be
- * mistaken for a wildcard, a path, or a role name.
+ * Invariant: exactly one `.`, both halves lower-kebab — each half a run of `[a-z0-9]`
+ * groups joined by single hyphens, so neither half opens or closes on a hyphen. A
+ * capability can therefore never be mistaken for a wildcard, a path, or a role name, and
+ * [resource] and [action] always split it the way the vocabulary reads: a second `.` would
+ * silently push `read.all` into [action].
  */
 @JvmInline
 public value class Capability(
@@ -28,6 +31,6 @@ public value class Capability(
     public val action: String get() = value.substringAfter('.')
 
     private companion object {
-        private val SHAPE = Regex("^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*$")
+        private val SHAPE = Regex("^[a-z][a-z0-9]*(-[a-z0-9]+)*\\.[a-z][a-z0-9]*(-[a-z0-9]+)*$")
     }
 }
