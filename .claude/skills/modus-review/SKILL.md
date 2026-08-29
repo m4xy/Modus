@@ -28,6 +28,12 @@ git fetch origin && git checkout <branch>
 ```
 Run in an isolated worktree when reviewing in parallel with other work.
 
+> **In an isolated worktree the prefix form is refused.** The sandbox rejects
+> `env -u GITHUB_TOKEN gh …` — it cannot verify what `env` does to the command it wraps —
+> and also rejects compound commands containing a redirect into a non-literal target. Write
+> a script into the scratchpad that does `cd <worktree>; unset GITHUB_TOKEN; gh …` and run
+> `bash <path>`. Found by `bean:0035`'s implementation, which lost two attempts to it.
+
 ## Procedure
 
 1. **Read the PR body, then the bean it names, whole, then only the documents in its

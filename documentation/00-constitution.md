@@ -10,6 +10,7 @@ provides:
   - doc:00-constitution#evidence-rule
   - doc:00-constitution#context-budget
   - doc:00-constitution#workflow
+  - doc:00-constitution#bean-lifecycle
   - doc:00-constitution#domain-scoping
   - doc:00-constitution#mechanical-enforcement
   - doc:00-constitution#observed-failing
@@ -321,8 +322,26 @@ reading it as such once produced a false `Enforcement gap:` here.
    `status:` it has on the merge base and was observed rejecting an in-place edit, a
    non-amendment append, a malformed amendment heading and an amendment with no evidence.
 6. **Review.** See §7.4.
-7. **Merge.** Squash merge; the squashed message is the PR title plus body. The work item
-   transitions to `done` with the merge commit as evidence.
+7. **Merge.** Squash merge; the squashed message is the PR title plus body.
+
+### 7.2.1 A bean's status through its own pull request <a id="bean-lifecycle"></a>
+
+`todo` → `in-progress` when the branch is cut → `completed` **after** the merge, in a
+separate change.
+
+The bean stays `in-progress` for the whole life of its own pull request, including through
+review. It is not set to `completed` in the change under review, for two reasons that
+compound:
+
+- A bean cannot close itself. Its evidence includes the merge, and the merge is the thing
+  the pull request is asking for.
+- `docs-lint` check 11 makes a `completed` bean append-only. Setting it `completed` in its
+  own branch would freeze it against the author's own review fixes — every finding would
+  then need an `## Amendments` entry to correct a bean that had not yet landed.
+
+So closing a bean is always the *next* change, and is the first act of the session after a
+merge. This was convention rather than rule until `bean:0035` found it undocumented and
+load-bearing.
 
 ### 7.3 Commit messages
 

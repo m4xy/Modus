@@ -125,6 +125,14 @@ Evidence — PR #1 at review: 13 files (12 documents, 1 bean), +3458 lines, 8 re
 
 Fix pattern: name the fact, give it one anchor in the document that owns the subject, replace every other copy with a reference.
 
+**A count restated outside the thing it counts is a drift generator**, and this repository
+has already produced two live instances. `bean:0035` found `tools/docs-lint.sh`'s header
+saying "the eleven mechanical checks" and `build.gradle.kts`'s comment saying "The nine
+checks", while §6's table had eleven rows — three statements, two wrong, none of which any
+check could see. A comment that counts rows in another file is a copy of that file's length,
+and lengths change. **Delete the count; cite the anchor.** Code comments are as bound by this
+section as documents are — they are simply the copies nobody greps.
+
 ## 4. Prose ban <a id="prose-ban"></a>
 
 | banned | write instead |
