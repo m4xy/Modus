@@ -288,7 +288,7 @@ One paragraph. What changed and why. Not a file list — the diff is the file li
 
 | # | Criterion | Evidence | Result |
 |---|-----------|----------|--------|
-| 1 | `./gradlew check` exits 0 | test-run `01JB…`: 412 passed, 0 failed, exit 0 | met |
+| 1 | `./gradlew qualityCheck` exits 0 | test-run `01JB…`: 412 passed, 0 failed, exit 0 | met |
 | 2 | Cross-domain access returns 404 | test-run `01JB…`: `DomainIsolationIT` 18 passed | met |
 | 3 | ADR recorded for the storage choice | diff `01JB…`: `documentation/adr/0002-…` added | met |
 

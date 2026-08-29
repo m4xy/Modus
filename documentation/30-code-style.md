@@ -141,7 +141,7 @@ Detekt runs with `buildUponDefaultConfig = true` and a project config at
 | `LabeledExpression` | `error` | |
 | `UseCheckOrError`, `UseRequire` | `error` | Consistent invariant expression (`20` §7.2) |
 | Naming rules | all `error` | |
-| Formatting ruleset | **disabled entirely** | Spotless/ktlint owns formatting |
+| Formatting ruleset | **disabled entirely** | ktlint owns formatting (§1) |
 
 **Test sources:** relaxed for `LongMethod`, `MagicNumber`, `TooManyFunctions`, and
 `MaxLineLength`. Everything else applies — test code is code.
@@ -264,10 +264,8 @@ reference, so they are **forbidden outright** in this repository; disable a test
 
 **Enforcement gap:** nothing runs the checks above. `backoffice/` and `e2e/` are not
 Gradle projects, so no Gradle task reaches their `typecheck`, `lint` or `format:check`
-scripts, and CI runs only `./gradlew qualityCheck`. Run them by hand
-(`npm --prefix backoffice run typecheck`, `npm --prefix backoffice run lint`) until
-`bean:0029` wires them in; both exit 0. `format:check` does not — 71 files have drifted
-unchecked, and `bean:0029` owns reformatting them. The complete gate — and the only normative statement of it — is
+scripts, and CI runs only `./gradlew qualityCheck`. Until `bean:0029` wires them in, run them by hand as `00-constitution.md` §7.2.4's
+`Enforcement gap:` describes — that block carries the commands, this one does not. The complete gate — and the only normative statement of it — is
 `00-constitution.md` §7.2.4.
 
 ---

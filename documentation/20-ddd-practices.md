@@ -405,4 +405,5 @@ The domain has no idea it is stored in Markdown. This is not incidental — it i
 - [ ] Time and identity arrive as parameters or ports — never ambiently.
 - [ ] Cross-aggregate coordination is by event, not by a two-aggregate transaction.
 - [ ] No primitive stands in for a concept that deserves a value object.
-- [ ] `./gradlew :core:core-domain:check` passes in under 10 seconds.
+- [ ] `./gradlew :core-domain:check` passes in under 10 seconds. Project names are flat
+      (`settings.gradle.kts`), so it is `:core-domain`, not `:core:core-domain`.

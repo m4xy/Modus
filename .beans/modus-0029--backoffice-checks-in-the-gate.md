@@ -31,13 +31,16 @@ Success criteria:
   and fails when any of them fails. Observed failing per
   `doc:00-constitution#observed-failing`: plant a type error, watch the named task reject
   it, revert.
-- An `e2eTest` task exists, runs Playwright against a built and running system, and is
-  deliberately outside `check` for the reason `doc:00-constitution` §7.2.4 states.
+- An `e2eTest` task exists, runs Playwright against a built and running system, and stays
+  outside `check` for the reason recorded in `doc:00-constitution` §7.2.4's
+  `Enforcement gap:` — it needs a running system and takes minutes, and inside the fast gate
+  it would make agents stop running the gate.
 - `knip` is either installed and wired in as `doc:30-code-style` §6 claims, or struck from
   that table. It is currently neither.
 - The 71 files currently failing `npm --prefix backoffice run format:check` are reformatted,
   in a commit of their own that touches nothing else, before the check becomes a gate.
   Wiring the check in first would make the next unrelated pull request carry the diff.
-- The `Enforcement gap:` lines `bean:0028` left in `doc:00` §7.2.4, `doc:30` §0, §1, §6
-  and `doc:80` step 6 are removed, each replaced by an `Enforced by:` line naming the task
-  that was observed rejecting a planted violation.
+- The three `Enforcement gap:` lines `bean:0028` left — `doc:00-constitution` §7.2.4,
+  `doc:30-code-style` §1 and §6 — are removed, each replaced by an `Enforced by:` line
+  naming the task that was observed rejecting a planted violation. Those three are the
+  complete set; `doc:30` §0 and `doc:80` step 6 cite the gap rather than carrying one.

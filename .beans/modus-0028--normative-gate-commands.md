@@ -34,8 +34,8 @@ observed: FAILURE: Build failed with an exception.
 | 2 | `./gradlew check` also runs the backoffice checks | `doc:00` §7.2.4, `doc:30` §0, §6, `doc:80` §6 | `backoffice/` and `e2e/` are not Gradle projects — `settings.gradle.kts` declares ten modules and neither is among them. No Gradle task invokes npm |
 | 3 | `./gradlew e2eTest` | `doc:00` §7.2.4 | the task does not exist; nothing runs Playwright, locally or in CI |
 | 4 | "CI runs `check` and `e2eTest` with no extra arguments" | `doc:00` §7.2.4, `doc:30` §0 | `.github/workflows/ci.yml:73` runs `./gradlew qualityCheck --stacktrace` and nothing else |
-| 5 | `./gradlew build ktlintCheck detekt` is "exactly what CI runs" | `AGENTS.md` Commands | same as #4; and there is no root `detekt` task — Detekt is per-module |
-| 6 | `./gradlew :core:core-domain:check` | `doc:80` §5.4 | project names are flat (`settings.gradle.kts`): the path is `:core-domain:check`, and the stated one fails with `project 'core' is ambiguous` |
+| 5 | `./gradlew build ktlintCheck detekt` is "exactly what CI runs" | `AGENTS.md` Commands | the command itself **passes** — unqualified selection matches the per-module `detekt` tasks. Only the claim is false: CI runs `qualityCheck`, and `build ktlintCheck detekt` skips `docsLint`, the root `ktlintCheck`, the aggregate coverage report and the included build's own gates |
+| 6 | `./gradlew :core:core-domain:check` | `doc:80` §5.4 **and `doc:20` §10** | project names are flat (`settings.gradle.kts`): the path is `:core-domain:check`, and the stated one fails with `project 'core' is ambiguous`. Two occurrences, identically worded; the first sweep found only one, and review found the second |
 | 7 | `knip` is `error` in CI | `doc:30` §6 | knip is not a dependency, a script or a workflow step anywhere in the repository |
 | 8 | "backoffice tests" run inside `check` | `doc:00` §7.2.4 | `backoffice/package.json` has no `test` script; only `e2e/` has one, and it is Playwright |
 | 9 | Spotless also formats `*.ts`, `*.md`, `*.yaml`, `*.json` | `doc:30` §1 | no such mechanism; `backoffice/package.json` carries its own `format`/`format:check` Prettier scripts, invoked by nobody |
@@ -44,8 +44,9 @@ observed: FAILURE: Build failed with an exception.
 ## Scope
 
 Owned: `documentation/00-constitution.md` §7.2.4 and §7.3's surrounding block,
-`documentation/30-code-style.md` §0, §1 and §6, `documentation/80-agent-operating-procedure.md`
-§5.4, §5.5 and step 6, `AGENTS.md`'s Commands block, and this bean.
+`documentation/20-ddd-practices.md` §10's checklist, `documentation/30-code-style.md` §0,
+§1, §3 and §6, `documentation/80-agent-operating-procedure.md` §5.4, §5.5 and step 6,
+`AGENTS.md`'s Commands block, and this bean.
 
 Not owned, and deliberately not touched: `build-logic/`, `settings.gradle.kts`,
 `.github/workflows/ci.yml`, `backoffice/**`, `e2e/**`. Making the build do what the
@@ -68,4 +69,10 @@ constitution instructing agents to run a task that is not there.
 5. `./gradlew qualityCheck` is green.
 6. The backoffice checks this bean tells agents to run by hand are stated at their real
    strength: `typecheck` and `lint` pass, `format:check` does not, and the document says so
-   rather than sending the next agent into a 71-file diff it did not cause.
+   rather than sending the next agent into a 71-file diff it did not cause. The instruction
+   is runnable from a clean checkout — it names the `npm ci` step, without which `typecheck`
+   fails with `sh: tsc: command not found`.
+7. The sweep is exhaustive rather than sampled: every backticked `./gradlew` and `npm`
+   invocation in `documentation/**` and `AGENTS.md` is enumerated and run, not just the ones
+   in the gate block. Review found a second `:core:core-domain:check` the first pass missed;
+   this criterion exists so that cannot recur silently.
