@@ -45,17 +45,17 @@ and `--check` fails if it drifts from the artifact. *Not done* says why that rul
 |---|---:|
 | runs replayed | 65 (2 root session(s), 63 subagent run(s)) |
 | input files hashed | 129 |
-| assistant messages / transcript frames | 4,853 / 8,914 (**1.837x** overcount if frames are summed) |
-| tokens | 741,026,373 |
-| cache-read ratio | **98.15%** |
+| assistant messages / transcript frames | 4,919 / 9,030 (**1.836x** overcount if frames are summed) |
+| tokens | 755,944,383 |
+| cache-read ratio | **98.05%** |
 | fresh input + output | 0.31% of all tokens |
-| derived cost | **$469.206347** |
-| delegated share of cost | **61.26%** — included, not excluded |
+| derived cost | **$483.200719** |
+| delegated share of cost | **62.13%** — included, not excluded |
 | largest peak context | 865,375 tokens, 2.9x the 300k ceiling (`doc:00-constitution#context-budget`) |
 | pull requests attributed | 39 — min $1.066690, median $5.885065, max $56.710674 |
-| attributed exactly / by timestamp / not at all | 20.94% / 58.01% / 21.06% of dollars |
-| `gitBranch` == the literal `HEAD` | 4,853 of 4,853 messages |
-| output tokens recovered by taking the largest frame, not the first | 1,103,772 (47.69% of all output) |
+| attributed exactly / by timestamp / not at all | 20.37% / 56.33% / 23.31% of dollars |
+| `gitBranch` == the literal `HEAD` | 4,919 of 4,919 messages |
+| output tokens recovered by taking the largest frame, not the first | 1,129,285 (47.91% of all output) |
 | frames disagreeing on input or cache tokens | 0 |
 | subagent parent edges unresolved | 0 of 63 |
 
@@ -63,12 +63,12 @@ Verbatim, for criteria 2 and 3 (`doc:00-constitution#evidence-rule`):
 
 ```
 cmd:      python3 tools/cost-replay.py
-observed: Delegated spend is INCLUDED: 61.26% of the dollar total is subagent runs
+observed: Delegated spend is INCLUDED: 62.13% of the dollar total is subagent runs
             (63 of 65 runs)
           repeated frames of one `message.id` agree on input and cache tokens
             | 0 disagreement(s)
           output tokens recovered by taking the largest frame, not the first
-            | 1,103,772 (47.69% of all output)
+            | 1,129,285 (47.91% of all output)
 exit:     0
 ```
 
