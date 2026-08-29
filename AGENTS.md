@@ -31,7 +31,14 @@ Two routing facts README does not carry:
 ./gradlew :core-domain:check         # the fast gate; project names are flat, not :core:core-domain
 ./gradlew :architecture-tests:test   # rule:archunit/*
 ./gradlew :modus-server:bootRun      # run the server
+GITHUB_TOKEN= gh <args>              # every gh call — the credential trap below
 ```
+
+A stale `GITHUB_TOKEN` in the environment shadows the keyring credential `gh` would
+otherwise use, and surfaces as `HTTP 401: Bad credentials` on an unrelated command.
+`gh auth status` names which credential is in use. Clear it inline, as above —
+`env -u GITHUB_TOKEN gh …` is equivalent and is refused by default in an agent sandbox,
+which cannot verify what `env` does to the command it wraps.
 
 JDK 25 toolchain. Versions live in `gradle/libs.versions.toml` and nowhere else.
 Style rules: `doc:30-code-style`. The Module extension contract: `doc:10-architecture`.
@@ -51,7 +58,8 @@ This repository's own layout and layering rules: `doc:15-repository-layout`. Non
    that can still change in review. A bean whose only blocker is in flight is correctly
    unselectable, and the answer is to finish the blocker, not to relax the rule
    (`doc:00-constitution#bean-lifecycle`).
-2. Branch from `main` (`feat|fix|docs|chore/…`). No direct commits to `main`.
+2. Branch from `main` (`feat|fix|docs|chore/…`), in a worktree of your own
+   (`doc:80-agent-operating-procedure#worktree-per-agent`). No direct commits to `main`.
 3. Conventional commits. PR body: fill `.github/pull_request_template.md`; do not narrate.
 4. Review — every thread ends in a change, a new rule, or a stated refusal.
 5. `rule:ci/build` green, then merge. Normative: `doc:00-constitution` §7.

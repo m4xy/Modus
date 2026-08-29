@@ -23,7 +23,7 @@ the toolchain, not in the diff (`doc:00-constitution` §7.4).
 ## Preconditions
 
 ```
-env -u GITHUB_TOKEN gh pr view <n> --json body,title    # the body is your primary context
+GITHUB_TOKEN= gh pr view <n> --json body,title          # the body is your primary context
 git fetch origin && git checkout <branch>
 ```
 Run in an isolated worktree when reviewing in parallel with other work.
