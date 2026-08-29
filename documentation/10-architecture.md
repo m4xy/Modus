@@ -328,7 +328,7 @@ half and is easy to leave unowned.
 
 **Enforcement gap:** the backoffice grant-administration screens, and the Playwright
 assertions that an actor without `admin` cannot reach them, are not specified here. They
-are named as a follow-up in `beans/0001`, which owns raising the work item.
+are named as a follow-up in `bean:0001`, which owns raising the work item.
 
 ---
 
@@ -390,7 +390,7 @@ Rules, because the interesting cases are all concurrency cases:
 aggregate with accepting and rejecting tests (`20-ddd-practices.md` §7.3); the
 `(triggerId, causeId)` uniqueness is checked against the domain's event log at firing
 time. **Enforcement gap:** per-domain trigger configuration in the backoffice is not
-specified; named as a follow-up in `beans/0001`.
+specified; named as a follow-up in `bean:0001`.
 
 ---
 

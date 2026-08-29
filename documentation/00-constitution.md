@@ -135,7 +135,7 @@ The evidence record shape, the accepted evidence kinds, and invalidation rules a
 `adapters/adapter-persistence-flatfile`; a transition guard in the `work` context that
 refuses `done` without at least one evidence record per success criterion.
 **Enforcement gap:** PR-body evidence is currently a review responsibility. A CI check on
-PR body structure is owned by `beans/0001`, which lists it under "Follow-up work items to
+PR body structure is owned by `bean:0001`, which lists it under "Follow-up work items to
 raise" and is accountable for raising it.
 
 ---
@@ -170,7 +170,7 @@ which is worth more than any token budget it saves.
 
 **Enforced by:** review, and the SOP in `80-agent-operating-procedure.md`.
 **Enforcement gap:** "questions asked per work item" should be recorded by the
-`execution` context; not yet implemented. Owned by `beans/0001`, under "Follow-up work
+`execution` context; not yet implemented. Owned by `bean:0001`, under "Follow-up work
 items to raise".
 
 ---
@@ -224,7 +224,7 @@ you catch this — before you have spent anything.
 
 **Enforced by:** the `execution` context records peak context per agent run and flags
 runs over 240k (80% of budget) as at-risk. **Enforcement gap:** the recorder is not yet
-implemented; until it is, self-report peak context in the PR body. Owned by `beans/0001`,
+implemented; until it is, self-report peak context in the PR body. Owned by `bean:0001`,
 under "Follow-up work items to raise".
 
 ---

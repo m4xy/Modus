@@ -1,9 +1,11 @@
 ---
+# modus-0005
 title: Front-matter back-fill and docs-lint
-status: in-progress
+status: completed
 type: task
 priority: high
 created_at: 2026-08-29T00:00:00Z
+blocked_by: [modus-0004]
 ---
 
 # Front-matter back-fill and docs-lint

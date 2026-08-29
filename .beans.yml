@@ -1,0 +1,20 @@
+project:
+  name: Modus
+
+beans:
+  path: .beans
+  prefix: "modus-"
+  id_length: 4
+  default_status: todo
+  default_type: task
+
+worktree:
+  base_ref: main
+  integrate: pr
+
+agent:
+  enabled: true
+  default_mode: act
+
+server:
+  port: 8080

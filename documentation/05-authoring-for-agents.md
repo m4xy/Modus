@@ -6,7 +6,7 @@ superseded_by: null
 read_when:
   - path: documentation/**
   - path: AGENTS.md
-  - path: beans/**
+  - path: .beans/**
   - path: .github/pull_request_template.md
   - task: (write|edit|review).{0,30}(document|doc|spec|bean|front-matter|pr body)
 provides:
@@ -22,7 +22,7 @@ depends_on: [doc:00-constitution]
 
 # 05 — Authoring for agents
 
-Applies to: `documentation/**`, `AGENTS.md`, `beans/**`, `.github/pull_request_template.md`.
+Applies to: `documentation/**`, `AGENTS.md`, `.beans/**`, `.github/pull_request_template.md`.
 Primary consumer: an agent under the 300k context ceiling (`doc:00-constitution` §6). Humans are served by the backoffice, not by prose here.
 MUST / SHOULD / MAY, `Enforced by:` and `Enforcement gap:` are defined in `documentation/README.md` and are not restated here.
 
@@ -96,7 +96,7 @@ One scheme: `kind:name`, optionally `#anchor`. It MUST be used inline, in front-
 |---|---|---|
 | `doc:40-durability` | `documentation/40-durability.md` | |
 | `doc:40-durability#atomic-write` | the anchor tag of that name in that file | MUST appear in that file's `provides` |
-| `bean:0004` | `beans/0004-*.md` | exactly one match |
+| `bean:0004` | `.beans/<prefix>0004--*.md` | exactly one match; `<prefix>` is `.beans.yml`'s `beans.prefix` |
 | `adr:0002` | `documentation/adr/0002-*.md` | exactly one match |
 | `rule:archunit/domainIsFrameworkFree` | the `ArchRule` declared under that identifier in `architecture-tests/` | identifier verbatim, camelCase |
 | `rule:detekt/CyclomaticComplexMethod` | the rule id in `config/detekt/detekt.yml` | id verbatim; a rule `doc:30-code-style#custom-detekt-rules` specifies but `config/detekt/detekt.yml` does not yet declare is not a target |
@@ -151,7 +151,7 @@ Required forms:
 | question | source of truth | reference |
 |---|---|---|
 | how must things be? | `documentation/` | `doc:…` |
-| what is being done, by whom, with what evidence? | `beans/` | `bean:NNNN` |
+| what is being done, by whom, with what evidence? | `.beans/` | `bean:NNNN` |
 | why was this chosen over the alternatives? | `documentation/adr/` | `adr:NNNN` |
 
 - A document MUST NOT describe work status, progress, plans or ownership. It states the present rule and cites `bean:NNNN` for anything in flight.
@@ -174,5 +174,6 @@ Each check is decidable from repository contents alone.
 | 7 | predicate shape | a `read_when` entry is neither the scalar `always` nor a single `path:` or `task:` key |
 | 8 | line budget | a `documentation/*.md` is outside the line range `documentation/README.md` states, or `AGENTS.md` exceeds 120 lines |
 | 9 | derived listings | a row in `AGENTS.md` marked derived omits the `doc:` id it derives from, or itself states a `path:`/`task:` predicate value instead of citing that id |
+| 10 | no bare bean paths | a bare `beans/NNNN` or `.beans/NNNN` path appears in `documentation/*.md`, `AGENTS.md` or `CLAUDE.md` prose, instead of a typed `bean:NNNN` reference (§2) |
 
-Enforcement gap: all nine. `bean:0004` carries them; they land as a `docs-lint` step in `rule:ci/build`.
+Enforcement gap: all ten. `bean:0004` carries them; they land as a `docs-lint` step in `rule:ci/build`.

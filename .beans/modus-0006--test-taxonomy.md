@@ -1,9 +1,11 @@
 ---
+# modus-0006
 title: Test taxonomy — unit/integration split, enforced mechanically
-status: in-progress
+status: completed
 type: feature
 priority: high
 created_at: 2026-08-29T00:00:00Z
+parent: modus-0003
 ---
 
 # Test taxonomy — unit/integration split, enforced mechanically

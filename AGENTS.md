@@ -19,7 +19,7 @@ Two routing facts README does not carry:
 
 | task shape | read | do not read |
 |---|---|---|
-| `documentation/**`, `AGENTS.md`, `beans/**`, the PR template | `doc:05-authoring-for-agents` — its own `read_when` front-matter states the predicates; derived, not restated here (`#checks` check 9) | `doc:10`–`doc:80` |
+| `documentation/**`, `AGENTS.md`, `.beans/**`, the PR template | `doc:05-authoring-for-agents` — its own `read_when` front-matter states the predicates; derived, not restated here (`#checks` check 9) | `doc:10`–`doc:80` |
 | reviewing a pull request | the PR body, then only the documents in its `refs:` | any document the PR body does not reference |
 
 ## Commands
@@ -37,7 +37,7 @@ Style rules: `doc:30-code-style`. Layering rules: `doc:10-architecture`. Neither
 
 ## Workflow
 
-1. Bean — `beans/NNNN-slug.md`. It is the source of truth for what is being done.
+1. Bean — `.beans/<prefix>NNNN--slug.md` (`.beans.yml`). It is the source of truth for what is being done.
 2. Branch from `main` (`feat|fix|docs|chore/…`). No direct commits to `main`.
 3. Conventional commits. PR body: fill `.github/pull_request_template.md`; do not narrate.
 4. Review — every thread ends in a change, a new rule, or a stated refusal.

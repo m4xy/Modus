@@ -1,6 +1,7 @@
 ---
+# modus-0004
 title: Agent-optimal authoring conventions
-status: in-progress
+status: completed
 type: task
 priority: high
 created_at: 2026-08-28T00:00:00Z

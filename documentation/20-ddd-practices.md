@@ -369,7 +369,7 @@ type distinguishes modelled absence from a flag; "control-flow style" is a judge
 an API reference. The closest mechanisable substitutes are narrower rules that would catch
 some instances — a Detekt rule forbidding a `Boolean?` property on a type in
 `..domain.aggregate`, and `TooGenericExceptionThrown` at `error` — and raising those is
-named as a follow-up in `beans/0001`. Until one exists, do not claim the build catches
+named as a follow-up in `bean:0001`. Until one exists, do not claim the build catches
 these two.
 
 ---

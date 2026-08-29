@@ -1,16 +1,10 @@
 ---
-id: "0002"
+# modus-0002
 title: Backoffice foundation
-status: in-review
-kind: epic
-domain: modus
-created: 2026-08-28
+status: completed
+type: epic
+created_at: 2026-08-28T00:00:00Z
 ---
-
-> **Frontmatter is provisional.** The bean schema is being ratified separately
-> (work item 0006). The keys above are the current draft; expect this file to be
-> re-stamped once the schema freezes, and treat any mismatch as the schema's
-> problem rather than this bean's.
 
 ## Scope
 

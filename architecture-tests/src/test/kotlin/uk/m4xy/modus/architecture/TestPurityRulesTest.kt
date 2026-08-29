@@ -150,9 +150,9 @@ class TestPurityRulesTest {
 
     /**
      * Reads `@Disabled`'s `value` off the class and off every method on it. The
-     * value must open with a `beans/NNNN` reference and continue with a reason.
+     * value must open with a `bean:NNNN` reference and continue with a reason.
      */
-    private class DisabledNamesAWorkItem : ArchCondition<JavaClass>("name a beans/NNNN work item in every @Disabled") {
+    private class DisabledNamesAWorkItem : ArchCondition<JavaClass>("name a bean:NNNN work item in every @Disabled") {
         override fun check(
             item: JavaClass,
             events: ConditionEvents,
@@ -186,8 +186,8 @@ class TestPurityRulesTest {
             } else {
                 SimpleConditionEvent.violated(
                     item,
-                    "$owner: @Disabled(\"$value\") must open with a beans/NNNN reference and a reason, " +
-                        "for example @Disabled(\"beans/0042: flaky under parallel execution\")",
+                    "$owner: @Disabled(\"$value\") must open with a bean:NNNN reference and a reason, " +
+                        "for example @Disabled(\"bean:0042: flaky under parallel execution\")",
                 )
             }
         }
@@ -216,6 +216,6 @@ class TestPurityRulesTest {
         /** `kotlin.test.Ignore` is a typealias for JUnit's `@Disabled`, so it lands here too. */
         val DISABLING_ANNOTATIONS = setOf("org.junit.jupiter.api.Disabled", "org.junit.Ignore")
 
-        val WORK_ITEM = Regex("""^beans/\d{4}""")
+        val WORK_ITEM = Regex("""^bean:\d{4}""")
     }
 }

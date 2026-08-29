@@ -1,18 +1,10 @@
 ---
-id: "0001"
+# modus-0001
 title: Foundation documentation package
-status: in-review
-kind: epic
-domain: modus
-created: 2026-08-28
+status: completed
+type: epic
+created_at: 2026-08-28T00:00:00Z
 ---
-
-> **Provisional frontmatter.** The work-item ("bean") on-disk schema is not yet ratified —
-> it is owned by a separate work package and will land as
-> `documentation/90-work-items.md`. The frontmatter above is a placeholder agreed for this
-> item only. **This file will be migrated when the schema lands**, and that migration is
-> the first consumer of the schema — if migrating this file is awkward, the schema is
-> wrong.
 
 ## What this covers
 

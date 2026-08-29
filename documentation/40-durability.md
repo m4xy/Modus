@@ -145,10 +145,10 @@ Rules:
 `.modus/` is git-ignored in its entirety. Everything outside `.modus/` is intended to be
 committed, which is what makes `git` the audit log.
 
-### 3.1 `beans/` and `domains/<domainId>/work/` are the same thing
+### 3.1 `.beans/` and `domains/<domainId>/work/` are the same thing
 
 There is **one** work-item concept, stored in **one** shape, and it lives at
-`domains/<domainId>/work/`. `beans/` at this repository's root is that directory for the
+`domains/<domainId>/work/`. `.beans/` at this repository's root is that directory for the
 `modus` domain — the domain whose product is Modus itself — reached by a shorter path
 because a repository root is where humans and agents look first.
 
@@ -157,7 +157,7 @@ because a repository root is where humans and agents look first.
 - `00-constitution.md` §7.2 and `80-agent-operating-procedure.md` step 1 say "the work item
   in `beans/`" because an agent working *on this repository* is always in the `modus`
   domain. That is a shorthand for the general path, not a second mechanism.
-- When Modus manages this repository (`00-constitution.md` §12), `beans/` is what it
+- When Modus manages this repository (`00-constitution.md` §12), `.beans/` is what it
   manages, with no migration and no import step. That is the point of picking one shape:
   self-hosting must not require a conversion.
 
