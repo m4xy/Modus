@@ -26,6 +26,17 @@ tasks.register<Exec>("docsLint") {
     commandLine("bash", "tools/docs-lint.sh")
 }
 
+// docs-lint's own tests. What check 14's analyser PERCEIVES — which lines are inside a
+// fenced block — is a separate concern from what it DECIDES, and bean:0063 is the fourth
+// mechanism here to fail open through the parse while its decision tests passed. A test
+// that is not in qualityCheck is not run (doc:00-constitution#observed-failing), so this
+// is a dependency of the aggregate rather than a command someone remembers.
+tasks.register<Exec>("docsLintTest") {
+    group = "verification"
+    description = "Runs the perception and verdict tests for the docs-lint check 14 analyser."
+    commandLine("bash", "tools/docs-lint-test.sh")
+}
+
 // --- the backoffice half of the gate -----------------------------------------
 //
 // backoffice/ and e2e/ are not Gradle projects (settings.gradle.kts), so nothing
@@ -109,7 +120,7 @@ tasks.register("qualityCheck") {
     // The root project's own `check` carries the aggregate coverage report and
     // the baseline guard (modus.coverage), so they cannot be a second command.
     dependsOn(
-        subprojects.map { "${it.path}:check" } + listOf("check", "ktlintCheck", "docsLint"),
+        subprojects.map { "${it.path}:check" } + listOf("check", "ktlintCheck", "docsLint", "docsLintTest"),
     )
     // The backoffice half. Before bean:0029 nothing reached these, so a TypeScript
     // error, an ESLint error or 77 drifted files all merged green.
