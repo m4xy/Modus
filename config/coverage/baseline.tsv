@@ -7,13 +7,16 @@
 # -Pcoverage.regress=<reason>, and the reason is recorded below.
 # REGRESSION accepted with -Pcoverage.regress: identity validators replaced two three-branch isNotBlank() && none{} checks with single whole-string regex matches; six branches disappear from the source, none become uncovered (missed branches stay 0)
 #   :core-domain: covered branches 44 -> 38
-# Restored by hand in bean:0032 and again in bean:0030 after coverageBaselineWrite erased it; bean:0033 makes it survive.
+# REGRESSION accepted with -Pcoverage.regress: GrantIssued stores its capabilities as a Set rather than a List, so three toSet() calls disappear from equals, hashCode and the field initialiser; six instructions leave the source, none become uncovered (missed instructions stay 0)
+#   :core-domain: covered instructions 1549 -> 1543
+# Restored by hand in bean:0032, bean:0030 and twice in bean:0036 after coverageBaselineWrite erased it;
+# it now also erases a PREVIOUS regression block when recording a new one. bean:0033 makes it survive.
 :adapter-agent-claude          33	0	0	0
 :adapter-persistence-flatfile  33	0	0	0
 :adapter-rest                  3	0	0	0
 :adapter-vcs-git               33	0	0	0
 :core-application              6	0	0	0
-:core-domain                   0	0	1442	116
+:core-domain                   0	0	1543	130
 :module-beans                  6	0	0	0
 :module-cost                   6	0	0	0
 :modus-server                  9	0	3	0

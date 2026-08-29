@@ -25,7 +25,12 @@ import uk.m4xy.modus.core.domain.work.WorkContext
  * outside of.
  */
 public object BoundedContexts {
-    public val names: List<String> =
+    /**
+     * Private, because `listOf` over more than one element returns a `java.util.Arrays$ArrayList`
+     * whose `set` works: published directly, this singleton's index was writable by anyone who
+     * read it (`doc:20-ddd-practices#value-objects` §3.1). Found by `DefensiveCopySourceTest`.
+     */
+    private val declared: List<String> =
         listOf(
             "identity",
             "domainmgmt",
@@ -34,4 +39,7 @@ public object BoundedContexts {
             ExecutionContext.NAME,
             CostContext.NAME,
         )
+
+    /** A fresh copy every read: mutating it renames no context. */
+    public val names: List<String> get() = declared.toList()
 }

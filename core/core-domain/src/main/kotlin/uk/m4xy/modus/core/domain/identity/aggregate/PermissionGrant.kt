@@ -93,8 +93,9 @@ public class PermissionGrant private constructor(
             at: Instant,
         ): PermissionGrant {
             require(capabilities.isNotEmpty()) { "grant ${id.value} must carry at least one capability" }
-            // Copied on the way in, and the event gets its own copy too, so neither the
-            // caller's set nor the event's set is an alias of what the grant decides with.
+            // Copied on the way in, so the caller's set is not an alias of what the grant
+            // decides with. [GrantIssued] copies again on its own way in and out, so the
+            // event's payload is nobody's live reference either (bean:0036).
             val granted = capabilities.toList()
             val issued = GrantIssued(id, actorId, domainId, granted.toSet(), at)
             return PermissionGrant(id, actorId, domainId, granted, false, mutableListOf(issued))

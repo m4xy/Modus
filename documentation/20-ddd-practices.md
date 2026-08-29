@@ -136,16 +136,79 @@ Putting a megabyte-scale stream inside an aggregate would violate 2.1.6.
 
 - A value object is an immutable `data class` (or `@JvmInline value class` for a
   single-field wrapper) with **no identity**. Equality is structural.
+- **No domain type may hand out a collection it owns.** Copy in at construction, copy out at
+  every accessor. Kotlin's `Set`/`List` are read-only *views* rather than immutable types, so
+  a caller down-casts what it was given and mutates what the object decides with — at size two
+  or more; at size one `toSet()` returns an immutable singleton and the down-cast throws, which
+  is why the test proving this MUST use a collection of two or more (`doc:35-testing#fixture-variation`).
+  This is the general rule; the `data class` ban below is one consequence of it, not the whole
+  of it. It has been broken three times: `PermissionGrant.capabilities` (`bean:0009`),
+  all four of `ProcessDefinition`'s collections (`bean:0030`), and `GrantIssued.capabilities`
+  (`bean:0036`), which let a handler add a capability to a fact that had already happened.
 - **A value object holding a collection MUST NOT be a `data class`.** It cannot be immutable
-  as one: the generated constructor binds the caller's collection, and Kotlin's `Set`/`List`
-  are read-only *views* rather than immutable types, so a `public val` hands the backing
-  instance to anyone who asks and a caller keeps a live reference to what the object decides
-  with. Every invariant validated in `init` then holds exactly once, at construction. Use a
-  private constructor, a named factory that copies on the way in, getters that copy on the
-  way out, and hand-written `equals`/`hashCode` — the shape `PermissionGrant.issue` and
-  `ProcessDefinition.of` both use. **Enforcement gap:** review only; `bean:0036` carries a
-  Detekt or ArchUnit rule for a collection-typed property on a type in `..domain.published..`
-  or `..domain.aggregate..` that is not defensively copied.
+  as one: the generated constructor binds the caller's collection, and a `public val` hands the
+  backing instance to anyone who asks. Every invariant validated in `init` then holds exactly
+  once, at construction. Use a private constructor, a named factory that copies on the way in,
+  getters that copy on the way out, and hand-written `equals`/`hashCode` — the shape
+  `PermissionGrant.issue` and `ProcessDefinition.of` both use.
+  `Enforced by:` `rule:archunit/noDomainTypePublishesACollectionItOwns`, a **source** scan of
+  every file under `core/core-domain/src/main`. It reads source, not bytecode: `javap -p` on
+  the compiled `GrantIssued` lists no `capabilities` field at all, only `getCapabilities()`, so
+  "the backing field is private" has no bytecode witness and only `data`'s `copy` survives for
+  a bytecode rule to see — the weaker half, which misses `bean:0009`'s shape (`bean:0034` found
+  the mirror image of this from the other side).
+  **Copy-out** is enforced in full: a `data class` owning a collection at any visibility; a
+  non-private stored collection property, with or without a declared type, in any class
+  including an anonymous `object :` expression; an accessor that is not a plain **copy chain**
+  — a bare field, a block getter with an early return past the copy, a conditional that copies
+  down one branch, or anything that is not **a backing field followed by exactly one copy
+  call**: argument-free proved necessary and not sufficient, since `held.register().toList()`
+  takes no argument and still runs a side effect on the way past, and a method reference has no
+  brace to ban; a non-private function whose returned expression so much as **mentions** a
+  backing field and is not that copy, which covers `asReversed`, `subList`,
+  `mapOf("all" to held)` and `Pair(held, held.size)` alike, through an expression body, a
+  `return` in a block, or a wrapped signature; a function that mentions a backing field and
+  **declares no return type**, which is a violation in itself rather than a guess at what the
+  expression evaluates to; and a `typealias`, including a generic or twice-aliased one.
+  That last rule's cost is larger than it first reads, and is stated here at full size: it is
+  **no non-private function without a return type may mention any private field, of any type**.
+  `internal fun size() = held.size` and `internal fun isFrozen() = frozen` are both rejected,
+  and neither hands anything out. The breadth is deliberate — the check is over every private
+  field precisely because a field whose type the scan cannot read is the case it exists for —
+  and it fails closed. It costs nothing in `core-domain` today; it is not free in general.
+  `bean:0064` carries narrowing it, and correcting its message, which still speaks only of
+  collections.
+  **Copy-in is enforced structurally, not semantically, and that limit is the rule's:** a
+  collection-typed constructor property requires a `private constructor`; a type carrying one
+  may not declare a secondary constructor a caller can reach; and a property that stores a
+  constructor parameter without copying it — as an initialiser or in an `init` block — is
+  rejected. The scan does **not** read a named factory's body, so a factory that forgets to
+  copy passes. Do not read the `Enforced by:` line as covering that.
+  **What it does not catch, each planted and observed passing, with the cheapest change that
+  would close it and why that change is or is not being made.** "A type checker would be
+  needed" was the previous phrasing and it overclaimed the limit — twice the cheapest thing
+  turned out to be one `filter` clause, which is the same disease as overclaiming enforcement,
+  pointed the other way.
+
+  | shape that passes | cheapest change that closes it | taken? |
+  |---|---|---|
+  | anything outside `core-domain`'s main source | one constant and a `/src/main/` filter, scanning `core/` — measured green today | **No.** This rule binds a *domain* type owning state. `core-application` holds stateless use cases, where a collection crossing the boundary is a result, not a leak. Widening a gate because a module happens not to violate it today buys a grandfather clause the next honest change |
+  | a leak laundered through a call, `= passthrough(granted)`, or handed to a callee, `sink.add(granted)` | flag any private collection field appearing as a call argument | **No.** It fires on legitimate internal use: `GrantIssued.hashCode()` passes the backing `issued` to `listOf(…)`, and `PermissionGrant.issue` passes locals named `granted` and `issued` that shadow backing fields, so a lexical check misfires on the real use and on the shadow alike. (An earlier draft cited `ProcessDefinition`'s `walk`, `reachableFrom` and `canFinish` — wrong: those are companion functions taking locals, and a companion cannot see the instance's fields. The conclusion survives on the citations above; the citation did not.) Distinguishing a callee that retains its argument from one that reads it is dataflow, not a regex |
+  | a function whose declared return type names no collection at all — `public fun any(): Any = held`, `public fun iterate(): Iterator<StateName> = held.iterator()` | one predicate: apply the leak arm whenever the returned expression mentions a backing field, whatever the return type names | **Not yet — `bean:0064`.** Realistic containers are already caught, because the collection is named inside the generic (`Map<K, List<V>>`, `Pair<List<X>, Int>`); what survives is a signature nothing in `core-domain` writes. Small, but it is a change to a live predicate rather than to a sentence, and this commit is the one that documents the gap |
+  | a named factory that forgets to copy, `of(steps) = Uncopied(steps)` | require every argument at a call to the type's own constructor to be a copy chain | **No.** `PermissionGrant.issue` copies into a local one line earlier and passes that local, so the check would reject the shape this very section prescribes. Needs local dataflow |
+
+  Source ktlint has not formatted is outside its assumptions and **cannot reach `main`** —
+  `ktlintMainSourceSetCheck` rejects it in the same `qualityCheck` run, and both halves of that
+  were observed — but that guards **formatting only**, not shape. In the other direction it
+  fails closed: `granted.toSet() + emptySet()` is a real copy and is reported, because a copy
+  chain may take no arguments at all.
+  **A gate's blind-spot list is part of the gate, and the list that matters is of shapes its
+  regexes cannot see, not of rules it did not implement.** It was wrong after each of the first
+  three review rounds, every time because a fix's *enabling condition* was never planted: a
+  backing field with no declared type never became a property, so the rule that compares against
+  it could not fire. The parser's input surface now has its own tests
+  (`DefensiveCopyInputSurfaceTest`), separate from the rules (`DefensiveCopySourceTest`), and
+  every line above is a planted counter-example rather than a claim (`bean:0036`).
 - **Validate in `init`.** An invalid value object cannot exist. Throw a domain exception,
   not `IllegalArgumentException`, when the failure is a business rule rather than a
   programming error.
@@ -201,7 +264,7 @@ Detekt rule `NoFloatingPointMoney` this relies on does not exist; see `30-code-s
 | # | Rule |
 |---|---|
 | 4.1.1 | Named in the **past tense**: `WorkItemTransitioned`, not `TransitionWorkItem`. |
-| 4.1.2 | Immutable `data class`, all properties `val`, all properties value objects or primitives. Never an aggregate reference. |
+| 4.1.2 | Immutable `data class`, all properties `val`, all properties value objects or primitives. Never an aggregate reference. **An event carrying a collection is the exception**, and follows §3.1 instead: a `data class` cannot own one, so it is a plain class with a private backing field, a copying getter and hand-written `equals`/`hashCode`. `GrantIssued` was a `data class` publishing a `Set<Capability>` until `bean:0036`. §3.1 was scoped to value objects and this taxonomy puts events here, so no rule ever reached it — a **gap**, not a collision, and this sentence is what closes it. |
 | 4.1.3 | Carries `occurredAt: Instant`, supplied by the caller from the `Clock` port. |
 | 4.1.4 | Raised by the aggregate, drained and dispatched by the **application layer** after the write is durable. Never dispatched from inside the domain. |
 | 4.1.5 | An event crossing a bounded context is part of that context's published contract. Changing its shape is a breaking change and needs an ADR. |
