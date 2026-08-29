@@ -287,12 +287,25 @@ reading it as such once produced a false `Enforcement gap:` here.
    running system and takes minutes; inside `check` it would make the fast gate slow enough
    that agents stop running it. It is required only when user-visible behaviour changed.
 
-   **CI runs two Gradle invocations, not one: `qualityCheck`, then `e2eTest`**
-   (`.github/workflows/ci.yml`; both add `--stacktrace`, which changes diagnostics and not
-   the task graph). So the promise is one-directional and stated as such: a green local
-   `qualityCheck` plus `e2eTest` implies a green CI run, and a green `qualityCheck` alone
-   does not. Run `e2eTest` before opening a pull request that touches `backoffice/` or
-   `e2e/`; CI is not the place to discover that Playwright is red.
+   **CI runs a subset of this per change, so the promise is one-directional**
+   (`.github/workflows/ci.yml`, `bean:0045`). A Kotlin-only change runs `qualityCheck`
+   without the backoffice checks; a backoffice-only change runs those and `e2eTest` and
+   nothing else; a change touching both, or `.editorconfig`, or the workflow, runs
+   everything. So: a green local `qualityCheck` **plus** `e2eTest` implies a green CI run,
+   and the reverse does not hold. The local command stays the superset deliberately — the
+   moment CI can run something local cannot, this promise is gone.
+
+   Run `e2eTest` before opening a pull request that touches `backoffice/` or `e2e/`. CI is
+   not the place to discover that Playwright is red.
+
+   **Enforcement gap:** the `main-protected` ruleset carries `pull_request`,
+   `non_fast_forward` and `deletion`, and **no `required_status_checks` rule at all** —
+   verified with `gh api repos/m4xy/Modus/rulesets/21765196`. A red CI run has never blocked
+   a merge. The `gate` job exists to be that required check, since a skipped half reports
+   neither success nor failure and a ruleset naming `build` directly would block every
+   change that legitimately skips one. Turning the requirement on is `bean:0047`, held back
+   one step so the check is observed green on a real pull request before it can block
+   anything.
 
 5. **Pull request.** Conventional-commit title. The body states what changed, the success
    criteria from the work item, and the **evidence** each was met by. A PR body with a

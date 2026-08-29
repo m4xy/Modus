@@ -17,8 +17,60 @@ permissions:
   pull-requests: write
 
 jobs:
+  # Which halves of the gate this change actually needs.
+  #
+  # Deliberately fail-safe and deliberately not a third-party action: `kotlin` runs
+  # unless every changed path is under backoffice/ or e2e/, so anything unclassified
+  # runs the superset. .editorconfig triggers both — ktlint and Prettier each read it,
+  # which is how a Kotlin indent setting silently reindented every TypeScript file
+  # (bean:0029). The workflow itself triggers both.
+  changes:
+    name: which halves
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      kotlin: ${{ steps.filter.outputs.kotlin }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base='${{ github.event.pull_request.base.sha }}'
+          else
+            base='${{ github.event.before }}'
+          fi
+          # A new branch, a force-push, or an unresolvable base means we cannot tell
+          # what changed. Run everything rather than guess.
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "kotlin=true"   >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "unresolvable base — running both halves"
+            exit 0
+          fi
+          changed=$(git diff --name-only "$base" HEAD)
+          echo "changed files:"; echo "$changed" | sed 's/^/  /'
+          frontend=false; kotlin=false
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              backoffice/*|e2e/*)          frontend=true ;;
+              .editorconfig|.github/workflows/*) frontend=true; kotlin=true ;;
+              *)                           kotlin=true ;;
+            esac
+          done <<< "$changed"
+          echo "kotlin=$kotlin"     >> "$GITHUB_OUTPUT"
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+          echo "-> kotlin=$kotlin frontend=$frontend"
+
   build:
     name: build + mechanical gates
+    needs: changes
+    if: needs.changes.outputs.kotlin == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -78,16 +130,15 @@ jobs:
       # Both suites are reached through it: `check` depends on `test` and on
       # `integrationTest` in every module (modus.kotlin-base), so there is no
       # second step to forget. See doc:35-testing#source-sets.
-      - name: qualityCheck (both suites, ktlint, Detekt, ArchUnit, backoffice, build-logic)
-        run: ./gradlew qualityCheck --stacktrace
-
-      # Outside qualityCheck by design (doc:00-constitution §7.2.4): Playwright needs a
-      # built and running system and takes minutes. CI can afford that; the fast local
-      # gate cannot, and a gate slow enough to skip is a gate nobody runs.
-      - name: e2eTest (Playwright end-to-end and accessibility)
+      # The backoffice checks are excluded here and run in their own job, so a
+      # Kotlin-only change does not pay npm ci, tsc, ESLint and Prettier (bean:0045).
+      # `qualityCheck` itself stays the complete local gate — doc:00-constitution §7.2.4
+      # promises green-locally implies green-in-CI, which only holds while the local
+      # command is the superset of what CI splits across jobs.
+      - name: qualityCheck (both suites, ktlint, Detekt, ArchUnit, build-logic)
         run: |
-          npm --prefix e2e exec -- playwright install --with-deps chromium
-          ./gradlew e2eTest --stacktrace
+          ./gradlew qualityCheck --stacktrace \
+            -x backofficeTypecheck -x backofficeLint -x backofficeFormatCheck
 
       # Reporting only, and no second Gradle invocation: qualityCheck already
       # built this XML. The GATE is the per-module ratchet inside qualityCheck,
@@ -119,6 +170,79 @@ jobs:
           path: |
             **/build/reports/
             **/build/test-results/
+          retention-days: 7
+
+  frontend:
+    name: backoffice + e2e
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Gradle is the entry point even here, so there is one way to run these checks
+      # rather than a CI-only npm incantation that drifts from the local command.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            21
+            25
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            backoffice/package-lock.json
+            e2e/package-lock.json
+
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: backoffice checks (tsc, ESLint, Prettier)
+        run: ./gradlew backofficeTypecheck backofficeLint backofficeFormatCheck --stacktrace
+
+      # Outside qualityCheck by design (doc:00-constitution §7.2.4): Playwright needs a
+      # built and running system and takes minutes. CI can afford that; the fast local
+      # gate cannot, and a gate slow enough to skip is a gate nobody runs.
+      - name: e2eTest (Playwright end-to-end and accessibility)
+        run: |
+          npm --prefix e2e exec -- playwright install --with-deps chromium
+          ./gradlew e2eTest --stacktrace
+
+      - name: Upload Playwright reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports
+          path: |
             e2e/playwright-report/
             e2e/test-results/
           retention-days: 7
+
+  # The one check branch protection should require. A skipped job reports neither
+  # success nor failure, so a ruleset naming `build` or `frontend` directly would block
+  # every change that legitimately skips one. This job always runs and fails only when a
+  # half that DID run failed — which is the property a required check needs.
+  gate:
+    name: gate
+    needs: [changes, build, frontend]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify no half failed
+        run: |
+          echo "kotlin:   ${{ needs.build.result }}"
+          echo "frontend: ${{ needs.frontend.result }}"
+          for r in "${{ needs.changes.result }}" "${{ needs.build.result }}" "${{ needs.frontend.result }}"; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::a required half did not pass ($r)"; exit 1 ;;
+            esac
+          done
+          echo "every half that ran passed"
