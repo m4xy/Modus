@@ -1,81 +1,81 @@
 .field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
 }
 
 .label {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-medium);
-  letter-spacing: var(--tracking-eyebrow);
-  text-transform: uppercase;
-  color: var(--ink-3);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+    color: var(--ink-3);
 }
 
 .control {
-  width: 100%;
-  min-height: 2.125rem;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--ink);
-  font-size: var(--text-base);
-  transition:
-    border-color var(--dur-fast) var(--ease-out),
-    background-color var(--dur-fast) var(--ease-out);
+    width: 100%;
+    min-height: 2.125rem;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: var(--text-base);
+    transition:
+        border-color var(--dur-fast) var(--ease-out),
+        background-color var(--dur-fast) var(--ease-out);
 }
 
 .control::placeholder {
-  color: var(--ink-3);
+    color: var(--ink-3);
 }
 
 .control:hover:not(:disabled) {
-  border-color: var(--ink-3);
+    border-color: var(--ink-3);
 }
 
 .control:disabled {
-  background: var(--surface-sunken);
-  color: var(--ink-3);
-  cursor: not-allowed;
+    background: var(--surface-sunken);
+    color: var(--ink-3);
+    cursor: not-allowed;
 }
 
 .textarea {
-  min-height: 5rem;
-  resize: vertical;
-  line-height: var(--leading-normal);
+    min-height: 5rem;
+    resize: vertical;
+    line-height: var(--leading-normal);
 }
 
 .select {
-  appearance: none;
-  padding-right: var(--space-8);
-  background-image:
-    linear-gradient(45deg, transparent 50%, currentColor 50%),
-    linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position:
-    calc(100% - 17px) 50%,
-    calc(100% - 12px) 50%;
-  background-size:
-    5px 5px,
-    5px 5px;
-  background-repeat: no-repeat;
-  cursor: pointer;
+    appearance: none;
+    padding-right: var(--space-8);
+    background-image:
+        linear-gradient(45deg, transparent 50%, currentColor 50%),
+        linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position:
+        calc(100% - 17px) 50%,
+        calc(100% - 12px) 50%;
+    background-size:
+        5px 5px,
+        5px 5px;
+    background-repeat: no-repeat;
+    cursor: pointer;
 }
 
 .invalid {
-  border-color: var(--danger);
+    border-color: var(--danger);
 }
 
 .hint {
-  font-size: var(--text-xs);
-  color: var(--ink-3);
+    font-size: var(--text-xs);
+    color: var(--ink-3);
 }
 
 .error {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-xs);
-  color: var(--danger);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--danger);
 }

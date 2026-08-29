@@ -3,17 +3,17 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    plugins: [react()],
+    resolve: {
+        alias: {
+            '@': fileURLToPath(new URL('./src', import.meta.url)),
+        },
     },
-  },
-  css: {
-    modules: {
-      localsConvention: 'camelCaseOnly',
-      generateScopedName: '[name]__[local]__[hash:base64:5]',
+    css: {
+        modules: {
+            localsConvention: 'camelCaseOnly',
+            generateScopedName: '[name]__[local]__[hash:base64:5]',
+        },
     },
-  },
-  server: { port: 5173, strictPort: true },
+    server: { port: 5173, strictPort: true },
 });

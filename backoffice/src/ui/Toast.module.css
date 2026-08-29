@@ -1,70 +1,70 @@
 .region {
-  position: fixed;
-  right: var(--space-5);
-  bottom: var(--space-5);
-  z-index: var(--z-toast);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  width: min(24rem, calc(100vw - 2rem));
-  pointer-events: none;
+    position: fixed;
+    right: var(--space-5);
+    bottom: var(--space-5);
+    z-index: var(--z-toast);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: min(24rem, calc(100vw - 2rem));
+    pointer-events: none;
 }
 
 .toast {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--line-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-2);
-  pointer-events: auto;
-  animation: slide-in var(--dur-base) var(--ease-out);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-2);
+    pointer-events: auto;
+    animation: slide-in var(--dur-base) var(--ease-out);
 }
 
 .info {
-  border-left-color: var(--accent);
+    border-left-color: var(--accent);
 }
 
 .success {
-  border-left-color: var(--good);
+    border-left-color: var(--good);
 }
 
 .warning {
-  border-left-color: var(--warn);
+    border-left-color: var(--warn);
 }
 
 .error {
-  border-left-color: var(--danger);
+    border-left-color: var(--danger);
 }
 
 .content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  flex: 1;
-  min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    flex: 1;
+    min-width: 0;
 }
 
 .title {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
 }
 
 .body {
-  font-size: var(--text-xs);
-  color: var(--ink-2);
+    font-size: var(--text-xs);
+    color: var(--ink-2);
 }
 
 @keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }

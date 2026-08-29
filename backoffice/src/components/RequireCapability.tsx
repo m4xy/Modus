@@ -9,22 +9,22 @@ import { EmptyState } from '../ui';
  * hand-typed URL has to hit the same wall.
  */
 export function RequireCapability({
-  capability,
-  children,
+    capability,
+    children,
 }: {
-  capability: Capability;
-  children: ReactNode;
+    capability: Capability;
+    children: ReactNode;
 }) {
-  const { can, domain } = useDomain();
+    const { can, domain } = useDomain();
 
-  if (!can(capability)) {
-    return (
-      <EmptyState
-        title="You do not have access to this section"
-        description={`Viewing it in ${domain.name} needs the ${capability} permission. A domain owner can grant it from Settings → Actors.`}
-      />
-    );
-  }
+    if (!can(capability)) {
+        return (
+            <EmptyState
+                title="You do not have access to this section"
+                description={`Viewing it in ${domain.name} needs the ${capability} permission. A domain owner can grant it from Settings → Actors.`}
+            />
+        );
+    }
 
-  return <>{children}</>;
+    return <>{children}</>;
 }
