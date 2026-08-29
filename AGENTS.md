@@ -25,12 +25,15 @@ Two routing facts README does not carry:
 ## Commands
 
 ```bash
-./gradlew build ktlintCheck detekt   # exactly what CI runs — rule:ci/build
+./gradlew qualityCheck               # exactly what CI runs — rule:ci/build
 ./gradlew ktlintFormat               # fix style mechanically; never hand-format
+./gradlew :core-domain:check         # the fast gate; project names are flat, not :core:core-domain
 ./gradlew :architecture-tests:test   # rule:archunit/*
-./gradlew qualityCheck               # every module's check plus build-script linting
 ./gradlew :modus-server:bootRun      # run the server
 ```
+
+No Gradle task reaches `backoffice/` or `e2e/`: run their own npm scripts by hand until
+`bean:0029` wires them in (`doc:00-constitution` §7.2.4's `Enforcement gap:`).
 
 JDK 25 toolchain. Versions live in `gradle/libs.versions.toml` and nowhere else.
 Style rules: `doc:30-code-style`. Layering rules: `doc:10-architecture`. Neither is repeated here.

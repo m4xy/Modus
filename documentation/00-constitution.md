@@ -264,18 +264,28 @@ reading it as such once produced a false `Enforcement gap:` here.
    neither carries its own command list.
 
    ```
-   ./gradlew spotlessApply   # fix formatting first, so the gate never fails on it
-   ./gradlew check           # compile, ktlint, Detekt, ArchUnit, Kotlin unit and
-                             # integration tests, AND the backoffice checks
-                             # (Prettier, ESLint, tsc --noEmit, knip, backoffice tests)
-   ./gradlew e2eTest         # Playwright; required only when user-visible behaviour changed
+   ./gradlew ktlintFormat    # fix formatting first, so the gate never fails on it
+   ./gradlew qualityCheck    # compile, ktlint, Detekt, ArchUnit, docs-lint, the coverage
+                             # ratchet, and both test suites in every module — build-logic
+                             # included
    ```
 
-   `check` is one command by design: a gate you have to remember three halves of is a gate
-   people run two halves of. Playwright is deliberately **not** inside `check` — it needs a
-   built and running system and takes minutes, and putting it there would make the fast
-   gate slow enough that agents stop running it. CI runs `check` and `e2eTest` with no
-   extra arguments, so a green local run means a green CI run.
+   `qualityCheck` is one command by design: a gate you have to remember three halves of is
+   a gate people run two halves of. It is every module's `check` plus the tasks an
+   aggregating root has to ask for by name — the included build's own gates, and `docsLint`
+   (`build.gradle.kts`). CI runs this task and only this task, with no extra arguments
+   (`.github/workflows/ci.yml`), so a green local run means a green CI run.
+
+   **Enforcement gap:** the backoffice half of this gate does not exist. `backoffice/` and
+   `e2e/` are not Gradle projects (`settings.gradle.kts` declares ten modules and neither is
+   among them), no task invokes their `typecheck`, `lint`, `format:check` or Playwright
+   scripts, and there is no `e2eTest` task — so a TypeScript error, an ESLint error or a
+   broken Playwright spec merges green. `bean:0029` builds the mechanism. Until it lands,
+   run `npm --prefix backoffice run typecheck` and `npm --prefix backoffice run lint` by
+   hand when you touch `backoffice/` or `e2e/`, and say in the pull request that you did.
+   Both exit 0 today. Its third script, `format:check`, does **not** — 71 files have drifted
+   because nothing checks them — so do not run it as a gate and do not reformat them as a
+   drive-by (`80-agent-operating-procedure.md` §5.1). `bean:0029` owns that diff.
 5. **Pull request.** Conventional-commit title. The body states what changed, the success
    criteria from the work item, and the **evidence** each was met by. A PR body with a
    claim and no evidence is rejected without further review (§3).
