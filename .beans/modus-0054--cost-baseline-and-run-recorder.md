@@ -104,7 +104,7 @@ into the exact figure.
 | 3 | Delegated spend is included and its share stated | the block's verbatim `observed:`, regenerated with the artifact it quotes | A |
 | 4 | Dollars are integer micro-dollars, with cache read and both cache-write TTLs priced separately | `tools/cost_lib.py` `cost_micros`; rate table rendered into the baseline | A |
 | 5 | Input hashes recorded, and re-checkable | `command`: `python3 tools/cost-replay.py --check`; observed `baseline inputs have moved on: 2 changed, 0 gone.` when a live session appended, exit 1 | A |
-| 6 | One spend record per agent run is appended at the harness edge | `domains/modus/cost/0001.ndjson`, two records; `.claude/settings.json` registers `Stop` and `SubagentStop` | B |
+| 6 | One spend record per agent run is appended at the harness edge, and a lost cursor never re-bills | `domains/modus/cost/0001.ndjson`, two records; `.claude/settings.json` registers `Stop` and `SubagentStop` | B |
 | 7 | `parentRunId` is populated for a subagent run | `command`: `python3 tools/cost-record.py --self-test`; observed below | B |
 | 8 | Fields the harness cannot supply are omitted, never invented; the shape otherwise matches | 16 of 22 field names match; `tools/cost-record.py` `UNAVAILABLE`; `doc:60-cost-model` §3.2.1 | B |
 | 9 | `./gradlew ktlintFormat && ./gradlew qualityCheck` green | `test-run` | A, B |
@@ -138,6 +138,27 @@ observed: domains/modus/cost/0001.ndjson  2 lines, then still 2 lines
 
 `Stop` fires at the end of every turn, so records are deltas keyed on the previous record's
 `lastMessageId`. The log is its own cursor; a replayed payload adds nothing.
+
+### Criterion 6, verbatim — the four cursor outcomes
+
+```
+cmd:      <Stop payload> | python3 tools/cost-record.py        # first record
+observed: domains/modus/cost/0001.ndjson  1 line, billingBasis "full"
+cmd:      <same payload again>                                 # nothing new
+observed: still 1 line
+cmd:      <lastMessageId rewritten to an id not in the transcript, endedAt left in the past>
+observed: billingBasis = refused
+          billed       = False
+          costUsd      = <absent - nothing billed>
+          error        = cursor 'msg_GONE' absent from the transcript and every message
+                         postdates the previous record's endedAt 2020-01-01T00:00:00.000Z;
+                         that is a re-bill of the whole run, not a delta. The transcript
+                         was probably rewritten or replaced.
+```
+
+The fourth outcome — a missing cursor whose `endedAt` still falls inside the transcript — bills
+only what is strictly newer and sets `billingBasis: timestamp-fallback` with a `billingNote`
+saying the record is a partial that may overlap or undercount.
 
 ### Criterion 5, verbatim
 
@@ -226,6 +247,15 @@ cannot. That is additive: it does not weaken the table, which is written for
   else's machine. `--transcripts DIR` and `MODUS_COST_TRANSCRIPTS` win over the derivation. A
   baseline a stranger cannot regenerate is not a baseline; the review found this by having to
   monkeypatch the path resolver to reproduce the run at all.
+- **A missing cursor refuses to bill rather than silently re-billing.** `Stop` fires per turn,
+  so a record is a delta keyed on the previous record's `lastMessageId`. The first version fell
+  back to billing every message when that id was not in the transcript — compaction, a rewrite,
+  a resumed session — which writes the whole run again into an append-only money log that
+  cannot then be corrected in place. Four outcomes now, and never that one: no previous record
+  bills everything; a found cursor bills what follows it; a missing cursor with a usable
+  `endedAt` bills what is strictly newer and marks the record a flagged partial; and a missing
+  cursor whose fallback would select every message writes a `billingBasis: refused` line with
+  `billed: false`, no `costUsd`, and the reason.
 - **The spend log will conflict in git.** `domains/modus/cost/0001.ndjson` is append-only and
   several agents append to it on different branches at once, so every merge is a textual
   conflict at the last line. The fix is a `merge=union` attribute, which lives in a root
