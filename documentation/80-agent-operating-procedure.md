@@ -6,6 +6,7 @@ superseded_by: null
 read_when: always
 provides:
   - doc:80-agent-operating-procedure#orchestrating
+  - doc:80-agent-operating-procedure#reports-are-evidence
   - doc:80-agent-operating-procedure#pick-up-the-work-item
   - doc:80-agent-operating-procedure#restate-success-criteria
   - doc:80-agent-operating-procedure#plan-and-budget
@@ -70,16 +71,16 @@ the agent that does it. These are the operating details it defers here.
 ### Briefing a reviewer
 
 Spawning the reviewer is your job. Who may review, what a verdict is worth and who merges
-are stated in `doc:00-constitution#independent-review` and are not restated here. These are
-the mechanics that section does not carry.
+are stated normatively in `doc:00-constitution#independent-review`; each row below adds a
+mechanic that section does not carry. On disagreement it wins and the row is the bug.
 
 | # | Rule |
 |---|---|
 | R1 | **Who not to spawn:** the implementer, a continuation of its session, or yourself. An implementer asked to review will find what it looked for the first time. |
-| R2 | **What to hand it:** what the anchor above names, plus the documents in the pull-request body's `refs:` — that list and nothing else (`AGENTS.md` routing, last row). In the template, `review_focus` is the reviewer's question set and `out_of_scope` is the only field that reduces its spend, so a vague one is a bill you chose to pay. |
-| R3 | **What to demand back:** `file:line`, a command with its output, or a quoted rule — per finding, and for the verdict itself. `doc:00-constitution#observed-failing` applies to a review exactly as it applies to a gate. |
-| R4 | **What to do with it:** weigh it, and reject findings you can show to be wrong — in the thread, with the evidence. Do not let the implementer settle one by outlasting it. The block below applies to a review as to any other agent report. |
-| R5 | **What it costs:** performing the review bills to `review`; the implementer's step 9 response bills to `revise` (§9.6). Two stages, so "what did checking this change cost?" stays answerable on its own. |
+| R2 | **What to hand it:** what the anchor above names, plus the documents in the pull-request body's `refs:` — that list and nothing else (`AGENTS.md` routing, last row). The template's own header states what `review_focus` and `out_of_scope` do to a reviewer's spend; filling either vaguely is a bill you chose to pay. |
+| R3 | **What to demand back:** evidence per finding and for the verdict itself, in the kinds `doc:50-memory-and-evidence#evidence-kinds` accepts. `doc:00-constitution#observed-failing` applies to a review exactly as it applies to a gate. |
+| R4 | **What to do with it:** weigh it, and reject findings you can show to be wrong — in the thread, with the evidence. Do not let the implementer settle one by outlasting it. A verdict is an agent report like any other: `doc:80-agent-operating-procedure#reports-are-evidence`. |
+| R5 | **What it costs:** two stages, `review` and `revise`, not one. Which is which and why is §9.6 — it sits inside the implementer's step 9, which a reader of this section never reaches. |
 
 ### Why the context rule is a rule
 
@@ -90,7 +91,7 @@ delegable. The failure mode is not laziness but its opposite: an orchestrator th
 stops being able to prioritise, spending on discardable work the one context that cannot be
 discarded.
 
-### What comes back is not automatically true
+### What comes back is not automatically true <a id="reports-are-evidence"></a>
 
 An agent's report is evidence, not a verdict. Reproduce a claim before restating it, or say
 plainly that you did not — three findings encoded this session carry that caveat. A report

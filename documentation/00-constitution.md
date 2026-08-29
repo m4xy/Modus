@@ -369,10 +369,10 @@ carries reconciling the rule with the history.
   cheapest model and effort that reliably catches the class of defect in play, and that
   choice is recorded against the work item.
 
-**Enforcement gap:** nothing mechanical, in either half. `main-protected` sets
-`required_approving_review_count: 0` (§7.1), so a pull request merges with no review at all,
-and no GitHub-side rule could tell an independent reviewer from its author in any case. Until
-`bean:0053` closes that, this is procedure — `doc:80-agent-operating-procedure#orchestrating`.
+**Enforcement gap:** nothing mechanical, in either half. `main-protected` is recorded as
+setting `required_approving_review_count: 0` (§7.1 — asserted there, not observed), so a pull
+request merges with no review at all, and no GitHub-side rule could tell an independent
+reviewer from its author. `bean:0053`; meanwhile `doc:80-agent-operating-procedure#orchestrating`.
 
 ---
 
