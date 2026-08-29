@@ -1,11 +1,12 @@
 ---
 # modus-0048
 title: Extract the first skills, and correct the path that would have made them inert
-status: in-progress
+status: completed
 type: feature
 priority: high
 order: AA
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T16:01:48Z
 ---
 
 # Extract the first skills, and correct the path that would have made them inert

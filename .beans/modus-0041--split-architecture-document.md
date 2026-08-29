@@ -1,11 +1,12 @@
 ---
 # modus-0041
 title: Split doc:10-architecture along its tier seam
-status: in-progress
+status: completed
 type: task
 priority: high
 order: AGM
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T16:01:48Z
 parent: modus-0040
 ---
 

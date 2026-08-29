@@ -1,11 +1,12 @@
 ---
 # modus-0034
 title: publishedLanguageIsLeaf is blind to value classes in erased positions
-status: in-progress
+status: completed
 type: fix
 priority: high
 order: AD
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T16:01:48Z
 ---
 
 # `publishedLanguageIsLeaf` is blind to value classes in erased positions

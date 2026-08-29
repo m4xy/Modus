@@ -1,11 +1,12 @@
 ---
 # modus-0046
 title: Close the ESLint gaps bean:0029's review exposed
-status: in-progress
+status: completed
 type: fix
 priority: high
 order: AJ
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T16:01:48Z
 ---
 
 # Close the ESLint gaps `bean:0029`'s review exposed

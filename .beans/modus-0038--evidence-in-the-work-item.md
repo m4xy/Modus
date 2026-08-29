@@ -1,11 +1,12 @@
 ---
 # modus-0038
 title: Move evidence into the work item and finalise completed beans
-status: in-progress
+status: completed
 type: feature
 priority: high
 order: AB
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T16:01:48Z
 ---
 
 # Move evidence into the work item and finalise completed beans

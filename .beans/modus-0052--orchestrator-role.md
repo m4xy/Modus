@@ -1,11 +1,12 @@
 ---
 # modus-0052
 title: Commit the orchestrator role to the constitution
-status: in-progress
+status: completed
 type: task
 priority: high
 order: A
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T16:01:48Z
 ---
 
 # Commit the orchestrator role to the constitution

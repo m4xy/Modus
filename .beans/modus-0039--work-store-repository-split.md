@@ -130,14 +130,57 @@ document lags both the UI and this proposal.
 
 ## Why the CI argument is real but does not settle it
 
-| | duration |
-|---|---|
-| `main`, Kotlin only, before `bean:0029` | ~50–53s |
-| after wiring the backoffice in | ~2m |
+| | duration | source |
+|---|---|---|
+| `main`, beans/docs only, before `bean:0029` | 47s, 50s | runs `33255099872`, `33247011196` |
+| after wiring the backoffice in, before `bean:0045` | 134s | run `33256259515` (`.beans/` only) |
+| after `bean:0045`'s per-path split | 67s | run `33261902606` (`.beans/` only) |
+
+All four are run wall clock, `updatedAt` minus `createdAt`. This table originally carried
+`~50–53s` and `~2m`, copied from `bean:0045`, with no run id and no unit behind either;
+both were wrong and the second was 12s out. Corrected against the run history —
+`gh run list --branch main --limit 40 --json databaseId,createdAt,updatedAt,headSha,conclusion`
+— by the change that closed `bean:0045` (pull request #35). Twenty-one successful `main`
+runs span 47s to 209s, so each cell is a single run matched on change shape, not a mean.
 
 `bean:0029` closed a real hole and made this worse: every Kotlin-only change now runs
 `npm ci`, `tsc`, ESLint and Prettier, and CI runs Playwright on top. That cost is genuine —
 and it is a **CI topology** problem, which `bean:0045` fixes with per-path jobs at a fraction
-of the effort a repository split takes. If per-path jobs recover most of the time, the
-component split has to justify itself on release cadence and ownership rather than on
-minutes, which is a different and much smaller argument. Try the cheap thing first.
+of the effort a repository split takes. Try the cheap thing first.
+
+**It has now been tried, and the table above is the result.** Per-path jobs took a
+beans-only change from 134s to 67s, a 50% saving. That recovers most of what `bean:0029`
+cost and does not reach the 47–50s this repository saw before it.
+
+**What that does and does not settle, stated carefully, because the obvious reading of it is
+wrong.** The tempting conclusion is that the topology fix has spent the minutes argument and
+a split would only buy the remaining ~17–20s. It does not follow. The 47–50s floor is what a
+beans-only change cost *inside this repository* while CI still ran the Kotlin gate against
+it. A work-store split does not lower that floor — it removes the change from this
+repository altogether. A beans-only change in a split world runs nothing here, and runs only
+whatever the work store's own repository runs, which has no Gradle build, no Kotlin
+compilation, no ArchUnit and no Playwright.
+
+So on **this shape of change** the split's remaining benefit is close to the whole 67s, not
+the difference between 67s and the in-repository floor. The minutes argument for a split is
+**largely intact**, and `bean:0045` did not spend it. What `bean:0045` did spend is the
+argument that `bean:0029` created an emergency: the 68s regression it added is recovered, so
+nothing forces this bean's hand on schedule.
+
+Three things this measurement does not establish, and none should be inferred:
+
+- **What a work-store repository's own CI would cost.** Unmeasured. `docs-lint` and the bean
+  graph checks would have to run somewhere, and they are Gradle tasks here. "Seconds" is a
+  guess; treat the split's post-state as unknown until something measures it.
+- **Anything about the other shapes.** A Kotlin change and a backoffice change are unaffected
+  by a work-store split, so this figure speaks only to beans-only changes — which are frequent
+  in this repository, and are not most of its CI minutes.
+- **That minutes are the right axis at all.** `adr:0005-evidence-lives-in-the-work-item`
+  already records a cost on the other side: once the store is a separate repository, a
+  reviewer on GitHub cannot read the evidence, and the split therefore depends on `bean:0022`.
+  A 67s saving does not outrank that, and this bean should not be decided on seconds alone.
+
+The measurement is n=1 against n=1 (`bean:0045`'s evidence, criterion 4), inside a history
+whose successful runs span 47s to 209s. If this bean wants to argue minutes, the way to do it
+is more runs, not a better estimate — and the run it most needs does not exist yet, because
+it is a run in a repository nobody has created.
