@@ -176,4 +176,14 @@ Each check is decidable from repository contents alone.
 | 9 | derived listings | a row in `AGENTS.md` marked derived omits the `doc:` id it derives from, or itself states a `path:`/`task:` predicate value instead of citing that id |
 | 10 | no bare bean paths | a bare `beans/NNNN` or `.beans/NNNN` path appears in `documentation/*.md`, `AGENTS.md` or `CLAUDE.md` prose, instead of a typed `bean:NNNN` reference (§2) |
 
-Enforcement gap: all ten. `bean:0004` carries them; they land as a `docs-lint` step in `rule:ci/build`.
+| 11 | completed beans are final | a bean that was `completed` on the merge base changes in any way other than gaining entries under a trailing `## Amendments` section, or an amendment omits its date, its authoring bean, `**Claimed:**`, `**Found:**` or `**Evidence:**` (`adr:0005-evidence-lives-in-the-work-item#amendments`) |
+
+**Enforced by:** `tools/docs-lint.sh`, run by the `docsLint` task inside `qualityCheck`
+(`rule:ci/build`). Each check has been observed rejecting a planted violation; check 11's
+four rejections and its one accepted amendment are recorded in `bean:0038`.
+
+Check 11 classifies by the `status:` on the **merge base**, not on the branch, and diffs the
+base against the **working tree**. A bean moving `in-progress` → `completed` in the change
+under review is a legal edit to a not-yet-completed bean; the identical edit to one already
+`completed` is not. Reading the branch would block every closure; reading only committed
+content would pass locally and fail in CI.

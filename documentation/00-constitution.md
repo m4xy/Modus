@@ -307,9 +307,19 @@ reading it as such once produced a false `Enforcement gap:` here.
    one step so the check is observed green on a real pull request before it can block
    anything.
 
-5. **Pull request.** Conventional-commit title. The body states what changed, the success
-   criteria from the work item, and the **evidence** each was met by. A PR body with a
-   claim and no evidence is rejected without further review (§3).
+5. **Pull request.** Conventional-commit title. The body states what changed and the
+   judgement calls a reviewer should check. The **evidence lives in the work item**, beside
+   the criterion it satisfies, and the body names the bean rather than restating it
+   (`adr:0005-evidence-lives-in-the-work-item`). Evidence written twice is evidence that can
+   disagree with itself, and it did. A claim with no evidence anywhere is rejected without
+   further review (§3).
+
+   A bean with `status: completed` is **final**: it may gain entries under a trailing
+   `## Amendments` section and may change in no other way. An observation is amended, never
+   edited — a reader must see both what was believed and what was found.
+   **Enforced by:** `docs-lint` check 11, which classifies each changed bean by the
+   `status:` it has on the merge base and was observed rejecting an in-place edit, a
+   non-amendment append, a malformed amendment heading and an amendment with no evidence.
 6. **Review.** See §7.4.
 7. **Merge.** Squash merge; the squashed message is the PR title plus body. The work item
    transitions to `done` with the merge commit as evidence.

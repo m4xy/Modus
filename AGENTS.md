@@ -20,7 +20,7 @@ Two routing facts README does not carry:
 | task shape | read | do not read |
 |---|---|---|
 | `documentation/**`, `AGENTS.md`, `.beans/**`, the PR template | `doc:05-authoring-for-agents` — its own `read_when` front-matter states the predicates; derived, not restated here (`#checks` check 9) | `doc:10`–`doc:80` |
-| reviewing a pull request | the PR body, then only the documents in its `refs:` | any document the PR body does not reference |
+| reviewing a pull request | the PR body, then **the bean it names** whole, then only the documents in its `refs:` | any document the PR body does not reference |
 
 ## Commands
 

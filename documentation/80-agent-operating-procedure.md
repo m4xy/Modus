@@ -226,8 +226,12 @@ For each success criterion from step 2:
 1. Run the thing that proves it.
 2. Capture the evidence record — correct kind, within the size caps
    (`50-memory-and-evidence.md` §3.3).
-3. Attach it to the criterion on the work item.
+3. Attach it to the criterion **on the work item**. That is its only home
+   (`adr:0005-evidence-lives-in-the-work-item`); the pull request references the bean.
 4. A criterion with no evidence is **unmet**. There is no third state.
+5. Once the bean is `completed` it is final. A correction to a closed bean is an entry under
+   its `## Amendments` section stating what was claimed, what was found and the evidence —
+   never an edit to what it said (`adr:0005#amendments`, `docs-lint` check 11).
 
 ### Rules
 
@@ -286,11 +290,13 @@ One paragraph. What changed and why. Not a file list — the diff is the file li
 
 ## Success criteria and evidence
 
-| # | Criterion | Evidence | Result |
-|---|-----------|----------|--------|
-| 1 | `./gradlew qualityCheck` exits 0 | test-run `01JB…`: 412 passed, 0 failed, exit 0 | met |
-| 2 | Cross-domain access returns 404 | test-run `01JB…`: `DomainIsolationIT` 18 passed | met |
-| 3 | ADR recorded for the storage choice | diff `01JB…`: `documentation/adr/0002-…` added | met |
+The evidence is in the bean, beside the criterion it satisfies
+(`adr:0005-evidence-lives-in-the-work-item`). Name it; do not restate it.
+
+```
+bean:      .beans/modus-0042--example.md
+criteria:  3 of 3 met
+```
 
 ## Decisions
 

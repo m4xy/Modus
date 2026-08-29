@@ -28,13 +28,13 @@ out_of_scope:  <what the reviewer MUST NOT flag: pre-existing, owned elsewhere, 
 
 ## verify
 
-<!-- One block per success criterion in the bean. Observed output is verbatim, never
-     paraphrased and never claimed unseen (doc:00-constitution §3). -->
+<!-- The evidence lives in the bean, beside the criterion it satisfies
+     (adr:0005-evidence-lives-in-the-work-item). Name it here; do not restate it. A
+     reviewer reads the bean whole, which doc:80 step 1 already requires of the author. -->
 
 ```
-cmd:       <exact command>
-expect:    <exact expected output>
-observed:  <verbatim actual output>
+bean:      .beans/<prefix>NNNN--slug.md
+criteria:  N of N met
 ```
 
 ## review_focus

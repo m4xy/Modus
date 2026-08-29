@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs-lint — the ten mechanical checks of doc:05-authoring-for-agents#checks.
+# docs-lint — the eleven mechanical checks of doc:05-authoring-for-agents#checks.
 #
 # Bash, not Kotlin: the checks are line- and glob-shaped, bash already runs in CI
 # and locally, and a JavaExec task would need a source set, a toolchain and a test
@@ -293,6 +293,80 @@ grep -noE '\bbeans/[0-9]' documentation/*.md AGENTS.md CLAUDE.md 2>/dev/null |
   while IFS=: read -r f ln _; do
     fail 10 "$f:$ln: bare beans/ path in prose; use a typed bean:NNNN reference (doc:05#reference-syntax)"
   done
+
+# ---------------------------------------------------------------- check 11 ---
+# A completed bean is final except for appended amendments
+# (adr:0005-evidence-lives-in-the-work-item#finalisation).
+#
+# Immutability is a property of a DIFF, not of a file, so each changed bean is
+# classified by the `status:` it has on the MERGE BASE rather than on the branch.
+# A bean moving in-progress -> completed in this change is a legal edit to a
+# not-yet-completed bean; the identical edit to one already completed is not.
+# Reading the branch instead would either block every closure or permit every
+# edit, and both fail silently.
+#
+# No base means no diff to judge — a detached checkout with no `origin/main` makes
+# the check inert by construction rather than guessing. On `main` itself the base
+# is HEAD, so the check still sees uncommitted edits.
+BASE=""
+if git rev-parse --verify -q origin/main >/dev/null 2>&1; then
+  BASE="$(git merge-base origin/main HEAD 2>/dev/null || true)"
+fi
+# The diff is BASE against the WORKING TREE, not against HEAD: every other check
+# here reads the working tree, and a check that only sees committed content would
+# pass locally and fail in CI after the commit — the slowest possible feedback.
+if [ -n "$BASE" ]; then
+  git diff --name-only "$BASE" -- .beans 2>/dev/null > "$TMP/changed-beans.txt" || : > "$TMP/changed-beans.txt"
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    # A bean that did not exist on the base is new; there is nothing to protect.
+    git cat-file -e "$BASE:$f" 2>/dev/null || continue
+    was="$(git show "$BASE:$f" 2>/dev/null | sed -n 's/^status:[[:space:]]*//p' | head -1)"
+    [ "$was" = "completed" ] || continue
+
+    if [ ! -f "$f" ]; then
+      fail 11 "$f: a completed bean was deleted; it is the durable evidence record (adr:0005#finalisation)"
+      continue
+    fi
+
+    # The base content must survive verbatim as the head of the new file.
+    old_n="$(git show "$BASE:$f" | grep -c '')"
+    if ! git show "$BASE:$f" | diff -q - <(head -n "$old_n" "$f") >/dev/null 2>&1; then
+      fail 11 "$f: completed bean edited in place; it may only gain '## Amendments' entries (adr:0005#amendments)"
+      continue
+    fi
+
+    # Anything appended must belong to an Amendments section.
+    if ! git show "$BASE:$f" | grep -q '^## Amendments'; then
+      first_new="$(tail -n +"$((old_n + 1))" "$f" | grep -m1 '[^[:space:]]' || true)"
+      if [ -n "$first_new" ] && [ "$first_new" != "## Amendments" ]; then
+        fail 11 "$f: appended '$first_new'; a completed bean may only gain a '## Amendments' section (adr:0005#amendments)"
+        continue
+      fi
+    fi
+
+    # Every amendment states when, by whom, what was claimed, what was found and
+    # the evidence. An amendment that only asserts a correction is the thing
+    # doc:00-constitution#evidence-rule forbids everywhere else.
+    if grep -q '^## Amendments' "$f"; then
+      sed -n '/^## Amendments/,$p' "$f" | grep '^### ' > "$TMP/amend-heads.txt" || :
+      while IFS= read -r h; do
+        [ -n "$h" ] || continue
+        case "$h" in
+          '### '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' · bean:'[0-9][0-9][0-9][0-9]) ;;
+          *) fail 11 "$f: amendment heading '$h' is not '### YYYY-MM-DD · bean:NNNN'" ;;
+        esac
+      done < "$TMP/amend-heads.txt"
+      n_amend="$(grep -c . "$TMP/amend-heads.txt" || true)"
+      for k in Claimed Found Evidence; do
+        n_k="$(sed -n '/^## Amendments/,$p' "$f" | grep -c "\*\*$k:\*\*" || true)"
+        if [ "$n_amend" != "$n_k" ]; then
+          fail 11 "$f: $n_amend amendment(s) but $n_k '**$k:**' line(s) (adr:0005#amendments)"
+        fi
+      done
+    fi
+  done < "$TMP/changed-beans.txt"
+fi
 
 # -------------------------------------------------------------------- done ---
 n_fail="$(grep -c . "$TMP/fails.txt")"
