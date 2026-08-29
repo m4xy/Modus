@@ -1,11 +1,12 @@
 ---
 # modus-0036
 title: Enforce defensive copying of collection-typed properties in the domain
-status: in-progress
+status: completed
 type: feature
 priority: high
 order: AF
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T22:00:00Z
 ---
 
 # Enforce defensive copying of collection-typed properties in the domain
@@ -28,21 +29,15 @@ says is a rule that will keep being broken.
 
 ## Success criteria
 
-- A type in `..domain.published..` or `..domain.aggregate..` with a collection-typed
-  property fails the build unless the property is private and every accessor returns a copy.
-  Observed rejecting the pre-fix `ProcessDefinition` and the pre-fix `PermissionGrant`
-  before it is claimed (`doc:00-constitution#observed-failing`).
-- The rule distinguishes a `private val` backing field from a `public val` — the former is
-  the fix, not the violation.
-- Choose the mechanism deliberately and record why: a Detekt rule sees the AST and the
-  property's visibility directly, which is what this needs; ArchUnit sees bytecode, where a
-  Kotlin getter returning a copy and one returning the field are hard to tell apart. The
-  Detekt path is blocked on `bean:0026`, which has to establish that custom Detekt rules
-  exist at all — none of the eleven `doc:30-code-style` §4 documents are implemented.
-- A test asserting the copy property MUST use a collection of size two or more.
-  `Collections.singleton` and `singletonList` throw on mutation, so the same test written
-  against a one-element fixture passes while proving nothing — observed twice in
-  `bean:0030`, once in the aggregate's `pendingEvents` and once in this bean's own subject.
+Stated as bullets when this bean was cut; numbered here unchanged so the closing evidence
+can be read beside them (`adr:0005-evidence-lives-in-the-work-item#evidence-home`).
+
+| # | criterion |
+|---|---|
+| 1 | A type in `..domain.published..` or `..domain.aggregate..` with a collection-typed property fails the build unless the property is private and every accessor returns a copy. Observed rejecting the pre-fix `ProcessDefinition` and the pre-fix `PermissionGrant` before it is claimed (`doc:00-constitution#observed-failing`). |
+| 2 | The rule distinguishes a `private val` backing field from a `public val` — the former is the fix, not the violation. |
+| 3 | Choose the mechanism deliberately and record why: a Detekt rule sees the AST and the property's visibility directly, which is what this needs; ArchUnit sees bytecode, where a Kotlin getter returning a copy and one returning the field are hard to tell apart. The Detekt path is blocked on `bean:0026`, which has to establish that custom Detekt rules exist at all — none of the eleven `doc:30-code-style` §4 documents are implemented. |
+| 4 | A test asserting the copy property MUST use a collection of size two or more. `Collections.singleton` and `singletonList` throw on mutation, so the same test written against a one-element fixture passes while proving nothing — observed twice in `bean:0030`, once in the aggregate's `pendingEvents` and once in this bean's own subject. |
 
 ---
 
@@ -702,31 +697,116 @@ class exists to break, for the feature its own KDoc cites as a motivating escape
 the parse that nothing enumerates is a feature nothing guards, including in the class written to
 enumerate the parse.
 
-## Criteria met
+## Criteria met — the closing evidence, per criterion
 
 4 of 4, and a fifth thing was found.
 
-1. **A collection-typed property fails the build unless private with copying accessors** —
-   observed, six blocks above. Scope is wider than the criterion asked for, and the widening
-   is what found `GrantIssued`.
-2. **`private val` is distinguished from `public val`** — observed both ways.
-3. **The mechanism is chosen deliberately and recorded** — table above. The Detekt path is
-   left to `bean:0026`; the ArchUnit path is rejected with the specific reason it cannot see
-   this property.
-4. **Tests use a collection of two or more** — `GrantIssuedTest`, `BoundedContextsTest`.
-5. **A third live occurrence was found and fixed** — `GrantIssued.capabilities`, plus
-   `BoundedContexts.names`.
-6. **Every claim the rule makes about itself is a planted counter-example**, in both
-   directions — thirteen tests, and every remaining blind spot planted at a real call site and
-   observed passing. Three rounds of review found the list wrong twice, each time because a
-   fix's enabling condition had never been planted.
-7. **Copy-in is enforced**, structurally — a private primary constructor, no reachable
-   secondary constructor, and no parameter stored uncopied — and the one half that is not
-   enforced is named in the rule text rather than implied by it.
-8. **The blind-spot list is stated as costs, not as impossibility.** Each entry names the
-   cheapest change that would close it and why that change is or is not being made; two entries
-   were closed this round rather than argued, and one was measured green and still declined on
-   scope grounds.
+Merged as PR #40, squashed onto `main` as `8181726`. The transcripts above were taken while
+the work was written; the table below re-observes every criterion **at the merge commit**, in
+a worktree at `8181726`, because that is the code `main` carries. Every `observed` cell is
+that run's output verbatim, and the fences under it carry the rest of each run.
+
+| # | criterion | command | expectation | observed |
+|---|---|---|---|---|
+| 1 | the gate rejects a collection-typed property that is neither private nor copied out, on both shapes the criterion names | `./gradlew :architecture-tests:test --tests '*DefensiveCopy*' --rerun-tasks` | the two historical shapes are rejected in-repo, by name, and the run is green because the rejections are what the tests assert | `BUILD SUCCESSFUL in 15s`, `44 actionable tasks: 44 executed`; `tests="10" skipped="0" failures="0" errors="0"` with `testcase name="rejects the pre-fix PermissionGrant()"` and `testcase name="rejects the pre-fix ProcessDefinition()"` — full list below |
+| 2 | `private val` behind a copying getter is the fix, not the violation | the same run, plus `rule:archunit/noDomainTypePublishesACollectionItOwns` over live `core/core-domain/src/main` | the compliant shape raises nothing while the plants of it raise one violation each | `testcase name="accepts a private backing field behind a copying getter()"`, and `testcase name="noDomainTypePublishesACollectionItOwns()"` — both in the `failures="0"` run above, the second being the live scan over at least 20 sources and 12 collection properties |
+| 3 | the mechanism is chosen deliberately and recorded | `grep -n "Enforced by" documentation/20-ddd-practices.md` and `grep -n "^status" .beans/modus-0026*.md` | `doc:20` §3.1 names the shipped source scan; the Detekt path is still open on `bean:0026` rather than silently dropped | ``154:  `Enforced by:` `rule:archunit/noDomainTypePublishesACollectionItOwns`, a **source** scan of`` / ``155:  every file under `core/core-domain/src/main`.`` and `4:status: todo` for `modus-0026` |
+| 4 | the copy tests use a collection of size two or more | `grep -n "AGENTS_READ, AGENTS_RUN" GrantIssuedTest.kt` and `grep -n "assertEquals(6" BoundedContextsTest.kt` | every fixture is size two or more, and each test performs the down-cast the size makes possible | `GrantIssuedTest.kt:107:        capabilities: Set<Capability> = setOf(AGENTS_READ, AGENTS_RUN),` and `GrantIssuedTest.kt:56:        (taken as MutableSet<Capability>) += COST_READ`; `BoundedContextsTest.kt:11:        assertEquals(6, BoundedContexts.names.size)` and `BoundedContextsTest.kt:28:        (taken as MutableList<String>)[0] = "hijacked"` |
+
+### Criterion 1 and criterion 2 — the run at `8181726`
+
+```
+cmd:      ./gradlew :architecture-tests:test --tests '*DefensiveCopy*' --rerun-tasks
+observed: BUILD SUCCESSFUL in 15s
+          44 actionable tasks: 44 executed
+exit:     0
+
+cmd:      grep -o 'testcase name="[^"]*"' \
+            architecture-tests/build/test-results/test/TEST-*DefensiveCopySourceTest.xml
+observed: testcase name="accepts a private backing field behind a copying getter()"
+          testcase name="follows a typealias, an alias of an alias, and a generic alias()"
+          testcase name="rejects every accessor that is not a copy chain()"
+          testcase name="rejects every function that hands back a live view()"
+          testcase name="noDomainTypePublishesACollectionItOwns()"
+          testcase name="rejects every collection that is not copied in()"
+          testcase name="rejects the pre-fix ProcessDefinition()"
+          testcase name="rejects the pre-fix PermissionGrant()"
+          testcase name="rejects a function with no declared return type that hands back a
+            backing field()"
+          testcase name="sees through an initialiser it cannot recognise()"
+
+cmd:      grep -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' \
+            architecture-tests/build/test-results/test/TEST-*DefensiveCopy*.xml
+observed: TEST-…DefensiveCopySourceTest.xml:tests="10" skipped="0" failures="0" errors="0"
+          TEST-…DefensiveCopyInputSurfaceTest.xml:tests="8" skipped="0" failures="0" errors="0"
+```
+
+`rejects the pre-fix PermissionGrant` asserts `assertEquals(1, violations.size)` and that the
+violation names `PermissionGrant.capabilities`; `rejects the pre-fix ProcessDefinition`
+asserts `assertEquals(3, violations.size)` and that every one gives the `data class` reason.
+The rejection the criterion asks to have observed is therefore asserted on every run of the
+gate from here on, not only in the transcripts above.
+
+`noDomainTypePublishesACollectionItOwns` is the live half: it scans
+`core/core-domain/src/main` and fails on any violation, with non-vacuity floors of
+`MINIMUM_EXPECTED_FILES = 20` and `MINIMUM_EXPECTED_PROPERTIES = 12` so a parser that stopped
+recognising declarations fails rather than passes.
+
+### The gate is green where it is claimed to run
+
+```
+cmd:      GITHUB_TOKEN= gh run list --branch main --limit 12 --json headSha,conclusion,event,url
+observed: {"conclusion":"success","databaseId":33272655061,
+           "displayTitle":"feat(architecture-tests): gate defensive copying of domain collection…",
+           "event":"push",
+           "headSha":"8181726a43742890fe3e9cf98cac142f50fbe84b",
+           "url":"https://github.com/m4xy/Modus/actions/runs/33272655061"}
+
+cmd:      GITHUB_TOKEN= gh pr view 40 --json statusCheckRollup
+observed: which halves             SUCCESS
+          build + mechanical gates SUCCESS
+          backoffice + e2e         SUCCESS
+          gate                     SUCCESS
+          (run 33272507536, https://github.com/m4xy/Modus/actions/runs/33272507536)
+```
+
+`doc:00-constitution` §9.1 asks for the mechanism observed where it is claimed to run, and
+`architecture-tests` is inside `qualityCheck`, which is what the `build + mechanical gates`
+job runs.
+
+### The third occurrence is fixed on `main`
+
+```
+cmd:      grep -n "private val\|get() =" \
+            core/core-domain/.../identity/event/IdentityEvents.kt core/core-domain/.../BoundedContexts.kt
+observed: IdentityEvents.kt:40:    private val issued: Set<Capability> = granted.toSet()
+          IdentityEvents.kt:43:    public val capabilities: Set<Capability> get() = issued.toSet()
+          BoundedContexts.kt:44:    public val names: List<String> get() = declared.toList()
+```
+
+Copy in at construction, copy out at the accessor, in the type the gate found on its first
+run — which is the shape §3.1 prescribes and the one criterion 2 says must not be reported.
+
+## What else this found
+
+Four things beyond the four requirements, kept out of the table above so that nothing here
+can be read as a fifth requirement nobody wrote down before the work started:
+
+- **A third live occurrence was found and fixed** — `GrantIssued.capabilities`, plus
+  `BoundedContexts.names`. Both fixes are on `main`, verified in the block above.
+- **Every claim the rule makes about itself is a planted counter-example**, in both
+  directions — and the planting is now in-repo rather than in a transcript: 10 tests in
+  `DefensiveCopySourceTest` and 8 in `DefensiveCopyInputSurfaceTest`, `failures="0"` in both.
+  Three rounds of review found the blind-spot list wrong twice, each time because a fix's
+  enabling condition had never been planted.
+- **Copy-in is enforced**, structurally — a private primary constructor, no reachable
+  secondary constructor, and no parameter stored uncopied — pinned by
+  `testcase name="rejects every collection that is not copied in()"` in the run above. The one
+  half that is not enforced is named in the rule text rather than implied by it.
+- **The blind-spot list is stated as costs, not as impossibility.** Each entry names the
+  cheapest change that would close it and why that change is or is not being made; two entries
+  were closed rather than argued, one was measured green and still declined on scope grounds,
+  and two residuals are carried by `bean:0064`.
 
 ## What this leaves for someone else
 

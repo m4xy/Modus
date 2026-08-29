@@ -1,11 +1,12 @@
 ---
 # modus-0055
 title: A bean may not close without evidence
-status: in-progress
+status: completed
 type: fix
 priority: high
 order: AN
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T22:00:00Z
 ---
 
 # A bean may not close without evidence
@@ -110,19 +111,109 @@ non-vacuous, which is the property `doc:00-constitution#observed-failing` demand
 
 ## Evidence
 
-| # | criterion | observed |
-|---|---|---|
-| 1 | a closure with no evidence section is rejected | plant 1 |
-| 2 | a closure with an empty evidence section is rejected | plant 2 |
-| 3 | an unanswered numbered criterion is rejected | plant 3 |
-| 4 | a bare evidence-kind cell is rejected | plant 4, and the corpus run below |
-| 5 | an empty evidence cell is rejected | plant 5 |
-| 6 | a fully evidenced closure passes | the control below, and 7 of PR #35's 10 closures |
-| 7 | not inert in CI, and inert runs are distinguishable | the `-` run and the CI run below |
-| 8 | the count lives in `doc:05-authoring-for-agents#checks` only | `tools/docs-lint.sh`'s header states no number and this change adds none; §6's table gains row 14 |
-| 9 | the gate | `BUILD SUCCESSFUL`, `167 actionable tasks` — below |
-| 10 | a table with no evidence column is rejected | plants 6, 7 and 8, and the before/after pair below |
-| 11 | unnumbered criteria are disclosed | `OK — … 1 closing transitions, 0 criteria checked, 2 unnumbered.` |
+Merged as PR #41, squashed onto `main` as `8db6ac7`. Each cell carries the command, what it
+was expected to do, and the run's own output. The plants numbered here are the fenced
+transcripts below; the closing runs are the ones taken at `8181726` while this bean was being
+closed, against the change that closes it.
+
+| # | criterion | command | expectation | observed |
+|---|---|---|---|---|
+| 1 | A bean that closes with no evidence section fails the build | `bash tools/docs-lint.sh` with plant 1 in place | exit 1, naming the bean and the missing evidence | `FAIL check 14 .beans/modus-0033-…: closes with no evidence section; a criterion's command, expectation and verbatim observed output live in the bean (adr:0005-evidence-lives-in-the-work-item#evidence-home)`, exit 1 — and again at the closing commit, on **this** change: see closing plant C1 |
+| 2 | A bean that closes with an evidence section carrying no entry fails the build | the same, with plant 2 — a `## Evidence` heading followed by one sentence of prose | exit 1, distinguishing "no section" from "a section with nothing in it" | `FAIL check 14 .beans/modus-0033-…: closes with an evidence section carrying no entry — no table row, no sub-heading, no transcript`, exit 1; and closing plant C2 |
+| 3 | A numbered criterion that nothing in the bean answers fails the build | the same, with plant 3 — criteria numbered 1-5, evidence rows 1, 2 and 3 | exit 1 once per unanswered number, naming the numbers | `FAIL check 14 …: criterion 4 is not answered in the evidence; no evidence row bears its number and nothing cites it` and the same for `criterion 5`, exit 1; and closing plant C3 |
+| 4 | An evidence cell holding only an evidence-kind name fails the build | the same, with plant 4 — row 2's cell reading `test-run` | exit 1, quoting the cell back and naming it a kind | ``FAIL check 14 …: criterion 2 records 'test-run' — an evidence KIND, not evidence; the cell must carry the command, the expectation and the verbatim observed output``, exit 1; and closing plant C4 |
+| 5 | An empty evidence cell fails the build | the same, with plant 5 | exit 1, naming the criterion whose cell is empty | `FAIL check 14 …: criterion 2 closes with an empty evidence cell (adr:0005-evidence-lives-in-the-work-item#evidence-home)`, exit 1; and closing plant C5 |
+| 6 | A fully evidenced closure passes, and the two corpus shapes both pass | `bash tools/docs-lint.sh` on the control, and on this change | exit 0, with the closing-transition denominator moving off zero | control: `docs-lint: OK — … 1 closing transitions, 3 criteria checked, 0 unnumbered.`, exit 0. **The closing run is the stronger control**: four beans closing at once, two in shape A and two in shape B — `docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.`, exit 0 |
+| 7 | The check is not inert in CI, and its output distinguishes "ran and found nothing" from "could not run" | `GITHUB_TOKEN= gh run view <id> --json conclusion,event,headBranch`, and a clone with `refs/remotes/origin/main` deleted | a planted closure turns CI red where the check is claimed to run, and a run with no merge base prints `-` rather than `0` | the two planted-closure runs are still on record and still red: `{"conclusion":"failure","event":"pull_request","headBranch":"feat/docs-lint-evidence-check","url":"…/runs/33264964045"}` and the same for `…/runs/33263152489`; the no-base run prints `- closing transitions, - criteria checked, - unnumbered`, exit 0 |
+| 8 | The check count lives in `doc:05-authoring-for-agents#checks` and nowhere else | `grep -rn "checks" build.gradle.kts` and `sed -n '1,3p' tools/docs-lint.sh` | neither the build file nor the script states a number; both name the table that counts them | `build.gradle.kts:19:// The mechanical checks of doc:05-authoring-for-agents#checks — counted there and`; `# docs-lint — the mechanical checks of doc:05-authoring-for-agents#checks. That table` / `# is the one place the checks are counted; a count repeated here would drift, and did.` |
+| 9 | `./gradlew qualityCheck` green | `./gradlew qualityCheck` | green with `docsLint` inside it, on the tree that closes these four beans | `BUILD SUCCESSFUL in 15s`, `158 actionable tasks: 4 executed, 1 from cache, 153 up-to-date`, `> Task :docsLint` printing `docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.` — the same line the control in the plant block below carries, taken through the gate rather than through the script |
+| 10 | A criteria-and-evidence table with no evidence column fails the build, and so does one whose only extra column is `evidence kind` | `bash tools/docs-lint.sh` with plants 6, 7 and 8 | exit 1 on the table rather than on the criteria it fails to answer, so the message names the root cause | `FAIL check 14 …: the table under 'Success criteria and evidence' numbers criteria in an evidence section but carries no evidence column; 'evidence kind' states what will be produced, not what was observed`, exit 1 — the same input that exited 0 with `3 criteria checked` before the fix; and closing plant C6 |
+| 11 | The run discloses what it could not check: unnumbered criteria are counted on the `OK` line | `bash tools/docs-lint.sh` on a closure whose criteria are bullets | the line separates "checked" from "could not check", and both counts move | `docs-lint: OK — … 1 closing transitions, 0 criteria checked, 2 unnumbered.`, exit 0. Re-observed on this change as closing plant C7 — `bean:0058`'s seven criteria restated as bullets moves the line to `4 closing transitions, 24 criteria checked, 7 unnumbered`, exit 0, against `31 criteria checked, 0 unnumbered` for the same tree with the table in place. That is the count doing its job twice over: `bean:0036` stated its criteria as bullets, and **numbering them into a table** to close it is the behaviour this disclosure exists to provoke |
+
+### The closing change, planted seven ways
+
+The plants below were made **at the closing commit, on the change that closes this bean**,
+not on the branch that built the check. Each one goes into `.beans/modus-0058` — a bean
+closing in this same pull request — and each was restored from a copy taken before the plant.
+`doc:00-constitution` §9.1 asks for a mechanism observed where it is claimed to run; the
+input check 14 is claimed to read is a closure, and this is one.
+
+```
+control:  the four closures as they stand in this change
+observed: docs-lint: OK — 19 documents, 106 anchors, 917 references, 64 beans,
+          28 graph edges, 21 selectable, 64 bean ids, 0 introduced, 64 on origin/main,
+          4 closing transitions, 31 criteria checked, 0 unnumbered.
+exit:     0
+
+C1        `## Evidence` renamed `## Notes`, so the closure has no evidence home
+observed: FAIL check 14 .beans/modus-0058-…: closes with no evidence section; a criterion's
+          command, expectation and verbatim observed output live in the bean
+          (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+          FAIL check 14 .beans/modus-0058-…: criterion 3 is not answered in the evidence; no
+          evidence row bears its number and nothing cites it (…#evidence-home)
+          FAIL check 14 .beans/modus-0058-…: criterion 5 is not answered in the evidence; …
+          docs-lint: 3 failure(s).
+exit:     1
+
+C2        the same, plus a `## Evidence` section holding one sentence of prose
+observed: FAIL check 14 .beans/modus-0058-…: closes with an evidence section carrying no
+          entry — no table row, no sub-heading, no transcript (…#evidence-home)
+          (and the same two unanswered-criterion lines as C1)
+          docs-lint: 3 failure(s).
+exit:     1
+
+C3        evidence row 6 deleted, and the heading that cites it renamed
+observed: FAIL check 14 .beans/modus-0058-…: criterion 6 is not answered in the evidence; no
+          evidence row bears its number and nothing cites it (…#evidence-home)
+          docs-lint: 1 failure(s).
+exit:     1
+
+C4        row 7's observed cell replaced by `test-run`
+observed: FAIL check 14 .beans/modus-0058-…: criterion 7 records 'test-run' — an evidence
+          KIND, not evidence; the cell must carry the command, the expectation and the
+          verbatim observed output (…#evidence-home, doc:50-memory-and-evidence#evidence-kinds)
+          docs-lint: 1 failure(s).
+exit:     1
+
+C5        row 7's observed cell emptied
+observed: FAIL check 14 .beans/modus-0058-…: criterion 7 closes with an empty evidence cell
+          (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+          docs-lint: 1 failure(s).
+exit:     1
+
+C6        the evidence table's `observed` column renamed `evidence kind`
+observed: FAIL check 14 .beans/modus-0058-…: the table under 'Evidence' numbers criteria in
+          an evidence section but carries no evidence column; 'evidence kind' states what
+          will be produced, not what was observed (…#evidence-home)
+          docs-lint: 1 failure(s).
+exit:     1
+
+C7        the criteria table restated as seven bullets (the disclosure, not a failure)
+observed: docs-lint: OK — … 4 closing transitions, 24 criteria checked, 7 unnumbered.
+exit:     0
+
+restored: the four beans copied back from the pre-plant copies; `git status --short` lists
+          those four files and nothing else
+observed: docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.
+exit:     0
+```
+
+One figure in that control moves as it is read, and it is left as observed rather than
+quietly corrected: writing this transcript into this file added a typed reference, so the
+`references` count printed `917` when the plants were run and prints `918` once the block
+above exists. The counts check 14 owns — closing transitions, criteria checked, unnumbered —
+are properties of the four closures and do not move when prose is added around them. A
+transcript that reports the tree it is being written into cannot be exactly reproducible; the
+useful discipline is to say which of its numbers are self-referential, not to re-run until
+the number stops changing, which it never does.
+
+C1 and C2 are worth reading past the headline. Both report criteria 3 and 5 unanswered and
+**not** criteria 1, 2, 4, 6 and 7 — because those five are cited by number in prose or in a
+sub-heading elsewhere in that bean, and the citation rule stated at
+`doc:05-authoring-for-agents#checks` says a citation answers a criterion. So the check is not
+counting table rows; it is applying the definition, and gutting the table left exactly the
+two criteria that had nothing else naming them. The renaming in C6 is the escape hatch
+`bean:0045` shipped with and the one an author reaches for first; it is rejected by name.
 
 Criteria 1-5, each planted against `.beans/modus-0033` — a `status: todo` bean — by flipping
 its status to `completed` and appending the shape under test, then reverted with
