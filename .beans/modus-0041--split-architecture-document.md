@@ -169,7 +169,7 @@ Line counts: `documentation/10-architecture.md` 287, `documentation/15-repositor
 ## Encoded, and deliberately not done
 
 - `doc:README#changing-this-package` gains the section-numbering rule.
-- `bean:0048` raised: `adr:0001-record-architecture-decisions` §3 forbids editing an accepted
+- `bean:0050` raised: `adr:0001-record-architecture-decisions` §3 forbids editing an accepted
   ADR, and this bean's own criteria required editing `adr:0006`'s classification table. The
   edit was made and the conflict is the new bean's to rule on.
 - `bean:0042` will forbid a tier-1 document referencing a tier-3 one. `doc:10-architecture`

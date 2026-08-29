@@ -1,5 +1,5 @@
 ---
-# modus-0048
+# modus-0050
 title: Reconcile ADR immutability with a decision that defers a detail
 status: todo
 type: task
