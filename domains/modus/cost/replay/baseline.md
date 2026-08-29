@@ -5,37 +5,37 @@ this file no longer matches a replay of the same transcripts.
 
 | | |
 |---|---|
-| repo sha at generation | `054d96f3572e3dd0e34a8a8ad1078d0cd879aa97` |
-| transcripts | 2 root session(s), 60 subagent run(s) |
-| input files hashed | 122 |
+| repo sha at generation | `091cd37d0c9b6a5637f439a6c7b0512075867143` |
+| transcripts | 2 root session(s), 63 subagent run(s) |
+| input files hashed | 129 |
 
 ## Headline
 
 | | tokens | share |
 |---|---:|---:|
-| input (fresh) | 8,734 | 0.0% |
-| output | 2,018,891 | 0.3% |
-| cache read | 660,339,588 | 98.4% |
-| cache write 5m | 7,182,329 | 1.07% |
-| cache write 1h | 1,550,678 | 0.23% |
-| **total** | **671,100,220** | |
+| input (fresh) | 9,458 | 0.0% |
+| output | 2,238,283 | 0.31% |
+| cache read | 704,683,017 | 98.19% |
+| cache write 5m | 9,075,141 | 1.26% |
+| cache write 1h | 1,633,328 | 0.23% |
+| **total** | **717,639,227** | |
 
-- **Cache-read ratio: 98.4%** of all tokens.  
-- **Cost: $411.178496** (derived — see *Prices* below; no billed figure exists in the transcript).  
-- **Delegated spend is INCLUDED**: 57.13% of the dollar total is subagent runs (60 of 62 runs).
+- **Cache-read ratio: 98.19%** of all tokens.  
+- **Cost: $451.494988** (derived — see *Prices* below; no billed figure exists in the transcript).  
+- **Delegated spend is INCLUDED**: 60.04% of the dollar total is subagent runs (63 of 65 runs).
 
-Fresh input plus output is 0.3% of all tokens. A baseline reporting only those two would
+Fresh input plus output is 0.31% of all tokens. A baseline reporting only those two would
 describe almost none of the spend; the cache classes are the bill.
 
 ## What these transcripts cannot tell you
 
 | asked for | obtainable | why |
 |---|---|---|
-| per-branch totals | **no** | `gitBranch` is the literal string `HEAD` on 4371 of 4371 assistant messages in this corpus. Not a detached checkout — the repository was on named branches throughout. The field is unusable as a join key, and the pull-request join above uses `gh pr create` results instead. |
+| per-branch totals | **no** | `gitBranch` is the literal string `HEAD` on 4741 of 4741 assistant messages in this corpus. Not a detached checkout — the repository was on named branches throughout. The field is unusable as a join key, and the pull-request join above uses `gh pr create` results instead. |
 | `durationMs` per message | **no** | the field does not exist on an assistant line. Wall clock above is `max(timestamp) - min(timestamp)` per run, so it includes think time, tool time and idle time, and for a root session it includes the human being away. |
 | a billed dollar figure | **no** | the stored transcript carries no cost field. Every dollar here is derived from token counts and the rate table below. |
-| delegated spend | **yes** | in `<sessionId>/subagents/agent-*.jsonl`, one transcript per subagent, with an `agent-*.meta.json` sidecar. It is absent from the parent transcript, so reading only `*.jsonl` at the top of the project directory hides 57.13% of the spend. |
-| `parentRunId` | **yes** | the sidecar's `toolUseId` is the id of the `Task` tool_use block in the spawning run. All 60 subagent edges resolved, at depth 1 and depth 2. There is no `parent_tool_use_id` field on a stored assistant line. |
+| delegated spend | **yes** | in `<sessionId>/subagents/agent-*.jsonl`, one transcript per subagent, with an `agent-*.meta.json` sidecar. It is absent from the parent transcript, so reading only `*.jsonl` at the top of the project directory hides 60.04% of the spend. |
+| `parentRunId` | **yes** | the sidecar's `toolUseId` is the id of the `Task` tool_use block in the spawning run. All 63 subagent edges resolved, at depth 1 and depth 2. There is no `parent_tool_use_id` field on a stored assistant line. |
 | `peakContextTokens` | **yes** | `input + cache_read + cache_creation` on the largest single request of the run. The largest here is **865,375 tokens**, 2.9x `doc:00-constitution` §6's 300k ceiling. |
 
 ## Per pull request
@@ -77,51 +77,58 @@ describe almost none of the spend; the cache classes are the bill.
 | 32 | yes | fix(docs-lint): reject a bean id allocated twice in  | 1 | 8,567,294 | $5.885065 | $5.885065 | $0.000000 |
 | 33 | yes | docs: a gate can be real, observed failing, and stil | 1 | 16,697,578 | $8.876475 | $0.000000 | $8.876475 |
 | 34 | yes | docs: commit the orchestrator role to the constituti | 1 | 11,132,666 | $6.045439 | $0.000000 | $6.045439 |
-| 35 | no | — | 1 | 6,570,617 | $4.860872 | $4.860872 | $0.000000 |
-| 36 | no | — | 1 | 6,061,222 | $4.034390 | $4.034390 | $0.000000 |
-| 37 | no | — | 1 | 3,073,212 | $2.804481 | $2.804481 | $0.000000 |
+| 35 | yes | chore(beans): close the ten work items whose changes | 1 | 11,061,115 | $9.065629 | $9.065629 | $0.000000 |
+| 36 | no | — | 1 | 12,243,216 | $9.652413 | $9.652413 | $0.000000 |
+| 37 | no | — | 1 | 2,409,432 | $2.037972 | $0.000000 | $2.037972 |
+| 38 | no | — | 2 | 8,346,074 | $5.619762 | $0.000000 | $5.619762 |
+| 39 | no | — | 1 | 1,852,355 | $1.131790 | $0.000000 | $1.131790 |
+| 40 | no | — | 1 | 11,274,425 | $8.868539 | $8.868539 | $0.000000 |
+| 41 | no | — | 1 | 4,072,085 | $3.130266 | $0.000000 | $3.130266 |
 
 | attribution | micro-dollars | share |
 |---|---:|---:|
-| exact (run opened the PR) | 78,430,517 | 19.07% |
-| segmented (orchestrator, by timestamp) | 260,254,357 | 63.29% |
-| unattributed | 72,493,622 | 17.63% |
+| exact (run opened the PR) | 94,317,355 | 20.89% |
+| segmented (orchestrator, by timestamp) | 272,174,147 | 60.28% |
+| unattributed | 85,003,486 | 18.83% |
 
 ## Per run
 
 | run | role | parent | msgs | tokens | $ | peak ctx | wall |
 |---|---|---|---:|---:|---:|---:|---:|
-| `ffd4977c-3d34-41e` | root | — | 510 | 238,491,469 | $140.976185 | 865,375 | 22038s |
+| `ffd4977c-3d34-41e` | root | — | 540 | 242,933,982 | $145.110507 | 865,375 | 24188s |
 | `1d5c6709-7c3c-457` | root | — | 199 | 46,674,698 | $35.294958 | 397,750 | 44854s |
 | `agent-a030c7398d1` | general-purpose | `1d5c6709-7c3c-457` | 171 | 27,185,014 | $16.066595 | 232,007 | 1773s |
 | `agent-a0896f9eb8e` | general-purpose | `1d5c6709-7c3c-457` | 138 | 20,700,452 | $13.287499 | 266,112 | 2080s |
 | `agent-a662955d9ce` | general-purpose | `1d5c6709-7c3c-457` | 116 | 18,703,952 | $12.344965 | 242,133 | 1231s |
 | `agent-a2a90790971` | general-purpose | `1d5c6709-7c3c-457` | 128 | 19,158,737 | $12.178263 | 229,629 | 1785s |
+| `agent-a7f91f80670` | general-purpose | `ffd4977c-3d34-41e` | 95 | 15,996,587 | $11.980475 | 241,322 | 2984s |
 | `agent-a484cbf07cf` | general-purpose | `1d5c6709-7c3c-457` | 105 | 18,242,577 | $10.919647 | 238,088 | 1149s |
 | `agent-a548ccdede2` | general-purpose | `1d5c6709-7c3c-457` | 99 | 15,107,796 | $9.845197 | 211,722 | 1322s |
+| `agent-af61db74cd8` | general-purpose | `ffd4977c-3d34-41e` | 110 | 12,243,216 | $9.652413 | 184,148 | 3292s |
+| `agent-a781dd791ea` | general-purpose | `ffd4977c-3d34-41e` | 110 | 11,061,115 | $9.065629 | 160,492 | 2679s |
+| `agent-a2d88edc8d6` | general-purpose | `ffd4977c-3d34-41e` | 90 | 11,274,425 | $8.868539 | 201,235 | 3211s |
 | `agent-a6d441a2526` | general-purpose | `1d5c6709-7c3c-457` | 124 | 13,886,717 | $8.608753 | 171,664 | 1700s |
 | `agent-a2c3fe81835` | general-purpose | `ffd4977c-3d34-41e` | 87 | 11,999,539 | $8.149007 | 188,858 | 1137s |
 | `agent-af44c8c31b3` | general-purpose | `ffd4977c-3d34-41e` | 123 | 12,586,896 | $7.954106 | 167,525 | 1256s |
 | `agent-a50eac20662` | general-purpose | `1d5c6709-7c3c-457` | 102 | 12,457,978 | $7.930740 | 167,082 | 1424s |
 | `agent-a5396047b80` | general-purpose | `1d5c6709-7c3c-457` | 103 | 12,298,738 | $7.536999 | 170,826 | 1177s |
 | `agent-adc35b13850` | general-purpose | `1d5c6709-7c3c-457` | 73 | 10,175,572 | $7.360295 | 200,382 | 1195s |
+| `agent-ae3eab60823` | general-purpose | `ffd4977c-3d34-41e` | 83 | 9,526,594 | $6.971651 | 175,797 | 1760s |
 | `agent-abf9c652513` | general-purpose | `1d5c6709-7c3c-457` | 106 | 10,428,829 | $6.952627 | 151,828 | 1416s |
 | `agent-aaae830b7d6` | general-purpose | `1d5c6709-7c3c-457` | 168 | 26,532,936 | $6.152483 | 248,745 | 1626s |
 | `agent-a35f93f0526` | general-purpose | `ffd4977c-3d34-41e` | 91 | 8,567,294 | $5.885065 | 127,809 | 1374s |
 | `agent-a826c4e4997` | general-purpose | `1d5c6709-7c3c-457` | 84 | 8,592,210 | $5.846367 | 147,292 | 935s |
-| `agent-a2d88edc8d6` | general-purpose | `ffd4977c-3d34-41e` | 70 | 7,726,151 | $5.405982 | 168,677 | 1148s |
 | `agent-af09eab3bf2` | general-purpose | `1d5c6709-7c3c-457` | 64 | 7,264,081 | $5.379943 | 163,493 | 1419s |
-| `agent-a781dd791ea` | general-purpose | `ffd4977c-3d34-41e` | 79 | 6,570,617 | $4.860872 | 122,250 | 1198s |
-| `agent-a7f91f80670` | general-purpose | `ffd4977c-3d34-41e` | 49 | 6,058,874 | $4.788812 | 196,310 | 856s |
-| `agent-af61db74cd8` | general-purpose | `ffd4977c-3d34-41e` | 69 | 6,061,222 | $4.034390 | 125,532 | 845s |
+| `agent-ac0a330b5d5` | general-purpose | `ffd4977c-3d34-41e` | 77 | 5,584,577 | $4.479344 | 111,177 | 830s |
 | `agent-a9451064578` | general-purpose | `ffd4977c-3d34-41e` | 69 | 5,021,598 | $4.028418 | 120,631 | 730s |
 | `agent-a5e109a874d` | general-purpose | `ffd4977c-3d34-41e` | 81 | 5,897,264 | $3.923941 | 110,797 | 1204s |
 | `agent-a323e82033b` | general-purpose | `ffd4977c-3d34-41e` | 66 | 5,407,594 | $3.701663 | 105,499 | 820s |
 | `agent-a041cb1532c` | general-purpose | `1d5c6709-7c3c-457` | 50 | 4,101,120 | $3.308053 | 127,701 | 674s |
 | `agent-a261f1dced2` | general-purpose | `ffd4977c-3d34-41e` | 67 | 4,339,798 | $3.023887 | 93,817 | 496s |
-| `agent-ae3eab60823` | general-purpose | `ffd4977c-3d34-41e` | 41 | 3,073,212 | $2.804481 | 115,987 | 606s |
 | `agent-aa1894118fb` | general-purpose | `1d5c6709-7c3c-457` | 44 | 3,490,232 | $2.785690 | 119,986 | 686s |
+| `agent-a5bd812ab74` | general-purpose | `ffd4977c-3d34-41e` | 31 | 2,020,235 | $2.729628 | 101,557 | 2193s |
 | `agent-aee3e9021f0` | general-purpose | `1d5c6709-7c3c-457` | 43 | 3,207,230 | $2.630239 | 119,513 | 593s |
+| `agent-a44cb23a2ca` | general-purpose | `ffd4977c-3d34-41e` | 30 | 1,626,806 | $2.565697 | 89,398 | 2442s |
 | `agent-a86edee5df4` | general-purpose | `1d5c6709-7c3c-457` | 57 | 3,175,725 | $2.541584 | 94,190 | 623s |
 | `agent-a33e04be054` | general-purpose | `1d5c6709-7c3c-457` | 105 | 10,347,081 | $2.539113 | 148,280 | 862s |
 | `agent-a4b41b1c9cc` | general-purpose | `1d5c6709-7c3c-457` | 36 | 2,190,936 | $2.378543 | 92,427 | 538s |
@@ -130,19 +137,19 @@ describe almost none of the spend; the cache classes are the bill.
 | `agent-aea5a20a761` | general-purpose | `1d5c6709-7c3c-457` | 22 | 2,238,354 | $2.282026 | 154,380 | 463s |
 | `agent-afa1c8a574f` | general-purpose | `1d5c6709-7c3c-457` | 75 | 8,312,127 | $2.188392 | 162,372 | 1011s |
 | `agent-a7ada704ae8` | general-purpose | `ffd4977c-3d34-41e` | 39 | 2,177,298 | $1.958606 | 89,409 | 397s |
+| `agent-aa2f62e17ad` | general-purpose | `ffd4977c-3d34-41e` | 27 | 1,987,408 | $1.920663 | 117,333 | 464s |
 | `agent-a62de423a09` | general-purpose | `1d5c6709-7c3c-457` | 89 | 6,372,106 | $1.666684 | 128,770 | 835s |
 | `agent-a5d522b4a36` | general-purpose | `1d5c6709-7c3c-457` | 33 | 1,962,770 | $1.620673 | 85,665 | 500s |
+| `agent-a4e97e862ad` | general-purpose | `ffd4977c-3d34-41e` | 30 | 1,754,648 | $1.488114 | 82,030 | 456s |
 | `agent-ae93785cd34` | general-purpose | `ffd4977c-3d34-41e` | 25 | 1,205,154 | $1.122494 | 71,246 | 348s |
 | `agent-a3e4b2492dc` | general-purpose | `1d5c6709-7c3c-457` | 48 | 3,244,053 | $0.979913 | 104,338 | 454s |
 | `agent-af4133bae9a` | Plan | `ffd4977c-3d34-41e` | 17 | 876,276 | $0.923613 | 70,462 | 111s |
 | `agent-a8cdf2a5175` | general-purpose | `1d5c6709-7c3c-457` | 22 | 1,051,487 | $0.921623 | 72,730 | 341s |
 | `agent-ae3d4c8bf64` | general-purpose | `agent-a8cdf2a5175` | 24 | 967,372 | $0.876698 | 59,777 | 245s |
 | `agent-af96c8bc0c0` | general-purpose | `1d5c6709-7c3c-457` | 46 | 3,304,923 | $0.876093 | 96,366 | 525s |
-| `agent-a5bd812ab74` | general-purpose | `ffd4977c-3d34-41e` | 16 | 735,259 | $0.863214 | 61,396 | 218s |
 | `agent-a219c9f4d60` | general-purpose | `1d5c6709-7c3c-457` | 49 | 2,958,480 | $0.830401 | 85,069 | 431s |
 | `agent-a0d2181db50` | general-purpose | `1d5c6709-7c3c-457` | 38 | 2,448,713 | $0.813445 | 106,011 | 360s |
 | `agent-aac07e3faa4` | general-purpose | `agent-a8cdf2a5175` | 24 | 871,442 | $0.796407 | 50,380 | 230s |
-| `agent-a44cb23a2ca` | general-purpose | `ffd4977c-3d34-41e` | 19 | 753,782 | $0.782232 | 64,930 | 224s |
 | `agent-a442f031ae4` | Plan | `ffd4977c-3d34-41e` | 13 | 642,436 | $0.758422 | 76,585 | 160s |
 | `agent-a9d6f2e211f` | general-purpose | `agent-a041cb1532c` | 23 | 774,769 | $0.729800 | 47,951 | 281s |
 | `agent-acfe795316a` | general-purpose | `1d5c6709-7c3c-457` | 13 | 516,991 | $0.711257 | 57,148 | 164s |
@@ -170,7 +177,7 @@ skill's `shared/prompt-caching.md`, which `doc:60#price-book` names as their sou
 | assertion | result |
 |---|---|
 | repeated frames of one `message.id` agree on input and cache tokens | 0 disagreement(s) |
-| output tokens recovered by taking the largest frame, not the first | 921,522 (45.64% of all output) |
+| output tokens recovered by taking the largest frame, not the first | 1,054,441 (47.11% of all output) |
 | every subagent's parent edge resolved | 0 unresolved |
 
 ## Input hashes
@@ -180,7 +187,7 @@ record is repeatable by running it again, which requires knowing what it read.
 
 ```
 31baeb6171b01662baf28a7b198096245518f7b7861c0c89bb908dfdbb9cc77a  .claude/projects/-Users-maxholman-IdeaProjects-Modus/1d5c6709-7c3c-4571-82f7-654b2f5c6da8.jsonl
-776b3a5f63fcd4254a6c9f3987632f46d8473132f2fe4f3f5c5c74790eb123dd  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688.jsonl
+da5156335889a8594cb94359bf7400dc8c34b55216e08c4295add5721f2ef4e7  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688.jsonl
 0fbb4cd275be2d15b19b27425fcea4baf3712a80e0e10ce7a9ef6cc2e0f1aa8e  .claude/projects/-Users-maxholman-IdeaProjects-Modus/1d5c6709-7c3c-4571-82f7-654b2f5c6da8/subagents/agent-a030c7398d194a4a2.jsonl
 b6cfda22e6816a47a88eff335de4d3c6177d8316911f7f99f4578dc46832780b  .claude/projects/-Users-maxholman-IdeaProjects-Modus/1d5c6709-7c3c-4571-82f7-654b2f5c6da8/subagents/agent-a030c7398d194a4a2.meta.json
 d66f95329f504157882e546e8858f7fb997fe2eda2936c8a69f95a62dab5a9ec  .claude/projects/-Users-maxholman-IdeaProjects-Modus/1d5c6709-7c3c-4571-82f7-654b2f5c6da8/subagents/agent-a041cb1532c8c34bc.jsonl
@@ -267,7 +274,7 @@ c25f8b566022ffdf1c44f4aaa0bbc26f5f6e51afa2a7325a660791ad15adb73e  .claude/projec
 7f2f9b0836a3748862c12468e69c771dd9bfd614e298274e049f0143b4f7eb88  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a261f1dced2570e42.meta.json
 08cb3957bb86af752e22950393ecd206437bd542ef152b6d0344531a1e562eb9  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a2c3fe81835de71a9.jsonl
 956fd57b4220ef05c974f663a2941f5c8fb73b0b97940d2bcec58090775b0cdf  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a2c3fe81835de71a9.meta.json
-d6dea9e408bd032bb2c964dc6d6d4f3597c5d2bc47b01f6edf197be2a02a7ce7  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a2d88edc8d61c1010.jsonl
+881791cc4ba98928a40497e485ba50516a449e0a2c649fb1d2c1468c9f210085  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a2d88edc8d61c1010.jsonl
 7bc148bb9252a2baa670a1e92bd104535ad4ba1e1e4522d097a2f259b51d5480  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a2d88edc8d61c1010.meta.json
 f843bb718e91721922c1154d7e5fa92de4395ce795d78fcb2acc775ad71c29d6  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a323e82033bcc7da6.jsonl
 a18a1d900647605d23a4819feb6b2a3d8de915d34fe42f8569f650fe69cdad02  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a323e82033bcc7da6.meta.json
@@ -275,23 +282,29 @@ a18a1d900647605d23a4819feb6b2a3d8de915d34fe42f8569f650fe69cdad02  .claude/projec
 3e9b4250916ef9f532dc7b386ad633bffcc0fcc79cbcc5afc5d78ef93864f369  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a35f93f0526ec2133.meta.json
 5560bbd0a8457c85882ddb13d19ac4dadbbea9bb80b3834ad9cb966f8f4e401a  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a442f031ae480c1c7.jsonl
 d5b95907197515f97656e8e8cdebb41db07db1f06fb588f8870a7ea300d4f10d  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a442f031ae480c1c7.meta.json
-6c7dd3071650d919b85e1d4149fb877fa20507049ded630be73432ab888b4cf4  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a44cb23a2ca7aad58.jsonl
+792e0f02306181cad824c3badd3529110965468bdc249b35f064cf0e081c5ab0  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a44cb23a2ca7aad58.jsonl
 edb8ddc83a36ed42c2b72c84e7ddbcefaf11643a40ba45b1d49d6ee1a63a5318  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a44cb23a2ca7aad58.meta.json
-c987d2d6b69d8ec0a56e0526dc8649b08e163b6af6e4a28767e97b0b8bb0f044  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a5bd812ab74709e1c.jsonl
+a6a32e84f6c276b965134544944a8adeccb880e0f8dab8f5d1e6ce6dab0e0999  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a4e97e862ad81684f.jsonl
+1cd42dd3b3b6f26feb17791799373aa2dc75b7bfbcaca590ed3752e2af29ece8  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a4e97e862ad81684f.meta.json
+2bccb09d3aa2ea11f83640395905a9e1200d4e43369dad72baf99d1957b5605a  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a5bd812ab74709e1c.jsonl
 57fc484668fd910d25e5694c6d75151dcda7b1e218eb894acb815e808e18b2b0  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a5bd812ab74709e1c.meta.json
 a0d0e5f601603e998d7746bbef8647aa1535eb991f4c8dea4d0344304dd6cacc  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a5e109a874de55d3a.jsonl
 0e12306c9c0bea9438f95cc4fb19482f9376cf7805dc0761a45da16a010d1524  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a5e109a874de55d3a.meta.json
-f7b046bc65211dd76a80b16f159dfaccc73dcbe67fc8c04697a81e206a694845  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a781dd791eaa56886.jsonl
+fe03162a2fe2df51b68d7dc69f0bb98cc38ebee771412e5f9eb19ee5a2f4a9ea  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a781dd791eaa56886.jsonl
 92db814a94faaaf769cb5075dc494a79e16b74aca39b51769c1360afd0b1d3f5  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a781dd791eaa56886.meta.json
 e4498989a4a02f33892f62d2c441e1dd02e1a09bb5b74dfd98963fb93ee85a27  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7ada704ae8ddde1e.jsonl
 4c1b026433e1e6d064938e3d448e84c9b46ac680a881636cd016c5472a09ca00  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7ada704ae8ddde1e.meta.json
-befdfce53e5ee52681c4df38dd7f9218c784d3460e56830457002c9f08ef0f40  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7f91f80670cd9b10.jsonl
+808672c33813ec0de06274583f2ce0c10c7b95772e19d6967f2d7044e2c6e1cc  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7f91f80670cd9b10.jsonl
 a1c22a2f76cf3ae20c11b4f7d37151d58631668e090335d76bd1f4ad25404dcb  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a7f91f80670cd9b10.meta.json
 2a50c72381b0acb7f31d6e3ffd1aea030bdbeae4d1b7ec8628967f9e25d3f47a  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a9451064578c8b7fd.jsonl
 3ec60940c27a531eeef2d93299c03b8f1bdc1acf1a99e4ba319efe88fe3e8d51  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-a9451064578c8b7fd.meta.json
+9d02de12b1e64623f0f59237b0d2a9464a081de493994a7e67c8a417a330aba4  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-aa2f62e17adc92ee1.jsonl
+3bdfdfea763a3a299857f919e93c391ec8511638d90d812a52855acb0344b6f5  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-aa2f62e17adc92ee1.meta.json
+dc6facaacab3b8d387ae8fe55c4dd35eab15132dc75a668a0088b31f746d93dc  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ac0a330b5d5988ba8.jsonl
+fd68526d8ca8022a3a3f38874d87710674c58ce4ebb106596e797ff02417fa89  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ac0a330b5d5988ba8.meta.json
 a527de1ab16e39cd7ef2ac6038a6d21dafb5c5dce4d9d4f781720350d90752b2  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-aca03df582fc3a019.jsonl
 97c7e186030ebb60f370074f5e64c945bf4e30b9e9482420e4df254fefb9e380  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-aca03df582fc3a019.meta.json
-d5c943c449faa6aa9387e2a86278b03b39b023eb5c201ca04e80b968b696973e  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae3eab60823f11f8c.jsonl
+f9254ecb55da557281f52b244e88b5037b3a0fc69262a27463f719f852473272  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae3eab60823f11f8c.jsonl
 b05961f02f0fcaf328e9a5690440d518df502b379094f9f05489283ef487230e  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae3eab60823f11f8c.meta.json
 fed6927433779e8a5b2b79db1238d0bcae06558d535162523929cfe73cc6605c  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae93785cd345bbbe1.jsonl
 84d6acdf584f8b51e65ce468b9eba853f3fa869469a8a35824d035877e97a7af  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-ae93785cd345bbbe1.meta.json
@@ -299,6 +312,7 @@ fed6927433779e8a5b2b79db1238d0bcae06558d535162523929cfe73cc6605c  .claude/projec
 a7aed5c531f5b034049e3145fda7756df7e5c2e09ec617b51deb56b5edf3e7db  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-af4133bae9a017f7c.meta.json
 fdb39d8f0bcc4f999183c37fe5a36dc903a5a0d44f6c66e484c7bc978d15045a  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-af44c8c31b31d66be.jsonl
 55b840ba3980aa95e9d01c88ed4970caf2c3df00cc6ebb804b0ce59f67c1a7c7  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-af44c8c31b31d66be.meta.json
-9d51c358153585b5865e1abe07b908fdf3573b496cc10ae6a03313d6ef0c6f1f  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-af61db74cd888f0c9.jsonl
+49eecc9ab3eba719639c4397169062f304340c3d63e50d2411417ff8556bf7c7  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-af61db74cd888f0c9.jsonl
 ff070cb989f1fe961ec127bebcd03387276aa7144d9bf3315779ea62ba088529  .claude/projects/-Users-maxholman-IdeaProjects-Modus/ffd4977c-3d34-41e9-a3ae-f60919540688/subagents/agent-af61db74cd888f0c9.meta.json
+33c23153c05e02481caf74bef9487f482094081bdd05b647715d06385d02c659  domains/modus/cost/replay/pull-requests.json
 ```

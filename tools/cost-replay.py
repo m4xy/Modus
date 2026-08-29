@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Replay this repository's Claude Code transcripts into a cost baseline. bean:0054.
 
-    tools/cost-replay.py            regenerate domains/modus/cost/replay/*
-    tools/cost-replay.py --check    fail if the committed output no longer matches
+    tools/cost-replay.py                 regenerate domains/modus/cost/replay/* and the bean's
+                                         generated figure block
+    tools/cost-replay.py --check         fail if the committed output no longer matches
+    tools/cost-replay.py --refresh-prs   re-fetch the pull-request snapshot from GitHub
+    tools/cost-replay.py --transcripts D read transcripts from D instead of deriving the path
+                                         from this checkout (also MODUS_COST_TRANSCRIPTS)
 
 The output is committed because a baseline that must be regenerated to be read is not a
 baseline: the transcripts live outside the repository, in ~/.claude, on one machine, and are
@@ -25,6 +29,15 @@ import cost_lib as C  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(REPO, "domains", "modus", "cost", "replay")
+# The pull-request metadata is a COMMITTED SNAPSHOT, not a live query. It used to be fetched
+# at generation time and baked into both artifacts while not being one of the hashed inputs,
+# so `--check` turned red the moment an open pull request merged — reporting a determinism bug
+# in this file when nothing about this file had changed. Network state cannot be an unhashed
+# input to a repeatability guarantee. `--refresh-prs` updates the snapshot deliberately.
+PR_SNAPSHOT = os.path.join(OUT_DIR, "pull-requests.json")
+BEAN = os.path.join(REPO, ".beans", "modus-0054--cost-baseline-and-run-recorder.md")
+BEGIN = "<!-- cost-replay:begin -->"
+END = "<!-- cost-replay:end -->"
 PULL_RE = re.compile(r"/pull/(\d+)")
 
 
@@ -262,16 +275,26 @@ def segment_run(path, creations):
 
 
 # -------------------------------------------------------------------- output ---
+def refresh_pr_snapshot():
+    """Re-fetch pull-request metadata and rewrite the committed snapshot. Deliberate only."""
+    raw = subprocess.check_output(
+        ["gh", "pr", "list", "--state", "merged", "--limit", "200",
+         "--json", "number,title,headRefName,mergedAt,additions,deletions"],
+        cwd=REPO, stderr=subprocess.DEVNULL, env=dict(os.environ, GITHUB_TOKEN=""),
+    )
+    prs = sorted(json.loads(raw), key=lambda p: p["number"])
+    if not os.path.isdir(OUT_DIR):
+        os.makedirs(OUT_DIR)
+    with open(PR_SNAPSHOT, "w") as fh:
+        fh.write(json.dumps(prs, indent=1, sort_keys=True) + "\n")
+    print("refreshed %s — %d merged pull requests" % (os.path.relpath(PR_SNAPSHOT, REPO), len(prs)))
+
+
 def merged_prs():
-    try:
-        raw = subprocess.check_output(
-            ["gh", "pr", "list", "--state", "merged", "--limit", "200",
-             "--json", "number,title,headRefName,mergedAt,additions,deletions"],
-            cwd=REPO, stderr=subprocess.DEVNULL, env=dict(os.environ, GITHUB_TOKEN=""),
-        )
-    except Exception:
+    if not os.path.exists(PR_SNAPSHOT):
         return {}
-    return dict((p["number"], p) for p in json.loads(raw))
+    with open(PR_SNAPSHOT) as fh:
+        return dict((p["number"], p) for p in json.load(fh))
 
 
 def ratio(part, whole):
@@ -280,18 +303,37 @@ def ratio(part, whole):
 
 def main(argv):
     check = "--check" in argv
-    project_dir = C.project_dir_for(REPO)
+    if "--refresh-prs" in argv:
+        refresh_pr_snapshot()
+        if len(argv) == 1:
+            return 0
+    override = None
+    if "--transcripts" in argv:
+        override = argv[argv.index("--transcripts") + 1]
+    project_dir = C.project_dir_for(REPO, override=override)
     roots, subs = discover(project_dir)
     if not roots:
-        sys.stderr.write("no transcripts under %s\n" % project_dir)
+        sys.stderr.write(
+            "no transcripts under %s\n"
+            "Pass --transcripts DIR or set %s to point at the Claude Code project directory\n"
+            "holding this repository's sessions.\n" % (project_dir, C.TRANSCRIPTS_ENV))
         return 2
+
+    def rel(path):
+        """Input paths are relative to $HOME when they are under it, absolute otherwise."""
+        home = os.path.expanduser("~")
+        return os.path.relpath(path, home) if os.path.abspath(path).startswith(home + os.sep) else os.path.abspath(path)
 
     inputs = []
     for p in roots + subs:
-        inputs.append({"path": os.path.relpath(p, os.path.expanduser("~")), "sha256": C.sha256_file(p), "bytes": os.path.getsize(p)})
+        inputs.append({"path": rel(p), "sha256": C.sha256_file(p), "bytes": os.path.getsize(p)})
         meta, mp = load_meta(p)
         if mp:
-            inputs.append({"path": os.path.relpath(mp, os.path.expanduser("~")), "sha256": C.sha256_file(mp), "bytes": os.path.getsize(mp)})
+            inputs.append({"path": rel(mp), "sha256": C.sha256_file(mp), "bytes": os.path.getsize(mp)})
+    # The pull-request snapshot is an input like any other, and is hashed like any other.
+    if os.path.exists(PR_SNAPSHOT):
+        inputs.append({"path": os.path.relpath(PR_SNAPSHOT, REPO), "sha256": C.sha256_file(PR_SNAPSHOT),
+                       "bytes": os.path.getsize(PR_SNAPSHOT), "inRepo": True})
 
     runs, unresolved_parents = build_runs(roots, subs)
     root_of, exact, segmented, inherited, unattributed_micros = attribute(runs)
@@ -348,14 +390,18 @@ def main(argv):
         "rootSessions": len(roots),
         "subagentRuns": len(subs),
         "runs": len(runs),
+        "messagesTotal": sum(r["messages"] for r in runs.values()),
+        "framesTotal": sum(r["frames"] for r in runs.values()),
+        "frameMultiplicity": round(
+            sum(r["frames"] for r in runs.values()) / float(sum(r["messages"] for r in runs.values())), 3),
         "unresolvedParentEdges": unresolved_parents,
         "frameDisagreements": frame_disagreements,
         "staleOutputTokensAvoided": stale_output_avoided,
         "usage": total,
         "tokensTotal": tokens_total,
         "cacheReadRatioPct": ratio(cache_read, tokens_total),
-        "costMicros": total_micros,
-        "costUsd": C.usd(total_micros),
+        "costUsd": total_micros,
+        "costUsdDisplay": C.usd(total_micros),
         "delegated": {
             "runs": len(subs),
             "usage": delegated,
@@ -377,16 +423,18 @@ def main(argv):
     lines = [json.dumps({"type": "summary", **summary}, sort_keys=True)]
     for rid in sorted(runs, key=lambda r: (runs[r]["startedAt"] or "", r)):
         r = dict(runs[rid])
-        r["transcript"] = os.path.relpath(r["transcript"], os.path.expanduser("~"))
+        r["transcript"] = rel(r["transcript"])
         r["rootRunId"] = root_of[rid]
-        r["costUsd"] = C.usd(r["costMicros"])
+        r["costUsd"] = r["costMicros"]
+        r["costUsdDisplay"] = C.usd(r["costMicros"])
         lines.append(json.dumps({"type": "run", **r}, sort_keys=True))
     for pr in sorted(per_pr):
         b = per_pr[pr]
         m = merged.get(pr) or {}
         lines.append(json.dumps({
             "type": "pull-request", "pr": pr, "runs": b["runs"],
-            "usage": b["usage"], "costMicros": b["costMicros"], "costUsd": C.usd(b["costMicros"]),
+            "usage": b["usage"], "costMicros": b["costMicros"], "costUsd": b["costMicros"],
+            "costUsdDisplay": C.usd(b["costMicros"]),
             "exactMicros": b["exactMicros"], "segmentedMicros": b["segmentedMicros"],
             "merged": bool(m), "title": m.get("title"), "headRefName": m.get("headRefName"),
             "mergedAt": m.get("mergedAt"), "additions": m.get("additions"), "deletions": m.get("deletions"),
@@ -398,6 +446,7 @@ def main(argv):
     targets = [
         (os.path.join(OUT_DIR, "runs.ndjson"), ndjson),
         (os.path.join(OUT_DIR, "baseline.md"), doc),
+        (BEAN, splice_bean(summary, per_pr)),
     ]
     if check:
         return run_check(targets)
@@ -408,6 +457,72 @@ def main(argv):
             fh.write(want)
         print("wrote %s" % os.path.relpath(path, REPO))
     return 0
+
+
+def splice_bean(s, per_pr):
+    """Rewrite the bean's generated figure block from the artifact, in place.
+
+    Item 1 of the review, and its lesson. Six figures were hand-copied out of this artifact
+    into the bean, a pull-request body and a normative document, and every one of them was
+    stale within a day because the corpus is live and appending. Prose that quotes a total
+    over a growing corpus rots; the only fix that holds is to stop hand-writing it. Everything
+    volatile now lives between the markers and is generated here; `--check` fails if the block
+    drifts from the artifact, exactly as it does for the artifact itself.
+    """
+    with open(BEAN) as fh:
+        text = fh.read()
+    u = s["usage"]
+    costs = sorted(b["costMicros"] for b in per_pr.values())
+    mid = costs[len(costs) // 2] if costs else 0
+    body = [
+        BEGIN,
+        "<!-- generated by tools/cost-replay.py from runs.ndjson; do not hand-edit -->",
+        "",
+        "| | |",
+        "|---|---:|",
+        "| runs replayed | %d (%d root session(s), %d subagent run(s)) |" % (s["runs"], s["rootSessions"], s["subagentRuns"]),
+        "| assistant messages / transcript frames | %s / %s (**%sx** overcount if frames are summed) |"
+        % ("{:,}".format(s["messagesTotal"]), "{:,}".format(s["framesTotal"]), s["frameMultiplicity"]),
+        "| tokens | %s |" % "{:,}".format(s["tokensTotal"]),
+        "| cache-read ratio | **%s%%** |" % s["cacheReadRatioPct"],
+        "| fresh input + output | %s%% of all tokens |" % ratio(u["inputTokens"] + u["outputTokens"], s["tokensTotal"]),
+        "| derived cost | **%s** |" % s["costUsdDisplay"],
+        "| delegated share of cost | **%s%%** — included, not excluded |" % s["delegated"]["shareOfCostPct"],
+        "| largest peak context | %s tokens, %sx the 300k ceiling (`doc:00-constitution#context-budget`) |"
+        % ("{:,}".format(s["peakContextTokensMax"]), round(s["peakContextTokensMax"] / 300000.0, 1)),
+        "| pull requests attributed | %d — min %s, median %s, max %s |"
+        % (len(per_pr), C.usd(costs[0]) if costs else "-", C.usd(mid), C.usd(costs[-1]) if costs else "-"),
+        "| attributed exactly / by timestamp / not at all | %s%% / %s%% / %s%% of dollars |"
+        % (ratio(s["attribution"]["exactMicros"], s["costUsd"]),
+           ratio(s["attribution"]["segmentedMicros"], s["costUsd"]),
+           ratio(s["attribution"]["unattributedMicros"], s["costUsd"])),
+        "| `gitBranch` == the literal `HEAD` | %s of %s messages |"
+        % ("{:,}".format(s["gitBranchHeadMessages"]), "{:,}".format(s["gitBranchTotalMessages"])),
+        "| output tokens recovered by taking the largest frame, not the first | %s (%s%% of all output) |"
+        % ("{:,}".format(s["staleOutputTokensAvoided"]), ratio(s["staleOutputTokensAvoided"], u["outputTokens"])),
+        "| frames disagreeing on input or cache tokens | %d |" % s["frameDisagreements"],
+        "| subagent parent edges unresolved | %d of %d |" % (len(s["unresolvedParentEdges"]), s["subagentRuns"]),
+        "",
+        "Verbatim, for criteria 2 and 3 (`doc:00-constitution#evidence-rule`):",
+        "",
+        "```",
+        "cmd:      python3 tools/cost-replay.py",
+        "observed: Delegated spend is INCLUDED: %s%% of the dollar total is subagent runs" % s["delegated"]["shareOfCostPct"],
+        "            (%d of %d runs)" % (s["delegated"]["runs"], s["runs"]),
+        "          repeated frames of one `message.id` agree on input and cache tokens",
+        "            | %d disagreement(s)" % s["frameDisagreements"],
+        "          output tokens recovered by taking the largest frame, not the first",
+        "            | %s (%s%% of all output)" % ("{:,}".format(s["staleOutputTokensAvoided"]),
+                                                   ratio(s["staleOutputTokensAvoided"], u["outputTokens"])),
+        "exit:     0",
+        "```",
+        "",
+        END,
+    ]
+    start, stop = text.find(BEGIN), text.find(END)
+    if start < 0 or stop < 0:
+        raise SystemExit("%s has no cost-replay block; add the BEGIN/END markers" % BEAN)
+    return text[:start] + "\n".join(body) + text[stop + len(END):]
 
 
 def run_check(targets):
@@ -428,7 +543,9 @@ def run_check(targets):
     home = os.path.expanduser("~")
     drift, missing = [], []
     for i in summary["inputs"]:
-        p = os.path.join(home, i["path"])
+        # An input is either in this repository (the pull-request snapshot) or under $HOME
+        # (a transcript); an absolute path passes through os.path.join unchanged.
+        p = os.path.join(REPO if i.get("inRepo") else home, i["path"])
         if not os.path.exists(p):
             missing.append(i["path"])
         elif C.sha256_file(p) != i["sha256"]:
@@ -443,9 +560,12 @@ def run_check(targets):
     for path, want in targets:
         have = open(path).read() if os.path.exists(path) else None
         if have != want:
-            sys.stderr.write("STALE %s — inputs unchanged but output differs; the replay is\n"
-                             "not deterministic. This is a bug in tools/cost-replay.py.\n"
-                             % os.path.relpath(path, REPO))
+            sys.stderr.write(
+                "STALE %s — every hashed input is byte-identical, so the difference came from\n"
+                "this repository, not from the transcripts: an edit inside the generated block,\n"
+                "or a change to tools/cost-replay.py or tools/cost_lib.py that moves a number.\n"
+                "Re-run `python3 tools/cost-replay.py` and review the diff before committing.\n"
+                % os.path.relpath(path, REPO))
             bad = 1
     return bad
 
@@ -476,7 +596,7 @@ def render(s, runs, per_pr, merged, root_of):
     w("| **total** | **%s** | |" % "{:,}".format(s["tokensTotal"]))
     w("")
     w("- **Cache-read ratio: %s%%** of all tokens.  " % s["cacheReadRatioPct"])
-    w("- **Cost: %s** (derived — see *Prices* below; no billed figure exists in the transcript).  " % s["costUsd"])
+    w("- **Cost: %s** (derived — see *Prices* below; no billed figure exists in the transcript).  " % s["costUsdDisplay"])
     w("- **Delegated spend is INCLUDED**: %s%% of the dollar total is subagent runs (%d of %d runs)."
       % (s["delegated"]["shareOfCostPct"], s["delegated"]["runs"], s["runs"]))
     w("")
@@ -518,7 +638,7 @@ def render(s, runs, per_pr, merged, root_of):
     w("| attribution | micro-dollars | share |")
     w("|---|---:|---:|")
     for label, key in (("exact (run opened the PR)", "exactMicros"), ("segmented (orchestrator, by timestamp)", "segmentedMicros"), ("unattributed", "unattributedMicros")):
-        w("| %s | %s | %s%% |" % (label, "{:,}".format(a[key]), ratio(a[key], s["costMicros"])))
+        w("| %s | %s | %s%% |" % (label, "{:,}".format(a[key]), ratio(a[key], s["costUsd"])))
     w("")
     w("## Per run")
     w("")

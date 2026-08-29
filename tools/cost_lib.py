@@ -83,7 +83,16 @@ def rates_upm(model_id):
 
 
 def cost_micros(model_id, usage):
-    """Integer micro-dollars for one message's usage. Never a float (doc:20 §3)."""
+    """Integer micro-dollars for one message's usage. Never a float (doc:20 §3).
+
+    Priced per message and per token kind, then floored, so a total is the sum of floors
+    rather than the floor of a sum. That biases every total DOWN by at most one micro-dollar
+    per (message x token kind) — on the current corpus, 2,399 micro-dollars against a total
+    near 4x10^8, or 0.0006%. Pricing the aggregate instead would be marginally closer to the
+    real bill but would stop a run total being the sum of its message totals, and a rollup
+    that does not add up is worse than a bias six orders of magnitude below the figure
+    (doc:60-cost-model §3.3: sums are folded, never stored).
+    """
     if model_id == SYNTHETIC_MODEL:
         return 0
     r = rates_upm(model_id)
@@ -153,8 +162,10 @@ def read_messages(path):
     `message.id`.
 
     But the frames are NOT interchangeable. `input_tokens`, `cache_read_input_tokens` and
-    `cache_creation_input_tokens` are byte-identical across every frame of a message; measured
-    on this corpus, zero exceptions in 4,309 messages. `output_tokens` is NOT: a partial frame
+    `cache_creation_input_tokens` are byte-identical across every frame of a message; the
+    replay asserts that on every run and reports the count, so no figure is quoted here — a
+    number written into a docstring over a growing corpus is stale by the next session.
+    `output_tokens` is NOT: a partial frame
     carries a mid-stream count (3, 2, 5 …) that the final frame supersedes (345, 160, 120 …).
     Keeping the first frame therefore undercounts output. The authoritative frame is the one
     with the largest `output_tokens`; that is what this returns, and
@@ -290,11 +301,48 @@ def iso(dt):
     return None if dt is None else dt.strftime("%Y-%m-%dT%H:%M:%S.") + "%03dZ" % (dt.microsecond // 1000)
 
 
-def project_dir_for(repo_root, home=None):
-    """The ~/.claude/projects directory Claude Code stores this repository's sessions in."""
+TRANSCRIPTS_ENV = "MODUS_COST_TRANSCRIPTS"
+
+
+def project_dir_for(repo_root, home=None, override=None):
+    """The directory Claude Code stores this repository's sessions in.
+
+    Derived from the checkout path by default, which is what Claude Code itself does. That
+    derivation is wrong in a worktree, a second clone, or anyone else's machine, and a
+    baseline a stranger cannot regenerate is not a baseline — so an explicit override wins,
+    from `--transcripts` or the MODUS_COST_TRANSCRIPTS environment variable.
+    """
+    if override:
+        return os.path.abspath(os.path.expanduser(override))
+    env = os.environ.get(TRANSCRIPTS_ENV)
+    if env:
+        return os.path.abspath(os.path.expanduser(env))
     home = home or os.path.expanduser("~")
     slug = os.path.abspath(repo_root).replace("/", "-")
     return os.path.join(home, ".claude", "projects", slug)
+
+
+def tool_use_ids(path):
+    """Every tool_use id emitted in one transcript, without building message records.
+
+    `read_messages` walks the file twice and allocates a record per message; the parent-edge
+    search only needs the ids, and runs inside a hook's timeout against every sibling
+    transcript. This is the cheap path for that.
+    """
+    ids = set()
+    for line in open(path, "r"):
+        line = line.strip()
+        if not line or '"tool_use"' not in line:
+            continue
+        d = json.loads(line)
+        if d.get("type") != "assistant":
+            continue
+        content = (d.get("message") or {}).get("content")
+        if isinstance(content, list):
+            for b in content:
+                if isinstance(b, dict) and b.get("type") == "tool_use":
+                    ids.add(b["id"])
+    return ids
 
 
 def usd(micros):
