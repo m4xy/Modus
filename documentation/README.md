@@ -124,6 +124,7 @@ carries evidence.
 - **SHOULD / SHOULD NOT** — strong default. Deviating requires a note in the pull
   request body explaining why.
 - **MAY** — genuinely at your discretion.
-- `Enforced by:` — names the tool that catches the violation. If a MUST has no
-  `Enforced by:` line, it carries a `Enforcement gap:` line naming the work item that
-  will close it.
+- `Enforced by:` — names the tool that catches the violation, and is admissible only
+  once that tool has been observed rejecting one (`doc:00-constitution#observed-failing`).
+  If a MUST has no `Enforced by:` line, it carries a `Enforcement gap:` line naming the
+  work item that will close it.

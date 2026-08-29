@@ -169,8 +169,8 @@ published packages. Assigned to `ContextIsolationRules` (`30-code-style.md` §5)
 **Enforcement gap:** `ContextInternalsAreSealed` and `PublishedLanguageAllowlist` are not.
 Both compare one context against another and `identity` is the only modelled context, so
 both would pass on an empty set of dependencies today — an implementation now would be a
-rule that cannot fail. `bean:0009` records this; the bean that models the second bounded
-context closes it, and is the first point at which either rule can be shown to fire.
+rule that cannot fail. `bean:0009` records this and `bean:0023` closes it, on the second
+bounded context (`bean:0012`) — the first point at which either rule can be shown to fire.
 
 ---
 

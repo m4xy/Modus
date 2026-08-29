@@ -1,10 +1,11 @@
 ---
 # modus-0009
 title: The identity bounded context
-status: in-progress
+status: completed
 type: feature
 priority: high
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T08:11:59Z
 ---
 
 # The identity bounded context
@@ -151,6 +152,13 @@ still passes.
 describes the broken behaviour, every mutation reverted. The per-test table is in the pull
 request body's `verify` block (`doc:35-testing#load-bearing-evidence`).
 
+Corrected at closure: 32 is the pre-review count. What landed is 42 tests under
+`..core.domain.identity` (`ActorTest` 2, `PermissionGrantTest` 11, `PermissionResolverTest`
+10, `PublishedLanguageTest` 19) and 43 in `:core-domain`, read off
+`core/core-domain/build/test-results/test/*.xml`. Each has a recorded mutation, here or in
+the pull request body; `doc:35-testing#fixture-variation` now states what the count does
+and does not prove.
+
 ### 9. Coverage moved, and the ratchet recorded it
 
 ```
@@ -158,7 +166,8 @@ cmd:      ./gradlew coverageBaselineWrite
 observed: :core-domain                   0 0 33 0 -> 0 0 579 44
 ```
 
-No downward write, so no `-Pcoverage.regress` was needed. Missed instructions and missed
+No downward write at this point in the work, so no `-Pcoverage.regress` yet — the review
+cycle changed that; see the corrected passage below. Missed instructions and missed
 branches are both `0`: the new production code is fully exercised, including both outcomes
 of every `require` and `check`. The **branch** figure is what carries that meaning — of the
 579 covered instructions roughly 242 are synthetics that no test could fail to cover
@@ -376,11 +385,22 @@ cmd:      ./gradlew coverageBaselineWrite
 observed: :core-domain                   0 0 579 44 -> 0 0 618 38
 ```
 
-Upward on instructions, so no `-Pcoverage.regress`. Branches fall from 44 to 38 because
-`ActorId` and `GrantId` each traded a three-branch `isNotBlank() && none { … }` for a
-single regex match — a stricter rule expressed in fewer predicates. Missed instructions
-and missed branches are both still `0`, and the branch figure is now additionally floored
-at 100% for `..identity.aggregate` by the rule above.
+Corrected at closure: `-Pcoverage.regress` **was** required and was used. Instructions
+rose, but covered branches fall from 44 to 38, and `doc:35-testing#coverage` §8.1 pins
+`COVEREDCOUNT` as well as `MISSEDCOUNT`, so the writer refused the row until a reason was
+supplied. It is on `main` in `config/coverage/baseline.tsv`:
+
+```
+observed: # REGRESSION accepted with -Pcoverage.regress: identity validators replaced two
+            three-branch isNotBlank() && none{} checks with single whole-string regex
+            matches; six branches disappear from the source, none become uncovered
+          #   :core-domain: covered branches 44 -> 38
+```
+
+Missed instructions and missed branches are both still `0`, and the branch figure is
+additionally floored at 100% for `..identity.aggregate` by the rule above. The guard
+firing on a source improvement is the guard working — `bean:0007` R1 built it so a
+covered-count drop cannot be recorded silently, and this is the first time it fired.
 
 ### The gate
 
@@ -401,3 +421,28 @@ observed: > Task :docsLint
           BUILD SUCCESSFUL in 9s
           153 actionable tasks: 144 executed, 9 up-to-date
 ```
+
+## Summary of Changes
+
+Merged as PR #9 (`b1e0809`). `identity` is the first modelled bounded context: aggregates
+`Actor` and `PermissionGrant`, published `ActorId`, `DomainId`, `GrantId`, `Capability`,
+`ActorKind`, events `ActorRegistered`, `GrantIssued`, `GrantRevoked`, ports
+`ActorRepository` and `PermissionGrantRepository` with no implementation, and a
+`PermissionResolver` returning a sealed `AccessDecision` whose `domainIsVisible` makes
+`doc:00-constitution#domain-scoping`'s 404-not-403 a domain property rather than a
+transport conditional. `rule:archunit/publishedLanguageIsLeaf`,
+`rule:archunit/aggregatesAreSealedOrFinal` and the `..identity.aggregate` 100% branch
+floor were implemented and each observed firing.
+
+Re-checked against `main` at closure. Criteria 1-7 and 10-11 hold as written:
+`config/coverage/baseline.tsv` records `:core-domain 0 0 618 38`, `BoundedContexts.names`
+carries six entries with `identity` as a literal, `IdentityContext` is gone, and
+`architecture-tests/build/generated/analysed-packages/unit-test-packages.txt` lists both
+`uk.m4xy.modus.core.domain` and `uk.m4xy.modus.core.domain.identity`. Two claims drifted
+during the review cycle and are corrected in place above: the test count in criterion 8,
+and the `-Pcoverage.regress` claim in criterion 9 and in the post-review coverage section.
+
+Carried forward: the `Enforcement gap:` on `ContextInternalsAreSealed` and
+`PublishedLanguageAllowlist` in `doc:10-architecture#bounded-contexts` §3.1, now held by
+`bean:0023` and closable on `bean:0012`. Review thread 1's fixture-uniformity finding is
+encoded as `doc:35-testing#fixture-variation`.

@@ -1,10 +1,11 @@
 ---
 # modus-0008
 title: Migrate work items to the hmans/beans on-disk convention
-status: in-progress
+status: completed
 type: task
 priority: high
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T00:14:27Z
 ---
 
 # Migrate work items to the hmans/beans on-disk convention
@@ -83,3 +84,18 @@ Three threads, all fixed in this PR (no follow-up).
 
 Evidence for criteria 3, 6, 7, 8 is recorded verbatim in this work item's pull request
 body (`verify` block), not duplicated here.
+
+## Summary of Changes
+
+Merged as PR #7 (`14f54ea`). Work items moved from `beans/NNNN-slug.md` to
+`.beans/modus-NNNN--slug.md` with `.beans.yml` carrying `beans.prefix`, ids echoed as a
+`# modus-NNNN` comment and upstream front-matter fields, so the `beans` CLI, TUI and
+GraphQL server run against this repository unmodified. `tools/docs-lint.sh` reads the
+prefix from `.beans.yml` rather than holding a second copy, and gained check 10 —
+`doc:05-authoring-for-agents#checks` — which rejects a bare `beans/NNNN` path in prose.
+
+Re-checked against `main` at closure: `.beans.yml`, all six migrated files, check 6 and
+check 10, and the `@Disabled` annotation-value contract of `doc:30-code-style#archunit-rules`
+§5.1 are all present as evidenced. No claim drifted. Criterion 2's "six migrated beans" is
+exact for this commit: `bean:0007` was never on `main` at the old path and arrived
+already migrated (see that bean's R5).

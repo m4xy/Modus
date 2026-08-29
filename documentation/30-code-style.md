@@ -117,7 +117,7 @@ about them.
 ## 3. Detekt — standard configuration <a id="detekt-configuration"></a>
 
 Detekt runs with `buildUponDefaultConfig = true` and a project config at
-`build-logic/src/main/resources/detekt.yml`. Deviations from Detekt's defaults:
+`config/detekt/detekt.yml`. Deviations from Detekt's defaults:
 
 | Rule | Setting | Why |
 |---|---|---|
@@ -145,6 +145,17 @@ Detekt runs with `buildUponDefaultConfig = true` and a project config at
 **Test sources:** relaxed for `LongMethod`, `MagicNumber`, `TooManyFunctions`, and
 `MaxLineLength`. Everything else applies — test code is code.
 
+**The 1.23.8 toolchain traps.** Detekt 1.23.8 is the current stable release and it embeds
+an IntelliJ core whose `JavaVersion` parser rejects the JDK 25 version string, so the
+Gradle plugin's in-daemon invoker dies on this repository's toolchain; Detekt is therefore
+run as a `JavaExec` of `detekt-cli` on a JDK 21 launcher, which cannot change a finding
+because Detekt never emits bytecode. It also embeds Kotlin 2.0.21 while Modus compiles
+with 2.4.10, so no `--classpath` is passed and analysis is PSI-only.
+**Enforcement gap:** every rule annotated `@RequiresTypeResolution` is skipped in silence,
+including the rules this table would otherwise rely on. `config/detekt/detekt.yml`'s
+header owns the list of what that costs, what covers it elsewhere, and the closing
+condition; `bean:0026` carries it.
+
 **Baselines are forbidden.** A Detekt baseline file hides debt indefinitely. If a rule
 cannot be satisfied today, either the rule is wrong (change it, with a rationale in this
 document) or the code is wrong (fix it, or open a work item and disable the rule
@@ -156,8 +167,12 @@ in this repository. **Enforced by:** a Gradle check that fails if any file match
 
 ## 4. Custom Detekt rules <a id="custom-detekt-rules"></a>
 
-These express Modus-specific hazards that no off-the-shelf rule covers. They live in
-`build-logic` as a Detekt rule-set provider and run on every Kotlin module.
+These express Modus-specific hazards that no off-the-shelf rule covers.
+
+**Enforcement gap:** none of them exists. There is no rule-set provider in `build-logic`,
+so this table and every `Enforced by:` cell in §2 naming one of these rules is a
+specification, not a mechanism (`doc:00-constitution#observed-failing`). `bean:0026`
+carries implementing them or striking them.
 
 | Rule | What it catches | Why it exists |
 |---|---|---|

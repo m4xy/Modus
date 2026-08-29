@@ -12,6 +12,7 @@ provides:
   - doc:00-constitution#workflow
   - doc:00-constitution#domain-scoping
   - doc:00-constitution#mechanical-enforcement
+  - doc:00-constitution#observed-failing
 depends_on: [doc:10-architecture, doc:30-code-style, doc:40-durability, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills, doc:80-agent-operating-procedure]
 ---
 
@@ -86,8 +87,9 @@ locators, no reflection, no coroutine dispatchers.
 **Rationale:** `core-domain` must be testable with zero setup in under a second, and it
 must survive a change of persistence or transport without editing a single line.
 
-**Enforced by:** ArchUnit package-dependency rules plus the custom Detekt rule
-`ForbiddenDomainApi` (see `30-code-style.md` §4).
+**Enforced by:** ArchUnit package-dependency rules.
+**Enforcement gap:** the custom Detekt rule `ForbiddenDomainApi` this section relied on
+does not exist; see `30-code-style.md` §4 and `bean:0026`.
 
 ---
 
@@ -329,6 +331,37 @@ Corollary: **the build is the definition of correct.** A green build with a bad 
 means the build is wrong. Fix the build.
 
 See `30-code-style.md`.
+
+### 9.1 A gate is unverified until it has been observed failing <a id="observed-failing"></a>
+
+> **A mechanism nobody has watched reject a real violation is not enforcement. It is a
+> claim.**
+
+- Every `Enforced by:` line MUST name a mechanism that has been observed rejecting a
+  planted violation of the rule it claims to enforce. The observation is recorded
+  verbatim (§3), in the work item and in the pull-request body.
+- The procedure is `35-testing.md` §6, applied to gates rather than to tests: plant,
+  observe the named mechanism fail, revert.
+- A mechanism that cannot be made to fail MUST be demoted to an `Enforcement gap:` naming
+  the work item that closes it. An unfalsifiable gate is worse than an admitted gap,
+  because it also stops anyone looking.
+
+Seven mechanisms in this repository reported success while enforcing less than they
+claimed. Each was found by trying to make it fail, and none by reading it.
+
+| mechanism | what it actually enforced |
+|---|---|
+| 33 enabled Detekt rules | nothing — the CLI analyses the PSI only, so every type-resolution rule was skipped in silence |
+| a passing test | nothing — it still passed with the feature it named deleted |
+| a `PIPE_BUF` atomic-append size threshold | nothing — the threshold was wrong, and is removed |
+| two `Enforced by:` lines | nothing — the rules they named did not exist |
+| `ContextInternalsAreSealed`, `PublishedLanguageAllowlist` | nothing — documented as enforcing, never implemented |
+| the coverage baseline | nothing — it was resettable to zero coverage with a green build |
+| the downward-write guard on that baseline | half of it — it checked the missed columns and not the covered ones |
+
+**Enforcement gap:** the `Enforced by:` lines already in this package predate this rule
+and have not been audited against it. `bean:0027` carries the audit; `bean:0026` carries
+the Detekt entries it has already reached.
 
 ---
 

@@ -10,6 +10,7 @@ read_when:
 provides:
   - doc:50-memory-and-evidence#memory-scopes
   - doc:50-memory-and-evidence#evidence-kinds
+  - doc:50-memory-and-evidence#primary-sources
   - doc:50-memory-and-evidence#evidence-record
   - doc:50-memory-and-evidence#writing-a-memory
   - doc:50-memory-and-evidence#invalidation
@@ -123,6 +124,23 @@ lies about implementations more often than implementations lie about themselves.
 `test-run`, `command`, or `observation`. A `citation` alone is insufficient for a
 behavioural claim; it is sufficient for a structural claim ("the config key is named
 `store.root`").
+
+### 2.4 A citation names a primary source, re-read <a id="primary-sources"></a>
+
+- A `citation` or a `fetch` MUST name the artefact that decides the claim — the source
+  file, the merged commit, the issue body and its resolution. An issue title, a changelog
+  line, a search-result snippet or another reader's summary decides nothing.
+- The cited artefact MUST be re-read at the moment it is relied on. A conclusion carried
+  forward from an unread citation is a hypothesis (§7), whatever it was when first read.
+- One verified reason MUST be preferred to several plausible ones. A reason that does not
+  survive re-reading is recorded as struck, with what the source actually says, never
+  silently dropped — otherwise the next reader finds the argument and cites it as settled.
+
+Observed: a spike recommended rejecting mutation testing on four grounds, "each
+sufficient". Re-read against the primary sources, one held; one collapsed, the cited
+issue being an unmerged draft build-modernisation PR whose companion recorded the
+opposite result; and two were overstated. The worked table is
+`doc:35-testing#mutation-testing`.
 
 ---
 
