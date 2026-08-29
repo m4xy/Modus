@@ -3,6 +3,8 @@ import org.gradle.api.attributes.Usage
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 // Baseline for every Kotlin module in Modus: JVM toolchain, compiler strictness,
 // and the mechanical gates (ktlint, Detekt, tests).
@@ -12,6 +14,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 plugins {
     id("org.jetbrains.kotlin.jvm")
     id("org.jlleitschuh.gradle.ktlint")
+    jacoco
 }
 
 val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
@@ -360,5 +363,163 @@ tasks.withType<Test>().configureEach {
         events(TestLogEvent.FAILED, TestLogEvent.SKIPPED)
         exceptionFormat = TestExceptionFormat.FULL
         showStackTraces = true
+    }
+}
+
+// --- Coverage --------------------------------------------------------------
+// The scheme and its rationale are doc:35-testing#coverage; this is its
+// mechanism. The pin is load-bearing: Gradle 9.7.1 defaults `toolVersion` to
+// 0.8.13, only EXPERIMENTAL on class file version 69. There is deliberately no
+// exclude list — 0.8.15 filters the Kotlin synthetics itself.
+jacoco {
+    toolVersion = libs.findVersion("jacoco").get().requiredVersion
+}
+
+// A module with no tests writes no `.exec` file, and a JacocoReport with no
+// execution data is skipped — which would make the ratchet vacuous on exactly
+// the eight modules that have no `src/test`. An always-present empty exec file
+// forces the report out of `classDirectories` alone, counting every instruction
+// as missed (doc:35-testing#coverage §8.4).
+val emptyCoverageExec = layout.buildDirectory.file("jacoco/empty.exec")
+
+val seedCoverageExecData =
+    tasks.register("seedCoverageExecData") {
+        description = "Writes an empty JaCoCo exec file so a module with no tests still produces a report."
+        val target = emptyCoverageExec
+        outputs.file(target)
+        doLast {
+            target
+                .get()
+                .asFile
+                .also { it.parentFile.mkdirs() }
+                .writeBytes(ByteArray(0))
+        }
+    }
+
+// Every `.exec` under the module's JaCoCo directory: the empty seed plus one
+// per test suite. Matched by the SAME glob `modus.coverage` uses to build the
+// aggregate, deliberately. Naming `test.exec` and `integrationTest.exec` here
+// literally is a divergence waiting to happen: suites are declared through
+// `withType<JvmTestSuite>().configureEach`, so a third one is a two-line
+// change, and its agent output would then be counted in the report and NOT in
+// the gate (doc:35-testing#coverage §8.4).
+val coverageExecData =
+    layout.buildDirectory
+        .dir("jacoco")
+        .map { it.asFileTree.matching { include("*.exec") } }
+
+// Kotlin-only repository: `classes/kotlin/main` is the whole of a module's
+// production bytecode. `src/main/kotlin` is what the HTML report renders.
+val coverageClasses = files(layout.buildDirectory.dir("classes/kotlin/main")).filter { it.exists() }
+val coverageSources = layout.projectDirectory.dir("src/main/kotlin")
+
+// The four numeric columns of a baseline row, in file order.
+val coverageBaselineFigureCount = 4
+val missedInstructionsColumn = 0
+val missedBranchesColumn = 1
+val coveredInstructionsColumn = 2
+val coveredBranchesColumn = 3
+
+/**
+ * The four figures recorded for [modulePath] in `config/coverage/baseline.tsv`:
+ * missed instructions, missed branches, covered instructions, covered branches,
+ * in that order. A module with no row reads as `0 0 0 0` and fails on its first
+ * uncovered instruction; `coverageBaselineIsComplete` at the root turns that
+ * into a named failure.
+ */
+fun coverageBaselineRow(
+    text: String,
+    modulePath: String,
+): List<Long> {
+    val columns =
+        text
+            .lineSequence()
+            .map { it.substringBefore("#").trim() }
+            .filter { it.isNotEmpty() }
+            .map { it.split(Regex("\\s+")) }
+            .firstOrNull { it.firstOrNull() == modulePath }
+            .orEmpty()
+    return (1..coverageBaselineFigureCount).map { columns.getOrNull(it)?.toLongOrNull() ?: 0L }
+}
+
+// A module with no production code (`:architecture-tests`) gets no coverage
+// tasks. `coverageBaselineIsComplete` at the root is the guard on this branch:
+// the baseline must name exactly the modules that do have production code.
+if (coverageSources.asFile.isDirectory) {
+    val coverageReport =
+        tasks.register<JacocoReport>("coverageReport") {
+            group = "verification"
+            description = "Merges this module's unit and integration coverage into one HTML + XML report."
+            // Derived, not listed: every `Test` task in the module, whichever
+            // suite declared it. Pairs with the `*.exec` glob above.
+            dependsOn(seedCoverageExecData, tasks.withType<Test>())
+            executionData.setFrom(coverageExecData)
+            classDirectories.setFrom(coverageClasses)
+            sourceDirectories.setFrom(coverageSources)
+            reports {
+                xml.required = true
+                html.required = true
+            }
+        }
+
+    // The ratchet. Both bounds are the same number, so uncovered code that grows
+    // fails and uncovered code that shrinks fails too, until the baseline is
+    // lowered in the same commit (doc:35-testing#coverage §8.1). MISSEDCOUNT
+    // alone would pin only the uncovered surface: deleting or shrinking fully
+    // covered production code leaves it untouched while the ratio falls, so
+    // COVEREDCOUNT is pinned the same way and both halves of the fraction move
+    // only through a reviewable diff line.
+    val baselineFile = isolated.rootProject.projectDirectory.file("config/coverage/baseline.tsv")
+    val recorded =
+        providers
+            .fileContents(baselineFile)
+            .asText
+            .map { coverageBaselineRow(it, project.path) }
+            .getOrElse(List(coverageBaselineFigureCount) { 0L })
+    val missedInstructions = recorded[missedInstructionsColumn]
+    val missedBranches = recorded[missedBranchesColumn]
+    val coveredInstructions = recorded[coveredInstructionsColumn]
+    val coveredBranches = recorded[coveredBranchesColumn]
+
+    val coverageRatchet =
+        tasks.register<JacocoCoverageVerification>("coverageRatchet") {
+            group = "verification"
+            description = "Fails unless missed and covered counts equal config/coverage/baseline.tsv."
+            dependsOn(coverageReport)
+            executionData.setFrom(coverageExecData)
+            classDirectories.setFrom(coverageClasses)
+            sourceDirectories.setFrom(coverageSources)
+            violationRules {
+                rule {
+                    limit {
+                        counter = "INSTRUCTION"
+                        value = "MISSEDCOUNT"
+                        minimum = missedInstructions.toBigDecimal()
+                        maximum = missedInstructions.toBigDecimal()
+                    }
+                    limit {
+                        counter = "BRANCH"
+                        value = "MISSEDCOUNT"
+                        minimum = missedBranches.toBigDecimal()
+                        maximum = missedBranches.toBigDecimal()
+                    }
+                    limit {
+                        counter = "INSTRUCTION"
+                        value = "COVEREDCOUNT"
+                        minimum = coveredInstructions.toBigDecimal()
+                        maximum = coveredInstructions.toBigDecimal()
+                    }
+                    limit {
+                        counter = "BRANCH"
+                        value = "COVEREDCOUNT"
+                        minimum = coveredBranches.toBigDecimal()
+                        maximum = coveredBranches.toBigDecimal()
+                    }
+                }
+            }
+        }
+
+    tasks.named("check") {
+        dependsOn(coverageRatchet)
     }
 }

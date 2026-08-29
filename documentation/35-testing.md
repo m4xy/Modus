@@ -17,6 +17,7 @@ provides:
   - doc:35-testing#assertions
   - doc:35-testing#load-bearing-evidence
   - doc:35-testing#mutation-testing
+  - doc:35-testing#coverage
   - doc:35-testing#gaps
 depends_on: [doc:00-constitution, doc:30-code-style]
 ---
@@ -190,7 +191,7 @@ vacuously.
 - `rule:archunit/everyUnitTestPackageIsAnalysed` is the guard on the guards. It fails if
   the unit-test bytecode is missing — the only way the rules above could become a silent
   no-op. It says nothing about how much bytecode there is, and today there is one
-  package's worth: see the first row of §8 before assuming these rules are exercised
+  package's worth: see the second row of §9 before assuming these rules are exercised
   across the module graph.
 
 `Enforcement gap:` integration-test bytecode is not published or analysed, so
@@ -297,17 +298,178 @@ carries it.
 
 ---
 
-## 8. Gaps <a id="gaps"></a>
+## 8. Coverage is a ratchet, not a percentage <a id="coverage"></a>
+
+Coverage is measured by JaCoCo over both suites and gated by an exact per-module baseline.
+It is a complement to §6 and never a substitute: an assertion-free test raises coverage
+and proves nothing, so a covered line is evidence only after §6's procedure has been run
+against the behaviour on it.
+
+| fact | value |
+|---|---|
+| tool | JaCoCo, `jacoco = "0.8.15"` in `gradle/libs.versions.toml` |
+| applied by | `modus.kotlin-base` per module, `modus.coverage` at the root. A module MUST NOT configure JaCoCo |
+| suites measured | `test` and `integrationTest`, merged into one report per module |
+| per-module report | `coverageReport` — HTML and XML, in every module that has `src/main/kotlin` |
+| aggregate report | `coverageAggregateReport` — HTML and XML across every module, at `build/reports/jacoco/aggregate/` |
+| published by CI | the aggregate XML, through `madrapps/jacoco-report`, on pull requests only |
+| the gate | `coverageRatchet` in every module, reached by `check` and therefore by `qualityCheck` |
+| the record | `config/coverage/baseline.tsv` — one row per module: missed instructions, missed branches, covered instructions, covered branches |
+| moved by | `coverageBaselineWrite`, which refuses a downward write unless `-Pcoverage.regress=<reason>` is passed |
+
+The version is pinned because Gradle 9.7.1 defaults `jacoco.toolVersion` to 0.8.13, which
+lists class file version 69 (Java 25) as experimental; 0.8.14 is the first release with
+official Java 25 support.
+
+No exclude list is configured. JaCoCo 0.8.15 filters the Kotlin synthetics no test can
+reach — `$default` bridges, inline and reified copies, the `lateinit` null check, the
+elvis branch after a safe call, `@JvmStatic` accessors — and a hand-written list would be
+a second copy of a filter set the tool already ships.
+
+### 8.1 The rule
+
+- A module's missed instructions, missed branches, covered instructions and covered
+  branches MUST each equal the figure in its row. Both bounds are that one number.
+- Missing **more** than the row fails: uncovered production code arrived, or a test that
+  covered something was weakened or deleted.
+- Missing **less** than the row fails: the record is stale. It is lowered in the same
+  commit, so an improvement is a reviewable line rather than slack a later regression
+  can spend.
+- Covering **less** than the row fails too. `MISSEDCOUNT` alone pins only the uncovered
+  surface: deleting or shrinking fully covered production code leaves it untouched while
+  the ratio falls, so `COVEREDCOUNT` is pinned the same way and both halves of the
+  fraction move only through this file.
+- Every module with `src/main/kotlin` MUST have exactly one row, and no other row may
+  exist. A module with no row has no gate.
+- Regenerate with `./gradlew coverageBaselineWrite`, then review the diff. A figure the
+  report does not produce MUST NOT be hand-written.
+- The writer MUST refuse to raise a missed count. A downward write is a one-line diff
+  indistinguishable at a glance from the improvement with its digits swapped, so it
+  requires `-Pcoverage.regress=<reason>`; the reason is written into the baseline as a
+  comment and MUST also appear in the pull request body. Every write prints the
+  per-module delta, so the direction is visible in the CI log and not only in the file.
+
+`Enforced by:` `coverageRatchet` — one `JacocoCoverageVerification` per module, with
+`minimum` and `maximum` both set from the row, for all four figures — and
+`coverageBaselineIsComplete`, the root guard on the row set. The regression guard is in
+`coverageBaselineWrite` (`modus.coverage`), not in review.
+
+Observed with one covered element deleted from `BoundedContexts.names`, the test adjusted
+so it still passes, and the missed count therefore unchanged at `0`:
+
+```
+> Task :core-domain:coverageRatchet FAILED
+Rule violated for bundle core-domain: instructions covered count is 29, but expected minimum is 33
+```
+
+Observed attempting to record that same weakened `:core-domain`:
+
+```
+> Task :coverageBaselineWrite FAILED
+coverageBaselineWrite refuses to record worse coverage: :core-domain (missed instructions
+0 -> 33). Restore the coverage, or re-run with -Pcoverage.regress=<reason>; the reason is
+written into the baseline and belongs in the pull request body too.
+```
+
+Observed with the single assertion in `:core-domain` weakened to `assertEquals(6, 6)`:
+
+```
+> Task :core-domain:coverageRatchet FAILED
+Rule violated for bundle core-domain: instructions missed count is 33, but expected maximum is 0
+```
+
+### 8.2 Why a ratchet and not a threshold
+
+| scheme | what it does on this repository today |
+|---|---|
+| one high figure, say 90% | eight of nine modules have no `src/test` and the domain model does not exist. It fails all eight for work nobody has started, or — with them excluded — passes on nothing |
+| one low figure | a number nobody ever raises. Satisfied on the day it lands and never constraining again |
+| a threshold per module | nine invented numbers, each defensible only by the coverage that happens to exist |
+| an exact per-module ratchet | non-vacuous on all nine today. The recorded missed *and* covered counts are the measurement, and every movement in either is a line in the diff |
+
+The ratchet states no number anyone invented, and it fails in both directions, so it
+cannot go stale while the build is green.
+
+### 8.3 Provisional code is counted, not excluded
+
+Every module holds provisional placeholder code — the bounded-context markers, the module
+and adapter descriptors — to be replaced when the domain model lands.
+
+- Provisional code MUST NOT be excluded from coverage. It is bytecode that ships, and an
+  exclusion outlives the placeholder while being invisible in the number it changed.
+- Counting it is what gives the ratchet teeth before the domain model exists:
+  `:adapter-agent-claude` records 33 missed instructions, so a thirty-fourth fails.
+- Deleting a placeholder lowers its row, through the same reviewable diff line as any
+  other movement.
+
+`Caveat, stated rather than discovered:` the baseline today is largely three copies of one
+descriptor. `:adapter-agent-claude`, `:adapter-persistence-flatfile` and `:adapter-vcs-git`
+all record `33 0 0 0`; `:core-application`, `:module-beans` and `:module-cost` all record
+`6 0 0 0`. The day the placeholders are replaced, every row moves at once, and a reviewer
+faced with nine simultaneous changes will rubber-stamp exactly the diff §8.1's regression
+guard exists to catch. The guard — not the reviewer — is what makes that day safe.
+
+The branch columns are all zero because there is not yet a branch in any module's
+production code, so the `BRANCH` half of the rule is satisfied vacuously today. It is
+measured, not merely declared. Observed with one compound condition planted in
+`BoundedContexts` and every one of its branches exercised, `coverageBaselineWrite` recorded
+`:core-domain  0 0 49 6`; with a single assertion then removed:
+
+```
+> Task :core-domain:coverageRatchet FAILED
+Rule violated for bundle core-domain: branches missed count is 2, but expected maximum is 0
+Rule violated for bundle core-domain: branches covered count is 4, but expected minimum is 6
+```
+
+Both reverted; the recorded rows are the ones the reports produce.
+
+### 8.4 Coverage is attributed to the module whose tests produced it
+
+- A module's ratchet reads ONLY the execution data its own two suites wrote. A
+  `:modus-server` integration test that loads `:adapter-rest` through the Spring context
+  does not credit `:adapter-rest`. A module's gate MUST NOT be satisfiable by another
+  module's tests.
+- The aggregate report merges every module's execution data against every module's
+  classes, so it reads higher than the per-module figures. It is the reporting number and
+  MUST NOT be made the gate.
+- A module with no test writes no execution data, and a report with none is skipped. An
+  empty `.exec` file is therefore always present, so such a module still reports every
+  instruction as missed rather than reporting nothing.
+- The execution data a module's gate reads MUST be derived by the same `*.exec` glob the
+  aggregate uses, never by naming suites literally. Suites are declared through
+  `withType<JvmTestSuite>().configureEach`, so a third one is a two-line change; with a
+  literal list its agent output would be counted in the report and not in the gate, and
+  the two published numbers would disagree with no error anywhere.
+
+`Enforced by:` `coverageExecData` in `modus.kotlin-base`, a glob over
+`build/jacoco/*.exec`, with `dependsOn(tasks.withType<Test>())` derived the same way.
+Observed with a throwaway third suite `smokeTest` registered and one smoke test written
+against `:module-cost`, whose row records six missed instructions and none covered:
+
+```
+> Task :module-cost:smokeTest
+> Task :module-cost:coverageRatchet FAILED
+Rule violated for bundle module-cost: instructions missed count is 3, but expected minimum is 6
+Rule violated for bundle module-cost: instructions covered count is 3, but expected maximum is 0
+```
+
+With the previous literal `test.exec` + `integrationTest.exec` set restored and nothing
+else changed, the same suite ran and the same module passed — the divergence this rule
+closes.
+
+---
+
+## 9. Gaps <a id="gaps"></a>
 
 Stated so they can be closed rather than discovered.
 
 | gap | closing condition |
 |---|---|
-| **Coverage is not measured.** No JaCoCo, no threshold, no report. Out of scope here on purpose: a gate added in the same change as the taxonomy would be tuned to whatever the current tests happen to reach. | its own pull request, against this taxonomy |
+| No coverage **ratio** floor is set. The ratchet (§8) is exact and fires today, but with eight of nine modules at zero tests any percentage would be invented (§8.2). | every analysed module has a `src/test`. The baseline now records covered counts as well as missed, so the floor is read straight off it rather than chosen |
 | **The purity rules currently guard one package.** Eight of the nine analysed modules have no `src/test` at all, so their `-unit-tests.jar` is empty and `unit-test-packages.txt` has exactly one line, `uk.m4xy.modus.core.domain`. Every rule in §4 is a `noClasses(...)`, and `rule:archunit/everyUnitTestPackageIsAnalysed` can only assert that whatever unit tests exist were imported — so the mechanism is sound and its current reach is one file. An empty jar is also indistinguishable, from inside the guard, from a jar that failed to be produced. | self-closing: each module's first unit test is analysed automatically, with no list to update. Closed when every analysed module has a `src/test` |
 | Integration-test bytecode is not analysed (§4). | publish `<module>-integration-tests.jar` beside the unit-test jar |
 | Nothing measures test duration or asserts an integration test earns its context (§1). | a duration budget in the `Test` task configuration |
 | Nothing mechanically compares `rule:ci/build` with the documented local command (§2). | a check that the workflow invokes exactly the aggregate task |
 | Load-bearing evidence is a review obligation (§6). | a PR-body checker, part of the `docs-lint` step `bean:0004` describes |
 
-`bean:0006` carries every row.
+`bean:0006` carries every row but the first; `bean:0007` carries the first.

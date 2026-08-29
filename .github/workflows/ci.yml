@@ -12,6 +12,9 @@ concurrency:
 
 permissions:
   contents: read
+  # The coverage comment, and only that. A fork's GITHUB_TOKEN is read-only
+  # regardless, which is why the publish step is guarded on the head repository.
+  pull-requests: write
 
 jobs:
   build:
@@ -49,7 +52,10 @@ jobs:
             21
             25
 
-      - uses: gradle/actions/setup-gradle@v4
+      # Pinned to a commit, not a tag. `gradle/actions` is published by the
+      # Gradle organisation rather than by GitHub, so `v4` is a tag its
+      # publisher can move; this SHA is exactly what `v4` resolves to today.
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
@@ -62,6 +68,25 @@ jobs:
       # second step to forget. See doc:35-testing#source-sets.
       - name: qualityCheck (both test suites, ktlint, Detekt, ArchUnit, build-logic)
         run: ./gradlew qualityCheck --stacktrace
+
+      # Reporting only, and no second Gradle invocation: qualityCheck already
+      # built this XML. The GATE is the per-module ratchet inside qualityCheck,
+      # which has already failed the job if coverage moved, so min-coverage-* are
+      # 0 rather than a second threshold to keep in sync (doc:35-testing#coverage).
+      - name: Publish coverage on the pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        # Pinned to the immutable commit behind v1.8.0. This is the only
+        # third-party action in the workflow and the only reason the job holds
+        # `pull-requests: write`; a moving tag would let its publisher run
+        # arbitrary code with a write-scoped GITHUB_TOKEN on every pull request.
+        # Verify a bump with `gh api repos/madrapps/jacoco-report/commits/<tag>`.
+        uses: madrapps/jacoco-report@e51ce1f46f7f8b5331593f935e59cbaf44b84920 # v1.8.0
+        with:
+          paths: build/reports/jacoco/aggregate/coverage.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Coverage (all modules, both test suites)
+          min-coverage-overall: 0
+          min-coverage-changed-files: 0
 
       - name: Upload reports
         if: failure()
