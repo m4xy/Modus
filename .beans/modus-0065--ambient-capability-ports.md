@@ -79,9 +79,33 @@ second is the one to kill explicitly.
 
 | option | verdict |
 |---|---|
-| **Per-context, per §5.1** — `ClockPort` declared inside every context that needs one | **Rejected.** Three ports across six contexts is eighteen identical interfaces, and `app/modus-server` would wire one system clock to all of them. `adr:0004` took the opposite trade for `DomainId` because two contexts *could not* otherwise hold one equal type; no such requirement exists here. Nothing compares clocks, no event carries one, and no cross-context type must match. The duplication buys nothing and costs a change in eighteen places. |
+| **Per-context, per §5.1** — `ClockPort` declared inside every context that needs one | **Rejected on correctness, not on verbosity.** Six per-context `ClockPort` declarations are six **distinct types** that are semantically identical and not type-compatible: an adapter implementing `work`'s cannot satisfy `cost`'s. So this does not give one clock injected six times. It gives six ports requiring six separate bindings of what is, by construction, one implementation per process — and nothing stops those bindings diverging. A fixed test double wired into five contexts and forgotten in the sixth is a defect this shape makes **representable**, and a shared port package makes unrepresentable. That is the argument; eighteen interfaces across three ports is the secondary observation. |
 | **Shared-kernel membership** | **Rejected on the ADR's own test.** `adr:0004-domain-id-shared-kernel#shared-kernel-membership` test 2 requires the type to "appear in the published language of more than one context, or must, for the model to be expressible". A port appears in **no** context's published language and never can: `doc:10-architecture#bounded-contexts` §3.1 makes `..event..` and `..published..` leaf packages, so an event naming a port would itself be the violation. Tests 1 and 3 pass, test 2 fails, and test 4's ADR is therefore never reached. It follows that the ADR's "on the third member, the kernel gets its own package" trigger does **not** fire: it counts kernel members, and this bean adds none. Three ports arriving at once makes that worth stating rather than assuming. |
 | **A context-free `uk.m4xy.modus.core.domain.port` package** | **Chosen.** A sibling of the kernel, not part of it. It needs no exemption from `rule:archunit/publishedLanguageIsLeaf`, because no event will ever reference a port, and `doc:15-repository-layout#extending` §9 puts "a new aggregate, a new port, a new adapter implementation of an existing port" in the class of ordinary work that "needs only a work item" — so no ADR. |
+
+**The `adr:0004` analogy holds, and an earlier draft conceded it too quickly.** That draft
+said the ADR's "two contexts needing one *equal* type" reasoning has no analogue here because
+nothing compares clocks. The analogue is not the value — it is the **provider**. A capability
+port has exactly one implementation per process by construction, which is a *stronger*
+identity requirement than equality of values, not a weaker one. `adr:0004` chose a kernel
+over duplication to stop two contexts holding types that must agree but need not; that is
+this case exactly, one level up.
+
+**An untested corollary, recorded as a conjecture and not as a rule.** The test-2 argument
+above settles these three ports. It also suggests a general claim — *no port can ever join
+the shared kernel* — which this bean does **not** assert and no future change may cite it as
+having settled. That generalisation is valid only if both of the following hold, and neither
+has been verified here:
+
+1. test 2 is a **necessary** condition of membership rather than one of four tests weighed
+   together, and
+2. no future design could place a port type into a context's published language.
+
+The first is a reading of `adr:0004` that its owner has not given; the second is unverifiable
+from here. Both are plausible, which is the danger rather than the reassurance: a plausible
+unverified generalisation left in a bean is how a conjecture is cited as authority a sprint
+later. If the general claim is worth settling it is `adr:0004`'s owner's call and a separate
+work item, not a side effect of placing three ports.
 
 **What this costs, and who pays it.** `doc:20-ddd-practices` §5.1's package table needs a row
 for the new package. That is a `documentation/` change and `documentation/` is not this bean's
