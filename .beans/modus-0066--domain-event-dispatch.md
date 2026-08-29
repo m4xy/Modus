@@ -4,6 +4,7 @@ title: Domain event dispatch — nothing drains pendingEvents
 status: todo
 type: feature
 priority: high
+order: AQ
 created_at: 2026-08-29T00:00:00Z
 ---
 
@@ -32,10 +33,13 @@ Two consequences, and the second is the one that will bite:
    table is a design, not a description. The enumeration is below; it is this bean's value.
 2. **There is no drain, only a read.** `pendingEvents` copies out; nothing clears `events`.
    An aggregate re-saved in a second transaction would re-publish everything it has ever
-   raised, and `Domain.adoptProcess` and `PermissionGrant.revoke` both mutate and return
-   `this`, so a long-lived instance accumulates without bound. The copy-out that
-   `bean:0036` gated is correct and stays; what is missing is the operation that says
-   "these have been handed over".
+   raised. Unbounded accumulation on one instance holds for `Domain` alone:
+   `Domain.adoptProcess` mutates and returns `this` and may be called any number of times,
+   whereas `PermissionGrant.revoke` opens with `check(!revoked)` (`PermissionGrant.kt:70`)
+   and so raises at most once — an earlier draft named both and was wrong about the second.
+   Re-publication on a second save is the general defect and it applies to all three roots;
+   growth without bound is `Domain`'s. The copy-out that `bean:0036` gated is correct and
+   stays; what is missing is the operation that says "these have been handed over".
 
 ## The seven edges, and the state of each today
 
@@ -45,7 +49,7 @@ nothing, so it does not appear as a consumer.
 | # | consumer | event | publisher | publisher exists? | consumer exists? | dispatch exists? |
 |---|---|---|---|---|---|---|
 | 1 | `domainmgmt` | `GrantRevoked` | `identity` | yes — `identity/event/IdentityEvents.kt:67`, raised at `PermissionGrant.kt:71` | yes — `Domain` aggregate | **no** |
-| 2 | `work` | `ProcessDefinitionChanged` | `domainmgmt` | yes — `domainmgmt/event/DomainMgmtEvents.kt:36`, raised at `Domain.kt:55` | no — `work` is `WorkContext`, an object holding `NAME` | **no** |
+| 2 | `work` | `ProcessDefinitionChanged` | `domainmgmt` | yes — `domainmgmt/event/DomainMgmtEvents.kt:36`, raised at `Domain.kt:56` | no — `work` is `WorkContext`, an object holding `NAME` | **no** |
 | 3 | `memory` | `WorkItemClosed` | `work` | no | no | **no** |
 | 4 | `memory` | `AgentRunCompleted` | `execution` | no | no | **no** |
 | 5 | `execution` | `WorkItemTransitioned` | `work` | no | no | **no** |
@@ -69,7 +73,7 @@ this wrong is how a framework gets into the core.
 | layer | role | why not elsewhere |
 |---|---|---|
 | `core-domain` | **Raises only.** An aggregate appends to its own list and gains a drain operation that hands the accumulated events over and empties the list in one step. It learns nothing about who receives them. | `doc:00-constitution` §1.3 is absolute: no Spring, no static singletons, no service locators. An `ApplicationEventPublisher`, a static bus, or a `DomainEvents.raise(...)` helper are each a straight violation, and `rule:archunit/domainIsFrameworkFree` rejects the first shape today. |
-| `core-application` | **Owns the contract and the ordering.** The use case writes through the repository port, then drains and hands over. The dispatch port is declared here — `doc:00-constitution` §1.2 permits a port in `core-application` when it is use-case-shaped, and this one is: it exists because a use case must publish, not because the domain must. | It cannot sit in `core-domain`: a handler is a use case, and `doc:00-constitution` §1.1 forbids `core-domain` depending on `core-application`. It cannot sit in an adapter: `doc:00-constitution` §1.2 puts ports inside and implementations outside. |
+| `core-application` | **Owns the contract and the ordering.** The use case writes through the repository port, then drains and hands over. The dispatch port is declared here — `doc:00-constitution` §1.2 permits a port in `core-application` when it is use-case-shaped, and `doc:20-ddd-practices#ports-and-adapters` §5.2's first rule settles it: "ports are declared where they are **used**, not where they are implemented". The publisher is used by a use case and by nothing in the domain. | Not because `core-domain` is barred from holding it. An earlier draft of this row argued that, and the argument was a non-sequitur: its premise was about the *handler* — which is a use case, so `doc:00-constitution` §1.1 does forbid `core-domain` naming one — while its conclusion was about the *port*. A port `fun publish(events: List<DomainEvent>)` references only the shared kernel and depends on nothing outer, so §1.1 permits it in `core-domain` and the choice rests on §5.2 alone. It may not sit in an adapter: `doc:00-constitution` §1.2 puts ports inside and implementations outside. |
 | an adapter or module | **Implements the port.** Synchronous in-process fan-out is enough for the walking skeleton; Spring's own event machinery is one legal implementation and is invisible to both core modules. | `core-application` may not depend on Spring either (`doc:00-constitution` §1.1, row 2). |
 | `app/modus-server` | **Wires handlers to events, exactly once.** | Wiring happens in one place by `doc:00-constitution` §1.2. |
 
@@ -84,6 +88,25 @@ Two constraints that fall out and must be criteria, not afterthoughts:
   makes that package a leaf and forbids reaching an aggregate, a port or a use case across
   the boundary. The dispatcher must not become the hole through which a context reaches
   another context's internals.
+
+## What "end to end" means here, and why this bean is selectable today
+
+Criteria 5 and 6 name a repository write, and no repository is implemented anywhere —
+`bean:0009` declared two ports and implemented neither, and `bean:0017` is the bean that
+builds the flat-file store. So the question has to be answered before the criteria can be
+read: **hand-written in-memory fakes, not a real adapter.**
+
+That is the documented level for this test, not a concession. `doc:15-repository-layout` §8
+puts use-case tests in `core/core-application/src/test` against "domain plus in-memory fakes
+of ports, no Spring context", and rules out a mocking framework in `core/` outright. A fake
+repository that throws is exactly how criterion 6 observes a failed write, and it observes it
+better than a real store would: it fails on demand, deterministically, where making a real
+flat-file write fail requires arranging a filesystem condition.
+
+**Consequence: this bean carries no `blocked_by`.** It is selectable now. What it cannot do
+is prove that dispatch survives a *real* durable write; that assertion belongs to the first
+bean that owns both halves, and is `bean:0017`'s integration suite rather than this one's.
+The bean is honest about which of the two it has evidenced.
 
 ## Scope
 
