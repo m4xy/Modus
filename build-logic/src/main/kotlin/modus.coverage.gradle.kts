@@ -206,10 +206,18 @@ tasks.register("coverageBaselineWrite") {
             }
 
         val labels = listOf("missed instructions", "missed branches", "covered instructions", "covered branches")
+        val missedColumns = labels.indices.filter { labels[it].startsWith("missed") }
+        val coveredColumns = labels.indices.filter { labels[it].startsWith("covered") }
         val regressions =
             current.mapNotNull { (path, now) ->
                 val was = previous[path] ?: return@mapNotNull null
-                val worse = listOf(0, 1).filter { now[it] > was[it] }
+                // A missed count is worse when it RISES; a covered count is worse when
+                // it FALLS. Guarding only the missed half let lost coverage be
+                // rebaselined away without a reason. Columns are derived from `labels`
+                // so adding one cannot silently escape the guard.
+                val worse =
+                    missedColumns.filter { now[it] > was[it] } +
+                        coveredColumns.filter { now[it] < was[it] }
                 if (worse.isEmpty()) null else path to worse.map { "${labels[it]} ${was[it]} -> ${now[it]}" }
             }
 
