@@ -1,7 +1,7 @@
 ---
 # modus-0051
 title: Two parallel agents allocated the same bean id
-status: todo
+status: in-progress
 type: fix
 priority: high
 order: AL

@@ -481,6 +481,110 @@ done < "$TMP/order-dupes.tsv"
 n_ready="$(grep -c . "$TMP/bean-ready.tsv")"
 [ "$n_ready" -gt 0 ] || fail 12 "no bean is selectable: every non-epic 'status: todo' bean has an unsatisfied blocked_by edge, so AGENTS.md step 1 returns nothing"
 
+# ---------------------------------------------------------------- check 13 ---
+# Bean id uniqueness. `.beans/` is the allocator: an agent reads it and takes the
+# next free number, and nothing serialises two readers. Two agents in parallel
+# worktrees both allocated modus-0048; docs-lint was green on both branches,
+# because within either tree the id IS unique, and the collision surfaced only as
+# a merge conflict (bean:0051).
+#
+# Three conditions, in widening scope:
+#   13a  within the tree  — an id names exactly one file
+#   13b  within the file  — the filename's id and the `# <id>` marker agree
+#   13c  across branches  — an id this branch introduces is not already on origin/main
+#
+# 13c is the condition that catches the real defect; 13a and 13b are the local
+# invariants it assumes. Neither was covered before: check 6 rejects a duplicated
+# id only by accident, when some prose happens to reference it, so an unreferenced
+# duplicate passes; and nothing read the marker at all.
+
+# The id width `.beans.yml` declares, read there rather than hard-coded a second
+# time (doc:05-authoring-for-agents#one-fact-one-place). Check 6's reference regex
+# resolves `bean:` at exactly this width, so a bean of any other width is
+# unreferenceable and 13b is what says so.
+BEAN_ID_LEN="$(grep -E '^ *id_length:' .beans.yml | head -1 | sed -E 's/[^0-9]*([0-9]+).*/\1/')"
+[ -n "$BEAN_ID_LEN" ] || fail 13 ".beans.yml states no 'id_length:' for docs-lint to read"
+
+# 13a — every bean id appears in exactly one file. Reuses check 12's parse; the
+# id column is the filename's, which is the only id upstream ever reads
+# (`ParseFilename`/`Core.Load`; `Parse` ignores the marker — bean:0008).
+awk -F'\t' '{ print $1 }' "$TMP/beans.tsv" | sort | uniq -d > "$TMP/bean-id-dupes.txt"
+while IFS= read -r dup; do
+  [ -n "$dup" ] || continue
+  files="$(awk -F'\t' -v d="$dup" '$1 == d { printf "%s ", $2 }' "$TMP/beans.tsv")"
+  fail 13 "bean id '$dup' names more than one file: ${files% }"
+done < "$TMP/bean-id-dupes.txt"
+
+# 13b — filename and marker agree. Upstream never reads the marker back, so a
+# rename that updates the filename and not the marker, or the reverse, is silent
+# everywhere — and was hit while fixing this very collision. Iterates the
+# directory rather than the parse, so a bean file that produced no front-matter
+# row is still seen.
+n_bean_files=0
+for f in $(ls .beans/*.md 2>/dev/null); do
+  n_bean_files=$((n_bean_files + 1))
+  base="$(basename "$f" .md)"
+  if ! printf '%s' "$base" | grep -qE "^${BEAN_PREFIX}[0-9]{${BEAN_ID_LEN}}--.+$"; then
+    fail 13 "$f: filename is not '${BEAN_PREFIX}<${BEAN_ID_LEN} digits>--slug.md' (.beans.yml)"
+    continue
+  fi
+  bid="${base%%--*}"
+  # Only comment lines that are shaped like an id marker; a bean's front-matter
+  # may carry other `#` comments, and modus-0047 does.
+  marker="$(awk -v p="$BEAN_PREFIX" '
+    NR == 1 { if ($0 != "---") exit; next }
+    $0 == "---" { exit }
+    index($0, "# " p) == 1 { print }
+  ' "$f")"
+  n_marker="$(printf '%s' "$marker" | grep -c .)"
+  if [ "$n_marker" != "1" ]; then
+    fail 13 "$f: front-matter carries $n_marker '# ${BEAN_PREFIX}…' id markers, expected exactly 1"
+  elif [ "$marker" != "# $bid" ]; then
+    fail 13 "$f: front-matter marker '$marker' does not match the filename id '$bid'"
+  fi
+done
+
+# 13c — an id this branch INTRODUCES must not already exist on origin/main.
+# "Introduced" is a property of a diff, so the classification is check 11's: the
+# merge base says which ids this branch is adding, and origin/main says which ids
+# a sibling branch has already merged. An id absent from the base and present on
+# origin/main was allocated twice — the case no within-tree check can see, because
+# on each branch the id genuinely is unique.
+#
+# No base means no diff to judge, exactly as in check 11; the counts on the OK
+# line report `-` so an inert run is visible rather than silently green.
+awk -F'\t' '{ print $1 }' "$TMP/beans.tsv" | sort -u > "$TMP/bean-ids-tree.txt"
+n_bean_ids="$(grep -c . "$TMP/bean-ids-tree.txt" || true)"
+n_introduced="-"
+n_main_ids="-"
+if [ -n "$BASE" ]; then
+  bean_ids_of() {
+    git ls-tree -r --name-only "$1" -- .beans 2>/dev/null |
+      sed -e 's|^\.beans/||' -e 's|\.md$||' -e 's|--.*||' | sort -u
+  }
+  bean_ids_of "$BASE" > "$TMP/bean-ids-base.txt"
+  bean_ids_of origin/main > "$TMP/bean-ids-main.txt"
+  comm -23 "$TMP/bean-ids-tree.txt" "$TMP/bean-ids-base.txt" > "$TMP/bean-ids-new.txt"
+  n_introduced="$(grep -c . "$TMP/bean-ids-new.txt" || true)"
+  n_main_ids="$(grep -c . "$TMP/bean-ids-main.txt" || true)"
+  while IFS= read -r nid; do
+    [ -n "$nid" ] || continue
+    grep -qx "$nid" "$TMP/bean-ids-main.txt" || continue
+    here="$(awk -F'\t' -v d="$nid" '$1 == d { printf "%s ", $2 }' "$TMP/beans.tsv")"
+    there="$(git ls-tree -r --name-only origin/main -- .beans | grep "^\.beans/$nid--" | tr '\n' ' ')"
+    fail 13 "bean id '$nid' is introduced by this branch (${here% }) but already exists on origin/main (${there% }); a sibling branch allocated it first — take the next id free on origin/main, not the next free in this worktree (bean:0051)"
+  done < "$TMP/bean-ids-new.txt"
+fi
+
+# Non-vacuity for checks 12 and 13. Both read `.beans/`; a run that parsed no
+# beans, or that parsed fewer files than are on disk, examined less than it
+# claims and must say so rather than exit 0 (doc:00-constitution#observed-failing).
+n_beans="$(grep -c . "$TMP/beans.tsv" || true)"
+[ "$n_bean_files" -gt 0 ] || fail 13 ".beans/ holds no bean files; checks 12 and 13 examined nothing"
+if [ "$n_beans" != "$n_bean_files" ]; then
+  fail 13 "$n_bean_files bean file(s) on disk but $n_beans parsed; a bean with no front-matter block is invisible to checks 12 and 13"
+fi
+
 # -------------------------------------------------------------------- done ---
 n_fail="$(grep -c . "$TMP/fails.txt")"
 if [ "$n_fail" -gt 0 ]; then
@@ -489,10 +593,13 @@ if [ "$n_fail" -gt 0 ]; then
 fi
 # The counts are the vacuity assertion: a check that silently examined nothing
 # reports zero here, where check 11 shipping inert went unnoticed for four plants.
-printf 'docs-lint: OK — %s documents, %s anchors, %s references, %s beans, %s graph edges, %s selectable.\n' \
+printf 'docs-lint: OK — %s documents, %s anchors, %s references, %s beans, %s graph edges, %s selectable, %s bean ids, %s introduced, %s on origin/main.\n' \
   "$(printf '%s\n' $FM_FILES | grep -c .)" \
   "$(grep -c . "$TMP/provides.tsv")" \
   "$(grep -c . "$TMP/refs.uniq")" \
-  "$(grep -c . "$TMP/beans.tsv")" \
+  "$n_beans" \
   "$(grep -c . "$TMP/bean-edges.uniq")" \
-  "$n_ready"
+  "$n_ready" \
+  "$n_bean_ids" \
+  "$n_introduced" \
+  "$n_main_ids"
