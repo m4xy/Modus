@@ -1,11 +1,12 @@
 ---
 # modus-0032
 title: Make DomainId shared kernel
-status: in-progress
+status: completed
 type: refactor
 priority: high
 order: AC
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T12:55:15Z
 ---
 
 # Make DomainId shared kernel
@@ -96,3 +97,18 @@ described a permitted set belonging to a different rule.
 | 10 | The regression provenance `coverageBaselineWrite` erased is restored, and the erasure itself is raised rather than absorbed | `bean:0033`, and the restored comment in `config/coverage/baseline.tsv` |
 | 11 | Where the rule enforces less than §4.2 claims, the document says so rather than the bean quietly relying on it | `bean:0034` (value-class erasure), and §4.2's new `Enforcement gap:` naming the five rules of the thirteen that do not exist |
 | 12 | The ADR states which question it settles and which it defers | `adr:0004-domain-id-shared-kernel#deferred-conflict` |
+
+## Summary of Changes
+
+Merged as PR #13 (`b25136f`). `DomainId` is shared kernel beside `DomainEvent`; both §3.1
+rules survive unchanged. `sharedKernelIsLeaf` is new and holds the kernel to the standard it
+lets others rely on — closing a hole older than this bean, since `DomainEvent` was exempt
+from the leaf rule and checked by nothing.
+
+Review disproved criterion 3 as first written. Membership by `name.substringBefore('$')` is
+textual and forgeable — Kotlin permits `$` in a backticked type name, so a top-level
+`` `DomainId$Evil` `` joined the kernel with the build green. It is now walked structurally
+through `JavaClass.getEnclosingClass()`; re-planting the forgery produces seven violations.
+Review also found `publishedLanguageIsLeaf` blind to value classes in erased positions
+(`bean:0034`), and writing that bean surfaced that five of §4.2's thirteen rules do not exist
+at all — now an `Enforcement gap:` naming `bean:0027`.

@@ -1,11 +1,12 @@
 ---
 # modus-0030
 title: The Domain aggregate and per-domain process definitions
-status: in-progress
+status: completed
 type: feature
 priority: high
 order: AM
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T13:01:11Z
 parent: modus-0012
 ---
 
@@ -235,3 +236,21 @@ size-one degeneracy that hid `bean:0009`'s privilege escalation, in a different 
 and `.transitions`, `Domain.id` and `.name`, and every property of both events. Nothing
 asserted on the contract those getters *are*. Covered by asserting on them, not by
 deleting them.
+
+## Summary of Changes
+
+Merged as PR #15 (`a9d68f0`). `domainmgmt` is the second modelled bounded context:
+`Domain`, `ProcessDefinition`, `DomainCreated`, `ProcessDefinitionChanged`,
+`DomainRepository`, and the `DomainMgmtContext` marker deleted. `:core-domain` goes 43 → 87
+tests.
+
+Review found two blocking defects, both absent-guard defects that a 10/10 mutation kill rate
+could not reach. `ProcessDefinition` published its four backing collections — `bean:0009`'s
+privilege escalation in a different type, reachable through the aggregate's getter chain and
+able to mutate an already-raised event's payload. And reachability-from-initial was the wrong
+property: a reachable non-terminal sink and a cycle with no exit both passed every check and
+trap work forever. Co-reachability was added beside forward reachability.
+
+The lesson is encoded rather than only fixed: `doc:20-ddd-practices#value-objects` §3.1 now
+states that a value object holding a collection MUST NOT be a `data class`, and `bean:0036`
+carries the tool — the defect has shipped twice, in two contexts, past two evidence passes.
