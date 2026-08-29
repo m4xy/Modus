@@ -1,0 +1,274 @@
+[
+ {
+  "additions": 3951,
+  "deletions": 0,
+  "headRefName": "docs/foundation-documentation-package",
+  "mergedAt": "2026-08-28T22:31:32Z",
+  "number": 1,
+  "title": "docs: add foundation documentation package"
+ },
+ {
+  "additions": 2472,
+  "deletions": 80,
+  "headRefName": "feat/build-foundation",
+  "mergedAt": "2026-08-28T22:49:36Z",
+  "number": 2,
+  "title": "feat(build): multi-module Gradle foundation with mechanical quality gates"
+ },
+ {
+  "additions": 12120,
+  "deletions": 0,
+  "headRefName": "feat/backoffice-foundation",
+  "mergedAt": "2026-08-28T22:53:35Z",
+  "number": 3,
+  "title": "feat(backoffice): scaffold the backoffice with a tokenised design system"
+ },
+ {
+  "additions": 385,
+  "deletions": 0,
+  "headRefName": "docs/agent-authoring-conventions",
+  "mergedAt": "2026-08-28T22:51:16Z",
+  "number": 4,
+  "title": "docs: define agent-optimal authoring conventions"
+ },
+ {
+  "additions": 760,
+  "deletions": 197,
+  "headRefName": "docs/front-matter-and-lint",
+  "mergedAt": "2026-08-28T23:43:09Z",
+  "number": 5,
+  "title": "docs: back-fill front-matter and enforce it with docs-lint"
+ },
+ {
+  "additions": 1088,
+  "deletions": 24,
+  "headRefName": "feat/test-taxonomy",
+  "mergedAt": "2026-08-28T23:55:45Z",
+  "number": 6,
+  "title": "feat(build): split unit and integration test suites, enforce the taxonomy"
+ },
+ {
+  "additions": 169,
+  "deletions": 55,
+  "headRefName": "feat/beans-schema-migration",
+  "mergedAt": "2026-08-29T07:34:56Z",
+  "number": 7,
+  "title": "feat(beans): migrate work items to the hmans/beans on-disk convention"
+ },
+ {
+  "additions": 995,
+  "deletions": 6,
+  "headRefName": "feat/coverage",
+  "mergedAt": "2026-08-29T07:51:36Z",
+  "number": 8,
+  "title": "feat(build): measure coverage and gate it with an exact per-module ratchet"
+ },
+ {
+  "additions": 1583,
+  "deletions": 33,
+  "headRefName": "feat/identity-domain",
+  "mergedAt": "2026-08-29T09:01:16Z",
+  "number": 9,
+  "title": "feat(core-domain): model the identity bounded context"
+ },
+ {
+  "additions": 939,
+  "deletions": 122,
+  "headRefName": "chore/lifecycle-handoff",
+  "mergedAt": "2026-08-29T10:05:48Z",
+  "number": 10,
+  "title": "chore(beans): close merged work items, publish backlog, encode learnings"
+ },
+ {
+  "additions": 24,
+  "deletions": 1,
+  "headRefName": "chore/close-lifecycle-handoff",
+  "mergedAt": "2026-08-29T12:54:46Z",
+  "number": 11,
+  "title": "chore(beans): close bean:0010 against the merge that completed it"
+ },
+ {
+  "additions": 199,
+  "deletions": 45,
+  "headRefName": "fix/normative-gate-commands",
+  "mergedAt": "2026-08-29T12:55:02Z",
+  "number": 12,
+  "title": "fix(docs): name the gate commands that exist"
+ },
+ {
+  "additions": 600,
+  "deletions": 77,
+  "headRefName": "refactor/domain-id-shared-kernel",
+  "mergedAt": "2026-08-29T12:55:15Z",
+  "number": 13,
+  "title": "refactor(core-domain): make DomainId shared kernel"
+ },
+ {
+  "additions": 1303,
+  "deletions": 32,
+  "headRefName": "feat/domainmgmt-domain",
+  "mergedAt": "2026-08-29T13:01:11Z",
+  "number": 15,
+  "title": "feat(core-domain): model the Domain aggregate and per-domain processes"
+ },
+ {
+  "additions": 245,
+  "deletions": 13,
+  "headRefName": "chore/split-domainmgmt-bean",
+  "mergedAt": "2026-08-29T12:58:47Z",
+  "number": 16,
+  "title": "chore(beans): split bean:0012 into two children, by aggregate"
+ },
+ {
+  "additions": 114,
+  "deletions": 3,
+  "headRefName": "chore/close-merged-stack",
+  "mergedAt": "2026-08-29T13:28:12Z",
+  "number": 17,
+  "title": "chore(beans): close the four work items the merged stack completed"
+ },
+ {
+  "additions": 280,
+  "deletions": 0,
+  "headRefName": "docs/evidence-in-the-work-item",
+  "mergedAt": "2026-08-29T13:20:17Z",
+  "number": 18,
+  "title": "docs(adr): record that evidence lives in the work item"
+ },
+ {
+  "additions": 334,
+  "deletions": 1,
+  "headRefName": "docs/framework-boundary",
+  "mergedAt": "2026-08-29T13:28:17Z",
+  "number": 19,
+  "title": "docs(adr): draw the framework boundary and classify the tree"
+ },
+ {
+  "additions": 523,
+  "deletions": 147,
+  "headRefName": "feat/backoffice-in-the-gate",
+  "mergedAt": "2026-08-29T13:55:41Z",
+  "number": 20,
+  "title": "build: put the backoffice and e2e checks inside the gate"
+ },
+ {
+  "additions": 156,
+  "deletions": 5,
+  "headRefName": "docs/repository-topology",
+  "mergedAt": "2026-08-29T13:55:46Z",
+  "number": 21,
+  "title": "docs(beans): record the component split axis and what gates it"
+ },
+ {
+  "additions": 264,
+  "deletions": 16,
+  "headRefName": "feat/per-path-ci",
+  "mergedAt": "2026-08-29T14:04:33Z",
+  "number": 22,
+  "title": "build(ci): run only the half of the gate a change actually needs"
+ },
+ {
+  "additions": 38,
+  "deletions": 0,
+  "headRefName": "chore/bean-0047-observation",
+  "mergedAt": "2026-08-29T14:16:14Z",
+  "number": 23,
+  "title": "chore(beans): record the gate observation bean:0045 was held back for"
+ },
+ {
+  "additions": 174,
+  "deletions": 18,
+  "headRefName": "feat/evidence-in-the-bean",
+  "mergedAt": "2026-08-29T14:16:20Z",
+  "number": 24,
+  "title": "feat(docs-lint): put the evidence in the bean and make completed beans final"
+ },
+ {
+  "additions": 152,
+  "deletions": 2,
+  "headRefName": "fix/published-language-source-check",
+  "mergedAt": "2026-08-29T14:41:27Z",
+  "number": 25,
+  "title": "fix(architecture): catch cross-context references that erasure hides"
+ },
+ {
+  "additions": 378,
+  "deletions": 1,
+  "headRefName": "feat/first-skills",
+  "mergedAt": "2026-08-29T14:41:32Z",
+  "number": 26,
+  "title": "feat(skills): extract the first three skills"
+ },
+ {
+  "additions": 275,
+  "deletions": 7,
+  "headRefName": "fix/bean-graph-checks",
+  "mergedAt": "2026-08-29T15:13:29Z",
+  "number": 27,
+  "title": "fix(docs-lint): validate the bean graph, not just prose references"
+ },
+ {
+  "additions": 88,
+  "deletions": 2,
+  "headRefName": "docs/encode-bean-0035-learnings",
+  "mergedAt": "2026-08-29T15:12:34Z",
+  "number": 28,
+  "title": "docs: encode the learnings bean:0035's implementation returned"
+ },
+ {
+  "additions": 522,
+  "deletions": 242,
+  "headRefName": "docs/split-architecture-document",
+  "mergedAt": "2026-08-29T15:13:37Z",
+  "number": 29,
+  "title": "docs(architecture): split doc:10-architecture along its tier seam"
+ },
+ {
+  "additions": 7234,
+  "deletions": 170,
+  "headRefName": "fix/eslint-coverage-gaps",
+  "mergedAt": "2026-08-29T15:13:46Z",
+  "number": 30,
+  "title": "fix(build): make the four documented ESLint rules exist and cover e2e"
+ },
+ {
+  "additions": 112,
+  "deletions": 129,
+  "headRefName": "docs/encode-parallel-agent-learnings",
+  "mergedAt": "2026-08-29T15:19:40Z",
+  "number": 31,
+  "title": "docs: encode the learnings three parallel agents returned"
+ },
+ {
+  "additions": 394,
+  "deletions": 5,
+  "headRefName": "fix/bean-id-uniqueness",
+  "mergedAt": "2026-08-29T15:38:32Z",
+  "number": 32,
+  "title": "fix(docs-lint): reject a bean id allocated twice in parallel"
+ },
+ {
+  "additions": 51,
+  "deletions": 1,
+  "headRefName": "docs/encode-checkout-depth-learning",
+  "mergedAt": "2026-08-29T15:44:07Z",
+  "number": 33,
+  "title": "docs: a gate can be real, observed failing, and still not run"
+ },
+ {
+  "additions": 131,
+  "deletions": 11,
+  "headRefName": "docs/orchestrator-role",
+  "mergedAt": "2026-08-29T15:51:08Z",
+  "number": 34,
+  "title": "docs: commit the orchestrator role to the constitution"
+ },
+ {
+  "additions": 355,
+  "deletions": 17,
+  "headRefName": "chore/close-merged-work-items",
+  "mergedAt": "2026-08-29T16:45:24Z",
+  "number": 35,
+  "title": "chore(beans): close the ten work items whose changes have merged"
+ }
+]
