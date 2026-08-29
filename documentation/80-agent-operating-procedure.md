@@ -77,10 +77,10 @@ mechanic that section does not carry. On disagreement it wins and the row is the
 | # | Rule |
 |---|---|
 | R1 | **Who not to spawn:** the implementer, a continuation of its session, or yourself. An implementer asked to review will find what it looked for the first time. |
-| R2 | **What to hand it:** what the anchor above names, plus the documents in the pull-request body's `refs:` — that list and nothing else (`AGENTS.md` routing, last row). The template's own header states what `review_focus` and `out_of_scope` do to a reviewer's spend; filling either vaguely is a bill you chose to pay. |
+| R2 | **What to hand it:** nothing you compose yourself. `AGENTS.md`'s routing table, last row, already prescribes what a reviewing agent reads; your job is to make that prescription resolve — the reviewer cannot go looking for what the pull-request body left out. Fill `review_focus` and `out_of_scope` precisely, for the reason the template's own header gives. |
 | R3 | **What to demand back:** evidence per finding and for the verdict itself, in the kinds `doc:50-memory-and-evidence#evidence-kinds` accepts. `doc:00-constitution#observed-failing` applies to a review exactly as it applies to a gate. |
 | R4 | **What to do with it:** weigh it, and reject findings you can show to be wrong — in the thread, with the evidence. Do not let the implementer settle one by outlasting it. A verdict is an agent report like any other: `doc:80-agent-operating-procedure#reports-are-evidence`. |
-| R5 | **What it costs:** two stages, `review` and `revise`, not one. Which is which and why is §9.6 — it sits inside the implementer's step 9, which a reader of this section never reaches. |
+| R5 | **What it costs:** §9.6 carries the billing rule for a review and for the response to it. It sits inside the implementer's step 9, which a reader of this section never reaches — that placement is the only reason this row exists. |
 
 ### Why the context rule is a rule
 
