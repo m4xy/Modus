@@ -295,6 +295,14 @@ reference, so they are **forbidden outright** in this repository; disable a test
 (`bean:0029`). The complete gate — and the only normative statement of it — is
 `00-constitution.md` §7.2.4.
 
+**axe and `jsx-a11y` do not enforce each other, in either direction.** With `tabIndex`
+removed from a genuinely overflowing `role="log"` region — measured `scrollHeight 1119`
+against `clientHeight 416` — axe's `scrollable-region-focusable` appeared in
+`results.passes`, not in `violations` and not in `inapplicable` (`bean:0046`). A green axe
+run is not evidence that keyboard access survived a refactor, and a `jsx-a11y` suppression
+is not evidence that it did not. Both are needed, and neither substitutes for driving the
+keyboard path in `e2e/` (`doc:35-testing#load-bearing-evidence`).
+
 **Enforced by:** `backofficeLint` over **both** trees. `e2e/` has its own flat config —
 ESLint 9 resolves one from the working directory — and the `lint` script in
 `backoffice/package.json` chains it, exactly as `typecheck` and `format:check` already

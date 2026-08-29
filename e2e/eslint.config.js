@@ -15,40 +15,40 @@ import prettier from 'eslint-config-prettier';
  * `backofficeLint` Gradle task both cover both trees (bean:0046).
  */
 export default tseslint.config(
-    { ignores: ['node_modules', 'playwright-report', 'test-results'] },
-    js.configs.recommended,
-    ...tseslint.configs.recommendedTypeChecked,
-    {
-        files: ['**/*.ts'],
-        languageOptions: {
-            ecmaVersion: 2023,
-            // Test bodies are Node; `page.evaluate` callbacks are typed against the DOM.
-            globals: { ...globals.node, ...globals.browser },
-            parserOptions: {
-                projectService: true,
-                tsconfigRootDir: import.meta.dirname,
-            },
-        },
-        plugins: { import: importPlugin },
-        settings: {
-            // `import/parsers` is what makes `no-cycle` real: without it the plugin
-            // cannot parse a TypeScript dependency, so it follows nothing and reports
-            // nothing — green on a planted two-file cycle (bean:0046).
-            ...importPlugin.flatConfigs.typescript.settings,
-            // The TypeScript resolver, so a relative import resolves to its `.ts` file
-            // and a cycle through it is seen rather than skipped as unresolvable.
-            'import/resolver': { typescript: { project: './tsconfig.json' } },
-        },
-        rules: {
-            'import/no-cycle': 'error',
-            '@typescript-eslint/no-non-null-assertion': 'error',
-            '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-        },
+  { ignores: ['node_modules', 'playwright-report', 'test-results'] },
+  js.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  {
+    files: ['**/*.ts'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      // Test bodies are Node; `page.evaluate` callbacks are typed against the DOM.
+      globals: { ...globals.node, ...globals.browser },
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
-    {
-        files: ['**/*.js'],
-        ...tseslint.configs.disableTypeChecked,
-        languageOptions: { globals: globals.node },
+    plugins: { import: importPlugin },
+    settings: {
+      // `import/parsers` is what makes `no-cycle` real: without it the plugin
+      // cannot parse a TypeScript dependency, so it follows nothing and reports
+      // nothing — green on a planted two-file cycle (bean:0046).
+      ...importPlugin.flatConfigs.typescript.settings,
+      // The TypeScript resolver, so a relative import resolves to its `.ts` file
+      // and a cycle through it is seen rather than skipped as unresolvable.
+      'import/resolver': { typescript: { project: './tsconfig.json' } },
     },
-    prettier,
+    rules: {
+      'import/no-cycle': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+  {
+    files: ['**/*.js'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: { globals: globals.node },
+  },
+  prettier,
 );

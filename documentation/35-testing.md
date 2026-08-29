@@ -254,6 +254,11 @@ Procedure, per test:
 `Enforcement gap:` this is a review obligation on the `verify` block, not a machine check.
 `bean:0006` carries it.
 
+**A suite that passes identically either side of a change says nothing about it.**
+`bean:0046` rewrote four components' keyboard handling; the 31-test Playwright suite passed
+unchanged, having never driven those paths. Before citing a green suite as evidence, delete
+the change and check the suite notices.
+
 ### 6.1 Uniform fixtures hide reachable defects <a id="fixture-variation"></a>
 
 A killed mutant proves the test detects it **on the paths the fixtures reach, and nothing
