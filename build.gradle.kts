@@ -16,7 +16,8 @@ ktlint {
     }
 }
 
-// The nine checks of doc:05-authoring-for-agents#checks. A shell script rather than a
+// The mechanical checks of doc:05-authoring-for-agents#checks — counted there and
+// nowhere else, because a count restated here drifts, and had. A shell script rather than a
 // JavaExec: the checks match lines and globs, so a source set and a toolchain would buy
 // nothing. It runs from qualityCheck, which is the only command CI invokes.
 tasks.register<Exec>("docsLint") {

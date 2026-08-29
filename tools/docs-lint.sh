@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# docs-lint — the eleven mechanical checks of doc:05-authoring-for-agents#checks.
+# docs-lint — the mechanical checks of doc:05-authoring-for-agents#checks. That table
+# is the one place the checks are counted; a count repeated here would drift, and did.
 #
 # Bash, not Kotlin: the checks are line- and glob-shaped, bash already runs in CI
 # and locally, and a JavaExec task would need a source set, a toolchain and a test
@@ -368,13 +369,130 @@ if [ -n "$BASE" ]; then
   done < "$TMP/changed-beans.txt"
 fi
 
+# ---------------------------------------------------------------- check 12 ---
+# The bean dependency graph AGENTS.md step 1 selects work from. Check 6 resolves
+# typed `bean:NNNN` references in PROSE only; nothing read `blocked_by`/`parent`
+# front-matter at all, so a backlog could deadlock with every file individually
+# well-formed and docs-lint green (bean:0035).
+#
+# Absent scalars are emitted as `-`, never as an empty field: a tab is IFS
+# whitespace, so `read` collapses runs of them and one empty middle field would
+# shift every field after it.
+: > "$TMP/beans.tsv"
+for f in $(ls .beans/*.md 2>/dev/null); do
+  bid="${f#.beans/}"
+  bid="${bid%%--*}"
+  awk -v file="$f" -v id="$bid" '
+    NR == 1 { if ($0 != "---") { exit } ; fm = 1; next }
+    fm && $0 == "---" { exit }
+    fm && /^[a-z_]+:/ {
+      k = $0; sub(/:.*$/, "", k)
+      v = $0; sub(/^[a-z_]+:[ \t]*/, "", v)
+      g[k] = v
+    }
+    END {
+      if (!fm) { exit }
+      split("status type priority order parent blocked_by", want, " ")
+      printf "%s\t%s", id, file
+      for (i = 1; i <= 6; i++) {
+        printf "\t%s", (want[i] in g && g[want[i]] != "") ? g[want[i]] : "-"
+      }
+      printf "\n"
+    }
+  ' "$f" >> "$TMP/beans.tsv"
+done
+
+: > "$TMP/bean-edges.tsv"
+: > "$TMP/bean-ready.tsv"
+while IFS="$TAB" read -r id file status type priority order parent blocked; do
+  [ -n "$id" ] || continue
+
+  if [ "$parent" != "-" ]; then
+    n="$(ls .beans/"$parent"--*.md 2>/dev/null | grep -c .)"
+    [ "$n" = "1" ] || fail 12 "$file: parent '$parent' resolves to $n bean files, expected exactly 1"
+  fi
+
+  deps=""
+  case "$blocked" in
+    "-") ;;
+    "["*"]") deps="$(printf '%s' "$blocked" | tr -d '[]' | tr ',' ' ')" ;;
+    *) fail 12 "$file: blocked_by '$blocked' is not a flow list" ;;
+  esac
+
+  # A bean is READY when every edge it carries points at a completed bean — the
+  # condition AGENTS.md step 1 selects on. An unresolvable edge is not satisfied.
+  ready=1
+  for dep in $deps; do
+    dn="$(ls .beans/"$dep"--*.md 2>/dev/null | grep -c .)"
+    if [ "$dn" != "1" ]; then
+      fail 12 "$file: blocked_by '$dep' resolves to $dn bean files, expected exactly 1"
+      ready=0
+      continue
+    fi
+    printf '%s\t%s\n' "$id" "$dep" >> "$TMP/bean-edges.tsv"
+    dtype="$(awk -F'\t' -v d="$dep" '$1 == d { print $4 }' "$TMP/beans.tsv")"
+    dstatus="$(awk -F'\t' -v d="$dep" '$1 == d { print $3 }' "$TMP/beans.tsv")"
+    if [ "$dtype" = "epic" ]; then
+      fail 12 "$file: blocked_by '$dep' is a 'type: epic' bean; step 1 never selects an epic, so the edge never clears"
+    fi
+    [ "$dstatus" = "completed" ] || ready=0
+  done
+
+  if [ "$status" = "todo" ] && [ "$type" != "epic" ] && [ "$ready" = "1" ]; then
+    printf '%s\t%s\t%s\t%s\n' "$priority" "$order" "$id" "$file" >> "$TMP/bean-ready.tsv"
+  fi
+done < "$TMP/beans.tsv"
+
+# Acyclicity by edge-removal: an edge whose target has no outgoing edge left is
+# an edge onto a bean that can be completed, so it can clear. Repeat to a fixed
+# point; whatever survives is reachable only from itself.
+sort -u "$TMP/bean-edges.tsv" > "$TMP/bean-edges.uniq"
+cycle="$(awk -F'\t' '
+  { from[NR] = $1; to[NR] = $2; n = NR }
+  END {
+    removed = 1
+    while (removed) {
+      removed = 0
+      split("", live)
+      for (i = 1; i <= n; i++) { if (!gone[i]) { live[from[i]] = 1 } }
+      for (i = 1; i <= n; i++) {
+        if (!gone[i] && !(to[i] in live)) { gone[i] = 1; removed = 1 }
+      }
+    }
+    out = ""
+    for (i = 1; i <= n; i++) {
+      if (!gone[i]) { out = out (out == "" ? "" : ", ") from[i] " -> " to[i] }
+    }
+    print out
+  }
+' "$TMP/bean-edges.uniq")"
+[ -z "$cycle" ] || fail 12 "blocked_by graph has a cycle: $cycle"
+
+# `order` breaks step 1's tie, so a value shared by two beans that reach the
+# tiebreak together makes the choice arbitrary. Beans that carry no `order` are
+# not in this check: absence is a defined position (after every bean that has one).
+awk -F'\t' '$2 != "-" { print $1 "\t" $2 }' "$TMP/bean-ready.tsv" | sort | uniq -d > "$TMP/order-dupes.tsv"
+while IFS="$TAB" read -r pri ord; do
+  [ -n "$ord" ] || continue
+  ids="$(awk -F'\t' -v p="$pri" -v o="$ord" '$1 == p && $2 == o { printf "%s ", $3 }' "$TMP/bean-ready.tsv")"
+  fail 12 "priority '$pri' order '$ord' is shared by selectable beans: ${ids% }"
+done < "$TMP/order-dupes.tsv"
+
+n_ready="$(grep -c . "$TMP/bean-ready.tsv")"
+[ "$n_ready" -gt 0 ] || fail 12 "no bean is selectable: every non-epic 'status: todo' bean has an unsatisfied blocked_by edge, so AGENTS.md step 1 returns nothing"
+
 # -------------------------------------------------------------------- done ---
 n_fail="$(grep -c . "$TMP/fails.txt")"
 if [ "$n_fail" -gt 0 ]; then
   echo "docs-lint: $n_fail failure(s)."
   exit 1
 fi
-printf 'docs-lint: OK — %s documents, %s anchors, %s references.\n' \
+# The counts are the vacuity assertion: a check that silently examined nothing
+# reports zero here, where check 11 shipping inert went unnoticed for four plants.
+printf 'docs-lint: OK — %s documents, %s anchors, %s references, %s beans, %s graph edges, %s selectable.\n' \
   "$(printf '%s\n' $FM_FILES | grep -c .)" \
   "$(grep -c . "$TMP/provides.tsv")" \
-  "$(grep -c . "$TMP/refs.uniq")"
+  "$(grep -c . "$TMP/refs.uniq")" \
+  "$(grep -c . "$TMP/beans.tsv")" \
+  "$(grep -c . "$TMP/bean-edges.uniq")" \
+  "$n_ready"
