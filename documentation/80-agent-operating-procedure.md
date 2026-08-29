@@ -69,16 +69,17 @@ the agent that does it. These are the operating details it defers here.
 
 ### Briefing a reviewer
 
-`doc:00-constitution#independent-review` states the rule: the agent that reviews a change is
-never the agent that wrote it. Spawning the reviewer is your job, and these are its terms.
+Spawning the reviewer is your job. Who may review, what a verdict is worth and who merges
+are stated in `doc:00-constitution#independent-review` and are not restated here. These are
+the mechanics that section does not carry.
 
 | # | Rule |
 |---|---|
-| R1 | **Spawn a fresh agent.** Not the implementer, not a continuation of its session, not you. An implementer asked to review has already spent its context arguing itself into the design, and will find what it looked for the first time. |
-| R2 | **Its brief is the pull request, not the transcript.** The body, the bean it names read whole, and the documents in the body's `refs:` — that list and nothing else (`AGENTS.md` routing, last row). `.github/pull_request_template.md` is shaped to be exactly this brief: `review_focus` is the reviewer's question set and `out_of_scope` is the only field that reduces its spend. Pasting the implementer's narration, or your own summary of what it did, re-imports the blind spot you spawned a second agent to avoid. |
-| R3 | **Require citation.** Every finding, and the verdict itself, names what was observed: `file:line`, a command with its output, or a quoted rule. An approval that cites nothing observed is not an approval — it is a claim about a change nobody looked at, and `doc:00-constitution#observed-failing` applies to reviews exactly as it applies to gates. |
-| R4 | **Decide yourself.** The verdict is evidence; the next block is about it too. Weigh it, reject findings you can show to be wrong, and say why in the thread — do not delegate the merge decision to the reviewer, and do not let the implementer settle a finding by outlasting it. |
-| R5 | **Merge, or brief the revision.** Merging is yours (`doc:00-constitution#independent-review`); responding to findings is the implementer's step 9, and bills to `revise`, not to `review` (§9.6). |
+| R1 | **Who not to spawn:** the implementer, a continuation of its session, or yourself. An implementer asked to review will find what it looked for the first time. |
+| R2 | **What to hand it:** what the anchor above names, plus the documents in the pull-request body's `refs:` — that list and nothing else (`AGENTS.md` routing, last row). In the template, `review_focus` is the reviewer's question set and `out_of_scope` is the only field that reduces its spend, so a vague one is a bill you chose to pay. |
+| R3 | **What to demand back:** `file:line`, a command with its output, or a quoted rule — per finding, and for the verdict itself. `doc:00-constitution#observed-failing` applies to a review exactly as it applies to a gate. |
+| R4 | **What to do with it:** weigh it, and reject findings you can show to be wrong — in the thread, with the evidence. Do not let the implementer settle one by outlasting it. The block below applies to a review as to any other agent report. |
+| R5 | **What it costs:** performing the review bills to `review`; the implementer's step 9 response bills to `revise` (§9.6). Two stages, so "what did checking this change cost?" stays answerable on its own. |
 
 ### Why the context rule is a rule
 

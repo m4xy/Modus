@@ -34,8 +34,11 @@ observed: deletion non_fast_forward pull_request
 
 Three consequences, none of which a check can currently see:
 
-1. `required_approving_review_count` is 0, so a pull request merges with **no** review. The
-   rule that a change is reviewed at all has nothing behind it.
+1. `required_approving_review_count` is 0 — so a pull request merges with **no** review, and
+   the rule that a change is reviewed at all has nothing behind it. This one is *asserted*,
+   not observed: `bean:0047` states it in prose, and the commands recorded there read
+   `.rules[].type` only, never the `pull_request` rule's parameters. Observing it is the
+   first thing this bean does, and it may find the number is not 0.
 2. Even at 1, GitHub records an approval by a **GitHub account**. Every agent in this
    repository acts as the same account. An approval by the author's own session and an
    approval by an independently spawned reviewer are byte-identical to the API. The

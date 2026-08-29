@@ -113,8 +113,8 @@ does not exist; see `30-code-style.md` §4 and `bean:0026`.
 
 **Enforcement gap:** neither exists yet — no ArchUnit rule scans for `java.sql`, `javax.sql`,
 `jakarta.persistence`, `org.hibernate` or `org.jooq` types (`domainIsFrameworkFree` covers
-`jakarta..`/`javax..` in `core-domain` only, nowhere else), and `build-logic` has no
-dependency-verification rule for database drivers. `bean:0027` carries the audit.
+`jakarta..`/`javax..` in `core-domain` only — not `java.sql`, nowhere else), and `build-logic`
+has no dependency-verification rule for database drivers. `bean:0027` carries the audit.
 
 ---
 
@@ -239,8 +239,8 @@ typo fix — arrives through a pull request.
 read with `gh api repos/m4xy/Modus/rulesets/21765196`. What it carries is stated once, here:
 `pull_request`, `non_fast_forward`, `deletion` and `required_review_thread_resolution`, so an
 unresolved review thread blocks merge — and nothing else. It has no `required_status_checks`
-rule and `required_approving_review_count: 0` (both read in `bean:0047`); §7.2.4 and §7.4
-cite those absences rather than restating the list. Note the classic
+rule (observed, `bean:0047`) and `required_approving_review_count: 0` (asserted there, never
+observed); §7.2.4 and §7.4 cite those absences rather than restating the list. Note the classic
 `gh api repos/m4xy/Modus/branches/main/protection` endpoint returns `404 Branch not protected`
 for a repository that uses rulesets — that 404 is not evidence of an unprotected branch, and
 reading it as such once produced a false `Enforcement gap:` here.
@@ -427,7 +427,7 @@ never ran in CI once: `actions/checkout@v4` at the default `fetch-depth: 1` crea
 `docs-lint` exited 0 (`bean:0051`). So an `Enforced by:` line about a diff-shaped check is
 also a claim about the checkout configuration — observe it where it is claimed to run, not
 only where that is convenient, and make the run say what it examined, because a check that
-examines nothing and a check that passes both print `OK`. Check 11's inert runs differed
+examines nothing and a check that passes both print `OK`. Check 11's inert CI runs differed
 from real ones by exactly one character: `- introduced` rather than `0 introduced`.
 
 Reading a tool's own configuration is not verification either, and this is the sharpest form
