@@ -585,6 +585,203 @@ if [ "$n_beans" != "$n_bean_files" ]; then
   fail 13 "$n_bean_files bean file(s) on disk but $n_beans parsed; a bean with no front-matter block is invisible to checks 12 and 13"
 fi
 
+# ---------------------------------------------------------------- check 14 ---
+# A bean may not close without evidence.
+#
+# adr:0005-evidence-lives-in-the-work-item#evidence-home makes the bean the evidence
+# record: every success criterion carries the command, the expectation and the verbatim
+# observed output, beside the criterion it satisfies. Nothing read that. Check 11 guards
+# a bean once it IS completed and check 13c guards its id; neither looks at whether the
+# criteria are answered on the way in, and modus-0045 was found closable with four
+# criteria and no evidence at all.
+#
+# Scope is check 11's diff shape, one status earlier: a bean CLOSES in this change when
+# it is `completed` in the working tree and was not `completed` on the merge base. That
+# covers in-progress -> completed (doc:00-constitution#bean-lifecycle), todo ->
+# completed, and a bean created already completed. It never re-examines a bean that was
+# already completed on the base, which is what keeps it off the grandfathered corpus —
+# modus-0001 carries no evidence section at all and modus-0028's is empty, and check 11
+# has frozen both.
+#
+# Two shapes are accepted because the corpus uses two:
+#   A  `## Success criteria and evidence` — one table, one row per criterion, carrying
+#      an `evidence` column
+#   B  `## Success criteria` (or `## Restated criteria`) plus a separate `## Evidence`
+#      section, table-shaped or fenced-transcript-shaped
+# An `evidence kind` column is a PLAN — what will be produced — and is deliberately not
+# an evidence column. A table carrying only that column records no observation.
+#
+# Three conditions:
+#   14a  an evidence home exists and is not empty
+#   14b  every criterion the bean NUMBERS is answered, and no evidence cell is blank
+#   14c  no evidence cell is nothing but evidence-kind names
+#
+# 14c is the hollow-row case: `test-run` written where `./gradlew qualityCheck` running
+# green belongs. The kinds are doc:50-memory-and-evidence#evidence-kinds' closed set,
+# named here because that is what the cell is compared against; the anchor owns them.
+KINDS=" command test-run diff citation fetch observation "
+
+n_closing="-"
+n_c14_crit="-"
+n_c14_unnum="-"
+if [ -n "$BASE" ]; then
+  n_closing=0
+  n_c14_crit=0
+  n_c14_unnum=0
+  { git diff --name-only "$BASE" -- .beans 2>/dev/null || :
+    # An added-but-unstaged bean is absent from `git diff <commit>`, so a locally
+    # planted closure would be invisible here and caught only in CI.
+    git ls-files --others --exclude-standard -- .beans 2>/dev/null || :
+  } | sort -u > "$TMP/closing-candidates.txt"
+
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    [ -f "$f" ] || continue
+    now="$(sed -n 's/^status:[[:space:]]*//p' "$f" | head -1)"
+    [ "$now" = "completed" ] || continue
+    was=""
+    if git cat-file -e "$BASE:$f" 2>/dev/null; then
+      was="$(git show "$BASE:$f" 2>/dev/null | sed -n 's/^status:[[:space:]]*//p' | head -1)"
+    fi
+    [ "$was" = "completed" ] && continue
+    n_closing=$((n_closing + 1))
+
+    awk -v KINDS="$KINDS" '
+      function norm(s) {
+        gsub(/`/, "", s); gsub(/\*/, "", s)
+        sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s)
+        return tolower(s)
+      }
+      function isevcol(h) {
+        return (h == "evidence" || h == "observed" || h == "observed output" ||
+                h == "output" || h == "result")
+      }
+      function allkinds(c,   t, i, n, a) {
+        t = norm(c)
+        if (t == "") { return 0 }
+        gsub(/[,;\/+]/, " ", t); gsub(/ and /, " ", t); sub(/\.$/, "", t)
+        n = split(t, a, /[ \t]+/)
+        if (n == 0) { return 0 }
+        for (i = 1; i <= n; i++) {
+          if (a[i] != "" && index(KINDS, " " a[i] " ") == 0) { return 0 }
+        }
+        return 1
+      }
+      {
+        line = $0
+        if (line ~ /^[ \t]*```/) {
+          fence = 1 - fence
+          if (fence == 1 && (region == "EV" || region == "BOTH")) { entries++ }
+          prev = ""; next
+        }
+        if (fence) { next }
+
+        if (line ~ /^## /) {
+          h = tolower(line)
+          if (h ~ /evidence/ && h ~ /criteri/) { region = "BOTH"; has_ev = 1 }
+          else if (h ~ /evidence/)             { region = "EV";   has_ev = 1 }
+          else if (h ~ /criteri/)              { region = "CRIT" }
+          else                                 { region = "NONE" }
+          head = line; sub(/^#+ /, "", head)
+          intable = 0; evcol = 0
+        } else if (line ~ /^#+ /) {
+          if (region == "EV" || region == "BOTH") { entries++ }
+          intable = 0; evcol = 0
+        } else if (region == "NONE" && line ~ /^\*{0,2}Success criteria/) {
+          region = "CRIT"
+        } else if (line ~ /^\|/) {
+          if (line ~ /^\|[ :|-]+\|[ \t]*$/) {
+            nh = split(prev, hc, "|"); evcol = 0
+            for (i = 2; i < nh; i++) { if (isevcol(norm(hc[i]))) { evcol = i } }
+            intable = 1; flagged = 0
+          } else if (intable) {
+            nc = split(line, cc, "|")
+            first = norm(cc[2])
+            numbered = (first ~ /^[0-9]+$/)
+            if (region == "CRIT" || region == "BOTH") {
+              if (numbered) { C[first + 0] = 1; if (first + 0 > maxN) { maxN = first + 0 } }
+              else { unnum++ }
+            }
+            if (region == "EV" || region == "BOTH") {
+              entries++
+              # A numbered row answers its criterion only when the table carries an
+              # evidence column. Without one the row is a restated criterion, and in
+              # region BOTH it would otherwise satisfy C[n] and A[n] at once — the
+              # bean:0045 defect of this very check, reachable by renaming a column
+              # header from `evidence` to `evidence kind`.
+              if (numbered && evcol > 1) { A[first + 0] = 1 }
+              if (numbered && evcol <= 1 && !flagged) {
+                flagged = 1; noevcol = 1
+                printf "NOEVCOL\t%s\n", head
+              }
+            }
+            if (evcol > 1 && evcol < nc) {
+              cell = cc[evcol]
+              if (norm(cell) == "") {
+                printf "EMPTYCELL\t%s\n", (numbered ? first : "?")
+              } else if (allkinds(cell)) {
+                printf "HOLLOW\t%s\t%s\n", (numbered ? first : "?"), norm(cell)
+              }
+            }
+          }
+        } else {
+          intable = 0; evcol = 0
+          if (region == "CRIT" || region == "BOTH") {
+            if (line ~ /^[0-9]+\. /) {
+              n = line; sub(/\..*/, "", n)
+              C[n + 0] = 1; if (n + 0 > maxN) { maxN = n + 0 }
+            } else if (line ~ /^[-*] /) { unnum++ }
+          }
+        }
+
+        # A criterion is answered by an evidence row bearing its number, or by being
+        # cited by number anywhere: `### Criterion 3`, `Criteria 1-5`, `criterion 6`.
+        s = tolower(line)
+        while (match(s, /criteri(on|a)[^0-9a-z]*[0-9]+([^0-9a-z]{1,3}[0-9]+)?/)) {
+          t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+          gsub(/[^0-9]+/, " ", t); nn = split(t, ar, /[ \t]+/)
+          lo = 0; hi = 0
+          for (i = 1; i <= nn; i++) { if (ar[i] != "") { if (lo == 0) lo = ar[i] + 0; else hi = ar[i] + 0 } }
+          if (hi > lo && hi - lo < 20) { for (k = lo; k <= hi; k++) { A[k] = 1 } }
+          else if (lo > 0) { A[lo] = 1 }
+        }
+        prev = line
+      }
+      END {
+        if (!has_ev) { print "NOEV"; }
+        else if (entries == 0) { print "EMPTYEV" }
+        # A table with no evidence column is the root cause; the criteria it fails to
+        # answer are its cascade, and reporting both buries the one line that says
+        # what to fix.
+        nc = 0
+        for (i = 1; i <= maxN; i++) {
+          if (C[i]) { nc++; if (!A[i] && !noevcol) { printf "UNANSWERED\t%d\n", i } }
+        }
+        printf "STATS\t%d\t%d\n", nc, unnum + 0
+      }
+    ' "$f" > "$TMP/c14.txt"
+
+    while IFS="$TAB" read -r code a b; do
+      case "$code" in
+        NOEV)
+          fail 14 "$f: closes with no evidence section; a criterion's command, expectation and verbatim observed output live in the bean (adr:0005-evidence-lives-in-the-work-item#evidence-home)" ;;
+        EMPTYEV)
+          fail 14 "$f: closes with an evidence section carrying no entry — no table row, no sub-heading, no transcript (adr:0005-evidence-lives-in-the-work-item#evidence-home)" ;;
+        EMPTYCELL)
+          fail 14 "$f: criterion $a closes with an empty evidence cell (adr:0005-evidence-lives-in-the-work-item#evidence-home)" ;;
+        HOLLOW)
+          fail 14 "$f: criterion $a records '$b' — an evidence KIND, not evidence; the cell must carry the command, the expectation and the verbatim observed output (adr:0005-evidence-lives-in-the-work-item#evidence-home, doc:50-memory-and-evidence#evidence-kinds)" ;;
+        NOEVCOL)
+          fail 14 "$f: the table under '$a' numbers criteria in an evidence section but carries no evidence column; 'evidence kind' states what will be produced, not what was observed (adr:0005-evidence-lives-in-the-work-item#evidence-home)" ;;
+        UNANSWERED)
+          fail 14 "$f: criterion $a is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)" ;;
+        STATS)
+          n_c14_crit=$((n_c14_crit + a)); n_c14_unnum=$((n_c14_unnum + b)) ;;
+      esac
+    done < "$TMP/c14.txt"
+  done < "$TMP/closing-candidates.txt"
+fi
+
 # -------------------------------------------------------------------- done ---
 n_fail="$(grep -c . "$TMP/fails.txt")"
 if [ "$n_fail" -gt 0 ]; then
@@ -593,7 +790,7 @@ if [ "$n_fail" -gt 0 ]; then
 fi
 # The counts are the vacuity assertion: a check that silently examined nothing
 # reports zero here, where check 11 shipping inert went unnoticed for four plants.
-printf 'docs-lint: OK — %s documents, %s anchors, %s references, %s beans, %s graph edges, %s selectable, %s bean ids, %s introduced, %s on origin/main.\n' \
+printf 'docs-lint: OK — %s documents, %s anchors, %s references, %s beans, %s graph edges, %s selectable, %s bean ids, %s introduced, %s on origin/main, %s closing transitions, %s criteria checked, %s unnumbered.\n' \
   "$(printf '%s\n' $FM_FILES | grep -c .)" \
   "$(grep -c . "$TMP/provides.tsv")" \
   "$(grep -c . "$TMP/refs.uniq")" \
@@ -602,4 +799,7 @@ printf 'docs-lint: OK — %s documents, %s anchors, %s references, %s beans, %s 
   "$n_ready" \
   "$n_bean_ids" \
   "$n_introduced" \
-  "$n_main_ids"
+  "$n_main_ids" \
+  "$n_closing" \
+  "$n_c14_crit" \
+  "$n_c14_unnum"
