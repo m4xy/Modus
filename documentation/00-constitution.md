@@ -10,6 +10,7 @@ provides:
   - doc:00-constitution#evidence-rule
   - doc:00-constitution#context-budget
   - doc:00-constitution#workflow
+  - doc:00-constitution#independent-review
   - doc:00-constitution#bean-lifecycle
   - doc:00-constitution#domain-scoping
   - doc:00-constitution#mechanical-enforcement
@@ -110,11 +111,10 @@ does not exist; see `30-code-style.md` §4 and `bean:0026`.
 
 **Rationale and alternatives considered:** `adr/0002-flat-file-over-database.md`.
 
-**Enforcement gap:** neither exists yet — no ArchUnit rule scans for `java.sql`,
-`javax.sql`, `jakarta.persistence`, `org.hibernate` or `org.jooq` types (`domainIsFrameworkFree`
-covers `jakarta..`/`javax..` for `core-domain` only, not `java.sql` and not the rest of the
-repository), and `build-logic` has no Gradle dependency-verification rule for database
-drivers. `bean:0027` carries the audit.
+**Enforcement gap:** neither exists yet — no ArchUnit rule scans for `java.sql`, `javax.sql`,
+`jakarta.persistence`, `org.hibernate` or `org.jooq` types (`domainIsFrameworkFree` covers
+`jakarta..`/`javax..` in `core-domain` only, nowhere else), and `build-logic` has no
+dependency-verification rule for database drivers. `bean:0027` carries the audit.
 
 ---
 
@@ -139,9 +139,8 @@ The evidence record shape, the accepted evidence kinds, and invalidation rules a
 **Enforcement gap:** neither exists — schema validation on memory files at write time
 (`adapters/adapter-persistence-flatfile` is an empty placeholder with no tests, `bean:0017`)
 nor the transition guard in the `work` context refusing `done` without evidence (`work`
-is not built, `bean:0013`). PR-body evidence is currently a review responsibility. A CI check on
-PR body structure is owned by `bean:0001`, which lists it under "Follow-up work items to
-raise" and is accountable for raising it.
+is not built, `bean:0013`). PR-body evidence is a review responsibility; a CI check on PR
+body structure is owned by `bean:0001`, under "Follow-up work items to raise".
 
 ---
 
@@ -174,24 +173,19 @@ That is the most expensive failure mode in the system — it costs a human conte
 which is worth more than any token budget it saves.
 
 **Enforced by:** review, and the SOP in `80-agent-operating-procedure.md`.
-**Enforcement gap:** "questions asked per work item" should be recorded by the
-`execution` context; not yet implemented. Owned by `bean:0001`, under "Follow-up work
-items to raise".
+**Enforcement gap:** "questions asked per work item" should be recorded by the `execution`
+context; not yet implemented. Owned by `bean:0001`, under "Follow-up work items to raise".
 
 ---
 
 ## 5. Prefer skills over improvisation
 
-**The third time you do something, you extract a skill.** The second time, you notice and
-record it; the third time you act. If a skill exists for what you are about to do, you use
-it rather than reinventing the approach.
-
-The threshold is three, not two, because a task done twice may never happen again, and a
-skill written for a task that does not recur is a maintenance cost with no payback
-(`70-skills.md` §2.2). The **single normative statement** of the extraction thresholds is
-the trigger table in `60-cost-model.md` §5.3 — it is the one `module-cost` measures. This
-section states the principle; it does not restate the numbers, and where it appeared to
-disagree with §5.3 it was this file that was wrong.
+If a skill exists for what you are about to do, you use it rather than reinventing the
+approach; a procedure you keep repeating becomes one. The **single normative statement** of
+the extraction thresholds is the trigger table in `60-cost-model.md` §5.3 — the one
+`module-cost` measures — and of when *not* to extract, `70-skills.md` §2.2. Neither is
+restated here, and where this section appeared to disagree with §5.3 it was this file that
+was wrong.
 
 Modus prefers **celebrity skills** — a small number of well-known, well-named, heavily
 reused skills — over a long tail of one-off scripts. See `70-skills.md`.
@@ -241,10 +235,12 @@ under "Follow-up work items to raise".
 `main` is protected. Every change — including documentation, including a one-character
 typo fix — arrives through a pull request.
 
-**Enforced by:** repository ruleset `main-protected` (id `21765196`, `enforcement: active`)
-carrying the `pull_request`, `non_fast_forward` and `deletion` rules, plus
-`required_review_thread_resolution`, so an unresolved review thread blocks merge. Verify with
-`gh api repos/m4xy/Modus/rulesets`. Note the classic
+**Enforced by:** repository ruleset `main-protected` (id `21765196`, `enforcement: active`),
+read with `gh api repos/m4xy/Modus/rulesets/21765196`. What it carries is stated once, here:
+`pull_request`, `non_fast_forward`, `deletion` and `required_review_thread_resolution`, so an
+unresolved review thread blocks merge — and nothing else. It has no `required_status_checks`
+rule and `required_approving_review_count: 0` (both read in `bean:0047`); §7.2.4 and §7.4
+cite those absences rather than restating the list. Note the classic
 `gh api repos/m4xy/Modus/branches/main/protection` endpoint returns `404 Branch not protected`
 for a repository that uses rulesets — that 404 is not evidence of an unprotected branch, and
 reading it as such once produced a false `Enforcement gap:` here.
@@ -279,9 +275,8 @@ reading it as such once produced a false `Enforcement gap:` here.
 
    **Enforced by:** `qualityCheck` reaches `backoffice/` and `e2e/` through the npm scripts
    they already declare, as `backofficeTypecheck`, `backofficeLint` and
-   `backofficeFormatCheck` (`bean:0029`). Each was observed rejecting a planted violation:
-   `error TS2322: Type 'string' is not assignable to type 'number'`, `error 'unused' is
-   assigned a value but never used`, and `[warn] Code style issues found`. `backoffice/` and
+   `backofficeFormatCheck`, each observed rejecting a planted violation — the three failures
+   verbatim in `bean:0029`, beside the criterion they satisfy (`adr:0005`). `backoffice/` and
    `e2e/` are still not Gradle projects — one tool per language, each configured where its
    ecosystem expects. `doc:30-code-style` §6 carries what those checks do **not** cover.
 
@@ -289,25 +284,21 @@ reading it as such once produced a false `Enforcement gap:` here.
    running system and takes minutes; inside `check` it would make the fast gate slow enough
    that agents stop running it. It is required only when user-visible behaviour changed.
 
-   **CI runs a subset of this per change, so the promise is one-directional**
-   (`.github/workflows/ci.yml`, `bean:0045`). A Kotlin-only change runs `qualityCheck`
-   without the backoffice checks; a backoffice-only change runs those and `e2eTest` and
-   nothing else; a change touching both, or `.editorconfig`, or the workflow, runs
-   everything. So: a green local `qualityCheck` **plus** `e2eTest` implies a green CI run,
-   and the reverse does not hold. The local command stays the superset deliberately — the
-   moment CI can run something local cannot, this promise is gone.
+   **CI runs a per-path subset of this, so the promise is one-directional**
+   (`.github/workflows/ci.yml`, `bean:0045`): a green local `qualityCheck` **plus** `e2eTest`
+   implies a green CI run, and the reverse does not hold. The local command stays the
+   superset deliberately — the moment CI can run something local cannot, this promise is
+   gone.
 
    Run `e2eTest` before opening a pull request that touches `backoffice/` or `e2e/`. CI is
    not the place to discover that Playwright is red.
 
-   **Enforcement gap:** the `main-protected` ruleset carries `pull_request`,
-   `non_fast_forward` and `deletion`, and **no `required_status_checks` rule at all** —
-   verified with `gh api repos/m4xy/Modus/rulesets/21765196`. A red CI run has never blocked
-   a merge. The `gate` job exists to be that required check, since a skipped half reports
-   neither success nor failure and a ruleset naming `build` directly would block every
-   change that legitimately skips one. Turning the requirement on is `bean:0047`, held back
-   one step so the check is observed green on a real pull request before it can block
-   anything.
+   **Enforcement gap:** `main-protected` carries **no `required_status_checks` rule at all**
+   (§7.1), so a red CI run has never blocked a merge. The `gate` job exists to be that
+   required check, since a skipped half reports neither success nor failure and a ruleset
+   naming `build` directly would block every change that legitimately skips one. Turning the
+   requirement on is `bean:0047`, held back one step so the check is observed green on a real
+   pull request before it can block anything.
 
 5. **Pull request.** Conventional-commit title. The body states what changed and the
    judgement calls a reviewer should check. The **evidence lives in the work item**, beside
@@ -357,8 +348,18 @@ produced them, so cost and quality can be attributed after the fact.
 history disagrees with this rule for every commit before it was stated. `bean:0024`
 carries reconciling the rule with the history.
 
-### 7.4 Review
+### 7.4 Review is independent, or it is not review <a id="independent-review"></a>
 
+> **Every change is reviewed by an agent that did not write it, and no agent merges its
+> own pull request.**
+
+- An implementing agent MUST NOT review its own change: it shares the author's blind spots
+  and its context is already committed to the design. The reviewer is a separately spawned
+  agent with its own context, briefed from the pull-request body and the bean it names —
+  `.github/pull_request_template.md` exists to be that brief — never from a transcript.
+- A review verdict is **evidence, not a decision** (§9.1): an approval citing nothing
+  observed is not an approval. Merge authority sits with the orchestrator, which reads the
+  review and decides, and only once an independent one exists.
 - **Review reviews design, correctness, and evidence. Review never reviews style.**
   Style is the build's job (`30-code-style.md`). A style comment in review is a defect in
   the toolchain: fix the tool in a follow-up work item, and say so in the thread.
@@ -367,6 +368,11 @@ carries reconciling the rule with the history.
 - Review is itself cost-attributed. See `60-cost-model.md` §6 — review runs at the
   cheapest model and effort that reliably catches the class of defect in play, and that
   choice is recorded against the work item.
+
+**Enforcement gap:** nothing mechanical, in either half. `main-protected` sets
+`required_approving_review_count: 0` (§7.1), so a pull request merges with no review at all,
+and no GitHub-side rule could tell an independent reviewer from its author in any case. Until
+`bean:0053` closes that, this is procedure — `doc:80-agent-operating-procedure#orchestrating`.
 
 ---
 
@@ -398,9 +404,7 @@ matters, it gets a tool: ktlint, Detekt (including custom rules), ArchUnit, a Gr
 check, a schema validator, or a Playwright assertion.
 
 Corollary: **the build is the definition of correct.** A green build with a bad outcome
-means the build is wrong. Fix the build.
-
-See `30-code-style.md`.
+means the build is wrong. Fix the build. See `30-code-style.md`.
 
 ### 9.1 A gate is unverified until it has been observed failing <a id="observed-failing"></a>
 
@@ -417,28 +421,24 @@ See `30-code-style.md`.
   because it also stops anyone looking.
 
 **A gate can be real, correct, observed failing — and still not run.** `docs-lint` check 11
-was watched rejecting four planted violations and shipped with an `Enforced by:` line. It
-then never ran in CI once, for its entire life: the job used `actions/checkout@v4` at the
-default `fetch-depth: 1`, which creates no `refs/remotes/origin/main`, so every diff-shaped
-check silently skipped itself and `docs-lint` exited 0 (`bean:0051`). The observation was
-made locally and quietly generalised to CI, which was never part of it.
+was watched rejecting four planted violations, shipped with an `Enforced by:` line, and then
+never ran in CI once: `actions/checkout@v4` at the default `fetch-depth: 1` creates no
+`refs/remotes/origin/main`, so every diff-shaped check silently skipped itself and
+`docs-lint` exited 0 (`bean:0051`). So an `Enforced by:` line about a diff-shaped check is
+also a claim about the checkout configuration — observe it where it is claimed to run, not
+only where that is convenient, and make the run say what it examined, because a check that
+examines nothing and a check that passes both print `OK`. Check 11's inert runs differed
+from real ones by exactly one character: `- introduced` rather than `0 introduced`.
 
-**An `Enforced by:` line about a diff-shaped check is also a claim about the checkout
-configuration.** Observe it where it is claimed to run, not only where it is convenient to
-run it — and make the run say what it examined, because a check that examines nothing and a
-check that passes both print `OK`. Check 11's inert CI runs were distinguishable from real
-ones by exactly one character: `- introduced` rather than `0 introduced`.
+Reading a tool's own configuration is not verification either, and this is the sharpest form
+of the rule. `eslint-plugin-import`'s `no-cycle` was installed, registered, and reported by
+`eslint --print-config` as `[2]` — and passed a planted two-file cycle, because in flat
+config it takes its parser from `settings['import/parsers']` and with none set it parses no
+TypeScript file, follows nothing, and reports nothing (`bean:0046`). Every artefact a reader
+would consult said the rule was on. Only the plant said otherwise.
 
-Reading a tool's own configuration is not verification either, and this is the sharpest
-form of the rule. `eslint-plugin-import`'s `no-cycle` was installed, registered, resolved,
-and reported by `eslint --print-config` as `[2]` — and passed a planted two-file cycle,
-because in flat config the plugin takes its parser from `settings['import/parsers']` and
-with none set it parses no TypeScript file, follows nothing, and reports nothing
-(`bean:0046`). Every artefact a reader would consult said the rule was on. Only the plant
-said otherwise.
-
-Mechanisms in this repository that reported success while enforcing less than they claimed.
-Each was found by trying to make it fail, and none by reading it.
+Mechanisms that reported success while enforcing less than they claimed — each found by
+trying to make it fail, none by reading it.
 
 | mechanism | what it actually enforced |
 |---|---|

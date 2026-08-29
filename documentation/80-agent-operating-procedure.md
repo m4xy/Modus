@@ -51,7 +51,7 @@ the agent that does it. These are the operating details it defers here.
 
 | # | Rule |
 |---|---|
-| 0.1 | Delegate plan, implement, review and QA as separate briefs. A reviewer that implemented the change is not a second opinion. |
+| 0.1 | Delegate plan, implement, review and QA as separate briefs. Review independence is a rule, not a preference (`doc:00-constitution#independent-review`); the mechanics are below. |
 | 0.2 | Spawn another orchestrator for a work package with its own internal sequence. Delegating a decision is not abdicating it — you still own the priority. |
 | 0.3 | Run independent work concurrently, in isolated worktrees. Two agents editing one tree is a merge conflict you scheduled. |
 | 0.4 | Read what agents return, not what they read. If you find yourself opening the files an agent already read, you have taken its job. |
@@ -66,6 +66,19 @@ the agent that does it. These are the operating details it defers here.
    observed failing, evidence in the bean.
 4. **A required `LEARNINGS` section** in the return: what was non-obvious, with `file:line`
    or command output, and an instruction to say "nothing" rather than invent.
+
+### Briefing a reviewer
+
+`doc:00-constitution#independent-review` states the rule: the agent that reviews a change is
+never the agent that wrote it. Spawning the reviewer is your job, and these are its terms.
+
+| # | Rule |
+|---|---|
+| R1 | **Spawn a fresh agent.** Not the implementer, not a continuation of its session, not you. An implementer asked to review has already spent its context arguing itself into the design, and will find what it looked for the first time. |
+| R2 | **Its brief is the pull request, not the transcript.** The body, the bean it names read whole, and the documents in the body's `refs:` — that list and nothing else (`AGENTS.md` routing, last row). `.github/pull_request_template.md` is shaped to be exactly this brief: `review_focus` is the reviewer's question set and `out_of_scope` is the only field that reduces its spend. Pasting the implementer's narration, or your own summary of what it did, re-imports the blind spot you spawned a second agent to avoid. |
+| R3 | **Require citation.** Every finding, and the verdict itself, names what was observed: `file:line`, a command with its output, or a quoted rule. An approval that cites nothing observed is not an approval — it is a claim about a change nobody looked at, and `doc:00-constitution#observed-failing` applies to reviews exactly as it applies to gates. |
+| R4 | **Decide yourself.** The verdict is evidence; the next block is about it too. Weigh it, reject findings you can show to be wrong, and say why in the thread — do not delegate the merge decision to the reviewer, and do not let the implementer settle a finding by outlasting it. |
+| R5 | **Merge, or brief the revision.** Merging is yours (`doc:00-constitution#independent-review`); responding to findings is the implementer's step 9, and bills to `revise`, not to `review` (§9.6). |
 
 ### Why the context rule is a rule
 
@@ -369,7 +382,8 @@ agentic implementation per the domain policy.
 - **Surface your own doubts.** The thing you are least sure about goes in `## Decisions`,
   at the top of it. Reviewer attention spent where you point it is worth ten times
   reviewer attention spent hunting.
-- Push the branch. **Do not merge your own PR.**
+- Push the branch and stop. **You do not review it and you do not merge it**
+  (`doc:00-constitution#independent-review`); the orchestrator spawns a reviewer and decides.
 - Draft PRs are for incomplete work handed off at a checkpoint — mark them draft and say
   what remains.
 
