@@ -415,8 +415,16 @@ See `30-code-style.md`.
   the work item that closes it. An unfalsifiable gate is worse than an admitted gap,
   because it also stops anyone looking.
 
-Seven mechanisms in this repository reported success while enforcing less than they
-claimed. Each was found by trying to make it fail, and none by reading it.
+Reading a tool's own configuration is not verification either, and this is the sharpest
+form of the rule. `eslint-plugin-import`'s `no-cycle` was installed, registered, resolved,
+and reported by `eslint --print-config` as `[2]` — and passed a planted two-file cycle,
+because in flat config the plugin takes its parser from `settings['import/parsers']` and
+with none set it parses no TypeScript file, follows nothing, and reports nothing
+(`bean:0046`). Every artefact a reader would consult said the rule was on. Only the plant
+said otherwise.
+
+Mechanisms in this repository that reported success while enforcing less than they claimed.
+Each was found by trying to make it fail, and none by reading it.
 
 | mechanism | what it actually enforced |
 |---|---|
@@ -427,6 +435,9 @@ claimed. Each was found by trying to make it fail, and none by reading it.
 | `ContextInternalsAreSealed`, `PublishedLanguageAllowlist` | nothing — documented as enforcing, never implemented |
 | the coverage baseline | nothing — it was resettable to zero coverage with a green build |
 | the downward-write guard on that baseline | half of it — it checked the missed columns and not the covered ones |
+| `docs-lint` check 11 | nothing — it compared the merge base to `HEAD`, which are equal on a fresh branch, so it skipped and four plants "passed" |
+| `import/no-cycle`, installed and reported `[2]` | nothing — no parser, so no file was followed |
+| the Playwright suite, as evidence a refactor was safe | nothing — it passed identically before and after four component rewrites, because it never drove the paths they changed |
 
 **Enforcement gap:** the `Enforced by:` lines already in this package predate this rule
 and have not been audited against it. `bean:0027` carries the audit; `bean:0026` carries
