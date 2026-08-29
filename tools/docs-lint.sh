@@ -15,6 +15,13 @@
 #
 # Anchors are read from heading lines only (doc:05 §2: `#anchor` selects the owning
 # heading), so an `<a id>` quoted inside a table cell is not an anchor.
+#
+# Check 14's analyser lives in tools/lib/, split into where a fenced block is and what
+# that means, because bean:0063 showed the two concerns fail separately: a fence marker
+# that was CONTENT inverted the analyser's sense of inside and outside for the rest of the
+# file, and no verdict test could tell that apart from a correct reading. What it
+# perceives and what it decides are tested separately by tools/docs-lint-test.sh, which
+# qualityCheck runs.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

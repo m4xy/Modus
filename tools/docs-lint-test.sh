@@ -379,6 +379,50 @@ EOF
 decides "RESIDUAL: a four-column indented chunk is not a fence and is read as prose" \
   "$(printf 'STATS\t1\t0')"
 
+# RESIDUAL. A fence inside a block quote or indented into a list item is a fence to a
+# renderer and not to this analyser, which reads lines and not a block structure. It is
+# recorded rather than fixed because widening the indent tolerance is what the old toggle
+# did, and a marker this analyser does not recognise is INERT: it can leave a transcript
+# read as prose, but unlike the toggle it can no longer invert the sense of the lines
+# after it. No bean or document in the corpus writes either shape.
+cat > "$FIX" <<'EOF'
+prose
+> ```
+> criterion 1 is not answered in the evidence
+> ```
+prose
+EOF
+perceives "RESIDUAL: a fence inside a block quote is not seen" \
+  "OUT OUT OUT OUT OUT | unterminated=0"
+
+cat > "$FIX" <<'EOF'
+1. a list item
+    ```
+    criterion 1 is not answered in the evidence
+    ```
+prose
+EOF
+perceives "RESIDUAL: a fence indented into a list item is not seen" \
+  "OUT OUT OUT OUT OUT | unterminated=0"
+
+cat > "$FIX" <<'EOF'
+~~~
+a tilde fence closes only on a marker at least as long
+~~~~
+prose
+EOF
+perceives "the length rule applies to tilde fences too" \
+  "OPEN IN CLOSE OUT | unterminated=0"
+
+cat > "$FIX" <<'EOF'
+~~~~
+a shorter tilde marker does not close a longer tilde fence
+~~~
+prose
+EOF
+perceives "a shorter tilde marker does not close a longer tilde fence" \
+  "OPEN IN IN IN | unterminated=1"
+
 echo
 echo "docs-lint-test: $pass passed, $fail failed."
 [ "$fail" -eq 0 ] || exit 1
