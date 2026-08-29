@@ -102,3 +102,23 @@ observed: [warn] src/App.tsx
 The drift this closes, measured before the reformat: `bean:0028` recorded 71 files failing
 `format:check`; four commits later it was 77. Nothing had checked them since the backoffice
 was written.
+
+## What running it in CI found
+
+Wiring the gate immediately surfaced a latent break that nothing could have caught before,
+because nothing had ever run Playwright anywhere but a developer's machine.
+
+```
+observed: Error: Timed out waiting 120000ms from config.webServer.
+          (no webServer stderr at all — it built and served, and the poll never connected)
+```
+
+`e2e/playwright.config.ts` polls `http://127.0.0.1:4173`, and `vite preview` binds to
+`localhost`, which resolves to `::1` before `127.0.0.1` on the Ubuntu runner. On macOS both
+resolve, so it passes locally and always would have. `preview` now binds `127.0.0.1`
+explicitly.
+
+Also corrected: the install step was `npx --prefix e2e playwright install`. `--prefix` is an
+`npm` option, not an `npx` one — `npx` passes it through to `playwright`, so the version
+installed was whatever `npx` resolved from the registry rather than the one `e2e` pins. It is
+`npm --prefix e2e exec -- playwright install`, which resolves the pinned binary.

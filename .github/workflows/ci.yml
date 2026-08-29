@@ -86,7 +86,7 @@ jobs:
       # gate cannot, and a gate slow enough to skip is a gate nobody runs.
       - name: e2eTest (Playwright end-to-end and accessibility)
         run: |
-          npx --prefix e2e playwright install --with-deps chromium
+          npm --prefix e2e exec -- playwright install --with-deps chromium
           ./gradlew e2eTest --stacktrace
 
       # Reporting only, and no second Gradle invocation: qualityCheck already
