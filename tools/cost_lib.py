@@ -87,11 +87,15 @@ def cost_micros(model_id, usage):
 
     Priced per message and per token kind, then floored, so a total is the sum of floors
     rather than the floor of a sum. That biases every total DOWN by at most one micro-dollar
-    per (message x token kind) — on the current corpus, 2,399 micro-dollars against a total
-    near 4x10^8, or 0.0006%. Pricing the aggregate instead would be marginally closer to the
-    real bill but would stop a run total being the sum of its message totals, and a rollup
-    that does not add up is worse than a bias six orders of magnitude below the figure
-    (doc:60-cost-model §3.3: sums are folded, never stored).
+    per (message x token kind), which is around six orders of magnitude below the totals this
+    is used on. No absolute is quoted here: it is a property of whatever corpus is being
+    replayed, and a corpus figure written into merged code is stale by the next session
+    (`bean:0054`, and `bean:0059` for why that is not yet mechanically caught).
+
+    Pricing the aggregate instead would be marginally closer to the real bill but would stop a
+    run total being the sum of its message totals, and a rollup that does not add up is worse
+    than a bias that far below the figure (doc:60-cost-model §3.3: sums are folded, never
+    stored).
     """
     if model_id == SYNTHETIC_MODEL:
         return 0
@@ -158,16 +162,18 @@ def read_messages(path):
 
     Claude Code writes MORE THAN ONE LINE PER ASSISTANT MESSAGE — one per content block, and
     in subagent transcripts also a partial line written before the message finished. Summing
-    lines overcounts by that multiplicity; on this corpus it is 1.83x. So dedupe on
-    `message.id`.
+    lines overcounts by that multiplicity. So dedupe on `message.id`. The replay reports the
+    measured multiplicity with the rest of the figures; it is not restated here, because a
+    corpus number in a docstring is stale by the next session.
 
     But the frames are NOT interchangeable. `input_tokens`, `cache_read_input_tokens` and
     `cache_creation_input_tokens` are byte-identical across every frame of a message; the
     replay asserts that on every run and reports the count, so no figure is quoted here — a
     number written into a docstring over a growing corpus is stale by the next session.
-    `output_tokens` is NOT: a partial frame
-    carries a mid-stream count (3, 2, 5 …) that the final frame supersedes (345, 160, 120 …).
-    Keeping the first frame therefore undercounts output. The authoritative frame is the one
+
+    `output_tokens` is NOT identical across frames: a partial frame carries a small mid-stream
+    count that a later frame supersedes with the finished total. Keeping the first frame
+    therefore undercounts output, by close to half of it in practice. The authoritative frame is the one
     with the largest `output_tokens`; that is what this returns, and
     `frame_disagreements` reports any message where the *other* four kinds disagreed,
     which would mean this rule is wrong.

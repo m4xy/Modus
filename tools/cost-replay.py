@@ -481,6 +481,7 @@ def splice_bean(s, per_pr):
         "| | |",
         "|---|---:|",
         "| runs replayed | %d (%d root session(s), %d subagent run(s)) |" % (s["runs"], s["rootSessions"], s["subagentRuns"]),
+        "| input files hashed | %d |" % len(s["inputs"]),
         "| assistant messages / transcript frames | %s / %s (**%sx** overcount if frames are summed) |"
         % ("{:,}".format(s["messagesTotal"]), "{:,}".format(s["framesTotal"]), s["frameMultiplicity"]),
         "| tokens | %s |" % "{:,}".format(s["tokensTotal"]),

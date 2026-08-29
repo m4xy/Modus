@@ -44,17 +44,18 @@ and `--check` fails if it drifts from the artifact. *Not done* says why that rul
 | | |
 |---|---:|
 | runs replayed | 65 (2 root session(s), 63 subagent run(s)) |
-| assistant messages / transcript frames | 4,741 / 8,708 (**1.837x** overcount if frames are summed) |
-| tokens | 717,639,227 |
-| cache-read ratio | **98.19%** |
+| input files hashed | 129 |
+| assistant messages / transcript frames | 4,847 / 8,903 (**1.837x** overcount if frames are summed) |
+| tokens | 739,560,837 |
+| cache-read ratio | **98.15%** |
 | fresh input + output | 0.31% of all tokens |
-| derived cost | **$451.494988** |
-| delegated share of cost | **60.04%** — included, not excluded |
+| derived cost | **$468.098671** |
+| delegated share of cost | **61.17%** — included, not excluded |
 | largest peak context | 865,375 tokens, 2.9x the 300k ceiling (`doc:00-constitution#context-budget`) |
 | pull requests attributed | 39 — min $1.066690, median $5.885065, max $56.710674 |
-| attributed exactly / by timestamp / not at all | 20.89% / 60.28% / 18.83% of dollars |
-| `gitBranch` == the literal `HEAD` | 4,741 of 4,741 messages |
-| output tokens recovered by taking the largest frame, not the first | 1,054,441 (47.11% of all output) |
+| attributed exactly / by timestamp / not at all | 20.99% / 58.14% / 20.87% of dollars |
+| `gitBranch` == the literal `HEAD` | 4,847 of 4,847 messages |
+| output tokens recovered by taking the largest frame, not the first | 1,094,414 (47.55% of all output) |
 | frames disagreeing on input or cache tokens | 0 |
 | subagent parent edges unresolved | 0 of 63 |
 
@@ -62,12 +63,12 @@ Verbatim, for criteria 2 and 3 (`doc:00-constitution#evidence-rule`):
 
 ```
 cmd:      python3 tools/cost-replay.py
-observed: Delegated spend is INCLUDED: 60.04% of the dollar total is subagent runs
+observed: Delegated spend is INCLUDED: 61.17% of the dollar total is subagent runs
             (63 of 65 runs)
           repeated frames of one `message.id` agree on input and cache tokens
             | 0 disagreement(s)
           output tokens recovered by taking the largest frame, not the first
-            | 1,054,441 (47.11% of all output)
+            | 1,094,414 (47.55% of all output)
 exit:     0
 ```
 
@@ -87,7 +88,7 @@ trusted, and two were wrong.
 | assistant lines carry `durationMs` | **false** | the field does not exist. Wall clock is `max(timestamp) - min(timestamp)` and therefore includes idle time |
 | `gitBranch` joins runs to branches | **false** | every assistant message carries it as the literal string `HEAD` while the repository was on named branches throughout — the block's `gitBranch` row is a count over a count, so it cannot read as true while being vacuous. Unusable as a join key |
 | `message.usage` repeats per frame | **true** | there are more transcript FRAMES than assistant messages — one line per content block, each repeating the same `usage`. Summing lines overcounts by the multiplicity in the block's *messages / frames* row |
-| `output_tokens` on a frame is a stale snapshot | **true, in subagent transcripts only** | root-session frames agree; subagent transcripts persist partial frames (`output_tokens: 3` superseded by `345`). Taking the first frame loses close to half of all output — the block's *output tokens recovered* row. `input`/`cache_*` agree on every frame with zero exceptions, so the largest-output frame is the authoritative one |
+| `output_tokens` on a frame is a stale snapshot | **true, in subagent transcripts only** | root-session frames agree; subagent transcripts persist partial frames, where a small mid-stream `output_tokens` is superseded by the finished total on a later frame. Taking the first frame loses close to half of all output — the block's *output tokens recovered* row. `input`/`cache_*` agree on every frame with zero exceptions, so the largest-output frame is the authoritative one |
 
 The pull-request join therefore does not use `gitBranch`. A run that ran `gh pr create` and got
 a `/pull/N` back owns PR N exactly, and so do its descendants; an orchestrator that opened
@@ -112,11 +113,17 @@ into the exact figure.
 
 ```
 cmd:      python3 tools/cost-replay.py --check
-observed: baseline inputs have moved on: 2 changed, 0 gone. The committed
-          figures describe the 122 files hashed at generation and are not
-          reproducible from today's transcripts. Regenerate to re-baseline.
+observed: baseline inputs have moved on: N changed, M gone. The committed
+          figures describe the <input files hashed> files hashed at generation
+          and are not reproducible from today's transcripts. Regenerate to
+          re-baseline.
 exit:     1
 ```
+
+The counts are placeholders on purpose: they are whatever has moved since the last
+regeneration, and the file count is the generated block's *input files hashed* row. Quoting
+either verbatim is the defect `## The lesson` is about. Immediately after a regeneration the
+same command exits 0.
 
 That is the check working, not failing: the two changed files are the transcripts of the
 sessions that were live while the baseline was taken. `--check` verifies the recorded input
@@ -144,8 +151,8 @@ half of the lesson, and it splits cleanly:
 | **fragile** — corpus *totals* | tokens, dollars, message counts, the delegated share, the attribution split |
 
 So prose quotes the shape and points at the artifact for the totals. A reviewer reproduced this
-replay from scratch, sharing no code, over the 53 of 122 inputs whose hashes still matched, and
-got run rows identical to the committed ones with zero discrepancies — the method reproduces
+replay from scratch, sharing no code, over the 53 inputs of that generation whose hashes still
+matched, and got run rows identical to the committed ones with zero discrepancies — the method reproduces
 exactly; it is the moving corpus underneath it that does not.
 
 ## Not done
