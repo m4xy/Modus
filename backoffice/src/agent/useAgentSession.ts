@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { costMicros, foldUsage, keepLargerFrame, peakContextTokens, zeroUsage } from './transport';
 import type {
   PromptRequest,
   StreamEvent,
@@ -27,12 +28,31 @@ export type SessionStatus = 'idle' | 'streaming' | 'complete' | 'cancelled' | 'e
 export interface AgentSessionState {
   status: SessionStatus;
   blocks: TranscriptBlock[];
+  /**
+   * Every request's usage, keyed by `message.id`. Keeping the map rather than a
+   * running total is what makes the transport's rule 2 expressible: a repeated
+   * `messageId` replaces its entry instead of being added to it, and the peak
+   * context of the run is a maximum over these entries — neither is recoverable
+   * from a scalar that has already been summed.
+   */
+  usageByMessage: Record<string, Usage>;
+  /** Folded from `usageByMessage`; never accumulated from the wire. */
   usage: Usage;
+  /** Integer micro-dollars (`doc:20-ddd-practices` §3). Dollars only at render. */
+  costUsdMicros: number;
+  /** `max(promptTokens)` over the run — `doc:00-constitution` §6's figure. */
+  peakContextTokens: number;
   sessionId: string | null;
   model: string | null;
 }
 
-const EMPTY_USAGE: Usage = { tokensIn: 0, tokensOut: 0, costUsd: 0 };
+/** Sum of each message's own cost, as `cost_lib` does — not the cost of the sum. */
+function totalCostMicros(model: string | null, byMessage: Record<string, Usage>): number {
+  return Object.values(byMessage).reduce(
+    (total, usage) => total + costMicros(model ?? '', usage),
+    0,
+  );
+}
 
 /**
  * Resolve every tool block still marked `running`.
@@ -58,6 +78,10 @@ function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState
         status: 'streaming',
         sessionId: event.sessionId,
         model: event.model,
+        // Cost is a function of usage and the model that produced it, so
+        // learning the model late re-prices what has already arrived rather
+        // than leaving it priced against the fallback.
+        costUsdMicros: totalCostMicros(event.model, state.usageByMessage),
       };
 
     case 'assistant-delta': {
@@ -121,8 +145,25 @@ function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState
         ),
       };
 
-    case 'usage':
-      return { ...state, usage: event.usage };
+    case 'usage': {
+      // Rule 2 of the transport seam. A `usage` event is ONE REQUEST, so it is
+      // folded, not assigned; and a repeated `messageId` is another frame of a
+      // request already counted, so it replaces its entry — keeping the frame
+      // with the largest `outputTokens` — rather than adding to the total.
+      // Assigning here, as this reducer used to, silently required the producer
+      // to send cumulative totals, which no real producer does.
+      const previous = state.usageByMessage[event.messageId];
+      const kept = keepLargerFrame(previous, event.usage);
+      if (previous !== undefined && kept === previous) return state;
+      const usageByMessage = { ...state.usageByMessage, [event.messageId]: kept };
+      return {
+        ...state,
+        usageByMessage,
+        usage: foldUsage(usageByMessage),
+        costUsdMicros: totalCostMicros(state.model, usageByMessage),
+        peakContextTokens: peakContextTokens(usageByMessage),
+      };
+    }
 
     case 'error':
       // Terminal: a stream that dies mid tool call never sends `session-end`,
@@ -161,7 +202,10 @@ function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState
 const INITIAL: AgentSessionState = {
   status: 'idle',
   blocks: [],
-  usage: EMPTY_USAGE,
+  usageByMessage: {},
+  usage: zeroUsage(),
+  costUsdMicros: 0,
+  peakContextTokens: 0,
   sessionId: null,
   model: null,
 };

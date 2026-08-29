@@ -44,7 +44,7 @@ test('streams assistant text, tool calls and results incrementally', async ({ pa
   // Tool calls render as their own blocks, with a result attached.
   await expect(transcript.getByText('Read', { exact: true })).toBeVisible();
   await expect(transcript.getByText('backoffice/src/agent/transport.ts')).toBeVisible();
-  await expect(transcript.getByText(/StreamTransport, StreamEvent, PRICING/)).toBeVisible();
+  await expect(transcript.getByText(/StreamTransport, StreamEvent, BASE_RATES_UPM/)).toBeVisible();
 
   // A failing tool is shown as failed, not swallowed.
   await expect(transcript.getByText(/exit 1 · 1 error/)).toBeVisible({ timeout: 20_000 });

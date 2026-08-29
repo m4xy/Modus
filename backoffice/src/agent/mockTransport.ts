@@ -1,10 +1,10 @@
-import { costOf } from './transport';
 import type {
   PromptRequest,
   StreamEvent,
   StreamHandlers,
   StreamSubscription,
   StreamTransport,
+  Usage,
 } from './transport';
 
 interface ScriptStep {
@@ -69,7 +69,7 @@ function cannedTurns(prompt: string): Turn[] {
       tool: {
         name: 'Read',
         input: 'backoffice/src/agent/transport.ts',
-        summary: '96 lines · StreamTransport, StreamEvent, PRICING',
+        summary: '286 lines · StreamTransport, StreamEvent, BASE_RATES_UPM',
         detail:
           'export interface StreamTransport {\n  readonly kind: "mock" | "sse" | "websocket";\n  start: (request, handlers) => StreamSubscription;\n}',
         ok: true,
@@ -77,7 +77,7 @@ function cannedTurns(prompt: string): Turn[] {
       },
     },
     {
-      say: 'The event union already carries a cumulative `usage` event, so the SSE client can forward server totals untouched. Checking whether anything else constructs transports directly.\n\n',
+      say: 'The event union carries a per-request `usage` event keyed by `messageId`, so the SSE client forwards each frame untouched and the console does the deduplication. Checking whether anything else constructs transports directly.\n\n',
       tool: {
         name: 'Grep',
         input: 'MockStreamTransport --glob "backoffice/src/**/*.tsx"',
@@ -207,20 +207,61 @@ export class MockStreamTransport implements StreamTransport {
     ];
   }
 
+  /**
+   * One turn is one REQUEST, and the whole conversation so far is re-sent on it.
+   *
+   * That re-send is why cache reads dominate real spend: everything already in
+   * the prompt is read back from cache on every subsequent request, while only
+   * the newly-appended tail is written. The script models that rather than a
+   * single growing `tokensIn`, because a counter with two fields cannot show
+   * where the money goes — see the transport's rules 2 and 3.
+   */
   private buildScript(request: PromptRequest): ScriptStep[] {
     const steps: ScriptStep[] = [];
-    // The prompt plus a system preamble and the repository map is the input cost
-    // you actually pay on turn one — it is not free, so we show it.
-    let tokensIn = 4_820 + tokensFor(request.prompt);
-    let tokensOut = 0;
+    // The system preamble, the repository map and the prompt — the prefix that
+    // request one writes to cache and every later request reads back.
+    let prefixTokens = 4_820 + tokensFor(request.prompt);
+    let appended = prefixTokens;
+    let cachedPrefix = 0;
+    let messageIndex = 0;
 
+    let messageId = '';
+    let usage: Usage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWrite5mTokens: 0,
+      cacheWrite1hTokens: 0,
+    };
+
+    /** Start a new request: read the cached prefix back, write the new tail. */
+    const beginRequest = (): void => {
+      messageId = `msg_${(++messageIndex).toString().padStart(2, '0')}`;
+      usage = {
+        // A few tokens are never cacheable — the turn's own framing.
+        inputTokens: 12,
+        outputTokens: 0,
+        cacheReadTokens: cachedPrefix,
+        cacheWrite5mTokens: appended,
+        cacheWrite1hTokens: 0,
+      };
+      cachedPrefix = prefixTokens;
+      appended = 0;
+    };
+
+    /**
+     * A usage frame for the request in flight. The same `messageId` is reported
+     * more than once — a partial frame mid-generation, the finished one at
+     * `assistant-end`, and the finished one again alongside a tool block, which
+     * is the frame multiplicity a stored transcript actually has. A consumer
+     * that summed these would multiply the bill; one that kept the first would
+     * lose most of the output. Deduplicating on `messageId` and keeping the
+     * largest `outputTokens` is the only reading that gets both right.
+     */
     const usageEvent = (): StreamEvent => ({
       type: 'usage',
-      usage: {
-        tokensIn,
-        tokensOut,
-        costUsd: costOf(request.model, tokensIn, tokensOut),
-      },
+      messageId,
+      usage: { ...usage },
     });
 
     steps.push({
@@ -232,19 +273,29 @@ export class MockStreamTransport implements StreamTransport {
         startedAt: new Date().toISOString(),
       },
     });
-    steps.push({ after: 40, event: usageEvent() });
 
     let callIndex = 0;
     for (const turn of cannedTurns(request.prompt)) {
-      for (const piece of chunk(turn.say)) {
-        tokensOut += tokensFor(piece);
+      beginRequest();
+      steps.push({ after: 40, event: usageEvent() });
+
+      const pieces = chunk(turn.say);
+      const partialAt = Math.floor(pieces.length / 2);
+      pieces.forEach((piece, index) => {
+        usage.outputTokens += tokensFor(piece);
         steps.push({
           after: 18 + Math.round(piece.length * 4),
           event: { type: 'assistant-delta', text: piece },
         });
-      }
+        // The partial frame: a real transcript writes one mid-generation, with
+        // an output count a later frame supersedes.
+        if (index === partialAt) steps.push({ after: 10, event: usageEvent() });
+      });
       steps.push({ after: 60, event: { type: 'assistant-end' } });
       steps.push({ after: 20, event: usageEvent() });
+
+      prefixTokens += usage.outputTokens;
+      appended += usage.outputTokens;
 
       if (turn.tool) {
         const callId = `call_${++callIndex}`;
@@ -257,6 +308,9 @@ export class MockStreamTransport implements StreamTransport {
             input: turn.tool.input,
           },
         });
+        // The duplicate frame the transcript writes per content block: identical
+        // to the one above, and a no-op for a consumer that dedupes correctly.
+        steps.push({ after: 10, event: usageEvent() });
         steps.push({
           after: turn.tool.workMs,
           event: {
@@ -268,9 +322,11 @@ export class MockStreamTransport implements StreamTransport {
             durationMs: turn.tool.workMs,
           },
         });
-        // Tool output is re-read on the next turn: that is where input cost grows.
-        tokensIn += tokensFor(turn.tool.detail) + 320;
-        steps.push({ after: 30, event: usageEvent() });
+        // Tool output joins the prompt, so the NEXT request writes it to cache
+        // and every request after that reads it back.
+        const grew = tokensFor(turn.tool.detail) + 320;
+        prefixTokens += grew;
+        appended += grew;
       }
     }
 

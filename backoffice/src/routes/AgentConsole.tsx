@@ -148,28 +148,40 @@ export function AgentConsole() {
               data-testid="agent-cost"
               aria-live="off"
             >
-              {formatUsdPrecise(session.usage.costUsd)}
+              {/* Micros are the stored unit; dollars exist only for this render. */}
+              {formatUsdPrecise(session.costUsdMicros / 1_000_000)}
             </span>
             <span className={styles.meterNote}>{model.replace('claude-', '')}</span>
           </div>
+          {/*
+            Cache reads, not fresh input, are where an agentic run's tokens go —
+            the meter that used to sit here showed "tokens in" and so showed
+            almost none of the spend.
+          */}
           <div className={styles.meter}>
-            <span className={styles.meterLabel}>Tokens in</span>
-            <span className={styles.meterValue} data-testid="agent-tokens-in">
-              {formatTokens(session.usage.tokensIn)}
+            <span className={styles.meterLabel}>Cache read</span>
+            <span className={styles.meterValue} data-testid="agent-cache-read">
+              {formatTokens(session.usage.cacheReadTokens)}
             </span>
-            <span className={styles.meterNote}>prompt + tool output</span>
+            <span className={styles.meterNote}>
+              {formatTokens(session.usage.inputTokens)} fresh in
+            </span>
           </div>
           <div className={styles.meter}>
             <span className={styles.meterLabel}>Tokens out</span>
             <span className={styles.meterValue} data-testid="agent-tokens-out">
-              {formatTokens(session.usage.tokensOut)}
+              {formatTokens(session.usage.outputTokens)}
             </span>
             <span className={styles.meterNote}>generated</span>
           </div>
           <div className={styles.meter}>
-            <span className={styles.meterLabel}>Session</span>
-            <span className={styles.meterValue}>{session.sessionId ? 'live' : '—'}</span>
-            <span className={styles.meterNote}>{session.sessionId ?? 'not started'}</span>
+            <span className={styles.meterLabel}>Peak context</span>
+            <span className={styles.meterValue} data-testid="agent-peak-context">
+              {formatTokens(session.peakContextTokens)}
+            </span>
+            <span className={styles.meterNote}>
+              largest single request · {session.sessionId ?? 'not started'}
+            </span>
           </div>
         </div>
 
