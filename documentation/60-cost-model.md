@@ -110,6 +110,12 @@ Notes that materially affect Modus's spend:
 - A `fetch` evidence record older than 90 days makes its price entry `stale`
   (`50-memory-and-evidence.md` §6.2), which raises an operator action in the backoffice.
   Modus does not silently bill against a year-old price.
+- An entry prices **every token kind §3.2 names**, not input and output alone. A cache read
+  and the two cache writes are each a different multiple of the base input rate, so a
+  two-rate entry cannot price a record at all. The multiples themselves are fetched, never
+  written from memory (§2), and on this repository's own corpus the cache-read term is the
+  overwhelming majority of every run's tokens — `bean:0068` carries the count and the
+  command that produced it, and it is not restated here because it moves with every run.
 - Model IDs are exact strings and are **never** constructed. No date suffixes, ever.
   **Enforcement gap:** the validation rule in `module-cost` that would reject an unknown
   `ModelId` does not exist; `module-cost` is an empty placeholder module with no tests
@@ -157,7 +163,8 @@ Appended to `domains/<domainId>/cost/NNNN.ndjson` — an append-only log
 | `speed` | `standard` \| `fast` |
 | `channel` | `interactive` \| `batch` |
 | `inputTokens`, `outputTokens` | From `response.usage` |
-| `cacheWriteTokens`, `cacheReadTokens` | From `response.usage`; billed at their own rates |
+| `cacheReadTokens` | From `response.usage`; billed at a multiple of the base input rate |
+| `cacheWrite5mTokens`, `cacheWrite1hTokens` | The two halves of `cache_creation_input_tokens`. They are separate fields because they bill at **different** multiples of the base input rate, so a folded total cannot be priced at all. `cacheWriteTokens` is their sum and is carried for readers of the older four-kind shape; it is not a fifth measurement |
 | `costUsd` | `Usd` value object — **integer micros, never a float** (`20-ddd-practices.md` §3) |
 | `priceBookEntryId` | Which price computed this |
 | `skillId?` | Set when the work was done under a skill (§5) |
@@ -173,7 +180,7 @@ less, and the difference is measured rather than assumed (`bean:0054`).
 
 | field | at the harness edge |
 |---|---|
-| `runId`, `parentRunId`, `role`, `modelId`, `effort`, `speed`, all four token kinds, `peakContextTokens` | **yes** |
+| `runId`, `parentRunId`, `role`, `modelId`, `effort`, `speed`, every token kind above, `peakContextTokens` | **yes** |
 | `outcome` | **partial.** `Stop` means the turn ended, not that it succeeded. `failed` and `retried` are unreachable from a hook and need the runner (`bean:0020`) |
 | `costUsd` | **derived, not billed.** No hook payload and no stored transcript carries a cost field |
 | `stage`, `workItemId`, `epicId`, `skillId`, `rationale`, `priceBookEntryId` | **no.** None is a property the harness knows |
@@ -190,6 +197,14 @@ live from the hook's `cwd` — the stored transcript's own `gitBranch` is the li
 `HEAD` on every line this repository has produced), `costBasis`, `outcomeBasis`,
 `billingBasis`, `lastMessageId`, `messages`, `modelIds`, `spawnDepth`, `source` and
 `unavailable`.
+
+`Enforcement gap:` nothing compares this field list against the records actually being
+written. This table and `tools/cost_lib.py` drifted apart over the cache-write split and each
+half stayed internally consistent, so neither showed it: `_usage_of`'s docstring there says it
+projects usage onto "the five token kinds doc:60#spend-record names" while this table named
+four. A documented field list and a live writer are two copies of one schema
+(`doc:05-authoring-for-agents#one-fact-one-place`), and only one of them runs. `bean:0111`
+closes it; `bean:0054` carries the recorder and `bean:0068` records the drift.
 
 Token counts come from the API response's `usage` block, captured by
 `adapters/adapter-agent-claude` — never estimated. Where a pre-flight estimate is needed
