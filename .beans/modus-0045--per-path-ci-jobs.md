@@ -84,12 +84,40 @@ while the local command is the superset, and that is now stated there as one-dir
 
 | # | criterion | observed |
 |---|---|---|
-| 1 | separate jobs with path filters; Kotlin-only skips the frontend half, frontend-only skips the Kotlin half, both runs both | classifier run below, plus `.github/workflows/ci.yml` `build`/`frontend` `if:` conditions |
-| 2 | branch protection still passes when a job is skipped | it cannot fail: the ruleset carries no `required_status_checks` rule at all — see "What the work found" above. `gate` is built to be that check and was observed green on a real pull request, below |
+| 1 | separate jobs with path filters; Kotlin-only skips the frontend half, frontend-only skips the Kotlin half, both runs both | run `33261902606` — `backoffice + e2e` **skipped** on a real pull request; plus the classifier's decision function over five path sets, below |
+| 2 | branch protection still passes when a job is skipped | `gate` observed `success` on run `33261902606`, in which `backoffice + e2e` was skipped — the aggregating job reports green rather than never reporting. The ruleset also carries no `required_status_checks` rule at all, so nothing is blocked today either way (`bean:0047`) |
 | 3 | `doc:00-constitution` §7.2.4 states the promise one-directionally | citation below |
 | 4 | measure and record the result | run `33256522531`, below |
 
-### Criterion 1 — the classifier's decision function
+### Criterion 1 — a half observed skipped on a real pull request
+
+The change that closed this bean touches `.beans/` and nothing else, which is the
+Kotlin-side classification. Both events on the same commit, in the same push:
+
+```
+run:      33261902606 (pull_request, base resolvable)
+observed: which halves            success
+          build + mechanical gates success
+          backoffice + e2e         skipped
+          gate                     success
+
+run:      33261878230 (push, new branch — github.event.before is all zeros)
+observed: which halves            success
+          build + mechanical gates success
+          backoffice + e2e         success
+          gate                     success
+```
+
+The second is the fail-safe branch firing rather than a contradiction: an unresolvable base
+runs both halves rather than guessing, and a brand-new branch has no `before` to diff
+against. So the same commit is classified selectively where the diff is knowable and
+conservatively where it is not, which is the intended behaviour and had not been observed
+until now.
+
+`gate` is `success` in both, which is criterion 2's real answer: an aggregating job whose
+dependency was skipped still reports green, so requiring it would not block this change.
+
+### Criterion 1, continued — the classifier's decision function
 
 The `case` block from `.github/workflows/ci.yml`'s `filter` step, extracted verbatim and
 driven by a path list:
@@ -114,7 +142,7 @@ is the `bean:0029` trap held: a Kotlin indent knob reindented every TypeScript f
 `-x backofficeTypecheck -x backofficeLint -x backofficeFormatCheck` (`ci.yml`) rather than
 CI gaining a task local runs do not have.
 
-### Criteria 2 and 4 — the gate job on a real pull request
+### Criterion 4 — the measurement
 
 ```
 run:      33256522531 (pull request #22, this bean's own)
