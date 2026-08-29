@@ -53,7 +53,12 @@ function resolveRunningTools(blocks: TranscriptBlock[], summary: string): Transc
 function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState {
   switch (event.type) {
     case 'session-start':
-      return { ...state, status: 'streaming', sessionId: event.sessionId, model: event.model };
+      return {
+        ...state,
+        status: 'streaming',
+        sessionId: event.sessionId,
+        model: event.model,
+      };
 
     case 'assistant-delta': {
       const last = state.blocks[state.blocks.length - 1];
@@ -67,7 +72,12 @@ function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState
         ...state,
         blocks: [
           ...state.blocks,
-          { kind: 'assistant', id: `a${state.blocks.length}`, text: event.text, done: false },
+          {
+            kind: 'assistant',
+            id: `a${state.blocks.length}`,
+            text: event.text,
+            done: false,
+          },
         ],
       };
     }
@@ -122,7 +132,12 @@ function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState
         status: 'error',
         blocks: [
           ...resolveRunningTools(state.blocks, 'Interrupted'),
-          { kind: 'notice', id: `e${state.blocks.length}`, tone: 'error', text: event.message },
+          {
+            kind: 'notice',
+            id: `e${state.blocks.length}`,
+            tone: 'error',
+            text: event.message,
+          },
         ],
       };
 

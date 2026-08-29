@@ -250,7 +250,12 @@ export class MockStreamTransport implements StreamTransport {
         const callId = `call_${++callIndex}`;
         steps.push({
           after: 180,
-          event: { type: 'tool-call', callId, name: turn.tool.name, input: turn.tool.input },
+          event: {
+            type: 'tool-call',
+            callId,
+            name: turn.tool.name,
+            input: turn.tool.input,
+          },
         });
         steps.push({
           after: turn.tool.workMs,

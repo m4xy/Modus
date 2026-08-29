@@ -164,7 +164,12 @@ export function Cost() {
                   {summary.byWorkItem.map((item) => (
                     <tr key={item.key}>
                       <Td primary>
-                        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--ink-3)' }}>
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            color: 'var(--ink-3)',
+                          }}
+                        >
                           {item.key}
                         </span>{' '}
                         {item.title}

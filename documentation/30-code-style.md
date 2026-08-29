@@ -81,12 +81,16 @@ Both cover `*.kt` and `*.kts`, the root project's build scripts included.
 **Never** commit with a ktlint violation and "fix it in review". `ktlintFormat` takes under
 two seconds.
 
-**Enforcement gap:** Kotlin is the only language the build formats. `*.ts`, `*.tsx` and
-`*.css` are covered by `backoffice/`'s own Prettier scripts, which no Gradle task or CI
-step invokes; `*.md`, `*.yaml` and `*.json` are covered by nothing at all. An earlier
-version of this section described a single Spotless configuration spanning all five — that
-plugin is not in the build and never was. Choosing between adopting it and standardising on
-ktlint plus the backoffice's own Prettier is `bean:0029`'s first success criterion.
+**One tool per language, configured where its ecosystem expects.** ktlint owns `*.kt` and
+`*.kts`; `backoffice/`'s own Prettier owns `*.ts`, `*.tsx` and `*.css`, and `qualityCheck`
+now runs it. Spotless was considered and rejected in `bean:0029`: it would add a second
+Kotlin formatter beside ktlint and a second Prettier configuration beside
+`backoffice/.prettierrc`, which is one fact in two places.
+
+**Enforcement gap:** `*.md`, `*.yaml` and `*.json` are formatted by nothing. That is
+accepted rather than pending — `docs-lint` already checks what matters about Markdown here
+(front-matter, anchors, references, line budget), and no rule in this package depends on
+YAML or JSON layout. Raise a bean if one ever does.
 
 ---
 
@@ -275,7 +279,7 @@ reference, so they are **forbidden outright** in this repository; disable a test
 
 | Concern | Tool | Setting |
 |---|---|---|
-| Formatting | Prettier (`backoffice/package.json`) | 2-space indent, 100 columns, single quotes, trailing commas |
+| Formatting | Prettier (`backoffice/.prettierrc.json` + `.editorconfig`) | 2-space indent, 100 columns, single quotes, trailing commas. The indent comes from `.editorconfig`'s `[*.{ts,tsx,css}]` block, which exists because Prettier reads `.editorconfig` and would otherwise inherit `[*]`'s `indent_size = 4` — a ktlint setting. |
 | Linting | ESLint | `@typescript-eslint` strict + `react-hooks` + `jsx-a11y` |
 | Types | `tsc --noEmit` | `strict: true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride` |
 | `any` | ESLint `no-explicit-any` | `error`. Use `unknown` and narrow. |
@@ -283,13 +287,26 @@ reference, so they are **forbidden outright** in this repository; disable a test
 | Import cycles | ESLint `import/no-cycle` | `error` |
 | Accessibility | `jsx-a11y` recommended | `error`; plus axe assertions in Playwright |
 | API types | Generated from the OpenAPI document | Hand-written API types are forbidden — they drift |
-| Dead code | `knip` | **Enforcement gap:** knip is not a dependency, a script or a workflow step anywhere in the repository. `bean:0029` installs it or strikes this row. |
 
-**Enforcement gap:** nothing runs the checks above. `backoffice/` and `e2e/` are not
-Gradle projects, so no Gradle task reaches their `typecheck`, `lint` or `format:check`
-scripts, and CI runs only `./gradlew qualityCheck`. Until `bean:0029` wires them in, run them by hand as `00-constitution.md` §7.2.4's
-`Enforcement gap:` describes — that block carries the commands, this one does not. The complete gate — and the only normative statement of it — is
+
+**Enforced by:** `qualityCheck`, through `backofficeTypecheck`, `backofficeLint` and
+`backofficeFormatCheck` (`build.gradle.kts`), each observed rejecting a planted violation
+(`bean:0029`). The complete gate — and the only normative statement of it — is
 `00-constitution.md` §7.2.4.
+
+**Enforcement gap:** `backofficeLint` runs `eslint .` with the working directory set to
+`backoffice/`, so **`e2e/` is not linted at all** — it has no ESLint configuration. Observed:
+two unused bindings and a non-null assertion added to `e2e/tests/smoke.spec.ts` leave
+`./gradlew backofficeLint` green, while a type error in the same file does fail
+`backofficeTypecheck`. `bean:0046` closes it.
+
+**Enforcement gap:** three rows above are documented and absent. `backoffice/package.json`
+carries neither `eslint-plugin-jsx-a11y` nor `eslint-plugin-import`, and
+`backoffice/eslint.config.js` uses `recommendedTypeChecked` rather than `strict` — so
+`jsx-a11y`, `import/no-cycle` and `no-non-null-assertion` are not enforced. Observed:
+`export const bang = (s: string | null) => s!.length;` in `backoffice/src/App.tsx` leaves
+`backofficeLint` green. They are the same class of claim as the struck `knip` row and
+survived that audit; `bean:0046` installs them or strikes them.
 
 ---
 

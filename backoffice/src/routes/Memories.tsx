@@ -44,7 +44,13 @@ export function Memories() {
                 actions={<Badge tone="neutral">{formatRelative(memory.updatedAt)}</Badge>}
               />
               <CardBody>
-                <p style={{ color: 'var(--ink-2)', fontSize: 'var(--text-sm)', maxWidth: '68ch' }}>
+                <p
+                  style={{
+                    color: 'var(--ink-2)',
+                    fontSize: 'var(--text-sm)',
+                    maxWidth: '68ch',
+                  }}
+                >
                   {memory.excerpt}
                 </p>
               </CardBody>

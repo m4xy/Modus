@@ -628,9 +628,27 @@ export const costByDomain: Record<string, CostSummary> = {
         tokensIn: 7_820_000,
         tokensOut: 1_180_000,
       },
-      { stage: 'review', label: 'Review', usd: 88.9, tokensIn: 3_410_000, tokensOut: 402_000 },
-      { stage: 'verify', label: 'Verify', usd: 43.7, tokensIn: 1_620_000, tokensOut: 168_000 },
-      { stage: 'summarise', label: 'Summarise', usd: 18.4, tokensIn: 740_000, tokensOut: 96_000 },
+      {
+        stage: 'review',
+        label: 'Review',
+        usd: 88.9,
+        tokensIn: 3_410_000,
+        tokensOut: 402_000,
+      },
+      {
+        stage: 'verify',
+        label: 'Verify',
+        usd: 43.7,
+        tokensIn: 1_620_000,
+        tokensOut: 168_000,
+      },
+      {
+        stage: 'summarise',
+        label: 'Summarise',
+        usd: 18.4,
+        tokensIn: 740_000,
+        tokensOut: 96_000,
+      },
     ],
     byModel: [
       {
@@ -681,7 +699,13 @@ export const costByDomain: Record<string, CostSummary> = {
       },
       { stage: 'review', label: 'Review', usd: 20.1, tokensIn: 760_000, tokensOut: 88_000 },
       { stage: 'verify', label: 'Verify', usd: 9.7, tokensIn: 340_000, tokensOut: 36_000 },
-      { stage: 'summarise', label: 'Summarise', usd: 3.52, tokensIn: 150_000, tokensOut: 18_000 },
+      {
+        stage: 'summarise',
+        label: 'Summarise',
+        usd: 3.52,
+        tokensIn: 150_000,
+        tokensOut: 18_000,
+      },
     ],
     byModel: [
       {
@@ -700,7 +724,12 @@ export const costByDomain: Record<string, CostSummary> = {
       },
     ],
     byWorkItem: [
-      { key: '0011', title: 'Migrate ledger postings to append-only store', usd: 52.8, runs: 22 },
+      {
+        key: '0011',
+        title: 'Migrate ledger postings to append-only store',
+        usd: 52.8,
+        runs: 22,
+      },
       { key: '0012', title: 'Backfill projection from 2019 archive', usd: 28.4, runs: 15 },
       { key: '0013', title: 'Reconciliation report for finance', usd: 15.22, runs: 10 },
     ],
@@ -726,8 +755,20 @@ export const costByDomain: Record<string, CostSummary> = {
         tokensIn: 8_940_000,
         tokensOut: 1_320_000,
       },
-      { stage: 'review', label: 'Review', usd: 112.8, tokensIn: 4_180_000, tokensOut: 486_000 },
-      { stage: 'verify', label: 'Verify', usd: 51.2, tokensIn: 1_910_000, tokensOut: 196_000 },
+      {
+        stage: 'review',
+        label: 'Review',
+        usd: 112.8,
+        tokensIn: 4_180_000,
+        tokensOut: 486_000,
+      },
+      {
+        stage: 'verify',
+        label: 'Verify',
+        usd: 51.2,
+        tokensIn: 1_910_000,
+        tokensOut: 196_000,
+      },
       {
         stage: 'summarise',
         label: 'Summarise',
@@ -781,7 +822,12 @@ export const costByDomain: Record<string, CostSummary> = {
       },
     ],
     byWorkItem: [
-      { key: '0042', title: 'Nightly rollup drifts from the event log', usd: 118.4, runs: 46 },
+      {
+        key: '0042',
+        title: 'Nightly rollup drifts from the event log',
+        usd: 118.4,
+        runs: 46,
+      },
       { key: '0043', title: 'Schema drift alert is too noisy to act on', usd: 12.8, runs: 9 },
     ],
   },
@@ -794,7 +840,13 @@ export const costByDomain: Record<string, CostSummary> = {
     daily: dailySeries(28, 0.14, 41),
     byStage: [
       { stage: 'plan', label: 'Plan', usd: 0.62, tokensIn: 22_000, tokensOut: 3_100 },
-      { stage: 'implement', label: 'Implement', usd: 1.84, tokensIn: 68_000, tokensOut: 9_400 },
+      {
+        stage: 'implement',
+        label: 'Implement',
+        usd: 1.84,
+        tokensIn: 68_000,
+        tokensOut: 9_400,
+      },
       { stage: 'review', label: 'Review', usd: 0.44, tokensIn: 16_000, tokensOut: 2_100 },
       { stage: 'verify', label: 'Verify', usd: 0.2, tokensIn: 7_400, tokensOut: 900 },
       { stage: 'summarise', label: 'Summarise', usd: 0.08, tokensIn: 3_100, tokensOut: 400 },

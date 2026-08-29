@@ -52,6 +52,18 @@ jobs:
             21
             25
 
+      # qualityCheck now reaches backoffice/ and e2e/ through npm (bean:0029), so the
+      # runner needs node. Pinned to the major the lockfiles were resolved against;
+      # `npm ci` refuses a lockfile it cannot satisfy, so drift fails loudly rather
+      # than silently resolving different versions.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            backoffice/package-lock.json
+            e2e/package-lock.json
+
       # Pinned to a commit, not a tag. `gradle/actions` is published by the
       # Gradle organisation rather than by GitHub, so `v4` is a tag its
       # publisher can move; this SHA is exactly what `v4` resolves to today.
@@ -66,15 +78,26 @@ jobs:
       # Both suites are reached through it: `check` depends on `test` and on
       # `integrationTest` in every module (modus.kotlin-base), so there is no
       # second step to forget. See doc:35-testing#source-sets.
-      - name: qualityCheck (both test suites, ktlint, Detekt, ArchUnit, build-logic)
+      - name: qualityCheck (both suites, ktlint, Detekt, ArchUnit, backoffice, build-logic)
         run: ./gradlew qualityCheck --stacktrace
+
+      # Outside qualityCheck by design (doc:00-constitution §7.2.4): Playwright needs a
+      # built and running system and takes minutes. CI can afford that; the fast local
+      # gate cannot, and a gate slow enough to skip is a gate nobody runs.
+      - name: e2eTest (Playwright end-to-end and accessibility)
+        run: |
+          npm --prefix e2e exec -- playwright install --with-deps chromium
+          ./gradlew e2eTest --stacktrace
 
       # Reporting only, and no second Gradle invocation: qualityCheck already
       # built this XML. The GATE is the per-module ratchet inside qualityCheck,
       # which has already failed the job if coverage moved, so min-coverage-* are
       # 0 rather than a second threshold to keep in sync (doc:35-testing#coverage).
       - name: Publish coverage on the pull request
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        # always(): without it GitHub ANDs an implicit success() onto this condition, so a
+        # Playwright failure in the step above silently suppresses coverage reporting — a
+        # second, unrelated signal lost to the first. bean:0029 review found it.
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         # Pinned to the immutable commit behind v1.8.0. This is the only
         # third-party action in the workflow and the only reason the job holds
         # `pull-requests: write`; a moving tag would let its publisher run
@@ -96,4 +119,6 @@ jobs:
           path: |
             **/build/reports/
             **/build/test-results/
+            e2e/playwright-report/
+            e2e/test-results/
           retention-days: 7

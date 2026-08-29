@@ -25,6 +25,76 @@ tasks.register<Exec>("docsLint") {
     commandLine("bash", "tools/docs-lint.sh")
 }
 
+// --- the backoffice half of the gate -----------------------------------------
+//
+// backoffice/ and e2e/ are not Gradle projects (settings.gradle.kts), so nothing
+// here compiles TypeScript or owns its config. These tasks invoke the scripts the
+// backoffice already declares, which keeps one tool per language configured where
+// its ecosystem expects: ktlint owns Kotlin, Prettier and ESLint own TypeScript,
+// each with one config file. Spotless was considered and rejected in bean:0029 —
+// it would add a second Kotlin formatter beside ktlint and a second Prettier
+// configuration beside backoffice/.prettierrc, which is one fact in two places.
+
+val npmExecutable = if (System.getProperty("os.name").startsWith("Windows")) "npm.cmd" else "npm"
+
+/**
+ * `npm ci` is idempotent but not free, so it is skipped when the tree is already
+ * populated. Both lockfiles are committed, so this is reproducible rather than a
+ * best-effort resolve.
+ */
+fun Project.npmProject(
+    name: String,
+    dir: String,
+) = tasks.register<Exec>("${name}Install") {
+    group = "nodejs"
+    description = "Installs $dir dependencies from its committed lockfile."
+    workingDir = file(dir)
+    commandLine(npmExecutable, "ci")
+    inputs.files(file("$dir/package-lock.json"), file("$dir/package.json"))
+    outputs.dir(file("$dir/node_modules"))
+}
+
+val backofficeInstall = npmProject("backoffice", "backoffice")
+val e2eInstall = npmProject("e2e", "e2e")
+
+fun registerNpmCheck(
+    taskName: String,
+    script: String,
+    what: String,
+) = tasks.register<Exec>(taskName) {
+    group = "verification"
+    description = what
+    dependsOn(backofficeInstall, e2eInstall)
+    workingDir = file("backoffice")
+    commandLine(npmExecutable, "run", script)
+}
+
+val backofficeTypecheck =
+    registerNpmCheck(
+        "backofficeTypecheck",
+        "typecheck",
+        "tsc --noEmit over backoffice/ and e2e/.",
+    )
+val backofficeLint = registerNpmCheck("backofficeLint", "lint", "ESLint over backoffice/.")
+val backofficeFormatCheck =
+    registerNpmCheck(
+        "backofficeFormatCheck",
+        "format:check",
+        "Prettier --check over backoffice/ and e2e/.",
+    )
+
+// Playwright is deliberately OUTSIDE `check` and `qualityCheck`
+// (doc:00-constitution §7.2.4). It needs a built and running system and takes
+// minutes; inside the fast gate it would make the gate slow enough that agents
+// stop running it. Required only when user-visible behaviour changed.
+tasks.register<Exec>("e2eTest") {
+    group = "verification"
+    description = "Playwright end-to-end and accessibility suite against a production build."
+    dependsOn(backofficeInstall, e2eInstall)
+    workingDir = file("e2e")
+    commandLine(npmExecutable, "test")
+}
+
 // The single aggregate entry point. CI runs exactly this, so "green locally"
 // and "green in CI" cannot mean two different things.
 tasks.register("qualityCheck") {
@@ -35,6 +105,9 @@ tasks.register("qualityCheck") {
     dependsOn(
         subprojects.map { "${it.path}:check" } + listOf("check", "ktlintCheck", "docsLint"),
     )
+    // The backoffice half. Before bean:0029 nothing reached these, so a TypeScript
+    // error, an ESLint error or 77 drifted files all merged green.
+    dependsOn(backofficeTypecheck, backofficeLint, backofficeFormatCheck)
     // An included build's tasks are not reached by anything in this build, so
     // the convention plugins' own ktlint/Detekt/allWarningsAsErrors gates have
     // to be asked for by name or they would exist and never run.

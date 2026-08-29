@@ -28,6 +28,13 @@ ij_kotlin_name_count_to_use_star_import_for_members = 2147483647
 # Test function names are sentences in backticks, which the naming rule rejects.
 ktlint_function_naming_ignore_when_annotated_with = Test, ParameterizedTest, ArchTest
 
+# TypeScript, TSX and CSS are Prettier's, and Prettier reads this file: without an
+# explicit entry they inherit [*]'s indent_size = 4, which is a ktlint setting. That is
+# how a Kotlin knob silently reindented every backoffice file (bean:0029, review). Two
+# spaces is what doc:30-code-style §6 documents and what the ecosystem expects.
+[*.{ts,tsx,css}]
+indent_size = 2
+
 [*.{yml,yaml,json}]
 indent_size = 2
 

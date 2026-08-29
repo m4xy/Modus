@@ -45,3 +45,6 @@ beans/**/.lock
 .modus/
 *.log
 node_modules/
+
+# Agent worktrees — transient checkouts created by subagent isolation.
+.claude/worktrees/

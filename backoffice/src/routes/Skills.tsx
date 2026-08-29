@@ -42,7 +42,12 @@ export function Skills() {
                   <tr key={skill.id}>
                     <Td primary>
                       {skill.name}
-                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-2)' }}>
+                      <div
+                        style={{
+                          fontSize: 'var(--text-xs)',
+                          color: 'var(--ink-2)',
+                        }}
+                      >
                         {skill.summary}
                       </div>
                     </Td>
