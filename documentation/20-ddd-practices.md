@@ -14,7 +14,7 @@ provides:
   - doc:20-ddd-practices#ports-and-adapters
   - doc:20-ddd-practices#invariants
   - doc:20-ddd-practices#domain-prohibitions
-depends_on: [doc:00-constitution, doc:10-architecture, doc:30-code-style]
+depends_on: [doc:00-constitution, doc:10-architecture, doc:15-repository-layout, doc:30-code-style]
 ---
 
 # 20 — DDD Practices
@@ -97,7 +97,7 @@ class WorkItem private constructor(
 
 Notes on the shape:
 - It lives in `..domain.aggregate`, which is what gives `AggregatesAreSealedOrFinal`
-  (`10-architecture.md` §4.2) and the aggregate coverage floor (§7.3) a decidable scope.
+  (`doc:15-repository-layout#core-package-rules` §4.2) and the aggregate coverage floor (§7.3) a decidable scope.
 - Private constructor plus a named factory in the companion. The factory is where
   creation invariants live and where the `Created` event is raised.
 - `state` is a `private var` with its justification comment; `successCriteria` is a
@@ -228,14 +228,15 @@ data class WorkItemTransitioned(
 ### 5.1 Naming and package placement
 
 Package placement is not cosmetic here: three mechanical rules — the published-language
-allowlist (`10-architecture.md` §3.1), `AggregatesAreSealedOrFinal` (§4.2) and the
+allowlist (`doc:10-architecture#bounded-contexts` §3.1), `AggregatesAreSealedOrFinal`
+(`doc:15-repository-layout#core-package-rules` §4.2) and the
 aggregate coverage floor (§7.3) — can only be scoped because these packages exist. A type
 in the wrong package silently removes it from a rule.
 
 | Package | Contains | Notes |
 |---|---|---|
 | `com.modus.core.<ctx>.domain.aggregate` | Aggregate roots and the entities inside their boundary | Nothing else. This package **is** the definition of "aggregate" for every tool that needs one. |
-| `com.modus.core.<ctx>.domain.event` | Domain events | **Published language.** Leaf package — see `10-architecture.md` §3.1. |
+| `com.modus.core.<ctx>.domain.event` | Domain events | **Published language.** Leaf package — see `doc:10-architecture#bounded-contexts` §3.1. |
 | `com.modus.core.<ctx>.domain.published` | Identifier value objects (`WorkItemId`, `ActorId`, …) and any value object that appears in an event's signature (`WorkItemState`, `RunStatus`, …) | **Published language.** Leaf package. Moving a type in here is a deliberate act: it becomes another context's contract. |
 | `com.modus.core.domain` | The shared kernel: `DomainEvent` and `DomainId`, and nothing else without an ADR | Belongs to no context. Membership test and the trigger for giving it its own package: `adr:0004-domain-id-shared-kernel#shared-kernel-membership`. |
 | `com.modus.core.<ctx>.domain.port` | Outbound ports | |

@@ -14,7 +14,7 @@ provides:
   - doc:80-agent-operating-procedure#encode-the-learnings
   - doc:80-agent-operating-procedure#open-the-pull-request
   - doc:80-agent-operating-procedure#respond-to-review
-depends_on: [doc:00-constitution, doc:10-architecture, doc:20-ddd-practices, doc:30-code-style, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills]
+depends_on: [doc:00-constitution, doc:10-architecture, doc:15-repository-layout, doc:20-ddd-practices, doc:30-code-style, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills]
 ---
 
 # 80 — Agent Operating Procedure
@@ -122,8 +122,8 @@ Record in the work item, briefly:
 | **Risks** | What could make this take 3× longer, and the early signal for each |
 
 **Layering check before you write any code:** for each thing you intend to change, name
-the layer it belongs to using `10-architecture.md` §2.1. If you cannot place it, you have
-found an architecture gap — resolve it now, not in review.
+the layer it belongs to using `doc:15-repository-layout#placement-table` §2.1. If you
+cannot place it, you have found an architecture gap — resolve it now, not in review.
 
 ---
 
