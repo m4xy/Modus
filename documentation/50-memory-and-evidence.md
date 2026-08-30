@@ -112,6 +112,16 @@ These six are the complete list. There is no `other`.
 | A count with no command and no tree — "51 references" | A count is an observation of one tree at one moment, and both halves are part of it. Without them nobody can get the same number, or find out why they got a different one. |
 | Arithmetic over a table of figures | That the rows sum is a fact about the addition. It says nothing about whether any figure in them was ever observed, and checking it is not checking the measurement (`bean:0068`). |
 | A citation that resolves but does not carry the claim made at it | The reference resolves, so every mechanical check passes and the reader stops at the pointer (`doc:05-authoring-for-agents#one-fact-one-place`). |
+| A mechanism observed firing, never observed silent | Firing on every input is also firing. Enforcement is discrimination, so the claim needs **three** observations rather than one: the mechanism fires on the planted fault, it fires the expected *number* of times, and it is silent on the unmodified source. Any two of the three admit a mechanism that enforces nothing. The positive half is `doc:00-constitution#observed-failing`; `bean:0089` carries why the halves are not in one document. |
+
+**A mechanism that retains a running "best" value corrupts the state it compares against.**
+Once the retained value is itself the corrupt one, every later comparison is against the
+retention rather than against the source, so one planted fault produces an unbounded run of
+reports — a defect the mechanism has *because* it works. Nothing in a typecheck, a linter or
+a reading reaches it; only the count does. Assert **how many** times a mechanism fires, never
+that it fires: "the notice appears" passes on a mechanism that reports the same fault
+forever. Reported from a live detector in this repository and recorded, unreproduced, in
+`bean:0068`.
 
 ### 2.3 Strength
 
@@ -161,6 +171,7 @@ stale on arrival, and this one grew by a row inside the stack that introduced it
 | a figure with no command, or a count with no tree | what argv produced this number, and on what tree? | §2.2 |
 | a citation that resolves but does not carry the claim made at it | does the cited anchor state this, or does it merely sit near it? | `doc:05-authoring-for-agents#one-fact-one-place` |
 | a reason invented for a **declined** fix | was this reason weighed before the decline, or written after it? | `doc:80-agent-operating-procedure#respond-to-review` |
+| a mechanism observed firing, never observed silent | did anything watch it *not* fire, and was the count asserted? | §2.2, and `doc:00-constitution#observed-failing` for the positive half |
 
 **The invented reason for a declined fix is the worst of them**, named by its property rather
 than by its position for the reason above. The others read as unfinished work and invite a

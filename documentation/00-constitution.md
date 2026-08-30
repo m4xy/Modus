@@ -16,7 +16,7 @@ provides:
   - doc:00-constitution#mechanical-enforcement
   - doc:00-constitution#observed-failing
   - doc:00-constitution#orchestrator
-depends_on: [doc:10-architecture, doc:30-code-style, doc:40-durability, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills, doc:80-agent-operating-procedure]
+depends_on: [doc:10-architecture, doc:30-code-style, doc:35-testing, doc:40-durability, doc:50-memory-and-evidence, doc:60-cost-model, doc:70-skills, doc:80-agent-operating-procedure]
 ---
 
 # 00 — The Modus Constitution
@@ -53,25 +53,15 @@ core/core-domain                 (aggregates, VOs, events, ports — ZERO framew
 
 ### 1.1 The dependency rules
 
-| Module | MAY depend on | MUST NOT depend on |
-|---|---|---|
-| `core/core-domain` | Kotlin stdlib, `java.time` **types** only | Spring, Jackson, JPA, HTTP, file IO, SLF4J, any `adapters/*`, any `modules/*`, `core-application` |
-| `core/core-application` | `core-domain`, Kotlin stdlib, coroutines | Spring, Jackson, any `adapters/*`, any `modules/*`, `app/*` |
-| `adapters/adapter-*` | `core-domain`, `core-application`, their own third-party libs | Any other `adapters/*`, `app/*`, `modules/*` |
-| `modules/module-*` | `core-domain`, `core-application`, Spring, their own third-party libs | Any `adapters/*`, another `modules/*`, `app/*` |
-| `app/modus-server` | Everything | Nothing (it is the top) |
-| `backoffice/` | The REST API contract | Any Kotlin source |
-| `e2e/` | The running system over HTTP | Any Kotlin source |
+`doc:10-architecture#module-dependencies` §4.1 is the one dependency table: machine-readable,
+the one an ArchUnit test is generated from, and the one that carries `backoffice/` and `e2e/`
+as well as every Gradle module. **Enforced by:** ArchUnit (`build-logic` convention plugin
+`modus.archunit`), plus Gradle `api`/`implementation` module boundaries.
 
 A module is wired like an adapter, so Spring is permitted in one; it is the **core** that
 is framework-free (§1.3). A module never depends on an adapter: ports are declared in
 `core` (§1.2), so "adapter ports" is not a thing that exists to depend on
 (`10-architecture.md` §7.2).
-
-**Enforced by:** ArchUnit (`build-logic` convention plugin `modus.archunit`), plus
-Gradle `api`/`implementation` module boundaries. The table in `10-architecture.md` §4.1
-is the machine-readable form and the one an ArchUnit test is generated from; this table
-is its prose rendering. If they disagree, §4.1 wins and this table is the bug.
 
 ### 1.2 Ports live inside, adapters implement them
 
@@ -90,9 +80,11 @@ ports, named by `doc:20-ddd-practices#ambient-ports` §5.3 and by nothing here.
 **Rationale:** `core-domain` must be testable with zero setup in under a second, and it
 must survive a change of persistence or transport without editing a single line.
 
-**Enforced by:** ArchUnit package-dependency rules.
-**Enforcement gap:** the custom Detekt rule `ForbiddenDomainApi` this section relied on
-does not exist; see `30-code-style.md` §4 and `bean:0026`.
+**Enforced by:** ArchUnit, for less of the list above than it reads:
+`rule:archunit/timeIsInjectedNeverReadFromAStaticClock` is three `now()` methods and nothing
+else, and `doc:15-repository-layout#core-package-rules` §4.2 states which of the rest are live.
+**Enforcement gap:** §4.2 carries it, `UUID.randomUUID()` included. The `ForbiddenDomainApi`
+Detekt rule this section relied on does not exist (`30-code-style.md` §4, `bean:0026`).
 
 ---
 
@@ -184,8 +176,7 @@ If a skill exists for what you are about to do, you use it rather than reinventi
 approach; a procedure you keep repeating becomes one. The **single normative statement** of
 the extraction thresholds is the trigger table in `60-cost-model.md` §5.3 — the one
 `module-cost` measures — and of when *not* to extract, `70-skills.md` §2.2. Neither is
-restated here, and where this section appeared to disagree with §5.3 it was this file that
-was wrong.
+restated here; on any apparent disagreement §5.3 wins.
 
 Modus prefers **celebrity skills** — a small number of well-known, well-named, heavily
 reused skills — over a long tail of one-off scripts. See `70-skills.md`.
@@ -413,12 +404,21 @@ means the build is wrong. Fix the build. See `30-code-style.md`.
 
 - Every `Enforced by:` line MUST name a mechanism that has been observed rejecting a
   planted violation of the rule it claims to enforce. The observation is recorded
-  verbatim (§3), in the work item and in the pull-request body.
+  verbatim (§3), in the work item (`adr:0005-evidence-lives-in-the-work-item#evidence-home`).
 - The procedure is `35-testing.md` §6, applied to gates rather than to tests: plant,
   observe the named mechanism fail, revert.
 - A mechanism that cannot be made to fail MUST be demoted to an `Enforcement gap:` naming
   the work item that closes it. An unfalsifiable gate is worse than an admitted gap,
   because it also stops anyone looking.
+- The rule binds a **fix** as it binds a gate: a fix nothing can be observed to protect is
+  not yet enforced (`bean:0064`, `doc:35-testing#load-bearing-evidence`).
+
+**Enumerating the shapes a gate accepts fails open; requiring the token that settles the
+question fails closed.** Three successive allowlists on the defensive-copy gate were each
+walked past by an expression nobody had named. The requirement that replaced them fails closed —
+*a non-private function mentioning a backing field MUST declare a return type* — and costs nothing
+in `core-domain` today, being broader than collections (`bean:0036`, `bean:0064`). An allowlist
+binds only over a set the tool enumerates exhaustively — a resolved classpath (`doc:35-testing#unit-classpath`).
 
 **A gate can be real, correct, observed failing — and still not run.** `docs-lint` check 11
 was watched rejecting four planted violations, shipped with an `Enforced by:` line, and then
