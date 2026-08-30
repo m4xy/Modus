@@ -34,9 +34,9 @@
 # green. Both are mutated here, separately:
 #
 #   classifier only      fence_classify replaced by the pre-bean:0063 toggle, the real
-#                        measurement helpers kept    ->  17 passed, 14 failed
+#                        measurement helpers kept    ->  21 passed, 16 failed
 #   citation site only   citation_site() bypassed, `s = tolower(line)` restored
-#                                                    ->  28 passed,  3 failed
+#                                                    ->  34 passed,  3 failed
 #
 # Neither mutation reaches the other's assertions, which is the whole point: the second
 # mutation was added after the first was found to say nothing about the citation scanner.
@@ -46,11 +46,17 @@
 # the three container assertions pass under both:
 #
 #   citation scanner deleted   `s = ""`, so nothing is ever cited
-#                                                    ->  29 passed,  2 failed
+#                                                    ->  30 passed,  7 failed
 #
-# The two that fail are "control: the same citation at top level answers its criterion"
-# and the DEFECT pin. Without that control the container assertions would be satisfied by
-# a scanner that answers nothing at all.
+# The seven that fail are "control: the same citation at top level answers its criterion"
+# and the six DEFECT pins, each of which asserts that something DOES answer. Without that
+# control the container assertions would be satisfied by a scanner that answers nothing at
+# all.
+#
+# EVERY FIGURE ABOVE IS RE-MEASURED WHENEVER AN ASSERTION IS ADDED. They were recorded at
+# a 31-assertion suite, four assertions were added, and all four went stale at once — in a
+# comment block whose whole purpose is to say what the suite can detect. Re-run
+# scratch/mutate.sh rather than editing a number.
 #
 # WHAT THIS SUITE DOES NOT COVER, stated because the sentence above would otherwise imply
 # it does. docs-lint-c14.awk owns five further mechanisms that this bean did not change and
@@ -59,8 +65,22 @@
 # for any of their names and it returns nothing. They are moved-verbatim code — a normalised
 # diff against the inline awk they came from shows only the fence changes — so they are
 # INHERITED UNTESTED rather than newly untested, which is a weaker claim than covered and is
-# the honest one. NOEVCOL in particular suppresses the whole per-criterion cascade, so a
-# defect in it silences the assertions above without failing any of them.
+# the honest one.
+#
+# Two of those five fail OPEN with this suite completely GREEN, which is the sharp form and
+# is measured, not argued:
+#
+#   isevcol-true   every column counts as an evidence column   rc=0   37 passed, 0 failed
+#   allkinds-off   HOLLOW detection disabled                   rc=0   37 passed, 0 failed
+#   isevcol-false  no column ever counts                       rc=1   36 passed, 1 failed
+#
+# Both green mutations make check 14 ACCEPT beans it should reject, and nothing here
+# notices. An earlier version of this comment claimed instead that NOEVCOL masks the
+# assertions above it without failing any; that does NOT reproduce — forcing noevcol on
+# gives 28 passed, 9 failed, so the suite does detect it. The measured fail-open pair is a
+# stronger argument than the claim it replaces, because it shows the untested mechanisms
+# failing open rather than merely being uncovered. The corpus differential does catch both,
+# but that is a one-off run by hand and is not in the gate.
 #
 # Fixtures are heredocs beside their assertions rather than a fixture directory: the
 # repository had no fixture location for docs-lint, and a fixture whose expected output
@@ -472,6 +492,13 @@ decides "control: the same citation at top level answers its criterion" \
 
 # A container hides a transcript from the ENTRY count too, which fails closed: a bean
 # whose only evidence is quoted or indented has no entry and cannot close.
+#
+# This pair is a pair for a reason. The first fixture alone was VACUOUS: its expected output
+# is byte-identical to the same fixture with the three quoted lines deleted, so it could not
+# tell "the container hid the transcript" from "there is no transcript", and none of the
+# three mutations below killed it. The second fixture is the same transcript at top level;
+# it is what makes the first one mean anything, because it is the only reason to believe the
+# EMPTYEV in the first came from the container.
 cat > "$FIX" <<'EOF'
 # a bean
 
@@ -487,6 +514,22 @@ cat > "$FIX" <<'EOF'
 EOF
 decides "a bean whose only evidence is inside a container has no entry" \
   "$(printf 'EMPTYEV\nUNANSWERED\t1\nSTATS\t1\t0')"
+
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+
+## Evidence
+
+```
+the whole evidence, at top level
+```
+EOF
+decides "control: the same transcript unquoted IS an entry" \
+  "$(printf 'UNANSWERED\t1\nSTATS\t1\t0')"
 
 # --- residuals: divergences that do NOT change the verdict --------------------------
 #
@@ -588,6 +631,26 @@ cat > "$FIX" <<'EOF'
 <!-- criterion 1 is not answered in the evidence -->
 EOF
 decides "DEFECT (open): an HTML comment renders as nothing and still answers" \
+  "$(printf 'STATS\t1\t0')"
+
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+
+## Evidence
+
+### The run
+
+<details><summary>run</summary>
+<pre>
+criterion 1 is not answered in the evidence
+</pre>
+</details>
+EOF
+decides "DEFECT (open): <details> wrapping a <pre> answers too" \
   "$(printf 'STATS\t1\t0')"
 
 # The info-string rule is CommonMark-correct and makes these lines prose rather than a

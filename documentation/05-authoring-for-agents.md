@@ -199,7 +199,7 @@ Each check is decidable from repository contents alone.
 (`rule:ci/build`). Each check has been observed rejecting a planted violation; check 11's
 four rejections and its one accepted amendment are recorded in `bean:0038`, check 12's
 six rejections and its one negative control in `bean:0035`, check 13's three in `bean:0051`,
-check 14's five, its negative control and its observed CI failure in `bean:0055`.
+check 14's six, its negative control and its observed CI failure in `bean:0055` and `bean:0063`.
 
 Check 11 classifies by the `status:` on the **merge base**, not on the branch, and diffs the
 base against the **working tree**. A bean moving `in-progress` → `completed` in the change
@@ -255,11 +255,15 @@ conventions:
   unanswered (`bean:0061`, `bean:0063`). A fence is an entry but is not a citation site; no
   other container is either.
 
-  **Enforcement gap:** the check models three of those containers — the fence, the block
-  quote and the four-column indent. A raw HTML block, an HTML comment, a link-reference or
-  footnote definition and a table cell are each still read as top-level prose, so a citation
-  in one of them answers its criterion today. `bean:0061` owns the citation matcher and
-  carries the work.
+  **Enforcement gap:** the rule above is a property; the check is not. `citation_site()`
+  blocks exactly two things — four or more columns of indent, and a `>` on the citation's
+  own line — and treats every other line as top-level prose. So a citation inside any
+  container that does not put one of those two on the citing line itself answers its
+  criterion today, including a lazy block-quote continuation (CommonMark §5.1 puts an
+  unprefixed paragraph line inside the quote), a raw HTML block, front matter, and a list
+  item. Stated as the mechanism rather than as a list of containers, because a list here
+  would go stale as containers are found and would be the same enumeration the rule above
+  exists to avoid. `bean:0061` owns the citation matcher and carries the work.
   A criterion whose evidence is a section that
   never names it is unanswered however long that section is, because
   `adr:0005-evidence-lives-in-the-work-item#evidence-home` puts the evidence beside the
