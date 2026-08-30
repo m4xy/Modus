@@ -136,9 +136,38 @@ observed: .beans/modus-0028--normative-gate-commands.md:90
 exit:     0
 ```
 
-`modus-0028`'s is the sharper of the two and it is worse than a benign mention: the sentence
-says the criterion **was false when written**, and the matcher reads it as answering that
-criterion. A completed bean closed a criterion on a sentence declaring that criterion false.
+`modus-0028`'s is the sharpest of them and it is worse than a benign mention. Verified by
+applying check 14's own matcher to that file's non-fenced lines, which returns exactly one
+line — and that one line closes **two** criteria:
+
+```
+cmd:      awk over .beans/modus-0028, skipping fenced lines, applying check 14's matcher
+observed: 90: opened — so criterion 1 was false when written. Criterion 7 was added to make
+              the sweep exhaustive rather than sampled.
+          (no other line matches)
+exit:     0
+```
+
+A `completed` bean on `main` closes its first criterion on a sentence stating that criterion
+was false when written, and closes its seventh on the sentence explaining why that one had to
+be added at all. That single line is why the structural-site measurement above shows
+`modus-0028` gaining exactly two unanswered criteria and nothing else. Not planted, and live
+today.
+
+### The defect in one sentence
+
+> **The citation matcher reads presence of a number, never the polarity of the claim around
+> it.**
+
+That is the whole of it, and it explains every instance at once — pasted failure output, a
+benign mention, and a sentence asserting the thing it names was false. It is a better
+formulation than "a mention answers a criterion" because it names what the mechanism *does*
+rather than what it fails to do, and it makes the fix direction obvious: **no amount of
+context-widening helps a matcher that never reads polarity.** A matcher given more
+surrounding text still has no notion of negation, of past tense, or of a sentence being
+*about* a numbered thing rather than answering it. That rules out the entire family of "read
+more of the line" repairs, and leaves the structural-site option, which never needs to read
+polarity because it never reads running prose at all.
 
 A third is on `origin/main` and is not in this branch's base, which is why it is cited by
 commit rather than by path: `origin/main:.beans/modus-0058--unwritten-working-conventions.md`
