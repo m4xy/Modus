@@ -55,6 +55,10 @@ Review what you changed with `git diff --name-only origin/main...HEAD` — three
 `@{u}`. The two-dot form compares endpoints, so once `main` moves ahead it lists what **main**
 changed beside what you did, and gives a plausible answer rather than an error (`bean:0102`).
 
+Cite a bean raised on a sibling's open pull request by filename (`modus-NNNN`), not as
+`bean:NNNN`: check 6 resolves against your tree, so a typed reference to a bean you do not
+have fails the build. Convert it once the bean merges (`bean:0102`).
+
 JDK 25 toolchain. Versions live in `gradle/libs.versions.toml` and nowhere else.
 Style rules: `doc:30-code-style`. The Module extension contract: `doc:10-architecture`.
 This repository's own layout and layering rules: `doc:15-repository-layout`. None is repeated here.

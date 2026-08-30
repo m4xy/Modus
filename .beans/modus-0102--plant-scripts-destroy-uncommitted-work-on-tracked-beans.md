@@ -117,6 +117,32 @@ never stated the rule, so there was no artefact for a check or a reviewer to com
 the argument for this bean's whole shape: the fix is not a better brief, it is a line on disk
 where the next reader can disagree with it.
 
+## A third convention: cite a sibling PR's bean by filename until it merges
+
+`docs-lint` check 6 resolves a typed `bean:NNNN` reference against the files in the tree. A
+bean raised on a sibling's open pull request is not in your tree, so a typed reference to it
+**fails the build** — while the same bean named as `modus-NNNN`, or by its path, passes,
+because that form is not a reference at all.
+
+So while a bean is in flight, cite it by filename; convert to `bean:NNNN` once it merges.
+The conversion is not optional tidying — a filename citation is invisible to check 6, so it
+is never validated, and it will not be noticed when the target's id or slug changes.
+
+Measured on this tree rather than counted from memory:
+
+```
+cmd:      grep -rl "typed reference to an unmerged bean\|named by filename" .beans/
+observed: modus-0087, modus-0093, modus-0096, modus-0102 — four beans carrying the
+          workaround in their own text
+exit:     0
+```
+
+Four, in one sprint, in one family, and each was found the same way: by writing the natural
+typed reference, watching check 6 fail, and working around it. `doc:05-authoring-for-agents`
+does not mention the constraint, so every agent meets it by tripping over it — the same shape
+as the two conventions above, and the third instance in this bean of a rule that exists only
+in the space between briefs and the build.
+
 ## Why it belongs in `AGENTS.md` rather than in a document
 
 `AGENTS.md`'s Commands block already carries two conventions of exactly this class: the stale
@@ -186,7 +212,8 @@ not decide; it is not reachable from a repository that cannot see a scratch scri
 | 4 | `AGENTS.md` carries the three-dot form, or `@{u}`, as the pre-push review command — an addition, since the repository states no such instruction today and the two-dot habit arrives from task briefs | diff |
 | 5 | The difference between the two forms is observed on real refs, not asserted | test-run |
 | 6 | The convention's provenance is stated — that it originates in briefs rather than in the repository, and that the form issued could not perform the function it was added for | citation |
-| 7 | `bash tools/docs-lint.sh` green, check 8 included | test-run |
+| 7 | The filename-citation convention for a bean raised on a sibling's open pull request is recorded, with the reason a typed reference fails check 6 and the obligation to convert once it merges | diff |
+| 8 | `bash tools/docs-lint.sh` green, check 8 included | test-run |
 
 ## Not in scope
 
