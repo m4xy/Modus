@@ -111,10 +111,26 @@ this sprint's:
 | `bean:0069`, in its detector evidence | three observations required of the detector: fires on a plant, fires exactly once, does not fire on a clean run |
 | `bean:0090`, in its success criteria | "A comparator that fires on every run is not coverage, and one that never fires has not been shown to work" |
 
-A sweep for the rule's phrasings across `.beans/` and `documentation/` returns those two, plus
-`doc:80-agent-operating-procedure`, `bean:0068` and `bean:0086` — none of which states the rule.
-`doc:80`'s line is about choosing a merge order so a gate does not fire, and the two beans are
-narrating specific mechanisms that did not fire, not requiring that anyone check.
+Those two are the whole of it. The sweep behind that, so the next reader does not have to
+re-derive it:
+
+```
+cmd:      grep -rl 'not firing\|does not fire\|fires on every\|never fires' .beans documentation
+observed: .beans/modus-0068--encode-sprint-1-findings.md
+          .beans/modus-0069--per-request-usage-is-the-published-vocabulary.md
+          .beans/modus-0086--check-6-resolves-references-through-a-naive-fence-toggle.md
+          .beans/modus-0090--constants-that-must-match-an-authority.md
+          .beans/modus-0105--the-negative-half-of-observed-failing-is-normative-nowhere.md
+          documentation/80-agent-operating-procedure.md
+```
+
+Files, not lines, because what is being established is *where the rule is stated*, and reading
+decides that; a count of matches would answer a different question. Every hit outside the table
+above was read, and none of them states the rule. `doc:80`'s line is about choosing a merge order
+so that a gate does not fire; `bean:0068` and `bean:0086` narrate specific mechanisms that did
+not fire, which is a report and not a requirement. `modus-0105` is this file, in the corpus by
+construction — the assertion sits inside what it searches, so the list grows whenever a bean
+discusses the subject, and the reading rather than the list is what carries the claim.
 
 **Two unmerged beans agreeing is a convention between them, not a rule.** Neither is normative;
 neither is discoverable from `documentation/`; a bean written next week reads §9.1, does what it

@@ -488,15 +488,22 @@ observed: 109:            "frameDisagreements": C.frame_disagreements(messages),
           673:    w("| repeated frames of one `message.id` agree on input and cache [...]
 ```
 
-**Seven occurrences, of which three render** — 504, 514 and 673. The other four accumulate the
-count and carry it through the summary structure. (An earlier revision of this paragraph said
-"all six uses render a table row", which was wrong in both numbers and would have told a reader
-checking it that the paragraph had not been checked. The conclusion is unaffected: what matters
-is that **none** of the seven raises.) There is no `raise` and no non-zero exit; `--check`
-returns on input drift before reaching any comparison, and compares file text when it does; and
-`./gradlew qualityCheck` runs **no Python at all** (`cost_lib.py`'s own module docstring records
-that gap). So the premise is observed to hold on this corpus and enforced nowhere. An
-implementation of `bean:0014` must not treat it as guaranteed by tooling.
+**Every occurrence computes the figure, carries it through the summary structure, or renders it
+into a table row — and none of them raises.** That is stated over the set rather than counted,
+and this paragraph has now been wrong twice for wanting to count it: it said "all six uses render
+a table row", which was wrong in both halves, and the revision that corrected it gave a total and
+named the rendering lines. Both are figures about `tools/cost-replay.py`, a file this change does
+not own and another branch is actively rewriting. The grep above reproduces against that branch
+too, so the count was exposure rather than a defect — but the quantifier is what the argument
+needed either way, and it is the form that survives the file being edited by its owner.
+
+`cost-replay.py` does exit non-zero: on a bean file missing its `BEGIN`/`END` markers, and on
+finding no transcripts to replay. Neither path is reachable from a frame disagreement, which is
+the claim that matters here. `--check` returns on input drift before reaching any comparison, and
+compares file text when it does; and `./gradlew qualityCheck` runs **no Python at all**
+(`cost_lib.py`'s own module docstring records that gap). So the premise is observed to hold on
+this corpus and enforced nowhere. An implementation of `bean:0014` must not treat it as
+guaranteed by tooling.
 
 ## Findings for others, not acted on here
 
@@ -526,17 +533,12 @@ implementation of `bean:0014` must not treat it as guaranteed by tooling.
 
 - **Nothing compares a constant in code to the authority it must match.** Raised as
   `bean:0090`; the rate table is one instance of it.
-- **`bean:0103`'s instance block states a count where its own paragraph argues for a
-  quantifier.** It reads "Exactly one commit has ever touched the line carrying the Opus 5
-  rate", and then explains two lines later why a count over a growing set is stale on arrival.
-  The count is now wrong: `git log --all -G "claude-opus-5" -- backoffice/src/agent/transport.ts`
-  returns more than one, most of them this pull request's. `-S "opus-5"` cannot see them —
-  `-S` searches for a change in the *number of occurrences* of the string, and that number is
-  the same on both sides of every edit this branch made — so the block's own command still
-  returns a single commit and the sentence beside it still reads as though it had been checked.
-  The conclusion survives intact and is better stated as a claim about the set: in committed
-  history the Opus 5 rate has only ever been $5/$25, which `-G` confirms by showing every
-  commit that touched the line. `bean:0103` is merged on `main` and is not edited from here.
+- **`bean:0103`'s instance block states a count where its own next paragraph argues for a
+  quantifier**, and the `-S` command cited beside it cannot see the commits that falsify it.
+  Found from here, and raised as **`bean:0107`**, which owns the sentence, the evidence and the
+  one-sentence fix; it is not restated here, and `bean:0103` is merged on `main` and not edited
+  from here. Recorded as its own work item rather than left as this bullet, because a bullet in
+  a bean that is about to close has no owner.
 - **`doc:60-cost-model#spend-record` §3.2 names four token kinds** — `inputTokens`,
   `outputTokens`, `cacheWriteTokens`, `cacheReadTokens` — and §3.2.1 says "all four token
   kinds". `tools/cost_lib.py` and every record already written to

@@ -61,8 +61,9 @@ observed: ### 1. Pricing was 3x over on the console's default model
 The ranges are the ones `bean:0103` uses, and they are wider than an earlier revision's
 `'130,136p;150,153p'`, which quoted the `| claude-opus-5 | 15 / 75 |` row while emitting
 neither it nor the table it sits in. The block above is that command's output, pasted
-unedited rather than reconciled — including the sentence `sed` truncates mid-line at 144,
-which is what the command actually prints.
+unedited rather than reconciled — including the sentence `sed` truncates mid-sentence at 144,
+which is what the command actually prints. Line 144 is emitted whole; it is the sentence that
+is cut off, because 145 is outside the range.
 
 So the test's justification is **stronger** than a self-referential assertion usually deserves:
 it is a guard written in response to a specific, documented defect, not a nice-to-have.
