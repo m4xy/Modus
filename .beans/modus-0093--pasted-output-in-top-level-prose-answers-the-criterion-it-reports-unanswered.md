@@ -216,14 +216,19 @@ definition and a table cell.
 
 **This class is why the rule must be stated positively, and it is now.**
 `doc:05-authoring-for-agents#checks` says a citation answers only from top-level Markdown
-prose, inside no container of any kind, with an `Enforcement gap:` naming `bean:0061` for the
-containers the check does not yet model. An enumeration of excluded containers is an
-allowlist and fails on the first one nobody named — which is exactly how the three-container
+prose, inside no container of any kind. An enumeration of excluded containers is an allowlist
+and fails on the first one nobody named — which is exactly how the three-container
 enumeration was got past. Whatever this bean adopts MUST reject this class by construction
 rather than by extending a list, and the third criterion below says so.
 
-All five are pinned as verdict assertions in `tools/docs-lint-test.sh` on `bean:0063`'s
-branch, so the day any of them changes, that suite says so.
+That bullet's `Enforcement gap:` line **names this bean**. It named `bean:0061` while this
+one was unmerged, because a typed reference to an unmerged bean fails check 6; the obligation
+to move it once this landed was recorded on two pull-request bodies and has been discharged.
+The line now names both, with their roles: this bean closes the gap, and it is `blocked_by`
+`bean:0061`, which decides what a citation is at all.
+
+The five container shapes are pinned as verdict assertions in `tools/docs-lint-test.sh`, on
+`main` since `bean:0063` merged, so the day any of them changes that suite says so.
 
 ## Options
 
