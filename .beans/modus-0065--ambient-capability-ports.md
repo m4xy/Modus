@@ -67,9 +67,9 @@ unchanged; the reason is replaced by the three textual grounds now on `main`:
 
 | # | ground |
 |---|---|
-| 1 | `ClockPort`, `IdGeneratorPort` and `RandomPort` are interfaces in `core-domain`, referencing nothing beyond the Kotlin stdlib and `java.time` | plants 1, 2, 3 and 6 below |
-| 2 | `IdGeneratorPort` returns the raw `String` a context's identifier value class wraps, and no type in `..core.domain.port` names any context's package | plants 2 and 3 — value-class return and parameter, each rejected by file and name, and each **invisible to the bytecode rule** |
-| 3 | The rule scoping `..core.domain.port` is **source-reading**, because a `@JvmInline value class` erases and leaves no bytecode edge (`bean:0034`) | plants 2 and 3 rejected by the source rule only; plant 4, an enum, fires on **both** — the control that isolates erasure rather than inferring it |
+| 1 | **`doc:00` already defers to an owning document against its own precedence line.** §1.1 ends by deferring to `doc:10-architecture#module-dependencies` §4.1 and calling its own table the bug on disagreement. Ownership-over-precedence is a pattern the constitution applies to itself. |
+| 2 | **Precedence produces an incoherent result.** §1.3 covers time and identifiers and never mentions randomness, so it cannot name a third port. Reading precedence as decisive yields `{Clock, IdGenerator, RandomPort}` — two names from one document and one from another, for three ports of one kind. |
+| 3 | **The naming rule pre-existed and `doc:00` states nothing contrary.** `doc:20-ddd-practices#ports-and-adapters`'s outbound-port row already gave `<Noun>Port` with `ClockPort` as its own example, and the prohibitions table already named `ClockPort` as the replacement for `Instant.now()` — both on `main` before any of this. |
 
 `doc:20-ddd-practices#ambient-ports` §5.3 is now the single owner and says so in terms: it
 **decides** the names, and `doc:00` §1.3 names none.
@@ -136,9 +136,9 @@ rigour and transmits doubt about something decided.
 
 | # | proposition | status |
 |---|---|---|
-| 1 | `ClockPort`, `IdGeneratorPort` and `RandomPort` are interfaces in `core-domain`, referencing nothing beyond the Kotlin stdlib and `java.time` | plants 1, 2, 3 and 6 below |
-| 2 | `IdGeneratorPort` returns the raw `String` a context's identifier value class wraps, and no type in `..core.domain.port` names any context's package | plants 2 and 3 — value-class return and parameter, each rejected by file and name, and each **invisible to the bytecode rule** |
-| 3 | The rule scoping `..core.domain.port` is **source-reading**, because a `@JvmInline value class` erases and leaves no bytecode edge (`bean:0034`) | plants 2 and 3 rejected by the source rule only; plant 4, an enum, fires on **both** — the control that isolates erasure rather than inferring it |
+| 1 | Membership requires **every** test, so failing one is decisive | **Settled.** `adr:0004-domain-id-shared-kernel#shared-kernel-membership` states it verbatim: *"A type joins only if **every** statement below is true of it."* Do not hedge this. |
+| 2 | Test 2 fails for a port **today** | **Observed**, and conditional. It holds while `..published..` and `..event..` are leaf packages, since a published type naming a port would itself be the violation. |
+| 3 | **No port can ever join the kernel** | **Conjecture.** It depends on proposition 2 being permanent, and `adr:0004-domain-id-shared-kernel#deferred-conflict` explicitly defers the leaf-rule conflict to `bean:0023` and says "this decision should be re-read when it lands". |
 
 So propositions 1 and 2 carry this bean's decision, and proposition 3 is recorded as a
 conjecture nothing here establishes. No future change may cite this bean as having settled
@@ -291,7 +291,7 @@ a clock.
 | 7 | The doubles' own behaviour is asserted, not merely relied on | `AmbientCapabilityDoublesTest`, 14 tests, green in the 109-test `:core-domain:test` run below |
 | 8 | The **gate's** input surface is asserted separately from its verdict, positively, so a blinded scan fails | plant 7 — a dead `IMPORT` regex fails perception **while the verdict stays green** |
 | 9 | `config/coverage/baseline.tsv` moves by exactly the rows this change earns, and any provenance `coverageBaselineWrite` drops is restored by hand and reported against `bean:0033` | it earns **none** — three interfaces generate no instructions, every numeric row byte-identical. The writer still erased six provenance lines; see below |
-| 10 | `./gradlew qualityCheck` green | `BUILD SUCCESSFUL`, `158 actionable tasks`, on the head this bean is evidenced against; command and output below |
+| 10 | `./gradlew qualityCheck` green | `BUILD SUCCESSFUL`. The task count depends on configuration-cache state and both figures are real, so the transcript below records **which state produced which** rather than one number a re-runner has a coin-flip chance of matching |
 
 
 ## Sequencing
@@ -313,20 +313,28 @@ ordering. The ranking in `AGENTS.md` step 1 is applied by whoever is reading. `b
 carries the gap.
 
 So `order` here is a **claim on a backlog-wide lexicographic index**, not three local edits,
-and it must be stated as one. Measured rather than asserted, ready high-priority beans before
-and after:
+and it must be stated as one. Re-measured against `origin/main` at `63f367e`, by replaying
+`AGENTS.md` step 1 over `git ls-tree` of each ref rather than over the working tree:
 
-| # | on `origin/main` | with this change |
+| # | on `origin/main` (28 selectable) | with this change (30 selectable) |
 |---|---|---|
-| 1 | `ClockPort`, `IdGeneratorPort` and `RandomPort` are interfaces in `core-domain`, referencing nothing beyond the Kotlin stdlib and `java.time` | plants 1, 2, 3 and 6 below |
-| 2 | `IdGeneratorPort` returns the raw `String` a context's identifier value class wraps, and no type in `..core.domain.port` names any context's package | plants 2 and 3 — value-class return and parameter, each rejected by file and name, and each **invisible to the bytecode rule** |
-| 3 | The rule scoping `..core.domain.port` is **source-reading**, because a `@JvmInline value class` erases and leaves no bytecode edge (`bean:0034`) | plants 2 and 3 rejected by the source rule only; plant 4, an enum, fires on **both** — the control that isolates erasure rather than inferring it |
-| 4 | `portsAreInterfaces` is proven to reach every port package by **evaluating its own glob**, not by re-deriving it | plant 5 — narrowing `ALL_PORTS` is caught; plant 1 fires in `identity.port`, a package that already existed |
+| 1 | `modus-0047` (`AK`) | `modus-0047` (`AK`) |
+| 2 | `modus-0065` (`AP`) | `modus-0066` (`AQ`) |
+| 3 | `modus-0066` (`AQ`) | `modus-0027` (`B`) |
+| 4 | `modus-0027` (`B`) | `modus-0017` (`C`) |
+| 5 | `modus-0017` (`C`) | `modus-0092` (`CA`) |
+| 6 | `modus-0013` (none) | `modus-0097` (`CB`) |
 
-**One insertion, and it is a substitution.** `modus-0031` held second place and is now
-`blocked_by: [modus-0030, modus-0066]`, so the work that was second is gated on `0066`, and
-`0066` takes the slot it vacated. `modus-0027` and `modus-0017` are untouched at third and
-fourth. `bean:0065` itself is `in-progress` and so is not in the ready set at all.
+**The reorder this section was written about has already landed**, in the pull request that
+raised these beans: `modus-0065` and `modus-0066` sit at second and third on `origin/main`
+today, and `modus-0031` — which earlier revisions discussed at second place — is blocked and
+out of the ready set entirely.
+
+What *this* branch changes is smaller and is the whole of the claim: `modus-0065` leaves the
+ready set, because this branch sets it `in-progress`; and `modus-0092`, `modus-0094` and
+`modus-0097` are raised, so 28 selectable becomes 30. **`modus-0027` and `modus-0017` each
+move up one place and are behind nothing new.** The three new beans sit at `CA`, `CB` and `CC`,
+deliberately **behind** `B` and `C`.
 
 **This was not true when first written, and the correction is the point.** `bean:0092` and
 `bean:0097` were raised at `AS` and `AU`, which put two fix beans ahead of `B` and `C` and
@@ -512,8 +520,20 @@ and the same test at size one passes while proving nothing (`doc:35-testing#fixt
 ```
 cmd:      ./gradlew ktlintFormat && ./gradlew qualityCheck
 observed: BUILD SUCCESSFUL
-          158 actionable tasks: 10 executed, 13 from cache, 135 up-to-date
+          168 actionable tasks: 10 executed, 28 from cache, 130 up-to-date
+          Configuration cache entry stored.
+
+cmd:      ./gradlew qualityCheck          (immediately again, cache warm)
+observed: BUILD SUCCESSFUL
+          159 actionable tasks: 5 executed, 154 up-to-date
+          Configuration cache entry reused.
 ```
+
+Both are green and both are real. The count differs because a stored-cache run configures and
+runs the included build's own tasks while a reused-cache run does not, so a reader re-running
+this sees 168 or 159 according to a state the command line does not mention. The
+`Configuration cache entry` line is the discriminator, which is why it is quoted here and the
+bare number is not quoted in the criterion.
 
 ### Criterion 9 — the baseline, and a sixth observation for `bean:0033`
 
