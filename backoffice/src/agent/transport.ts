@@ -255,9 +255,10 @@ export interface StreamTransport {
  * The price book proper is `domains/<domainId>/cost/price-book.md`
  * (`doc:60#price-book` §2.1), which does not exist yet.
  *
- * **Sonnet 5's rate is correct today and goes stale silently in three days, and
- * nothing will notice.** Read that literally; it is the honest state of this
- * constant, not a caveat.
+ * **Sonnet 5's rate is correct as at 2026-08-30 and goes stale silently on
+ * 2026-09-01, and nothing will notice.** Read that literally; it is the honest
+ * state of this constant, not a caveat. Absolute dates, not "in N days": a
+ * relative duration in merged code is wrong the day after it is written.
  *
  *  - The rate below is the introductory $2 / $10 per MTok, in force through
  *    2026-08-31. It matches `cost_lib.BASE_RATES_UPM` for the same model id,
@@ -269,10 +270,18 @@ export interface StreamTransport {
  *    table will then be 33% low, and **no gate will go red**. The e2e test that
  *    looks like it covers this prices the mock's tokens from this same table and
  *    then asserts a ratio derived from this same table: it compares the code to
- *    itself. It can catch an *internally inconsistent* table — it did once,
- *    when Opus 5 read $15 / $75 — and it can never catch a *stale* one. Nothing
- *    anywhere compares these numbers to `doc:60#price-book`. `bean:0090` carries
- *    that gap as its general form.
+ *    itself. It catches an *internally inconsistent* table — one entry moved
+ *    relative to the others — and can never catch a uniformly *stale* one.
+ *    Worse, on 2026-09-01 it goes red for whoever correctly sets $3 / $15,
+ *    because the assertion is a hardcoded literal. Nothing anywhere compares
+ *    these numbers to `doc:60#price-book`; `bean:0090` carries that gap.
+ *  - The inconsistent-table case is not hypothetical: `bean:0002` records Opus 5
+ *    shipped at $15 / $75 in PR #3 and caught in review cycle 1, and that test
+ *    was written as the guard so it cannot recur. Note *caught in review* — the
+ *    fix predates the merge, so the wrong value appears in no commit and
+ *    `git log -S` finds nothing. That is what a pre-merge fix looks like, and it
+ *    is why `.beans/` and not `git log` is where this project's review history
+ *    lives (`adr:0005-evidence-lives-in-the-work-item`).
  *  - Effective dating deliberately does NOT live here. Adding it would build a
  *    second, private price book with its own effective windows, which is what
  *    `doc:60#price-book` §2.1 puts in the store and what `bean:0014`/`bean:0020`

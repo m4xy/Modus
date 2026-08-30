@@ -194,11 +194,19 @@ function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState
       // keeps whichever frame was retained, so every later frame of it disagrees
       // with that one too and would raise the same notice again. The id is
       // derived from `messageId` so the check is the presence of that block.
+      //
+      // `block.kind === 'notice'` is load-bearing, not tidiness. Block ids share
+      // one namespace across kinds, and a tool block takes its id from the
+      // producer's `callId` — external input once the transport is a real SSE
+      // client rather than the mock. Without the kind check, a `callId` equal to
+      // `disagreement-<messageId>` suppresses a genuine disagreement and the
+      // detector reports nothing. A detector that a producer can silence by
+      // choosing an id fails open, which is the one way this must not fail.
       const noticeId = `disagreement-${event.messageId}`;
       const disagreed =
         previous !== undefined &&
         framesDisagree(previous, event.usage) &&
-        !state.blocks.some((block) => block.id === noticeId);
+        !state.blocks.some((block) => block.kind === 'notice' && block.id === noticeId);
 
       const kept = keepLargerFrame(previous, event.usage);
       const usageByMessage =

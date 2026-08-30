@@ -79,8 +79,25 @@ test('the cost counter climbs while the session runs', async ({ page }) => {
  * merely non-zero. The same prompt produces the same token counts on every
  * model, so the ratio between two sessions is exactly the ratio between two
  * rates: Opus 5 ($5/$25 per MTok) is 5x Haiku 4.5 ($1/$5), and Sonnet 5 is 2x
- * on its introductory $2/$10. Mispricing one model moves a ratio — the $15/$75
- * this table used to claim for Opus 5 would read 15x here.
+ * on its introductory $2/$10. Mispricing ONE model relative to the others moves
+ * its ratio, and that is what this catches: an Opus 5 entry of $15/$75 would
+ * read 15x here.
+ *
+ * That $15/$75 is not hypothetical, and this test exists because of it.
+ * `bean:0002` records it under `## Review cycle 1`: Opus 5 shipped at $15/$75 in
+ * PR #3 — 3x over on the console's default model — and was caught **in review**.
+ * This test was then written as the regression guard, and that bean pre-computes
+ * its behaviour: "Restoring 15/75 makes that ratio 14.95 and the test fails."
+ *
+ * One correction worth keeping, because two readers got it wrong in the same
+ * way. An earlier version of this comment said the *test* caught the error; a
+ * reviewer did, and the test came after. Checking that claim against `git log`
+ * makes it look fabricated — Opus 5 is $5/$25 in every commit that ever touched
+ * `transport.ts`, and `git log --all -S` finds $15/$75 nowhere — because the fix
+ * landed before the merge. **A defect caught in review is invisible to committed
+ * history by construction**, which is exactly why this project keeps its review
+ * record in `.beans/` (`adr:0005-evidence-lives-in-the-work-item`). Search there
+ * before concluding an event did not happen.
  *
  * **Read what this does NOT cover.** It prices the mock's tokens from
  * `BASE_RATES_UPM` and then asserts a ratio derived from `BASE_RATES_UPM`: it
@@ -131,6 +148,22 @@ test('a usage frame that disagrees on cache tokens is reported, not discarded', 
   await expect(notice).toBeVisible();
 
   // The run is not derailed by it: the notice is a report, not a terminal state.
+  await expect(page.getByText('Complete').first()).toBeVisible({ timeout: 20_000 });
+});
+
+/**
+ * Block ids share one namespace across kinds, and a tool block's id is the
+ * producer's `callId` — external input against a real transport. A suppression
+ * check that matches on id alone can therefore be silenced by a producer that
+ * picks the notice's id, and the detector reports nothing while the run looks
+ * healthy. Failing open is the one way this must not fail, so it is watched.
+ */
+test('a tool id colliding with the notice id does not suppress the detector', async ({ page }) => {
+  await page.goto('/domains/modus/agents?replay=0&fault=usage-disagreement-collision');
+  await page.getByTestId('agent-run').click();
+
+  const transcript = page.getByTestId('agent-transcript');
+  await expect(transcript.getByText(/disagree on input or cache tokens/)).toHaveCount(1);
   await expect(page.getByText('Complete').first()).toBeVisible({ timeout: 20_000 });
 });
 

@@ -54,14 +54,32 @@ export function replaySpeedFromLocation(search: string = window.location.search)
  *                       test has ever falsified is a premise nobody has watched
  *                       hold (`doc:00-constitution#observed-failing`). This
  *                       fault is how the detector is seen to fire.
+ *  - `usage-disagreement-collision`
+ *                       the same disagreement, plus a tool block whose id
+ *                       collides with the notice id the detector would use.
+ *                       Block ids share one namespace across kinds and a tool
+ *                       block's id is the producer's `callId` — external input
+ *                       against a real transport — so a suppression check that
+ *                       does not filter on kind can be silenced by a producer
+ *                       choosing an id. This fault is how that is watched.
  */
-export type MockFault = 'none' | 'stream-error' | 'transport-error' | 'usage-disagreement';
+export type MockFault =
+  | 'none'
+  | 'stream-error'
+  | 'transport-error'
+  | 'usage-disagreement'
+  | 'usage-disagreement-collision';
+
+const FAULTS: readonly string[] = [
+  'stream-error',
+  'transport-error',
+  'usage-disagreement',
+  'usage-disagreement-collision',
+];
 
 export function faultFromLocation(search: string = window.location.search): MockFault {
   const raw = new URLSearchParams(search).get('fault');
-  return raw === 'stream-error' || raw === 'transport-error' || raw === 'usage-disagreement'
-    ? raw
-    : 'none';
+  return FAULTS.includes(raw ?? '') ? (raw as MockFault) : 'none';
 }
 
 /** Roughly four characters to a token — good enough for a plausible counter. */
@@ -204,7 +222,13 @@ export class MockStreamTransport implements StreamTransport {
   private faulted(script: ScriptStep[]): ScriptStep[] {
     if (this.fault === 'none') return script;
 
-    if (this.fault === 'usage-disagreement') return this.withDisagreeingFrame(script);
+    if (this.fault === 'usage-disagreement') return this.withDisagreeingFrame(script, 'msg_01');
+    if (this.fault === 'usage-disagreement-collision') {
+      // The collision must be planted on a LATER message: the tool block has to
+      // already be in the transcript when the disagreeing frame arrives, or
+      // there is nothing for the suppression check to trip over.
+      return this.withCollidingToolId(this.withDisagreeingFrame(script, 'msg_02'), 'msg_02');
+    }
 
     const firstToolCall = script.findIndex((step) => step.event.type === 'tool-call');
     const upToTheToolCall = script.slice(0, firstToolCall + 1);
@@ -229,12 +253,12 @@ export class MockStreamTransport implements StreamTransport {
    * for. A cache kind differing means the two frames are not the same request,
    * and the consumer must say so rather than quietly keeping one.
    */
-  private withDisagreeingFrame(script: ScriptStep[]): ScriptStep[] {
+  private withDisagreeingFrame(script: ScriptStep[], messageId: string): ScriptStep[] {
     let seen = 0;
     return script.map((step) => {
-      if (step.event.type !== 'usage') return step;
-      // The second frame of the first message: the first one established the
-      // entry, so this is the earliest point a disagreement can be detected.
+      if (step.event.type !== 'usage' || step.event.messageId !== messageId) return step;
+      // The second frame of that message: the first established the entry, so
+      // this is the earliest point a disagreement can be detected.
       if (++seen !== 2) return step;
       return {
         ...step,
@@ -243,6 +267,30 @@ export class MockStreamTransport implements StreamTransport {
           usage: { ...step.event.usage, cacheReadTokens: step.event.usage.cacheReadTokens + 4_096 },
         },
       };
+    });
+  }
+
+  /**
+   * Give the first tool call the id the disagreement notice for `messageId`
+   * would use, so a suppression check that does not filter on block kind sees
+   * the tool block and stays silent.
+   *
+   * The tool result is renamed with it, or the block never resolves and the
+   * test would fail for an unrelated reason.
+   */
+  private withCollidingToolId(script: ScriptStep[], messageId: string): ScriptStep[] {
+    const collidingId = `disagreement-${messageId}`;
+    let firstCallId: string | null = null;
+    return script.map((step) => {
+      if (step.event.type === 'tool-call') {
+        firstCallId ??= step.event.callId;
+        if (step.event.callId !== firstCallId) return step;
+        return { ...step, event: { ...step.event, callId: collidingId } };
+      }
+      if (step.event.type === 'tool-result' && step.event.callId === firstCallId) {
+        return { ...step, event: { ...step.event, callId: collidingId } };
+      }
+      return step;
     });
   }
 

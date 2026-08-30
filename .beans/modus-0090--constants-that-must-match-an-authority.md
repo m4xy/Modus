@@ -22,12 +22,60 @@ symptom found in `bean:0069` is a price table; the defect is not about prices.
 asserts a ratio derived from `BASE_RATES_UPM`. It compares the code **to itself**.
 
 That distinction — **internal consistency** versus **agreement with an authority** — is the
-whole of this bean, and it is why the test reads as coverage to anyone skimming it. The test
-is not useless: it once caught Opus 5 priced at $15/$75, because a wrong entry moved a ratio
-*relative to the other entries*. It cannot ever catch a table where every entry is
-consistently stale, because staleness moves nothing relative to anything the test can see. A
-self-referential assertion is real coverage of one property and zero coverage of the other,
-and the failure is reading the first as the second.
+whole of this bean, and it is why the test reads as coverage to anyone skimming it. What the
+test really covers is one entry moving *relative to the others*: an Opus 5 entry of $15/$75
+would read 15x rather than 5x and fail. That is a property of the arithmetic, and it is
+stated here as one. It cannot ever catch a table where every entry is consistently stale,
+because staleness moves nothing relative to anything the test can see. A self-referential
+assertion is real coverage of one property and zero coverage of the other, and the failure is
+reading the first as the second.
+
+**The $15/$75 error is real, and this test is its regression guard.** An earlier revision of
+this section said the test "once caught" it; a *reviewer* caught it, and the test was written
+afterwards. The record is in `bean:0002`, under `## Review cycle 1`:
+
+```
+cmd:      sed -n '130,136p;150,153p' .beans/modus-0002--backoffice-foundation.md
+observed: ### 1. Pricing was 3x over on the console's default model
+          `PRICING` claimed $15/$75 per MTok for `claude-opus-5`. The list price is
+          $5/$25, so the headline cost figure on the cost-conscious screen read 3x high.
+          | `claude-opus-5` | 15 / 75 | **5 / 25** | wrong; the default model |
+          [...]
+          *Load-bearing:* `agent-console.spec.ts` now runs the identical session on three
+          models and asserts the cost ratios [...] Restoring 15/75 makes that ratio 14.95
+          and the test fails.
+```
+
+So the test's justification is **stronger** than a self-referential assertion usually deserves:
+it is a guard written in response to a specific, documented defect, not a nice-to-have.
+
+**How two readers concluded it never happened, which is the part worth keeping.** Checked
+against `git log`, the claim looks fabricated:
+
+```
+cmd:      git log --all --oneline -- backoffice/src/agent/transport.ts
+observed: three commits have ever touched the file; Opus 5 is $5/$25 in all three
+cmd:      git log --all -S "75_000_000" -S "outputPerMTok: 75" --oneline
+observed: no output — the value appears in no commit on any of 88 refs
+```
+
+Both searches are correct and the inference from them is not. The defect was **fixed in review
+cycle 1 of PR #3, before the merge**, so only the corrected value was ever committed. `bean:0002`
+is that pull request's bean and `10af4f7` is its commit — the same commit both readers used as
+proof of absence.
+
+**A defect caught in review is invisible to committed history by construction.** Under
+squash-merge that is the normal case, not an edge one: the entire class of defects that review
+catches leaves no trace in `git log`, which is *why* `adr:0005-evidence-lives-in-the-work-item`
+puts the record in `.beans/`. Two independent readers searched the code history, found nothing,
+and concluded the event did not occur — without searching the store this project designates for
+exactly this. Absence of evidence in one store is not absence of the event, and the store that
+was skipped is the one cited in every other paragraph.
+
+That belongs in *this* bean because it is the same failure at one remove: **`git log -S` was
+trusted as an authority on a question it cannot answer.** Not a stale constant this time but a
+stale mental model of where the truth is kept — and, as with the rate table, nothing announced
+the mismatch.
 
 ## The three instances found so far
 
@@ -63,6 +111,32 @@ watching it. This bean may well close by that route.
 Which leaves an interim question worth answering explicitly rather than deferring: whether an
 effective date that has *lapsed* can be caught more cheaply than a full comparison, since that
 is the failure with a known date attached and does not need the authority parsed at all.
+
+## The sharpest form: the test resists its own fix
+
+`e2e/tests/agent-console.spec.ts` asserts `toBeCloseTo(5, 1)` and `toBeCloseTo(2, 1)` —
+**hardcoded literals**, not values derived from `BASE_RATES_UPM`. Follow what that means on
+2026-08-31, when Sonnet 5's introductory rate lapses:
+
+| what happens | what the gate does |
+|---|---|
+| nobody touches the table; it is now 33% low | **green.** Staleness moves no ratio. |
+| someone notices and correctly sets Sonnet 5 to $3/$15 | **red.** The ratio becomes 3 and the assertion still says 2. |
+
+So the suite is green while the code is wrong and red when someone makes it right. **The test
+does not merely fail to detect the defect; it penalises the fix.** A developer who corrects
+the rate gets a failing build and the fastest way out is to revert the correction — the gate
+actively argues for the stale value.
+
+This is the sharpest statement of the thesis available, sharper than the self-reference
+framing above, because self-reference only explains why the test *cannot help*. This explains
+why it *hurts*: a self-referential assertion over a constant does not sit at zero coverage, it
+sits at negative coverage the moment the constant is meant to change. Anywhere a test asserts
+a literal that was computed by hand from a constant, the same inversion is waiting.
+
+The fix is not to update the literal. It is to derive the expectation from the same source the
+code uses — at which point the assertion covers the arithmetic honestly and stops making any
+claim about the rate, which is the authority's job and this bean's subject.
 
 ## Success criteria
 
