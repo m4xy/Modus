@@ -65,6 +65,25 @@ are blocked on their contexts, not on dispatch.
 `work`, `memory`, `execution` and `cost` are each a single marker object holding a `NAME`
 constant, whose KDoc says "Delete it as soon as the context has a real aggregate root".
 
+## Why this port is in `core-application` and `bean:0065`'s is in `core-domain`
+
+Neither bean argued the module question when it was written, which is what let them look
+consistent while being unexamined. The reconciliation is recorded identically in both.
+
+`doc:20-ddd-practices#ports-and-adapters` §5.2 declares a port **where it is used**. One rule,
+two ports, different possible users:
+
+| port | who can use it | module |
+|---|---|---|
+| this bean's dispatch port | a use case **only** — an aggregate that publishes its own events is exactly the defect this bean exists to prevent | `core-application` |
+| `bean:0065`'s `ClockPort`, `IdGeneratorPort`, `RandomPort` | a use case, and in principle an aggregate; and `doc:15-repository-layout#placement-table` §2.1 names "clock, id generator" for `core/core-domain` | `core-domain` |
+
+So the two beans do not disagree about §5.2. They apply it honestly to ports that differ in
+who is permitted to call them. Note this is a **narrower** claim than the earlier draft's:
+`core-domain` is not barred from holding a publisher interface — `fun publish(events:
+List<DomainEvent>)` names only the shared kernel — and §1.1 permits it. §5.2 decides it, and
+nothing else needs to.
+
 ## Where dispatch belongs
 
 Stated as a conclusion from the layering rules rather than as a preference, because getting
