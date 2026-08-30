@@ -156,6 +156,42 @@ authors who already knew about the defect.
 MUST also reject the two shapes above; they are named in the criteria below. If `bean:0061`
 closes by accepting the looseness, this bean does not inherit that acceptance.
 
+## A further class: containers the rule does not model
+
+The five instances above are citations standing in ordinary prose. There is a second class
+reaching the same matcher from a container that **renders as code, as a container, or as
+nothing** while its content sits at column zero with no fence marker and no `>`. Found by
+review attacking `bean:0063`'s citation-site requirement, verified here, and pre-existing on
+`main` in every case:
+
+```
+cmd:      the check 14 analyser over five fixtures, each a closing bean whose only evidence
+          is the check's own failure message inside one container
+observed: <pre>                          STATS 2 0   — both criteria answered, exit 0
+          <!-- an HTML comment -->       STATS 1 0   — renders as NOTHING and still answers
+          <details> wrapping a <pre>     STATS 1 0
+          a line-initial ```json```      STATS 1 0
+          a line-initial ```sh -c `date` STATS 1 0
+exit:     0 for all five
+```
+
+`<pre>` is the sharpest: GitHub's sanitiser allows it and it renders **exactly** as a code
+block, so a reader sees a transcript and the analyser sees prose. The HTML comment is the
+strangest: it renders as nothing at all, and a criterion is closed by text no reader can see.
+The reviewer also reached the same matcher through a link-reference definition, a footnote
+definition and a table cell.
+
+**This class is why the rule must be stated positively, and it is now.**
+`doc:05-authoring-for-agents#checks` says a citation answers only from top-level Markdown
+prose, inside no container of any kind, with an `Enforcement gap:` naming `bean:0061` for the
+containers the check does not yet model. An enumeration of excluded containers is an
+allowlist and fails on the first one nobody named — which is exactly how the three-container
+enumeration was got past. Whatever this bean adopts MUST reject this class by construction
+rather than by extending a list, and criterion 3 below says so.
+
+All five are pinned as verdict assertions in `tools/docs-lint-test.sh` on `bean:0063`'s
+branch, so the day any of them changes, that suite says so.
+
 ## Options
 
 | option | catches | cost |
@@ -218,7 +254,7 @@ and neither needs an amendment for this change to be possible.
 |---|---|---|
 | 1 | The plant above is observed rejected, not merely no longer accepted | planted violation, reverted |
 | 2 | The control above still fails for its own reason, and a criterion cited from a **structural** site — a sub-heading naming it, or an evidence row bearing its number — still closes | planted violation, reverted |
-| 3 | Whatever is adopted names a property of where a citation may stand, not a set of rejected strings, and rejects the two wild instances named above as well as the planted one | diff |
+| 3 | Whatever is adopted names a property of where a citation may stand — not a set of rejected strings and not an enumeration of excluded containers — and rejects the wild instances above, the planted one, and the container class by construction rather than by being extended to cover it | diff |
 | 4 | The 23 beans `completed` on `main` and the beans in flight are measured before and after, and every bean whose answered-set changes is named | analyser run over the corpus, before and after |
 | 5 | The pinned assertion in `tools/docs-lint-test.sh` is flipped from DEFECT to a rejection, with a verdict assertion and not only a perception one | test-run |
 | 6 | `doc:05-authoring-for-agents#checks` states the citation rule that results | diff |
