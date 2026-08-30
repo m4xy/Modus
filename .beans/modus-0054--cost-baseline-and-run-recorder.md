@@ -1,11 +1,12 @@
 ---
 # modus-0054
 title: Take the cost baseline, and record spend at the harness edge
-status: in-progress
+status: completed
 type: feature
 priority: high
 order: B
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T22:00:00Z
 ---
 
 # Take the cost baseline, and record spend at the harness edge
@@ -97,17 +98,142 @@ into the exact figure.
 
 ## Success criteria and evidence
 
-| # | criterion | evidence | PR |
-|---|---|---|---|
-| 1 | The replay produces per-run and per-pull-request totals with all token kinds first class | `domains/modus/cost/replay/baseline.md`, `runs.ndjson` | A |
-| 2 | Frame multiplicity is deduplicated and the dedupe rule is asserted, not assumed | the block's verbatim `observed:`, regenerated with the artifact it quotes | A |
-| 3 | Delegated spend is included and its share stated | the block's verbatim `observed:`, regenerated with the artifact it quotes | A |
-| 4 | Dollars are integer micro-dollars, with cache read and both cache-write TTLs priced separately | `tools/cost_lib.py` `cost_micros`; rate table rendered into the baseline | A |
-| 5 | Input hashes recorded, and re-checkable | `command`: `python3 tools/cost-replay.py --check`; observed `baseline inputs have moved on: 2 changed, 0 gone.` when a live session appended, exit 1 | A |
-| 6 | One spend record per agent run is appended at the harness edge, and a lost cursor never re-bills | `domains/modus/cost/0001.ndjson`, two records; `.claude/settings.json` registers `Stop` and `SubagentStop` | B |
-| 7 | `parentRunId` is populated for a subagent run | `command`: `python3 tools/cost-record.py --self-test`; observed below | B |
-| 8 | Fields the harness cannot supply are omitted, never invented; the shape otherwise matches | 16 of 22 field names match; `tools/cost-record.py` `UNAVAILABLE`; `doc:60-cost-model` §3.2.1 | B |
-| 9 | `./gradlew ktlintFormat && ./gradlew qualityCheck` green | `test-run` | A, B |
+Merged as two stacked pull requests: **A** is PR #38, squashed onto `main` as `7e1e04b`;
+**B** is PR #39, squashed as `8155b2a`. Every `observed` cell below was taken by running the
+merged tools against the committed artifacts in a worktree at `8181726`, the commit `main`
+carries today. The scripts behind the one-line results are in the fences under the table.
+
+| # | criterion | command | expectation | observed | PR |
+|---|---|---|---|---|---|
+| 1 | The replay produces per-run and per-pull-request totals with all token kinds first class | `python3` over `domains/modus/cost/replay/runs.ndjson`, counting row types and printing one row's keys — script below | one row per run and one per pull request, each carrying its own `usage` and `costMicros` | `Counter({'run': 65, 'pull-request': 39, 'summary': 1})`; a run row carries `costMicros`, `usage`, `parentRunId`, `peakContextTokens`, `wallClockSeconds`; a pull-request row carries `costMicros`, `exactMicros`, `segmentedMicros`, `runs` | A |
+| 2 | Frame multiplicity is deduplicated and the dedupe rule is asserted, not assumed | the same script, printing the `summary` row | frames exceed messages, the ratio is recorded, and the disagreement count is asserted at zero rather than assumed | `framesTotal: 9030`, `messagesTotal: 4919`, `frameMultiplicity: 1.836`, `frameDisagreements: 0`, `staleOutputTokensAvoided: 1129285` — the generated block's own figures, read back out of the artifact it was generated from | A |
+| 3 | Delegated spend is included and its share stated | the same script | the delegated share is stated as a share of the total, not excluded from it | `delegated: {"costMicros": 300233456, "runs": 63, "shareOfCostPct": 62.13, …}` against `costUsd: 483200719` — 300233456 of 483200719 is 62.13%, and `runs: 65` with `subagentRuns: 63` says which runs those are | A |
+| 4 | Dollars are integer micro-dollars, with cache read and both cache-write TTLs priced separately | `sed -n '73,110p' tools/cost_lib.py`, and the record check under criterion 8 | five per-million rates, integer arithmetic throughout, and the two cache-write TTLs priced apart from each other | `def rates_upm(model_id):` returns `input`, `output`, `cacheRead`, `cacheWrite5m`, `cacheWrite1h`, each `inp * MULT[0] // MULT[1]`; `cost_micros` folds the same five kinds; the summary row's `rates` carries `{"cacheRead": 500000, "cacheWrite1h": 10000000, "cacheWrite5m": 6250000, …}` for `claude-opus-5`; both spend records carry an integer `costUsd` (`4028418`, `146465476`) | A |
+| 5 | Input hashes recorded, and re-checkable | `python3 tools/cost-replay.py --check --transcripts <the project dir>` | the recorded hashes are compared before any figure is, and drift in the inputs is reported as drift in the inputs | `baseline inputs have moved on: 5 changed, 0 gone. The committed figures describe the 129 files hashed at generation and are not reproducible from today's transcripts. Regenerate to re-baseline.`, exit 1 — and `129` is the summary row's own `inputs` length | A |
+| 6 | One spend record per agent run is appended at the harness edge, and a lost cursor never re-bills | `python3` over `domains/modus/cost/0001.ndjson`, and `grep -n "Stop" .claude/settings.json` | one record per run, each naming the hook that wrote it, and the hook registered for both events | `records in log: 2`, `record 0 source='claude-code-hook' role='general-purpose' spawnDepth=1 billingBasis='full'`, `record 1 … role='root' spawnDepth=0 billingBasis='full'`; `.claude/settings.json` line 3 `"Stop": [`, line 14 `"SubagentStop": [`, both running `python3 "$CLAUDE_PROJECT_DIR/tools/cost-record.py"`. The four cursor outcomes are the transcript further down, unchanged | B |
+| 7 | `parentRunId` is populated for a subagent run | `MODUS_COST_TRANSCRIPTS=<the project dir> python3 tools/cost-record.py --self-test`, **run on a checkout with a named branch checked out** | a subagent record carries the spawning run's id, and `gitBranch` is the real branch rather than the literal `HEAD` | `"parentRunId": "ffd4977c-3d34-41e9-a3ae-f60919540688"`, `"spawnDepth": 1`, `"gitBranch": "worktree-agent-a740f8f06c37b4bee"`, `self-test OK — every required field populated, gitBranch resolved to 'worktree-agent-a740f8f06c37b4bee'`, exit 0. On a **detached HEAD** the same command exits 1 by design — the precondition and the refusal are both observed in the fence below | B |
+| 8 | Fields the harness cannot supply are omitted, never invented; the shape otherwise matches | `python3` comparing `doc:60-cost-model` §3.2's 22 field names against each record's keys — script below | the six the harness cannot know are absent **and** named in `unavailable`; nothing is nulled or guessed | subagent record: `present 16 of 22`, `absent: ['workItemId', 'epicId', 'stage', 'priceBookEntryId', 'skillId', 'rationale']`, `unavailable: ['epicId', 'priceBookEntryId', 'rationale', 'skillId', 'stage', 'workItemId']` — the same six, both ways. Root record: `present 15 of 22`, `parentRunId` additionally absent, which is the documented shape for a run a human started | B |
+| 9 | `./gradlew ktlintFormat && ./gradlew qualityCheck` green | `./gradlew ktlintFormat && ./gradlew qualityCheck` — both halves, as the criterion words it, rather than `qualityCheck` alone | both green, the formatter changing nothing, and `docsLint` inside the second half | `ktlintFormat`: `BUILD SUCCESSFUL in 2s`, `57 actionable tasks: 57 up-to-date`, and `git status --short` empty after it — the tree was already formatted, so the mutator mutated nothing. `qualityCheck`: `BUILD SUCCESSFUL in 15s`, `158 actionable tasks: 4 executed, 154 up-to-date`, `> Task :docsLint` printing `docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.` | A, B |
+
+### The scripts behind criteria 1, 2, 3, 6 and 8
+
+Read-only, over the committed artifacts. Nothing here regenerates them: a regeneration would
+move the figures this bean is the record of.
+
+```
+cmd:      python3 <<'PY'
+          import json
+          rows = [json.loads(l) for l in open('domains/modus/cost/replay/runs.ndjson')]
+          from collections import Counter
+          print(Counter(r.get('type') for r in rows))
+          for r in rows:
+              if r.get('type') == 'run': print(sorted(r.keys())); break
+          for r in rows:
+              if r.get('type') == 'pull-request': print(sorted(r.keys())); break
+          PY
+observed: Counter({'run': 65, 'pull-request': 39, 'summary': 1})
+          ['costMicros', 'costUsd', 'costUsdDisplay', 'description', 'efforts', 'endedAt',
+           'frameDisagreements', 'frames', 'gitBranches', 'messages', 'models', 'parentRunId',
+           'peakContextTokens', 'prTimeline', 'prsCreated', 'role', 'rootRunId', 'runId',
+           'spawnDepth', 'staleOutputTokensAvoided', 'startedAt', 'syntheticMessages',
+           'transcript', 'type', 'usage', 'wallClockSeconds', 'worktreeBranch']
+          ['additions', 'costMicros', 'costUsd', 'costUsdDisplay', 'deletions', 'exactMicros',
+           'headRefName', 'merged', 'mergedAt', 'pr', 'runs', 'segmentedMicros', 'title',
+           'type', 'usage']
+
+cmd:      the same script, printing the summary row
+observed: attribution: {"exactUsd": 98414046, "segmentedUsd": 272174147,
+            "unattributedUsd": 112612526}
+          cacheReadRatioPct: 98.05
+          costUsd: 483200719
+          delegated: {"costMicros": 300233456, "runs": 63, "shareOfCostPct": 62.13, …}
+          frameDisagreements: 0
+          frameMultiplicity: 1.836
+          framesTotal: 9030
+          gitBranchHeadMessages: 4919
+          gitBranchTotalMessages: 4919
+          inputs: 129 entries
+          messagesTotal: 4919
+          peakContextTokensMax: 865375
+          repoSha: 'e300048a22083d1471fe68d2a3782053c333a73e'
+          rootSessions: 2
+          runs: 65
+          staleOutputTokensAvoided: 1129285
+          subagentRuns: 63
+          tokensTotal: 755944383
+          unresolvedParentEdges: []
+
+cmd:      the same script, over the 39 pull-request rows
+observed: pull-request rows: 39
+          min $1.06669  median $5.885065  max $56.710674
+```
+
+Every row of the generated block at the top of this bean is answered by the block above:
+runs 65 as 2 root and 63 subagent, 129 input files, 4,919 messages against 9,030 frames at
+1.836x, 755,944,383 tokens, 98.05% cache read, $483.200719 derived, 62.13% delegated,
+865,375 peak context, 39 pull requests at min/median/max `$1.066690` / `$5.885065` /
+`$56.710674`, `gitBranch` the literal `HEAD` on 4,919 of 4,919 messages, 1,129,285 output
+tokens recovered, 0 frame disagreements and 0 unresolved parent edges out of 63. The block
+is generated, and this is the artifact it was generated from, read back independently.
+
+```
+cmd:      python3 <<'PY'
+          import json
+          FIELDS = ['at','domainId','workItemId','epicId','runId','parentRunId','role','stage',
+                    'modelId','effort','speed','channel','inputTokens','outputTokens',
+                    'cacheWriteTokens','cacheReadTokens','costUsd','priceBookEntryId','skillId',
+                    'outcome','peakContextTokens','rationale']
+          rec = [json.loads(l) for l in open('domains/modus/cost/0001.ndjson')]
+          for i, r in enumerate(rec):
+              print(i, r.get('source'), r.get('role'), r.get('spawnDepth'), r.get('billingBasis'))
+              print(' present', len([f for f in FIELDS if f in r]), 'of', len(FIELDS))
+              print(' absent', [f for f in FIELDS if f not in r])
+              print(' unavailable', sorted(r.get('unavailable', {}).keys()))
+              print(' costUsd', r.get('costUsd'), isinstance(r.get('costUsd'), int))
+          PY
+observed: records in log: 2
+          0 claude-code-hook general-purpose 1 full
+            present 16 of 22
+            absent ['workItemId', 'epicId', 'stage', 'priceBookEntryId', 'skillId', 'rationale']
+            unavailable ['epicId', 'priceBookEntryId', 'rationale', 'skillId', 'stage', 'workItemId']
+            costUsd 4028418 True
+          1 claude-code-hook root 0 full
+            present 15 of 22
+            absent ['workItemId', 'epicId', 'parentRunId', 'stage', 'priceBookEntryId',
+                    'skillId', 'rationale']
+            unavailable ['epicId', 'priceBookEntryId', 'rationale', 'skillId', 'stage', 'workItemId']
+            costUsd 146465476 True
+```
+
+**A correction the closing run produced.** "16 of 22 field names match exactly" is true of a
+**subagent** record and not of a root one: the root record matches 15, because `parentRunId`
+is absent from a run a human started. That is the shape `doc:60-cost-model` §3.2 defines —
+"Null for a run a human started" — recorded by omission rather than by a null, which is the
+same rule §3.2.1 states for the six the harness cannot know. The claim was not wrong; it was
+unqualified, and the qualification is measurable, so it is measured here rather than left for
+a reader to rediscover.
+
+### Criterion 5, at the closing commit
+
+```
+cmd:      python3 tools/cost-replay.py --check
+observed: no transcripts under /Users/…/.claude/worktrees/agent-a740f8f06c37b4bee
+          Pass --transcripts DIR or set MODUS_COST_TRANSCRIPTS to point at the Claude Code
+          project directory holding this repository's sessions.
+exit:     2
+
+cmd:      python3 tools/cost-replay.py --check --transcripts <the project dir>
+observed: baseline inputs have moved on: 5 changed, 0 gone. The committed
+          figures describe the 129 files hashed at generation and are not
+          reproducible from today's transcripts. Regenerate to re-baseline.
+exit:     1
+```
+
+Both exits are the tool working. Exit 2 is the *Not done* entry about the transcript store
+being derived from the checkout path, observed from the other side: a worktree is exactly the
+case that derivation gets wrong, and the override exists because of it. Exit 1 is criterion 5
+itself — the hashes are checked before any figure is, and five transcripts have grown since
+the baseline was taken, this closing session's among them.
 
 ### Criterion 7, verbatim
 
@@ -126,6 +252,37 @@ exit:     0
 `gitBranch` is the branch, not `HEAD`: the recorder resolves it from the hook's `cwd` at
 record time instead of reading the transcript's own field, which is the one moment the real
 branch is knowable.
+
+### Criterion 7's precondition — the self-test needs a named branch checked out
+
+Resolving the branch from the checkout is what makes the field trustworthy, and it is also a
+precondition the criterion did not state. On a **detached HEAD** the self-test refuses:
+it prints the record it built, then exits 1 rather than reporting success on a run it cannot
+attribute. Both directions, observed in this worktree at the closing commit:
+
+```
+cmd:      git rev-parse --abbrev-ref HEAD          (before the branch was cut)
+observed: worktree-agent-a740f8f06c37b4bee
+cmd:      MODUS_COST_TRANSCRIPTS=<the project dir> python3 tools/cost-record.py --self-test
+observed: self-test OK — every required field populated, gitBranch resolved to
+            'worktree-agent-a740f8f06c37b4bee'
+exit:     0
+
+cmd:      git checkout --detach
+          git rev-parse --abbrev-ref HEAD
+observed: HEAD
+cmd:      the same self-test, same environment, same transcripts
+observed: (the full record on stdout, unchanged, then on stderr:)
+          self-test: gitBranch is the literal 'HEAD' — live resolution from the
+          hook's cwd failed, which is the defect this field exists to avoid.
+exit:     1
+reverted: git checkout chore/close-merged-beans; `git status --short` empty
+```
+
+That exit 1 is the tool working, not a defect: `HEAD` is precisely the value the replay found
+useless as a join key, and the recorder exists to avoid writing it. But an agent meeting it
+for the first time reads a failing self-test on a tool it did not change. The precondition is
+now in criterion 7's cell, so the next reader gets the one line instead of the hour.
 
 Idempotence, driven through the hook entry point rather than the self-test:
 

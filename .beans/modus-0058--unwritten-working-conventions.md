@@ -1,11 +1,12 @@
 ---
 # modus-0058
 title: Two working conventions every agent must derive by being bitten
-status: in-progress
+status: completed
 type: fix
 priority: high
 order: AO
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-08-29T22:00:00Z
 ---
 
 # Two working conventions every agent must derive by being bitten
@@ -46,17 +47,158 @@ Not owned: `.claude/settings.json`. No code, no build files.
 
 ## Evidence
 
-| # | criterion | observed |
-|---|---|---|
-| 1 | the Commands block carries it | `AGENTS.md` — `GITHUB_TOKEN= gh <args>` in the fence, and three lines naming `HTTP 401: Bad credentials` and `gh auth status` |
-| 2 | the prescribed form works and the warned-against one is named | the three runs below |
-| 3 | one statement, one place | `.claude/skills/modus-work-package/SKILL.md` step 0 now reads "`AGENTS.md`'s Commands block states the trap, the working form and the diagnostic"; `.claude/skills/modus-review/SKILL.md` line 26 uses the working form |
-| 4 | the rule addresses the implementer | `doc:80-agent-operating-procedure#worktree-per-agent`, a section outside the orchestrator-only step 0; rule 0.3 now reads "the isolation rule is `#worktree-per-agent` and it binds the agents you spawn, not only you" |
-| 5 | step 2 is a pointer | `AGENTS.md` step 2 names the anchor and states no rule of its own |
-| 6 | line budgets | `docs-lint` check 8 green: `AGENTS.md` 76 of 120, `doc:80` 456 of 500 |
-| 7 | the gate | `BUILD SUCCESSFUL`, `docs-lint: OK — 19 documents, 106 anchors, …` — below |
+Merged as PR #37, squashed onto `main` as `f39f100`. Every `observed` cell below was
+re-taken at `8181726` — the commit `main` carries today — because a convention that was true
+on the branch and has since been edited by another change is not a convention that merged.
 
-### Criterion 2 — the three forms, run against this repository
+| # | criterion | command | expectation | observed |
+|---|---|---|---|---|
+| 1 | the Commands block states the trap, the working form and the diagnostic | `sed -n '34p;37,41p' AGENTS.md` | the working form is in the fence every agent reads, and the symptom and the diagnostic are named beside it | `GITHUB_TOKEN= gh <args>              # every gh call — the credential trap below`, then ``otherwise use, and surfaces as `HTTP 401: Bad credentials` on an unrelated command.`` and ``` `gh auth status` names which credential is in use. Clear it inline, as above — ``` — all six lines in the fence below |
+| 2 | the prescribed form works, and the warned-against one is named as such | `gh auth status` then `GITHUB_TOKEN= gh auth status` | the bare form fails on the stale token and the prescribed form authenticates from the keyring | bare: `X Failed to log in to github.com using token (GITHUB_TOKEN)`, `- The token in GITHUB_TOKEN is invalid.`, exit 1; prescribed: `✓ Logged in to github.com account m4xy (keyring)`, `- Active account: true`, exit 0 — full transcripts below |
+| 3 | the trap is stated once; the skill copies become references | `grep -rn "Commands block" .claude/skills/` | no skill restates the trap; each names `AGENTS.md`'s Commands block as the place it is stated | three hits, no fourth: `modus-work-package/SKILL.md:32`, `modus-review/SKILL.md:31`, `modus-evidence/SKILL.md:76`, each of the form "`AGENTS.md`'s Commands block states …" — verbatim in the fence below |
+| 4 | the worktree rule is stated where an implementing agent is addressed, with its own anchor, and rule 0.3 cites it | `grep -n "worktree-per-agent" documentation/80-agent-operating-procedure.md` | the anchor owns a section of its own, outside the orchestrator-only step 0, and rule 0.3 points at it | `49:## Working tree <a id="worktree-per-agent"></a>` — §0 begins at line 56, so the section precedes it — and `65:` rule 0.3 reads "the isolation rule is `#worktree-per-agent` and it binds the agents you spawn, not only you" |
+| 5 | `AGENTS.md` workflow step 2 is a pointer, not a second statement of the rule | `sed -n '67,68p' AGENTS.md` | step 2 names the anchor and states no rule of its own | two lines, the second being ``   (`doc:80-agent-operating-procedure#worktree-per-agent`). No direct commits to `main`.`` — the first names the branch kinds and the phrase "in a worktree of your own" and carries no rule text of its own; both in the fence below |
+| 6 | both documents stay inside `docs-lint` check 8's line budget | `wc -l AGENTS.md documentation/80-agent-operating-procedure.md`, and `bash tools/docs-lint.sh` | under the 120-line `AGENTS.md` ceiling check 8 hard-codes and the 500-line `max_lines` `documentation/README.md` states | at `f39f100`: `76 AGENTS.md`, `456 documentation/80-agent-operating-procedure.md`; at `8181726`: `82 AGENTS.md`, `456` — later merges grew `AGENTS.md` by six lines and it is still 38 under the ceiling. Check 8 is green in both runs of the gate below |
+| 7 | `./gradlew qualityCheck` green | `./gradlew qualityCheck` | green with `docsLint` inside it, both before and after this closure is written | clean tree: `BUILD SUCCESSFUL in 19s`, `167 actionable tasks: 54 executed, 113 from cache`, `0 closing transitions`. With the four closures in place: `BUILD SUCCESSFUL in 15s`, `158 actionable tasks: 4 executed, 154 up-to-date`, `4 closing transitions, 31 criteria checked, 0 unnumbered` — both transcripts below |
+
+### Criteria 1 to 5 — the closing runs at `8181726`
+
+What the two documents and the three skills say today, verbatim:
+
+```
+cmd:      sed -n '34p;37,41p' AGENTS.md
+observed: GITHUB_TOKEN= gh <args>              # every gh call — the credential trap below
+          A stale `GITHUB_TOKEN` in the environment shadows the keyring credential `gh` would
+          otherwise use, and surfaces as `HTTP 401: Bad credentials` on an unrelated command.
+          `gh auth status` names which credential is in use. Clear it inline, as above —
+          `env -u GITHUB_TOKEN gh …` is equivalent and is refused by default in an agent sandbox,
+          which cannot verify what `env` does to the command it wraps.
+
+cmd:      grep -rn "Commands block" .claude/skills/
+observed: .claude/skills/modus-review/SKILL.md:31:Commands block, which states the trap, the
+            working form, the diagnostic, and the other
+          .claude/skills/modus-evidence/SKILL.md:76:`AGENTS.md`'s Commands block states which
+            command shapes the sandbox refuses and what to
+          .claude/skills/modus-work-package/SKILL.md:32:0. **Clear `GITHUB_TOKEN` on every `gh`
+            call** — `AGENTS.md`'s Commands block states the
+
+cmd:      grep -n "worktree-per-agent" documentation/80-agent-operating-procedure.md
+observed: 8:  - doc:80-agent-operating-procedure#worktree-per-agent
+          49:## Working tree <a id="worktree-per-agent"></a>
+          65:| 0.3 | Run independent work concurrently. Two agents editing one tree is a merge
+             conflict you scheduled; the isolation rule is `#worktree-per-agent` and it binds
+             the agents you spawn, not only you. |
+
+cmd:      grep -n "^## Step 0" documentation/80-agent-operating-procedure.md
+observed: 56:## Step 0 — If you are the orchestrator <a id="orchestrating"></a>
+
+cmd:      sed -n '67,68p' AGENTS.md
+observed: 2. Branch from `main` (`feat|fix|docs|chore/…`), in a worktree of your own
+             (`doc:80-agent-operating-procedure#worktree-per-agent`). No direct commits to `main`.
+```
+
+Line 49 against line 56 is criterion 4's whole point: the anchor owns a section that
+**precedes** step 0, so an implementing agent told that step 0 is not its loop still reads
+the rule. Rule 0.3 at line 65 cites the anchor rather than restating it.
+
+The two `gh` forms, re-run in this worktree with the same stale `GITHUB_TOKEN` in the
+environment that produced the original report:
+
+Both transcripts complete, nothing elided:
+
+```
+cmd:      gh auth status
+observed: github.com
+            X Failed to log in to github.com using token (GITHUB_TOKEN)
+            - Active account: true
+            - The token in GITHUB_TOKEN is invalid.
+
+            ✓ Logged in to github.com account m4xy (keyring)
+            - Active account: false
+            - Git operations protocol: ssh
+            - Token: gho_************************************
+            - Token scopes: 'gist', 'read:org', 'repo'
+exit:     1
+
+cmd:      GITHUB_TOKEN= gh auth status
+observed: github.com
+            ✓ Logged in to github.com account m4xy (keyring)
+            - Active account: true
+            - Git operations protocol: ssh
+            - Token: gho_************************************
+            - Token scopes: 'gist', 'read:org', 'repo'
+exit:     0
+```
+
+`- Active account:` is the line that carries the whole finding, and it is why both
+transcripts are quoted whole rather than trimmed to the first three lines: the keyring
+credential is present and usable in **both** runs. Nothing is broken about the account. The
+stale environment variable simply wins the selection, and clearing it inline moves
+`Active account: true` from the invalid credential to the working one. `gh` masks the token
+itself, so the complete output carries nothing secret.
+
+The third form, `env -u GITHUB_TOKEN gh …`, was **not** re-run here and does not need to be:
+`AGENTS.md` names it as the form to avoid, and the reason is that the sandbox refuses it —
+so an agent following the document never reaches it. The run below, from the implementing
+session, is the record that it is equivalent *to `gh`* and therefore refused for a reason
+about the sandbox rather than about `gh`.
+
+### Criterion 7 — the gate
+
+```
+cmd:      ./gradlew qualityCheck
+observed: > Task :docsLint
+          docs-lint: OK — 19 documents, 106 anchors, 914 references, 64 beans,
+          28 graph edges, 19 selectable, 64 bean ids, 0 introduced, 64 on origin/main,
+          0 closing transitions, 0 criteria checked, 0 unnumbered.
+          > Task :qualityCheck
+          BUILD SUCCESSFUL in 19s
+          167 actionable tasks: 54 executed, 113 from cache
+exit:     0
+```
+
+`0 closing transitions` is that run's honest report of itself: it was taken before this bean
+was set `completed`, so check 14 had nothing to read. The same command with the four closures
+in place:
+
+```
+cmd:      ./gradlew ktlintFormat && ./gradlew qualityCheck
+observed: BUILD SUCCESSFUL in 2s
+          57 actionable tasks: 57 up-to-date            (ktlintFormat; the tree is unchanged)
+          > Task :docsLint
+          docs-lint: OK — [... nine corpus counts, elided: they move with every edit to
+          this change, including this transcript. Verbatim for an immutable tree in
+          `bean:0055`, against the CI run of `b643f08` ...]
+          4 closing transitions, 31 criteria checked, 0 unnumbered.
+          > Task :qualityCheck
+          BUILD SUCCESSFUL in 15s
+          158 actionable tasks: 4 executed, 154 up-to-date
+exit:     0
+```
+
+The elision is marked rather than silent, which is this bean's own promise and the rule
+`bean:0091` now carries. What the line-budget row needs from that line is that `docsLint` ran
+and reported nothing against check 8, and that is not in the elided part.
+
+`wc -l` at the two commits, which is what criterion 6 reads:
+
+```
+cmd:      git show f39f100:AGENTS.md and the same for doc:80, each piped to wc -l
+observed: 76 AGENTS.md
+          456 documentation/80-agent-operating-procedure.md
+
+cmd:      wc -l AGENTS.md documentation/80-agent-operating-procedure.md   (at 8181726)
+observed:  82 AGENTS.md
+          456 documentation/80-agent-operating-procedure.md
+          538 total
+```
+
+The 120-line ceiling is check 8's own constant and the 500-line one is `max_lines` in the
+documentation index; both documents are inside both, at the commit this merged on and at the
+commit it is being closed on. The run that reads all four closures in full is the one in
+`bean:0055`, which is the bean that owns check 14.
+
+### Criterion 2 — the three forms, run against this repository during implementation
 
 ```
 cmd:      gh auth status                       (with the stale GITHUB_TOKEN in the env)
