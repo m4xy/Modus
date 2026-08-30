@@ -12,6 +12,7 @@ provides:
   - doc:20-ddd-practices#value-objects
   - doc:20-ddd-practices#domain-events
   - doc:20-ddd-practices#ports-and-adapters
+  - doc:20-ddd-practices#ambient-ports
   - doc:20-ddd-practices#invariants
   - doc:20-ddd-practices#domain-prohibitions
 depends_on: [doc:00-constitution, doc:10-architecture, doc:15-repository-layout, doc:30-code-style]
@@ -61,7 +62,7 @@ states — §2.1.4, `JustifiedVar` (`30-code-style.md` §4) and §7.2 included. 
 stops obeying them, fix the snippet, not the rules.
 
 ```kotlin
-package com.modus.core.work.domain.aggregate
+package uk.m4xy.modus.core.domain.work.aggregate
 
 class WorkItem private constructor(
     val id: WorkItemId,
@@ -105,7 +106,7 @@ Notes on the shape:
 - A refused transition is a **business rule the caller must surface**, so it throws a
   named `DomainException` subtype, not `require` (§7.2). `require` here would produce an
   `IllegalArgumentException` that the REST adapter cannot map to a meaningful status.
-- Time arrives as a parameter (`at: Instant`), supplied by the use case from the `Clock`
+- Time arrives as a parameter (`at: Instant`), supplied by the use case from the `ClockPort`
   port. The aggregate never asks what time it is.
 - Events accumulate on the root and are drained by the application layer after the write
   succeeds. The domain never dispatches.
@@ -248,8 +249,8 @@ beside `DomainEvent`, because every context's events name the domain they concer
 published package may not reach into another context's (`adr:0004-domain-id-shared-kernel`).
 Every other `*Id` type, and any value object that appears in a domain event's signature
 (`WorkItemState`, `MemoryStatus`, `RunStatus`), is its context's **published language**
-and lives in `com.modus.core.<ctx>.domain.published` (§5.1). Everything else on this list
-is internal to its context and lives in `com.modus.core.<ctx>.domain`.
+and lives in `uk.m4xy.modus.core.domain.<ctx>.published` (§5.1). Everything else on this list
+is internal to its context and lives in `uk.m4xy.modus.core.domain.<ctx>`.
 
 **Money is never a `Double`.** `Usd` stores integer micros. **Enforcement gap:** the custom
 Detekt rule `NoFloatingPointMoney` this relies on does not exist; see `30-code-style.md`
@@ -265,14 +266,14 @@ Detekt rule `NoFloatingPointMoney` this relies on does not exist; see `30-code-s
 |---|---|
 | 4.1.1 | Named in the **past tense**: `WorkItemTransitioned`, not `TransitionWorkItem`. |
 | 4.1.2 | Immutable `data class`, all properties `val`, all properties value objects or primitives. Never an aggregate reference. **An event carrying a collection is the exception**, and follows §3.1 instead: a `data class` cannot own one, so it is a plain class with a private backing field, a copying getter and hand-written `equals`/`hashCode`. `GrantIssued` was a `data class` publishing a `Set<Capability>` until `bean:0036`. §3.1 was scoped to value objects and this taxonomy puts events here, so no rule ever reached it — a **gap**, not a collision, and this sentence is what closes it. |
-| 4.1.3 | Carries `occurredAt: Instant`, supplied by the caller from the `Clock` port. |
+| 4.1.3 | Carries `occurredAt: Instant`, supplied by the caller from `ClockPort` (§5.3). |
 | 4.1.4 | Raised by the aggregate, drained and dispatched by the **application layer** after the write is durable. Never dispatched from inside the domain. |
 | 4.1.5 | An event crossing a bounded context is part of that context's published contract. Changing its shape is a breaking change and needs an ADR. |
 | 4.1.6 | Events are the only cross-context coupling mechanism, apart from explicit anti-corruption ports. |
 | 4.1.7 | Every event is appended to the durable event log before any handler runs. Handlers are idempotent — they may be replayed. |
 
 ```kotlin
-package com.modus.core.work.domain.event
+package uk.m4xy.modus.core.domain.work.event
 
 data class WorkItemTransitioned(
     val workItemId: WorkItemId,
@@ -298,21 +299,28 @@ in the wrong package silently removes it from a rule.
 
 | Package | Contains | Notes |
 |---|---|---|
-| `com.modus.core.<ctx>.domain.aggregate` | Aggregate roots and the entities inside their boundary | Nothing else. This package **is** the definition of "aggregate" for every tool that needs one. |
-| `com.modus.core.<ctx>.domain.event` | Domain events | **Published language.** Leaf package — see `doc:10-architecture#bounded-contexts` §3.1. |
-| `com.modus.core.<ctx>.domain.published` | Identifier value objects (`WorkItemId`, `ActorId`, …) and any value object that appears in an event's signature (`WorkItemState`, `RunStatus`, …) | **Published language.** Leaf package. Moving a type in here is a deliberate act: it becomes another context's contract. |
-| `com.modus.core.domain` | The shared kernel: `DomainEvent` and `DomainId`, and nothing else without an ADR | Belongs to no context. Membership test and the trigger for giving it its own package: `adr:0004-domain-id-shared-kernel#shared-kernel-membership`. |
-| `com.modus.core.<ctx>.domain.port` | Outbound ports | |
-| `com.modus.core.<ctx>.domain` | Unpublished value objects, domain services, domain exceptions, specifications | The default; internal. |
-| `com.modus.core.<ctx>.application.usecase` | Inbound ports and use cases | `core-application`. |
+| `uk.m4xy.modus.core.domain.<ctx>.aggregate` | Aggregate roots and the entities inside their boundary | Nothing else. This package **is** the definition of "aggregate" for every tool that needs one. |
+| `uk.m4xy.modus.core.domain.<ctx>.event` | Domain events | **Published language.** Leaf package — see `doc:10-architecture#bounded-contexts` §3.1. |
+| `uk.m4xy.modus.core.domain.<ctx>.published` | Identifier value objects (`WorkItemId`, `ActorId`, …) and any value object that appears in an event's signature (`WorkItemState`, `RunStatus`, …) | **Published language.** Leaf package. Moving a type in here is a deliberate act: it becomes another context's contract. |
+| `uk.m4xy.modus.core.domain` | The shared kernel: `DomainEvent` and `DomainId`, and nothing else without an ADR | Belongs to no context. Membership test and the trigger for giving it its own package: `adr:0004-domain-id-shared-kernel#shared-kernel-membership`. |
+| `uk.m4xy.modus.core.domain.<ctx>.port` | A context's own outbound ports | |
+| `uk.m4xy.modus.core.domain.port` | Outbound ports for an ambient capability no context owns — §5.3's three | **A subpackage of the shared kernel's package, and not a member of the shared kernel.** That is the whole reason this row exists: membership is by name set and not by package, so nesting joins nothing. `rule:archunit/sharedKernelIsLeaf` scopes on the two names in `SHARED_KERNEL`, which a type here is not among. `adr:0004-domain-id-shared-kernel#shared-kernel-membership` does not apply for a second and independent reason: a port fails membership test 2 and cannot pass it while `..published..` and `..event..` are leaf packages, since a published type naming a port would itself be the violation. That is a standing condition rather than a permanent one — `adr:0004-domain-id-shared-kernel#deferred-conflict` defers the leaf rule to `bean:0023` — and the name-set argument above does not depend on it. The "third member" trigger counts kernel members, and this adds none. |
+| `uk.m4xy.modus.core.domain.<ctx>` | Unpublished value objects, domain services, domain exceptions, specifications | The default; internal. |
+| `uk.m4xy.modus.core.application.<ctx>.usecase` | Inbound ports and use cases | `core-application`. |
+
+Instantiated today: the shared kernel, the context default, `<ctx>.aggregate`,
+`<ctx>.event`, `<ctx>.published` and `<ctx>.port`. Not yet: `uk.m4xy.modus.core.domain.port`
+and the `core-application` and adapter rows, which state an intended shape. ArchUnit scopes
+three rows by package — `PUBLISHED_LANGUAGE`, `DOMAIN_EVENTS`, `AGGREGATES` — and the port,
+kernel and default rows not at all.
 
 | Kind | Package | Name pattern | Example |
 |---|---|---|---|
-| Outbound port (driven) | `com.modus.core.<ctx>.domain.port` | `<Noun>Port` or `<Aggregate>Repository` | `WorkItemRepository`, `ClockPort`, `AgentLauncherPort` |
-| Inbound port (driving) | `com.modus.core.<ctx>.application.usecase` | `<Verb><Noun>UseCase` | `TransitionWorkItemUseCase` |
-| Adapter | `com.modus.adapter.<tech>.<ctx>` | `<Tech><Port>` | `FlatFileWorkItemRepository`, `ClaudeAgentLauncher`, `GitRepositoryOperations` |
-| Controller | `com.modus.adapter.rest.<ctx>` | `<Noun>Controller` | `WorkItemController` |
-| DTO | `com.modus.adapter.rest.<ctx>.dto` | `<Noun>Request` / `<Noun>Response` | `TransitionWorkItemRequest` |
+| Outbound port (driven) | `uk.m4xy.modus.core.domain.<ctx>.port` | `<Noun>Port` or `<Aggregate>Repository` | `WorkItemRepository`, `ClockPort`, `AgentLauncherPort` |
+| Inbound port (driving) | `uk.m4xy.modus.core.application.<ctx>.usecase` | `<Verb><Noun>UseCase` | `TransitionWorkItemUseCase` |
+| Adapter | `uk.m4xy.modus.adapter.<tech>.<ctx>` | `<Tech><Port>` | `FlatFileWorkItemRepository`, `ClaudeAgentLauncher`, `GitRepositoryOperations` |
+| Controller | `uk.m4xy.modus.adapter.rest.<ctx>` | `<Noun>Controller` | `WorkItemController` |
+| DTO | `uk.m4xy.modus.adapter.rest.<ctx>.dto` | `<Noun>Request` / `<Noun>Response` | `TransitionWorkItemRequest` |
 
 Forbidden name suffixes anywhere in `core/`: `*Impl`, `*Manager`, `*Helper`, `*Util`,
 `*Utils`, `*Service`, `*Data`, `*Info`, `*Dto`, `*Entity`, `*Bean`. **Enforcement gap:** the
@@ -342,9 +350,14 @@ the only interesting thing about it.
 - Repository ports are collection-oriented: `save`, `findById`, purpose-named finders.
   No `flush`, no `merge`, no `detach`, no unit-of-work leakage.
 
-### 5.3 Required ambient-capability ports
+### 5.3 Required ambient-capability ports <a id="ambient-ports"></a>
 
-Because `core-domain` may not touch ambient state, these ports exist and are injected:
+Because `core-domain` may not touch ambient state, these ports exist and are injected. The
+names below are the names, and the suffix is load-bearing: `core-domain` may reference
+`java.time` types — `isLeafSafe` permits them and `rule:archunit/timeIsInjectedNeverReadFromAStaticClock`
+drives `Instant.now(clock)` into domain code — so an unsuffixed `Clock` would stand beside
+`java.time.Clock` in one file. This section **decides** the names; every other mention in the
+package uses them and states no naming rule of its own, `doc:00-constitution` §1.3 included.
 
 | Port | Replaces |
 |---|---|
@@ -364,7 +377,7 @@ example, computing an actor's effective permission set across several grants.
 
 Rules: stateless; named for the operation, not for its position in the architecture
 (`PermissionResolver`, not `PermissionService`); lives in
-`com.modus.core.<ctx>.domain`; takes and returns domain types only. If a "domain
+`uk.m4xy.modus.core.domain.<ctx>`; takes and returns domain types only. If a "domain
 service" is mostly calling ports and coordinating, it is a use case — move it to
 `core-application`.
 
