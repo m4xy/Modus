@@ -1,0 +1,259 @@
+---
+# modus-0099
+title: Fence parity and the citation matcher compose into a hole neither of them owns
+status: todo
+type: fix
+priority: high
+created_at: 2026-08-30T00:00:00Z
+blocked_by: [modus-0063]
+---
+
+# Fence parity and the citation matcher compose into a hole neither of them owns
+
+Two defects in check 14 have been recorded separately and each has been reasoned about
+separately. `bean:0063` owns the fence classifier: a line-initial marker that is content
+inverts the inside/outside sense of every line after it. `bean:0061` owns the citation
+matcher: any line outside a fence bearing `criterion N` answers criterion N, and it cannot
+tell a citation from a mention.
+
+**Composed, they are worse than either.** In this repository a bean's evidence is a
+transcript of `docs-lint` output, and that output is this check's own
+`criterion N is not answered` message. Invert the parity and that transcript stops being
+code and becomes prose. The matcher then reads it — and a **range** citation answers a
+whole span at once, so one phrase naming a span of eleven closes eleven.
+
+The range mechanism is worth separating from the single mention, because it is cheaper for
+an author to write and it is the form that appears in real transcripts. Any fix aimed only
+at the single-mention case leaves it open, and it is the one that does the most damage per
+line.
+
+> **A bean is one stray line-initial fence marker away from closing every criterion it
+> numbers, on evidence it never recorded.**
+
+Neither half's bean states this. `bean:0063`'s treats parity as a parse defect and measures
+it against classification. `bean:0061`'s treats the matcher as too loose and measures it
+against mentions in authored prose. The interaction — one edit, total suppression — belongs
+to neither and so was owned by nobody.
+
+## Observed
+
+### The severe form: one marker, and the bean closes green
+
+Planted on `.beans/modus-0033`, a `status: todo` bean, by flipping its status to `completed`
+and appending five numbered criteria and an `## Evidence` section holding a `### ` entry and
+one fenced transcript. Reverted with `git checkout -- .beans`; `git status --porcelain`
+empty after each run. The control and the plant differ by **one line**.
+
+```
+control:  five numbered criteria; `## Evidence` holding `### The run` and a balanced fenced
+          transcript reading
+            FAIL check 14 .beans/modus-0033: criteria 1-5 are not answered in the evidence
+observed: FAIL check 14 .beans/modus-0033-…: criterion 1 is not answered in the evidence; …
+          FAIL check 14 .beans/modus-0033-…: criterion 2 is not answered in the evidence; …
+          FAIL check 14 .beans/modus-0033-…: criterion 3 is not answered in the evidence; …
+          FAIL check 14 .beans/modus-0033-…: criterion 4 is not answered in the evidence; …
+          FAIL check 14 .beans/modus-0033-…: criterion 5 is not answered in the evidence; …
+          docs-lint: 5 failure(s).
+exit:     1
+
+planted:  the same file with ONE line-initial fence marker added inside the evidence
+          section, above the transcript
+observed: docs-lint: OK — 19 documents, 106 anchors, 923 references, 65 beans, 28 graph
+          edges, 19 selectable, 65 bean ids, 1 introduced, 68 on origin/main, 1 closing
+          transitions, 5 criteria checked, 0 unnumbered.
+exit:     0
+```
+
+`5 criteria checked` and **exit 0**. Every criterion the bean numbers is closed by a line
+stating that none of them is answered. The `OK` line's counts — this check's own vacuity
+assertion — report the criteria as examined, because they were: they were examined and found
+answered.
+
+### The same shape, occurring by accident, on a real bean
+
+Reproduced on `.beans/modus-0087`, an unmerged bean raised this sprint whose subject is check
+14's evidence conditions and whose text therefore quotes check 14's output. One line-initial
+marker inserted after its H1, nothing else changed:
+
+```
+control:  modus-0087 flipped to `completed`, nothing else
+observed: FAIL check 14 …: closes with no evidence section; …
+          FAIL check 14 …: criterion 1 is not answered in the evidence; …
+          FAIL check 14 …: criterion 2 is not answered in the evidence; …
+          FAIL check 14 …: criterion 3 is not answered in the evidence; …
+          FAIL check 14 …: criterion 5 is not answered in the evidence; …
+          FAIL check 14 …: criterion 6 is not answered in the evidence; …
+          docs-lint: 6 failure(s).
+exit:     1
+
+planted:  the same, with one line-initial fence marker after the H1
+observed: FAIL check 14 …: closes with no evidence section; …
+          docs-lint: 1 failure(s).
+exit:     1
+```
+
+Six findings to one. It stays non-zero only because that bean has no evidence section at
+all; a bean that has one goes green, which is the plant above. **The exit code is not the
+severity — the suppression is.**
+
+### The matcher half alone, occurring by accident, at least three times
+
+The control run above flags five of `modus-0087`'s six criteria and omits **the fourth**.
+Nothing was planted to cause that: that bean carried, in top-level prose, a sentence naming
+that criterion by number while saying what it decides, and the matcher marked it answered on
+that alone. No fence marker was involved — the matcher half is sufficient on its own.
+
+It is not the second instance and it is not the strongest. Three are confirmed on
+`origin/main` or in flight, and the sharpest is a `completed` bean:
+
+```
+cmd:      check 14's own matcher over the non-fenced lines of each file
+observed: .beans/modus-0028--normative-gate-commands.md:90   (completed, on main)
+            "…so criterion 1 was false when written. Criterion 7 was added to make the
+             sweep exhaustive rather than sampled."
+            — one line, closing TWO criteria, one of them on a sentence stating that
+              criterion was false when written
+          .beans/modus-0058--unwritten-working-conventions.md:183   (on main)
+            "`wc -l` at the two commits, which is what criterion 6 reads:"
+          .beans/modus-0087   (in flight)
+            a sentence naming a criterion by number while saying what it decides
+exit:     0
+```
+
+`modus-0028`'s is the one to quote: a bean already `completed` on `main` closes a criterion
+on a sentence asserting that criterion was **false**, and closes another on the sentence
+explaining why that one had to be added. The matcher reads presence of a number and never
+the polarity of the claim around it.
+
+### The upstream direction, observed
+
+The masking claim below is argued from the code elsewhere in this bean;
+`doc:00-constitution#observed-failing` wants it observed. Two runs on one fixture, differing
+by one word inside a column header:
+
+```
+cmd:      a closing bean whose one table is `| # | criterion | evidence |`, with an empty
+          cell on the first row and `citation` on the second
+observed: FAIL check 14 …: criterion 1 closes with an empty evidence cell
+          FAIL check 14 …: criterion 2 records 'citation' — an evidence KIND, not evidence
+          -> 2 findings
+exit:     1
+
+cmd:      the identical file, the header now `| # | criterion | evidence (verbatim) |`
+observed: FAIL check 14 …: the table under 'Success criteria and evidence' numbers criteria
+          in an evidence section but carries no evidence column
+          -> 1 finding
+exit:     1
+```
+
+One word in a header, and both downstream conditions vanish. `EMPTYCELL` and `HOLLOW` never
+run because the table is no longer recognised as carrying evidence, and `!noevcol` in the
+`END` block suppresses the per-criterion cascade on top of that. The chain is now measured in
+both directions rather than reasoned about in one.
+
+## Which fix closes it — measured, and not the one to guess
+
+The natural guess is that the citation-site requirement closes this, since the laundering
+happens through a citation. **It does not.** The pasted output lands at column zero in
+top-level prose, which is exactly where a citation is permitted to stand. The classifier's
+**refusal** is what closes it: an odd parity leaves a block open at end of file, and the file
+is refused with the line named.
+
+The green plant above, run against four analysers:
+
+```
+cmd:      the green plant, against each analyser in turn
+observed: today, on main                          docs-lint: OK      exit 0   HOLE OPEN
+          the bean:0063 branch, whole             refused, fence at line 76   exit 1
+          its classifier fix alone                refused, fence at line 76   exit 1
+          its citation-site requirement alone     docs-lint: OK      exit 0   HOLE OPEN
+exit:     0, 1, 1, 0
+```
+
+Two consequences, and the second is the reason this bean exists rather than a comment:
+
+1. `bean:0063`'s unterminated-fence refusal **already closes this**, and the work here is to
+   prove it against the composed shape, pin it, and write the interaction down. That is why
+   this bean is `blocked_by: [modus-0063]`.
+2. **The refusal is load-bearing and must not be removed as redundant.** A later agent
+   reading that a citation must stand in top-level prose could reasonably conclude the
+   refusal is belt-and-braces and drop it. The fourth row above is the measurement that says
+   otherwise. Without that row this bean would have recorded the wrong fix.
+
+## Why this was owned by nobody
+
+Each half was analysed against the failure mode of its own mechanism. The classifier was
+measured by what it classifies; the matcher by what it matches. Neither analysis asked what
+the other does with its output, and the composition is where the severity is: the classifier
+alone mis-parses a file, the matcher alone over-reads a mention, and together they convert a
+bean's own failure transcript into its evidence.
+
+The general form is worth stating because it is not about these two mechanisms:
+
+> **A gate built from two mechanisms needs a plant against the pair, not one against each.**
+> `doc:00-constitution#observed-failing` requires a mechanism be observed rejecting a planted
+> violation. Observed separately, both halves reject their own plants. The composed plant was
+> rejected by neither, and no test in either bean would have found it.
+
+Check 14 has at least one more composition of the same shape, found separately and recorded
+in the unmerged `modus-0087`: recognising an evidence table is gated on a closed vocabulary
+of four column headers, and when none matches, `NOEVCOL` fires and `!noevcol` suppresses the
+whole per-criterion cascade. So the real sequence is **header → numbering → citation →
+cell**, four mechanisms deep. The pairwise form understates it, and it does so in **two
+directions**, which is the whole of the finding:
+
+> **Downstream — a defect at any position hides the state of everything behind it.** A plant
+> must reach the **last** mechanism in the chain; one that stops at the first passes while
+> everything behind it is unexamined and silent.
+>
+> **Upstream — a defect early in the chain can make the whole suite report success.**
+> `NOEVCOL` does not merely fail to be covered. It *suppresses* the per-criterion cascade, so
+> a defect in it silences every assertion downstream of it **without failing any of them**.
+> The tests that cover the citation matcher and the cell conditions go green because nothing
+> reached them.
+
+A third property sits underneath both directions and is not about check 14 at all. Every
+mechanism in this chain was built correctly for the question in front of its author, and the
+composition was nobody's question. The same shape has now appeared three times in one sprint
+in one author's work: the anti-allowlist argument written into a fence classifier and then
+contradicted by an enumeration a few lines below it; a rule restated as a property with an
+enforcement note listing instances one line under it; and this chain. **A principle is
+encoded where it was learned, and nothing carries it to its next application.** No check
+reads prose, a reviewer would have to hold two sections in mind at once, and the format has
+no way to say "this argument also governs that mechanism". That is the gap the chain rule
+above is a partial answer to, and it is worth more than the chain itself.
+
+The second direction is worse than the first and is the one a suite cannot self-report. An
+uncovered mechanism is a known unknown: the suite is silent about it and its own scope
+statement can say so. A **masking** mechanism converts every downstream assertion into a
+false positive — the suite is not silent, it is affirmatively wrong, and its green line is
+produced by the defect rather than despite it. So the untested mechanisms in
+`tools/docs-lint-test.sh` are not merely uncovered; one of them can make the covered ones lie.
+
+The testable property that follows: **for a chain, assert that each mechanism is REACHED, not
+only that it decides correctly once reached.** A verdict assertion proves what a mechanism
+decides. It cannot distinguish "decided correctly" from "never ran and the expected output
+happened to match", and in this chain those two are one `NOEVCOL` away from each other.
+
+## Success criteria
+
+| # | criterion | evidence kind |
+|---|---|---|
+| 1 | The composed plant above is observed refused, against the merged classifier, with the message naming the fence | planted violation, reverted |
+| 2 | The measurement that the citation-site requirement alone does NOT close it is reproduced, and recorded where a later agent removing the refusal would read it | test-run |
+| 3 | A fixture pinning the composed shape exists in `tools/docs-lint-test.sh`, asserted as a verdict and not only as a classification | test-run |
+| 4 | The accidental instance — a criterion pre-answered by prose about it, with no marker involved — is either closed or recorded as belonging to `bean:0061` | citation |
+| 5 | `doc:05-authoring-for-agents#checks` states that a bean's own lint transcript is not evidence for the criteria it names | diff |
+| 6 | The upstream direction is answered: either `NOEVCOL`'s suppression of the per-criterion cascade is removed, or `tools/docs-lint-test.sh` asserts that each mechanism in the chain is **reached** and not only that it decides correctly once reached | test-run |
+| 7 | `./gradlew qualityCheck` green | test-run |
+
+## Not in scope
+
+- The classifier itself (`bean:0063`) and the matcher itself (`bean:0061`). This bean owns
+  neither half; it owns the fact that they compose and that the composition was untested.
+- Check 6's copy of the old fence toggle, raised separately and unmerged.
+- Whether an evidence cell's contents are evidence at all, raised separately and unmerged as
+  `.beans/modus-0087`.
+- Transcript discipline in evidence (`bean:0091`) and pull-request bodies restating evidence
+  (`bean:0098`), both of which touch what a transcript is for but neither of which reads the
+  analyser.
