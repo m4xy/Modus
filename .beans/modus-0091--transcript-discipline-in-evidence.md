@@ -16,7 +16,7 @@ found three ways a transcript can satisfy the rule as written while misleading a
 None of the three changed a conclusion. All three were found by a human-shaped reviewer
 re-running commands, and none is visible to `docs-lint`.
 
-## The three shapes, as observed
+## The four shapes, as observed
 
 Each was found in a bean closing in PR #47 and fixed in that same pull request. They are
 recorded here as the general shape, not to re-litigate those four beans.
@@ -26,6 +26,22 @@ recorded here as the general shape, not to re-litigate those four beans.
 | 1 | an unmarked elision, in a bean that promises elisions are marked `[...]` or `[same]` | `bean:0036` quoted three lines of a four-line `grep`, silently dropping the backing field the accessor copies from; `bean:0058` trimmed two lines from a `gh auth status` transcript; `bean:0036` showed four rows of an eight-row check rollup |
 | 2 | a command that cannot be run as written | `grep -n "…" GrantIssuedTest.kt` — a bare filename, exit 2 from the repository root — and paths elided to `core/core-domain/.../BoundedContexts.kt` |
 | 3 | a command that does not answer the criterion **as worded** | a criterion reading `./gradlew ktlintFormat && ./gradlew qualityCheck` answered by a cell showing `qualityCheck` alone |
+| 4 | a **line-number citation in prose**, which rots | `bean:0065` cited `ArchitectureRulesTest.kt:258` and `:334`; the same branch's own edits moved those symbols to `309` and `492`. It also cited `PermissionGrant.kt:70` for a line at `69` — an off-by-one introduced while correcting an off-by-one |
+
+Shape 4 was found in the sharpest possible way: **not by a rebase, and not by another
+agent — by the citing branch's own edit to the file it was citing, inside one session.** The
+author rewrote `ArchitectureRulesTest.kt`, and every line number that bean had recorded about
+it silently became wrong. There is no interval short enough to make a line number safe, which
+is why the remedy is not "re-check them at merge" but "do not write them": the symbol name and
+the quoted sentence locate the claim exactly as well and cannot drift.
+
+**The prose/fence distinction is the whole of the rule, and it points opposite ways.** In
+prose, `file.kt:258` is a *citation* — it asserts where something is now, and it rots. Inside
+a fenced `observed:` block, `(PlantedProbe.kt:0)` is *output* — it is what the tool printed,
+and editing it to stay current would be falsifying a transcript. So line numbers must be
+stripped from one and preserved in the other, and a single find-and-replace across a bean gets
+one of the two wrong. That is the same asymmetry shape 1 turns on: **a tidied transcript is no
+longer a transcript.**
 
 Shape 1 is the one worth the bean. Shapes 2 and 3 make a reader do work; shape 1 makes a
 reader trust a quotation that is not the output. In every instance above the dropped lines
@@ -89,7 +105,7 @@ bean in the normal form fails the build. Observed here, and again on the junk-ce
 
 | # | criterion | evidence kind |
 |---|---|---|
-| 1 | The rule is stated once, in the document that owns evidence records, and names all three shapes | citation |
+| 1 | The rule is stated once, in the document that owns evidence records, and names all four shapes | citation |
 | 2 | The elision-marker convention is stated as a rule rather than as a promise individual beans make to themselves | citation |
 | 3 | Either a mechanical check exists and is observed rejecting a planted violation, or the enforcement gap is stated with the reason it is not buildable | test-run, or a stated exemption |
 | 4 | If a check is built, its false-positive rate over the completed beans on `main` is measured before it is turned on | test-run over the corpus |

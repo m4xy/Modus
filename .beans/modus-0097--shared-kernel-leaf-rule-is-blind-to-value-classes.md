@@ -67,18 +67,52 @@ value class**, and this repository has decided that identifiers are value classe
 The audit of the last two rows is this bean's second half, and it is why the bean is not
 simply "add a source rule".
 
-## A related observation: `bean:0034`'s gate cannot be cited
+**That table is an observation, not a status board.** It records what was measured when this
+bean was raised, and it is timestamped by nature: nothing later can falsify it, because the
+moment it describes does not move. It is deliberately **not** maintained as a live list of
+which rules are currently blind. A description of the tree claims currency and so has an
+expiry date set by whoever next changes the tree — which is why `doc:20-ddd-practices` §5.1's
+package enumeration was deleted rather than corrected. Criterion 5 therefore requires the
+**audit to be completed**, never the table to be kept up to date.
 
-`PublishedLanguageSourceTest`'s test method is a backticked sentence, so there is no
-`val` or `fun` of that name and **no `rule:archunit/` reference can resolve to it** —
-`docs-lint` check 6 rejected an attempt to cite it as `publishedLanguageSourceIsLeaf` under
-the `rule:archunit/` scheme while this bean was being written. `DefensiveCopySourceTest` documents the convention that avoids this and calls
-it out as deliberate; `PublishedLanguageSourceTest` predates the convention.
+## `bean:0034`'s gate is enforced and uncitable — a third state we have no word for
 
-The consequence is small but exactly the shape of everything else here: the repository's
-answer to the erasure blind spot is a gate that **no document can name**, so no `Enforced by:`
-line can point at it and nothing can be said to be enforced by it. Renaming the method is a
-one-line change and belongs with whichever bean next touches that file.
+`PublishedLanguageSourceTest`'s test method is a backticked sentence, so there is no `val`
+or `fun` of that name and **no `rule:archunit/` reference can resolve to it**. `docs-lint`
+check 6 rejected an attempt to cite it while this bean was being written — the mechanism
+refused a **true** statement, which is how one learns its vocabulary is too narrow.
+
+The gate is real: observed rejecting a planted violation, running in `qualityCheck`, and
+`bean:0034` closed on it. And no document can name it. So:
+
+- `doc:15-repository-layout#core-package-rules` §4.2 gives it a full rule-table row headed
+  `PublishedLanguageSourceIsLeaf`, beside rows whose names *are* citable — and that name
+  resolves to nothing. Three prose mentions in `documentation/`, zero references.
+- An `Enforced by:` line naming it cannot be written, because a typed reference
+  (`doc:05-authoring-for-agents#reference-syntax`) is the only legal way to point at a rule
+  and check 6 rejects this one.
+- `doc:00-constitution#observed-failing` admits an enforcement claim once the mechanism has
+  been watched rejecting a violation. This one has been. It still cannot be claimed, for a
+  reason unrelated to whether it works.
+
+**That is a third state between "enforced" and `Enforcement gap:` — enforced, observed and
+unciteable.** It is worse than an admitted gap in one specific way: a gap names the bean that
+closes it, so a reader knows where to look, whereas an unciteable rule reads as enforcement to
+a human and as nothing at all to every tool.
+
+### The fix is the rename, not a wider resolver
+
+Different work and different owners, so it is decided here rather than left open.
+
+| candidate | verdict |
+|---|---|
+| **Rename the test method to `publishedLanguageSourceIsLeaf`** | **Chosen.** One line in `architecture-tests/`. The convention exists and `DefensiveCopySourceTest` documents it, calling its own camelCase name deliberate for exactly this reason; `PublishedLanguageSourceTest` predates it rather than dissenting from it. Owner: `architecture-tests/`, small enough to ride with whichever bean next touches the file. |
+| Widen what `rule:archunit/` resolves to | **Rejected.** `rule:archunit/<ident>` names an identifier; a backticked test name is a sentence with spaces, so there is no identifier to name. Widening means inventing a mangling convention between a sentence and a reference, in `tools/docs-lint.sh` (tier 3), to avoid a one-line rename in tier 2 — and it would hide the naming inconsistency rather than fix it. |
+
+Not rejected, because it is not this bean's to decide: check 6 could *report* a rule-shaped
+name appearing in a `documentation/` table that resolves to nothing, which is how this went
+unnoticed. That is `bean:0027`'s audit territory.
+
 
 ## Scope
 
