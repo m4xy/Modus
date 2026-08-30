@@ -5,6 +5,7 @@ status: todo
 type: fix
 priority: high
 created_at: 2026-08-29T00:00:00Z
+blocked_by: [modus-0063]
 ---
 
 # Check 14 verifies the shape of an evidence record and not its content, so every evidence column shipped so far is weaker than its author believed
@@ -91,24 +92,43 @@ and here it fails on the plural of a string that IS on the list.
 
 ### The corpus, measured
 
-Every evidence cell check 14 inspects, across the 23 `completed` beans:
+Every evidence cell check 14 inspects, across the `completed` beans:
 
 ```
 cmd:      extract the evidence cells check 14 inspects from every `status: completed` bean,
           using check 14's own table logic, and test each against two candidate requirements
-observed: evidence cells in completed beans: 104, across 12 files
-            no backtick-quoted span:       42
-            under 40 characters:           50
-            both:                          36
-          the ten shortest cells are all in .beans/modus-0004, criteria 1-11, and each
-          reads: met
+observed: cells=140 files=15 no-backtick=44 under-40=58 both=38
+          cells reading exactly `met`: 27, in three beans —
+            .beans/modus-0004  11
+            .beans/modus-0005   8
+            .beans/modus-0008   8
 exit:     0
 ```
 
-`modus-0004` closed eleven criteria with an evidence column whose every cell is the word
-`met`. It is check-14-conformant today, and it is the plainest available statement of the
-finding: **conformance to the shape and conformance to `doc:00-constitution#evidence-rule`
-are different things, and only the first is mechanised.**
+**The first version of this measurement said 104 cells across 12 files, and it was scoped
+narrower than the thing it was measuring.** It counted only tables inside a criteria or
+evidence region. Check 14's cell test — `if (evcol > 1 && evcol < nc)` — sits **outside** the
+region conditional, so a table anywhere in a bean carrying an `evidence`, `observed`,
+`output` or `result` column has its cells checked, including one under `## Options` or
+`## Notes`. The 36 cells that scoping dropped are in region `NONE`, concentrated in
+`modus-0001` (21), `modus-0010` (5), `modus-0046` (4), `modus-0009` (3) and `modus-0008` (3),
+and dropping them silently lost three whole files. The fix agent is asked below to measure
+the retroactive effect per file, and would have started from a corpus missing three of the
+fifteen.
+
+That error is better evidence for this bean's thesis than the corrected figure is. **The
+author of a bean about what check 14 inspects did not know what check 14 inspects**, and
+neither the check, nor the documentation, nor the first review round said otherwise. A
+mechanism whose scope its own analyst cannot state from reading it is not one anybody should
+be inferring soundness from.
+
+Three beans — `modus-0004`, `modus-0005` and `modus-0008` — closed 27 criteria between them
+with evidence cells reading nothing but the word `met`. All 27 are check-14-conformant today.
+An earlier version of this bean reported "the ten shortest cells are all in `modus-0004`":
+that was an artifact of sort order among 27 cells of equal length, and it understated the
+finding by two thirds. The corrected figure is the plainest available statement of the point:
+**conformance to the shape and conformance to `doc:00-constitution#evidence-rule` are
+different things, and only the first is mechanised.**
 
 It applies ahead of the fact as well as behind it. PR #44 raises three beans whose criteria
 tables were demonstrated check-14-conformant; those beans will be **closed** against the two
@@ -132,7 +152,7 @@ blocklist: it names a property, not a set of bad strings.
 
 What it does not do is decide whether the quoted span is *observed output* rather than a
 plausible-looking string an author typed. It raises the floor; it is not a gate. Cost,
-measured above: 42 of 104 cells across 10 completed beans fail the first clause today.
+measured above: 44 of 140 cells, across 10 of the 15 files, fail the first clause today.
 
 ### Does the cell contain a character sequence that could only have come from tool output?
 
@@ -145,7 +165,7 @@ same direction, and it would additionally teach authors which strings to type.
 ### Is there a minimum information content below which a reviewer would also reject?
 
 **Mechanisable as a proxy, and it measures typing rather than observation.** Length, distinct
-token count, or the presence of a digit are all computable; 50 of 104 cells are under 40
+token count, or the presence of a digit are all computable; 58 of 140 cells are under 40
 characters. But a fluent sentence of unevidenced prose passes any such threshold while `met`
 fails it, which means the threshold catches laziness and not dishonesty. Useful only as a
 second clause under the first candidate, never alone.
@@ -161,17 +181,93 @@ answer. The machine's honest job is the floor (the first candidate) plus a state
 `doc:05-authoring-for-agents#checks` that a green check 14 asserts the record's shape and not
 its truth, so that nobody reads it the way it has been read.
 
-## Blast radius
+## This bean shipped with one of its own criteria pre-closed
 
-- **A strict fix retroactively flags completed beans.** At least 10 of the 23, on the first
-  candidate's first clause alone.
-- **`docs-lint` check 11 makes a `completed` bean append-only**, so those cells cannot be
-  filled in place; the only route is an `## Amendments` entry per bean
-  (`adr:0005-evidence-lives-in-the-work-item#amendments`). Twelve beans' worth of amendments
-  written to satisfy a check is itself a shape worth refusing.
-- Check 14 is therefore likely to need the same grandfathering it already has for the closing
-  transition: judge what CLOSES in this change, and leave the corpus check 11 has frozen
-  alone. That is a decision this bean owes, not an assumption.
+Found by flipping it to `completed` and reading which criteria check 14 named:
+
+```
+cmd:      modus-0087 status: todo -> completed, nothing else changed
+expected: NOEV, and all six criteria reported unanswered
+observed: FAIL check 14 …: closes with no evidence section; …
+          FAIL check 14 …: criterion 1 is not answered in the evidence; …
+          FAIL check 14 …: criterion 2 is not answered in the evidence; …
+          FAIL check 14 …: criterion 3 is not answered in the evidence; …
+          FAIL check 14 …: criterion 5 is not answered in the evidence; …
+          FAIL check 14 …: criterion 6 is not answered in the evidence; …
+          docs-lint: 6 failure(s).
+exit:     1
+```
+
+Five, not six. **The fourth is absent.** The `## Not in scope` section carried a sentence
+naming that criterion by number, in top-level prose, while saying its decision was
+constrained by check 11 — and the citation matcher marked it answered on that alone. A benign
+mention, written by an author about his own criteria, with no pasted output and no fence
+marker involved.
+
+A bean about check 14's weakness shipped with one of its six criteria pre-closed by check
+14's weakness. The sentence is rewritten above so it no longer names the number, which fixes
+this instance and not the defect; the defect is the citation matcher's and is recorded in
+`bean:0061` and in the beans raised from it.
+
+**This section is worded to avoid naming that criterion by number, and its first draft was
+not.** Written plainly — quoting the offending sentence and stating which one was missing —
+it re-answered the criterion three times over and the check reported five findings again.
+`bean:0061` recorded the same thing happening to itself and wrote the warning this section
+had to rediscover: in a bean about criterion numbering, plain prose is unsafe. Two authors,
+in two beans, both of whom knew about the defect, both caught by it while documenting it.
+That is the argument that this cannot be delegated to authors being careful.
+
+## Blast radius, measured: nothing breaks unless the fix chooses to widen scope
+
+**The first version of this section had it backwards, and gave three different numbers for
+one quantity two bullets apart.** It said a strict fix retroactively flags "at least 10 of
+the 23" completed beans, built an amendments deadlock on that, priced it at "twelve beans'
+worth", and only then conceded the grandfathering that makes the whole tension impossible.
+
+The mechanism decides it, and it is not a matter of degree. Check 14's candidate set is
+`git diff --name-only $BASE -- .beans` plus untracked files, and each candidate is then
+dropped by `[ "$was" = "completed" ] && continue`. **A completed bean the branch does not
+touch is never a candidate; one the branch does touch is skipped.** There is no path by which
+a stricter cell condition reaches the frozen corpus.
+
+```
+cmd:      bash tools/docs-lint.sh on a clean tree, with the completed corpus present and 44
+          backtick-free evidence cells among them
+observed: 0 closing transitions, 0 criteria checked, 0 unnumbered.
+exit:     0
+
+cmd:      the same, with one completed bean TOUCHED in the working tree
+observed: FAIL check 11 .beans/modus-0004-…: appended 'A line appended to a completed
+          bean.'; a completed bean may only gain a '## Amendments' section
+          (adr:0005#amendments)
+          docs-lint: 1 failure(s).
+exit:     1
+```
+
+Check 11 fires; check 14 says nothing about it, in either direction. So:
+
+- **A stricter cell condition flags nothing retroactively.** The 44 backtick-free cells and
+  the 27 `met` cells stay exactly as they are, and no amendment is owed for any of them.
+- **The only way to reach them is for the fix to deliberately widen check 14's scope** beyond
+  the closing transition, which would be a separate decision with its own argument, and this
+  bean does not ask for it.
+- The grandfathering is therefore not a decision this bean owes. It is already the shape of
+  the check.
+
+### The habit this is the second instance of
+
+This is the second bean this sprint in which I stated a blast radius as certainty without
+measuring it, and both errors ran the same way: **the cost was estimated from the shape of
+the change rather than from the mechanism.** "This condition is stricter, therefore more
+things fail" is a plausible inference about a linter and a false one about this linter,
+because what the check examines is decided by a diff and not by the condition.
+
+An overstated cost is not the safe direction to be wrong in. It has the worse failure mode of
+the two: an understated cost is discovered the moment somebody acts on it, and an overstated
+one is discovered by nobody, because it stops anybody acting at all. A blast-radius estimate
+is a claim and needs the same treatment as any other claim here. The general rule belongs in
+a document rather than in this bean, and is routed to `modus-0089` — named by filename
+because it is unmerged, and a typed reference to an unmerged bean fails check 6.
 
 ## Success criteria
 
@@ -179,8 +275,8 @@ its truth, so that nobody reads it the way it has been read.
 |---|---|---|
 | 1 | The six junk cells above are each observed either rejected, or accepted with the reason stated and argued | planted violation, reverted |
 | 2 | Whatever is adopted is a requirement naming a property, not a list of rejected strings, and the plural/article/trailing-word variations above are observed against it | planted violation, reverted |
-| 3 | `doc:05-authoring-for-agents#checks` states what a green check 14 does and does not assert | diff |
-| 4 | The retroactive effect on the 23 `completed` beans is measured and named per file, and the grandfathering decision is recorded either way | analyser run over the corpus, before and after |
+| 3 | `doc:05-authoring-for-agents#checks` states what a green check 14 does and does not assert, and its check 14 row carries an `Enforcement gap:` line naming the bean that closes the unmechanised half, per `doc:00-constitution#observed-failing` | diff |
+| 4 | The retroactive effect on the `completed` corpus is measured and named per file at check 14's real cell scope — every table carrying an evidence column, not only those in a criteria or evidence region | analyser run over the corpus, before and after |
 | 5 | What the analyser perceives about a cell is asserted separately from what it decides | test-run |
 | 6 | `./gradlew qualityCheck` green | test-run |
 
@@ -190,5 +286,5 @@ its truth, so that nobody reads it the way it has been read.
 - Fence tracking (`bean:0063`) and check 6's copy of it.
 - The set of accepted evidence kinds. That is
   `doc:50-memory-and-evidence#evidence-kinds`' closed set and this bean does not touch it.
-- Rewriting the evidence of any `completed` bean. Whether that is required at all is
-  criterion 4's decision, and it is constrained by check 11.
+- Rewriting the evidence of any `completed` bean. The measured blast radius above settles
+  that it is not required, and check 11 forbids it in place regardless.
