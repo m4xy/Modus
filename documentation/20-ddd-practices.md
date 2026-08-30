@@ -308,11 +308,10 @@ in the wrong package silently removes it from a rule.
 | `uk.m4xy.modus.core.domain.<ctx>` | Unpublished value objects, domain services, domain exceptions, specifications | The default; internal. |
 | `uk.m4xy.modus.core.application.<ctx>.usecase` | Inbound ports and use cases | `core-application`. |
 
-Instantiated today: the shared kernel, the context default, `<ctx>.aggregate`,
-`<ctx>.event`, `<ctx>.published` and `<ctx>.port`. Not yet: `uk.m4xy.modus.core.domain.port`
-and the `core-application` and adapter rows, which state an intended shape. ArchUnit scopes
-three rows by package — `PUBLISHED_LANGUAGE`, `DOMAIN_EVENTS`, `AGGREGATES` — and the port,
-kernel and default rows not at all.
+Which of these packages have members is a fact about the tree, answered by
+`grep -rhE "^package uk\." core/ | sort -u`; which rows a rule scopes, and which of those
+rules exist, is `doc:15-repository-layout#core-package-rules` §4.2's, rule by rule. Neither is
+restated here: a row above is a placement rule, never a claim that its package exists yet.
 
 | Kind | Package | Name pattern | Example |
 |---|---|---|---|
