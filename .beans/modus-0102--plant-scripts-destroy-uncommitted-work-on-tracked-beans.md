@@ -61,15 +61,28 @@ from scratch.
 
 ## A second command of the same class: `git diff` against a branch point that moved
 
-Reading `git diff --name-only origin/main` before a push is a widespread agent habit here —
-it arrives in task briefs rather than from the repository, and **`grep -rn "diff --name-only"
-documentation/ AGENTS.md CLAUDE.md` returns nothing**, so nothing on disk says which form is
-meant. In its **two-dot** form the command compares two endpoints, so once `main` has moved
-ahead of the branch it lists what **`main`** changed as well as what you changed, with
-nothing to distinguish them.
+Reading `git diff --name-only origin/main` before a push is a widespread agent habit here.
+**The repository does state it — in the two-dot form, recommended as "the safe form" — and an
+earlier version of this bean said it did not.** That claim came from
+`grep -rn "diff --name-only" documentation/ AGENTS.md CLAUDE.md`, three paths that exclude
+`.beans/`, which is where it lives:
+
+```
+cmd:      git grep -n "diff --name-only" origin/main        # unscoped
+observed: .beans/modus-0036--defensive-copy-rule.md:890
+            "The safe form is `git rebase -i origin/main`, or reading
+             `git diff --name-only origin/main` **before** pushing and refusing any path
+             the bean does not own."
+exit:     0
+```
+
+In its **two-dot** form the command compares two endpoints, so once `main` has moved ahead of
+the branch it lists what **`main`** changed as well as what you changed, with nothing to
+distinguish them.
 
 Observed on this sprint's own refs — a branch at `67219cc` carrying two files of work, and
-`origin/main` at `2c958e4` five bean commits ahead of its base:
+`origin/main` at `2c958e4` one commit ahead of its base, that commit touching five bean
+files:
 
 ```
 cmd:      git diff --name-only origin/main 67219cc          # two-dot
@@ -93,8 +106,8 @@ had touched five bean files it had not — the check that is supposed to catch a
 the thing reporting one.
 
 The two-dot form is not *wrong*; it answers a different question. It is the wrong tool for a
-pre-push review, and since the repository never states the instruction at all, every agent
-given it in a brief inherits whichever form the brief happened to use.
+pre-push review, and the one place the repository states it recommends that form, so an agent
+who checks is confirmed in it rather than corrected.
 
 ### Its provenance, which is the part that generalises
 
@@ -102,20 +115,29 @@ Reported by the orchestrator on being shown the measurement, and recorded here a
 rather than as something this bean verified — the incident predates it and left no artefact
 this branch can reach:
 
-- The instruction originates in **an orchestrator brief, not the documentation**, and has
-  been issued in every brief this sprint in the two-dot form.
-- It was added in response to a real incident: an agent force-pushed a staged revert of
-  `main`'s entire history. The command was the check meant to stop that recurring.
-- **In the form it was issued, it would not have caught it.** Against a branch whose base has
-  moved, the two-dot form's output is dominated by files the branch never touched, which is
-  precisely the noise a staged revert of history would hide inside.
+- The instruction is issued in **every orchestrator brief this sprint, in the two-dot form**.
+  That part is reported and not verifiable from this branch.
+- **The incident behind it is on disk and verifiable.** `.beans/modus-0036` lines 886–892
+  record it: a branch `reset --soft` and force-pushed before its file list was read, where
+  "`reset --soft` keeps the working tree and moves the base, so the staged diff is against a
+  tree the author never looked at". The instruction is that bean's remedy for it.
+- **In the form recommended, it would not have caught it.** Against a branch whose base has
+  moved, the two-dot output is dominated by files the branch never touched — precisely the
+  noise a staged diff against an unexamined tree would hide inside.
 
-So a safety instruction was propagated to every agent for a sprint, in a form that could not
-perform the function it was added for, and nothing detected that — because the repository
-never stated the rule, so there was no artefact for a check or a reviewer to compare against.
-**A convention that lives only in briefs has no place a defect in it can be found.** That is
-the argument for this bean's whole shape: the fix is not a better brief, it is a line on disk
-where the next reader can disagree with it.
+So the correction to the story, which is worse than the version it replaces: a safety
+instruction was recommended on `main` and propagated through briefs for a sprint, in a form
+that could not perform the function it was added for. **There was an artefact to compare
+against, and nobody compared it.** The earlier claim here — that the defect survived because
+the repository never stated the rule — was itself the product of a grep scoped past the
+directory the rule lives in.
+
+`modus-0036` is `completed`, and `adr:0005-evidence-lives-in-the-work-item#finalisation`
+makes it append-only, so **the wrong recommendation stays on `main` until it is amended**.
+That is not attempted here: it is an amendment to a frozen bean and belongs to its own change.
+It is recorded as this bean's outstanding consequence, because a reader who follows
+`AGENTS.md` to the three-dot form and then follows `modus-0036` will find a completed bean
+recommending the two-dot one.
 
 ## A third convention: cite a sibling PR's bean by filename until it merges
 
@@ -148,7 +170,18 @@ in the space between briefs and the build.
 `AGENTS.md`'s Commands block already carries two conventions of exactly this class: the stale
 `GITHUB_TOKEN` credential trap, and the sandbox's refusal of certain command shapes. Both are
 working conventions that cost an agent real work when unknown and are only ever discovered by
-being bitten. Both were added by `bean:0058`.
+being bitten.
+
+They were **not** both added by `bean:0058`, as an earlier version of this bean said twice:
+
+```
+cmd:      trace each convention to the commit that added it
+observed: GITHUB_TOKEN trap   f39f100 (#37)   carries .beans/modus-0058
+          sandbox refusals    52fd07e (#42)   carries no bean file at all
+exit:     0
+```
+
+So the practice here is **inconsistent**, and saying so is more useful than the tidy version.
 
 `AGENTS.md` states that it never restates a rule. The line added here states a **convention**
 and cites `doc:00-constitution#observed-failing` rather than restating it, which is the same
@@ -167,8 +200,15 @@ forcing them would produce a malformed amendment written to satisfy a shape — 
 The half that failed was the jump from "`bean:0058` cannot take it" to "no bean at all",
 which never considered raising a new one. `doc:00-constitution` §7.2 step 1 admits no
 exception: every branch has exactly one work item, and if none exists it is created before
-the branch. The precedent runs the same way — the pull request that added the first two
-conventions to this same block carried `bean:0058`.
+the branch.
+
+**The precedent does not settle it, and the honest version cuts both ways.** Of the two
+conventions already in that block, one shipped with a bean and one shipped with none — so
+there is a merged precedent for doing exactly what this change first did. That does not make
+it right: §7.2 step 1 is the rule, `doc:05-authoring-for-agents` line 168 makes the document
+the rule when a bean and a document disagree, and an unchallenged instance is not an
+exemption. But it does mean the error was to follow a real local practice rather than to
+invent one, and that the practice itself wants correcting.
 
 **"Directed by the orchestrator" is not a waiver.** `doc:00-constitution#independent-review`
 gives the orchestrator merge authority, not authority over §7.2 step 1. The instruction to
@@ -221,6 +261,11 @@ not decide; it is not reachable from a repository that cannot see a scratch scri
   procedure is correct; what is missing is a warning about how it is usually implemented.
 - Changing any plant script in `tools/`. The scripts that carry this hazard are scratch
   files outside the repository.
+- **Amending `bean:0036`.** Its line 890 recommends the two-dot form as "the safe form", it is
+  `completed` and append-only, and correcting it means an `## Amendments` entry with
+  `**Claimed:**`, `**Found:**` and `**Evidence:**` — a real correction to a real claim, so the
+  entry would be well-formed, unlike the one this bean declined to write against `bean:0058`.
+  It is deferred rather than refused, and it is this bean's outstanding consequence.
 - `bean:0058`, which is `completed` and frozen, and which this bean deliberately does not
   amend.
 - A mechanical check for the hazard. Nothing here can see a scratch script.
