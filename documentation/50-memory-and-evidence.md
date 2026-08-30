@@ -11,11 +11,12 @@ provides:
   - doc:50-memory-and-evidence#memory-scopes
   - doc:50-memory-and-evidence#evidence-kinds
   - doc:50-memory-and-evidence#primary-sources
+  - doc:50-memory-and-evidence#unverified-shapes
   - doc:50-memory-and-evidence#evidence-record
   - doc:50-memory-and-evidence#writing-a-memory
   - doc:50-memory-and-evidence#invalidation
   - doc:50-memory-and-evidence#unevidenced-assertions
-depends_on: [doc:00-constitution, doc:10-architecture, doc:40-durability, doc:80-agent-operating-procedure]
+depends_on: [doc:00-constitution, doc:05-authoring-for-agents, doc:10-architecture, doc:35-testing, doc:40-durability, doc:80-agent-operating-procedure]
 ---
 
 # 50 — Memory and Evidence
@@ -107,6 +108,10 @@ These six are the complete list. There is no `other`.
 | A URL with no retrieval timestamp and no quote | The page changes; you have nothing. |
 | "The build passed" with no command and no exit code | Which build? Which commit? |
 | Code you wrote in this session, cited as proof it works | A `citation` proves the code says something. Only a `test-run` proves it does something. |
+| A figure with no command | A number nobody can re-derive is a recollection, and it does not stay one: it is copied forward by the next reader and becomes load-bearing. Three agents cited a `122s` baseline that had never been measured; the runs that existed were 133s and 134s (`bean:0068`). |
+| A count with no command and no tree — "51 references" | A count is an observation of one tree at one moment, and both halves are part of it. Without them nobody can get the same number, or find out why they got a different one. |
+| Arithmetic over a table of figures | That the rows sum is a fact about the addition. It says nothing about whether any figure in them was ever observed, and checking it is not checking the measurement (`bean:0068`). |
+| A citation that resolves but does not carry the claim made at it | The reference resolves, so every mechanical check passes and the reader stops at the pointer (`doc:05-authoring-for-agents#one-fact-one-place`). |
 
 ### 2.3 Strength
 
@@ -141,6 +146,27 @@ sufficient". Re-read against the primary sources, one held; one collapsed, the c
 issue being an unmerged draft build-modernisation PR whose companion recorded the
 opposite result; and two were overstated. The worked table is
 `doc:35-testing#mutation-testing`.
+
+### 2.5 The shapes in which a claim reads as verified <a id="unverified-shapes"></a>
+
+Reported from one sprint (`bean:0068`). Derived listing: the rule for each row is at the
+anchor in the last column and wins on disagreement. What this table adds is the **tell** — the
+question that separates each shape from a claim that is actually verified. The set is open and
+is deliberately not counted, here or in the heading: a claim quantified over a growing set is
+stale on arrival, and this one grew by a row inside the stack that introduced it.
+
+| shape | tell | rule |
+|---|---|---|
+| an `Enforced by:` line for a mechanism nobody has watched reject anything | who watched it fail, and what did it print? | `doc:00-constitution#observed-failing` |
+| a figure with no command, or a count with no tree | what argv produced this number, and on what tree? | §2.2 |
+| a citation that resolves but does not carry the claim made at it | does the cited anchor state this, or does it merely sit near it? | `doc:05-authoring-for-agents#one-fact-one-place` |
+| a reason invented for a **declined** fix | was this reason weighed before the decline, or written after it? | `doc:80-agent-operating-procedure#respond-to-review` |
+
+**The invented reason for a declined fix is the worst of them**, named by its property rather
+than by its position for the reason above. The others read as unfinished work and invite a
+second look; a fabricated justification reads as a trade-off somebody made, and closes the
+question for every later reader. A decline with no reason leaves a thread open, which is a defect with
+a fix. A decline with an invented one leaves nothing to fix.
 
 ---
 
