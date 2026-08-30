@@ -737,8 +737,12 @@ observed: testcase name="accepts a private backing field behind a copying getter
 
 cmd:      grep -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' \
             architecture-tests/build/test-results/test/TEST-*DefensiveCopy*.xml
-observed: TEST-…DefensiveCopySourceTest.xml:tests="10" skipped="0" failures="0" errors="0"
-          TEST-…DefensiveCopyInputSurfaceTest.xml:tests="8" skipped="0" failures="0" errors="0"
+observed: architecture-tests/build/test-results/test/TEST-uk.m4xy.modus.architecture\
+            .DefensiveCopySourceTest.xml:tests="10" skipped="0" failures="0" errors="0"
+          architecture-tests/build/test-results/test/TEST-uk.m4xy.modus.architecture\
+            .DefensiveCopyInputSurfaceTest.xml:tests="8" skipped="0" failures="0" errors="0"
+          (each path is one line in the real output; it is wrapped here at the \\, and
+           nothing is elided)
 ```
 
 `rejects the pre-fix PermissionGrant` asserts `assertEquals(1, violations.size)` and that the
