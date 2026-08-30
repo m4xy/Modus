@@ -170,11 +170,15 @@ more of the line" repairs, and leaves the structural-site option, which never ne
 polarity because it never reads running prose at all.
 
 A third is on `origin/main` and is not in this branch's base, which is why it is cited by
-commit rather than by path: `origin/main:.beans/modus-0058--unwritten-working-conventions.md`
-line 183 reads "`wc -l` at the two commits, which is what criterion 6 reads:". It arrived
-after this branch was cut and was verified against `origin/main` directly. It has a property
-the others do not: **it was introduced by an author correcting a review finding.** The act of
-responding to review is what closed the criterion.
+commit rather than by path. Verified against `origin/main` directly:
+
+```
+file:     origin/main:.beans/modus-0058--unwritten-working-conventions.md
+line 183: `wc -l` at the two commits, which is what criterion 6 reads:
+```
+
+It has a property the others do not: **it was introduced by an author correcting a review
+finding.** The act of responding to review is what closed the criterion it names.
 
 A fourth was found on an unmerged bean this sprint — a sentence naming a criterion by number
 while describing what that criterion decides — and a fifth is recorded in `bean:0061`, which
@@ -216,7 +220,7 @@ prose, inside no container of any kind, with an `Enforcement gap:` naming `bean:
 containers the check does not yet model. An enumeration of excluded containers is an
 allowlist and fails on the first one nobody named — which is exactly how the three-container
 enumeration was got past. Whatever this bean adopts MUST reject this class by construction
-rather than by extending a list, and criterion 3 below says so.
+rather than by extending a list, and the third criterion below says so.
 
 All five are pinned as verdict assertions in `tools/docs-lint-test.sh` on `bean:0063`'s
 branch, so the day any of them changes, that suite says so.
