@@ -59,6 +59,43 @@ and a `blocked_by` edge — was reverted in one step. The plant printed what it 
 print. The loss was found only by re-reading the file afterwards, and the round was redone
 from scratch.
 
+## A second command of the same class: `git diff` against a branch point that moved
+
+Reading `git diff --name-only origin/main` before a push is a widespread agent habit here —
+it arrives in task briefs rather than from the repository, and **`grep -rn "diff --name-only"
+documentation/ AGENTS.md CLAUDE.md` returns nothing**, so nothing on disk says which form is
+meant. In its **two-dot** form the command compares two endpoints, so once `main` has moved
+ahead of the branch it lists what **`main`** changed as well as what you changed, with
+nothing to distinguish them.
+
+Observed on this sprint's own refs — a branch at `67219cc` carrying two files of work, and
+`origin/main` at `2c958e4` five bean commits ahead of its base:
+
+```
+cmd:      git diff --name-only origin/main 67219cc          # two-dot
+observed: 7 files — the two the branch changed, mixed with five it never touched
+exit:     0
+
+cmd:      git diff --name-only origin/main...67219cc        # three-dot
+observed: .beans/modus-0093--pasted-output-in-top-level-prose-answers-the-criterion-…md
+          documentation/05-authoring-for-agents.md
+exit:     0
+```
+
+Two files, not seven. The three-dot form diffs the **merge base** against the branch tip,
+which is what "what did I change" means and what a reviewer will see. `@{u}` reads the same
+way against the branch's own upstream.
+
+It is the same class as the plant-script hazard above: a command whose obvious reading is
+wrong only in a condition that is invisible when it happens, and which produces a plausible
+answer rather than an error. It nearly misled the author of this bean into believing a commit
+had touched five bean files it had not — the check that is supposed to catch a mistake became
+the thing reporting one.
+
+The two-dot form is not *wrong*; it answers a different question. It is the wrong tool for a
+pre-push review, and since the repository never states the instruction at all, every agent
+given it in a brief inherits whichever form the brief happened to use.
+
 ## Why it belongs in `AGENTS.md` rather than in a document
 
 `AGENTS.md`'s Commands block already carries two conventions of exactly this class: the stale
@@ -99,7 +136,9 @@ catch.
 | 1 | `AGENTS.md` carries the convention in its Commands block, beside the two of the same class, within the 120-line budget check 8 enforces | diff |
 | 2 | The wording distinguishes tracked from untracked, because the distinction decides whether an agent's current work is at risk | diff |
 | 3 | The tracked/untracked boundary is observed rather than asserted | test-run |
-| 4 | `bash tools/docs-lint.sh` green, check 8 included | test-run |
+| 4 | `AGENTS.md` carries the three-dot form, or `@{u}`, as the pre-push review command — an addition, since the repository states no such instruction today and the two-dot habit arrives from task briefs | diff |
+| 5 | The difference between the two forms is observed on real refs, not asserted | test-run |
+| 6 | `bash tools/docs-lint.sh` green, check 8 included | test-run |
 
 ## Not in scope
 

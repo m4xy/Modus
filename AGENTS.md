@@ -51,6 +51,10 @@ script ending in `git checkout -- .beans`, which reverts uncommitted edits to **
 files under that path as well as the plant — a new bean is untracked and survives, a bean you
 are closing, amending or correcting does not. Commit before you plant (`bean:0102`).
 
+Review what you changed with `git diff --name-only origin/main...HEAD` — three dots, or
+`@{u}`. The two-dot form compares endpoints, so once `main` moves ahead it lists what **main**
+changed beside what you did, and gives a plausible answer rather than an error (`bean:0102`).
+
 JDK 25 toolchain. Versions live in `gradle/libs.versions.toml` and nowhere else.
 Style rules: `doc:30-code-style`. The Module extension contract: `doc:10-architecture`.
 This repository's own layout and layering rules: `doc:15-repository-layout`. None is repeated here.
