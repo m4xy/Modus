@@ -211,6 +211,41 @@ An earlier draft dropped it as an abstraction with no caller. It stays.
 merged green. Shipping two of the three would leave §5.3 asserting a port that never arrives,
 with nothing recording the gap.
 
+## Why this port is in `core-domain` and `bean:0066`'s is in `core-application`
+
+Neither bean argued the module question at the time, which is what let them look consistent
+while being unexamined. **An unexamined agreement and a disagreement are different failures,
+and only one of them is visible.** They are reconciled here and in `bean:0066`, identically.
+
+`doc:20-ddd-practices#ports-and-adapters` §5.2 declares a port **where it is used**. One rule,
+applied to two ports whose possible users differ:
+
+| port | who can use it | module |
+|---|---|---|
+| `ClockPort`, `IdGeneratorPort`, `RandomPort` | a use case, and — in principle — an aggregate | `core-domain` |
+| `bean:0066`'s dispatch port | a use case **only**: an aggregate that publishes its own events is precisely the defect `bean:0066` exists to prevent | `core-application` |
+
+The supporting facts for `core-domain` are that `doc:15-repository-layout#placement-table`
+§2.1 names "repository, clock, id generator, agent launcher" for `core/core-domain`, and that
+`doc:20-ddd-practices#ambient-ports` §5.3 sits inside the ports-and-adapters section whose
+package table is a `core-domain` table.
+
+**The argument first given for this was different, and it has been invalidated.** It said
+`core-domain` is the strictly more permissive placement, since `core-application` would
+permanently foreclose an aggregate minting its own instant — a one-way door against a
+reversible choice. `doc:20-ddd-practices#aggregates` §2.2 as merged closes that door by rule:
+*"Time arrives as a parameter (`at: Instant`), supplied by the use case from the `ClockPort`
+port. The aggregate never asks what time it is."* The conclusion survives on the stronger
+warrant above; the reason does not.
+
+That is a **fourth direction** the citation defect runs, distinct from the three catalogued
+this sprint: not a claim asserted beyond a stationary source, not an accurate quote whose
+target moved, not a criterion meeting a document written after it, but **an argument whose
+premise was invalidated while its conclusion stayed correct**. It is the least visible of the
+four, because nothing looks wrong: the conclusion still holds and the citation still resolves.
+**A conclusion that outlives its reason is indistinguishable, to the next reader, from one
+that was well argued.**
+
 ## Two disagreements with `doc:20-ddd-practices` §5.1 as merged
 
 Surfaced rather than closed over, per the instruction to compare the merged row against this
@@ -261,130 +296,43 @@ a clock.
 
 ## Sequencing
 
-**This lands before `bean:0014`.** `AgentRun` needs a start instant, an end instant and an id
-of its own; `doc:10-architecture#bounded-contexts` §3 has `execution` publishing
-`AgentRunStarted`, `AgentRunOutput`, `AgentRunCompleted` and `ContextBudgetExceeded`, every
-one carrying a timestamp the aggregate must mint rather than be handed. There is no way to
-write that context without these ports, and no way to write it against `Instant.now()`, which
-`rule:archunit/timeIsInjectedNeverReadFromAStaticClock` rejects repository-wide.
+**This lands before `bean:0014`.** `AgentRun` needs a start instant, an end instant and an id;
+`doc:10-architecture#bounded-contexts` §3 has `execution` publishing four events, every one
+carrying a timestamp. The use case will mint those from `ClockPort`
+(`doc:20-ddd-practices#aggregates` §2.2), so `execution` cannot be written until the port
+exists. The `blocked_by` edge is on `bean:0014`, which the orchestrator carries.
 
-Prose is not a sequencing mechanism: `AGENTS.md` step 1 reads `blocked_by`, `priority` and
-`order` and nothing else. The `blocked_by` edge belongs on `bean:0014`, whose file this bean
-does not own, so the orchestrator carries it. `order: AP` is this bean's own half, placing it
-ahead of `bean:0031`'s `AT`.
+### `order` is advisory, and the reorder is backlog-wide
 
-`bean:0013` does not depend on this — `work`'s `WorkItem` is read from a file that already
-carries its `created_at`, so `work` can be built while these ports do not exist. The edge is
-to `bean:0014` specifically, and to any later context that mints values.
+**Correction to an earlier claim in this bean.** It said the sequencing "now lives where the
+selector reads it". That is half true, and the half that is false matters: `blocked_by` is
+machine-checked by `docs-lint` check 12, but **nothing sorts by priority then order**. Check
+12 computes the ready *set* (`tools/docs-lint.sh:442`) and uses it only for a duplicate
+`(priority, order)` guard and a non-emptiness check; `N selectable` is a set size, not an
+ordering. The ranking in `AGENTS.md` step 1 is applied by whoever is reading. `bean:0094`
+carries the gap.
 
----
+So `order` here is a **claim on a backlog-wide lexicographic index**, not three local edits,
+and it must be stated as one. Measured rather than asserted, ready high-priority beans before
+and after:
 
-## Evidence
+| # | on `origin/main` | with this change |
+|---|---|---|
+| 1 | `modus-0047` (`AK`) | `modus-0047` (`AK`) |
+| 2 | `modus-0031` (`AT`) | **`modus-0066` (`AQ`)** |
+| 3 | `modus-0027` (`B`) | `modus-0027` (`B`) |
+| 4 | `modus-0017` (`C`) | `modus-0017` (`C`) |
 
-`doc:00-constitution#observed-failing`. Every plant was made at a real call site, run, and
-reverted (`doc:35-testing` §6). **The gate was rebuilt between rounds**, so the round-one
-transcripts are gone rather than kept: they describe a rule that no longer exists, and a bean
-carrying evidence for a superseded mechanism is worse than one carrying none.
+**One insertion, and it is a substitution.** `modus-0031` held second place and is now
+`blocked_by: [modus-0030, modus-0066]`, so the work that was second is gated on `0066`, and
+`0066` takes the slot it vacated. `modus-0027` and `modus-0017` are untouched at third and
+fourth. `bean:0065` itself is `in-progress` and so is not in the ready set at all.
 
-### Why the gate reads source — the round-one plant proved less than it appeared to
+**This was not true when first written, and the correction is the point.** `bean:0092` and
+`bean:0097` were raised at `AS` and `AU`, which put two fix beans ahead of `B` and `C` and
+pushed `modus-0017` — the flat-file store, `bean:0067`'s blocker and the source of the
+real-store evidence `bean:0066` admits it cannot produce — down two places. Neither fix bean
+unblocks anything. They were re-ordered to `CA` and `CB`, behind the store. A backlog-wide
+reorder presented as three local edits is the defect; a reorder that displaces the bean two of
+your own beans depend on is the defect doing damage.
 
-Round one planted a **class** in the port package with a value-class-returning method, and
-ArchUnit rejected it. Two arms fired, and neither was the one that mattered: `beInterfaces`
-caught the class, and the leaf arm caught `ActorId.constructor-impl` — **a constructor call in
-a method body**. A port is an interface and has no bodies. The fixture supplied an enabling
-condition the real package cannot contain, so the plant passed while the rule stayed blind to
-every value class in the model. `bean:0034` had already documented this erasure for the
-published-language rule; this bean repeated it.
-
-### Plants A and B — the escapes, on the shipped files
-
-```
-planted:  IdGeneratorPort.kt — public fun newActorId(): ActorId
-observed: AmbientCapabilityPortSourceTest > ambientCapabilityPortSourceIsLeaf
-          FAILED
-    core/core-domain/.../port/IdGeneratorPort.kt: imports 'uk...identity.published.ActorId'
-    core/core-domain/.../port/IdGeneratorPort.kt: names 'uk...identity.published.ActorId'
-    54 tests completed, 1 failed
-```
-
-```
-planted:  ClockPort.kt — public fun lastSeen(actor: ActorId): Instant
-observed: core/core-domain/.../port/ClockPort.kt: imports 'uk...identity.published.ActorId'
-          core/core-domain/.../port/ClockPort.kt: names 'uk...identity.published.ActorId'
-    54 tests completed, 1 failed
-```
-
-**One test failed in each run, and it was the source test.**
-`rule:archunit/ambientCapabilityPortsAreLeaf` passed on both — the bytecode rule is blind to a
-value class in a return type and in a parameter alike.
-
-### Plant C — the control that isolates erasure
-
-```
-planted:  ClockPort.kt — public fun kind(): ActorKind      (an enum, not a value class)
-observed: ArchitectureRulesTest > ambientCapabilityPortsAreLeaf FAILED
-    Method <...port.ClockPort.kind()> has return type <...identity.published.ActorKind>
-          AmbientCapabilityPortSourceTest > ... FAILED
-    core/core-domain/.../port/ClockPort.kt: imports 'uk...identity.published.ActorKind'
-    54 tests completed, 2 failed
-```
-
-Both rules fire on a type that does not erase; only the source rule fires on one that does.
-That pair is what makes "the bytecode rule is blind to value classes" an observation rather
-than an inference — and it is the second observation that decision 3 says was missing the
-first time.
-
-### Plant 1 — `portsAreInterfaces` on a package that already exists
-
-```
-planted:  identity/port/PlantedRepository.kt — public class PlantedRepository
-observed: ArchitectureRulesTest > portsAreInterfaces FAILED
-    Class <uk.m4xy.modus.core.domain.identity.port.PlantedRepository> is no interface
-    54 tests completed, 1 failed
-```
-
-This closes one of the five §4.2 rules `doc:15-repository-layout` records as not existing, and
-it is observed on `identity.port` rather than on the package this bean adds — so the `..port..`
-glob is proven to reach the context-scoped packages, not assumed to.
-
-### Plant D — the perception assertion catches a dead parse while the verdict stays green
-
-```
-planted:  AmbientCapabilityPortSource.IMPORT regex changed to match `imports` not `import`
-observed: AmbientCapabilityPortSourcePerceptionTest > the scan reads the imports each shipped
-          port actually declares() FAILED
-    ClockPort declares exactly one import and the scan must see it; seeing none would make
-    the leaf verdict vacuous for every port ==> expected: <[java.time.Instant]> but was: <[]>
-    57 tests completed, 2 failed
-```
-
-`AmbientCapabilityPortSourceTest` — the **verdict** — passed in that run, because a scan that
-reads nothing finds no violations. That is the whole case for asserting the parse separately,
-and it is what criterion 8 now cites.
-
-### Criteria 6–7 — the doubles
-
-```
-cmd:      ./gradlew :core-domain:test :architecture-tests:test --rerun-tasks
-observed: BUILD SUCCESSFUL — 109 domain tests, 57 architecture tests
-```
-
-`SequenceIdGenerator.issued` and `SeededRandom.bounds` are copies, and the tests saying so are
-input-surface tests with no verdict counterpart: nothing a caller concludes would reveal a
-shared mutable record. Both use a **two**-element fixture, because `listOf(x)` of size one
-throws on mutation and the same test at size one passes while proving nothing
-(`doc:35-testing#fixture-variation`).
-
-### Criterion 9 — the baseline, and a sixth observation for `bean:0033`
-
-Three interfaces generate no instructions, so the ratchet does not move: every numeric row is
-byte-identical, and `coverageBaselineIsComplete` sees the same module set.
-`coverageBaselineWrite` nevertheless erased **six lines of provenance** — both `# REGRESSION`
-blocks and the note recording that this keeps happening. Restored by hand.
-
-This is the cleanest instance yet and it sharpens the diagnosis: **the erasure is not
-conditional on a regression.** `modus.coverage.gradle.kts:258` is
-`target.writeText(header + note + rows…)` where `header` is a constant and `note` is empty
-unless *this* run regressed. So a run that changes nothing destroys every hand-written line —
-and "run the writer to confirm nothing moved" is the safest-looking thing an agent can do.
-Recorded in `bean:0033`, whose framing this changes.
