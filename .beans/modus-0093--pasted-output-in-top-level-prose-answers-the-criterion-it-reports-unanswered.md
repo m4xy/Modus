@@ -5,7 +5,7 @@ status: todo
 type: fix
 priority: high
 created_at: 2026-08-29T00:00:00Z
-blocked_by: [modus-0061]
+blocked_by: [modus-0061, modus-0063]
 ---
 
 # Pasted check 14 output standing in top-level prose answers the criterion it reports unanswered
@@ -98,7 +98,7 @@ same shape `doc:00-constitution#observed-failing` records for an unfalsifiable g
 
 `bean:0061` owns the citation matcher and already records that it cannot tell a citation from
 a mention: prose *about* criterion numbers is read as citing them, and its own text
-suppressed three of its own failures. Its criterion 5 is
+suppressed three of its own failures. Its fifth criterion reads
 
 > A prose mention of a criterion number that is not a citation no longer answers it, **or the
 > looseness is stated as accepted**
@@ -114,6 +114,41 @@ what remains open.
 `blocked_by: [modus-0061]` for that reason: what a citation *is* is that bean's decision, and
 fixing this first would pre-empt it with a narrower rule chosen against one example.
 
+## The boundary, and the two instances observed in the wild
+
+This bean hands **benign mentions** — prose about a criterion number that was never meant to
+answer it — back to `bean:0061`. That hand-off has a gap, and the gap is reachable:
+`bean:0061`'s fifth criterion may be closed by *stating the looseness as accepted*, and if it
+is, while this bean adopts a narrow option aimed only at pasted output, then the shape that
+actually occurs in this repository is owned by nobody.
+
+It does occur. Two instances, neither planted, both found by running the check rather than by
+reading:
+
+```
+cmd:      grep the completed corpus for a criterion citation standing in top-level prose
+observed: .beans/modus-0028--normative-gate-commands.md:90
+            "…opened — so criterion 1 was false when written. Criterion 7 was added to
+             make the sweep…"
+          .beans/modus-0035--beans-graph-check.md:98
+            "The three trailing counts are criterion 6. They exist because docs-lint
+             check 11 shipped…"
+exit:     0
+```
+
+`modus-0028`'s is the sharper of the two and it is worse than a benign mention: the sentence
+says the criterion **was false when written**, and the matcher reads it as answering that
+criterion. A completed bean closed a criterion on a sentence declaring that criterion false.
+
+A third was found on an unmerged bean this sprint — a sentence naming a criterion by number
+while describing what that criterion decides — and a fourth is recorded in `bean:0061`, which
+was caught the same way while documenting the defect. Four instances, none planted, three by
+authors who knew about the defect.
+
+**So the repair is stated here rather than left to the hand-off.** Whatever this bean adopts
+MUST also reject the two shapes above; they are named in the criteria below. If `bean:0061`
+closes by accepting the looseness, this bean does not inherit that acceptance.
+
 ## Options
 
 | option | catches | cost |
@@ -125,8 +160,19 @@ fixing this first would pre-empt it with a narrower rule chosen against one exam
 
 ## Option 1's cost, measured
 
-A cost written into an options table is a claim, and `doc:00-constitution#observed-failing`
-binds it like any other. An unmeasured "several beans would break" deters a cheap fix
+**A cost written into an options table is a claim, and it should be measured before it is
+written.** That is a new rule, stated here and attributed to nobody. An earlier version of
+this section cited `doc:00-constitution#observed-failing` for it, and that citation was
+wrong: §9.1 binds `Enforced by:` lines and the gates they name, and says nothing about the
+cost column of an options table. The principle is sound and the authority was invented, which
+is the shape this repository is least willing to accept from a bean.
+
+It needs encoding somewhere real rather than asserting here. `doc:00-constitution` is at
+500/500 lines and cannot take it, so it is routed to `modus-0089` — named by filename because
+it is unmerged, and a typed reference to an unmerged bean fails check 6 — as a third instance
+of a rule that could not land because of that ceiling.
+
+The argument for the rule: an unmeasured "several beans would break" deters a cheap fix
 indefinitely, and the deterrence is invisible, so nobody ever discovers the claim was wrong.
 An overstated cost is not the safe direction to be wrong in.
 
@@ -152,11 +198,11 @@ criteria are cited only from running prose. Corpus totals would go `clean=16 fla
 `clean=15 flagged=8`.
 
 The instrument was validated against a known positive before the result was believed: a
-fixture whose only answer to criterion 1 is a running-prose line reports nothing as-is and
+fixture answering its one numbered criterion only from a running-prose line reports nothing as-is and
 `UNANSWERED 1` under the restriction. So two is a measurement, not a script matching nothing.
 
-Both changed beans are frozen by check 11, so criterion 4's grandfathering question is the one
-check 14 already answers — judge what closes in the change, leave the frozen corpus alone —
+Both changed beans are frozen by check 11, so the grandfathering question raised by the fourth
+criterion below is the one check 14 already answers — judge what closes in the change, leave the frozen corpus alone —
 and neither needs an amendment for this change to be possible.
 
 ## Success criteria
@@ -164,8 +210,8 @@ and neither needs an amendment for this change to be possible.
 | # | criterion | evidence kind |
 |---|---|---|
 | 1 | The plant above is observed rejected, not merely no longer accepted | planted violation, reverted |
-| 2 | The control above still fails for its own reason, and a criterion genuinely cited from prose still closes | planted violation, reverted |
-| 3 | Whatever is adopted names a property of where a citation may stand, not a set of rejected strings | diff |
+| 2 | The control above still fails for its own reason, and a criterion cited from a **structural** site — a sub-heading naming it, or an evidence row bearing its number — still closes | planted violation, reverted |
+| 3 | Whatever is adopted names a property of where a citation may stand, not a set of rejected strings, and rejects the two wild instances named above as well as the planted one | diff |
 | 4 | The 23 beans `completed` on `main` and the beans in flight are measured before and after, and every bean whose answered-set changes is named | analyser run over the corpus, before and after |
 | 5 | The pinned assertion in `tools/docs-lint-test.sh` is flipped from DEFECT to a rejection, with a verdict assertion and not only a perception one | test-run |
 | 6 | `doc:05-authoring-for-agents#checks` states the citation rule that results | diff |
