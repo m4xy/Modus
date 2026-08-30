@@ -178,6 +178,24 @@ This is distinct from B in what it hides. A label hides that there is a claim; a
 advertises the claim and hides that its **inputs** were wrong. And it is distinct from A in
 having no external source to distrust: the author is the source, and the author checked.
 
+### The inverse: a verification can be right for a reason its author cannot see
+
+The near-miss above was reproduced by running two `git log -S` searches as **two separate
+commands**, so each searched its own string. Written as one command with two `-S` flags — the
+natural, tidier form — it would have searched only the last, because `-S` is last-wins rather
+than AND. The result would have been the same empty output, reported with the same confidence,
+and **the more polished command is the one that lies**.
+
+So a verification can be correct **incidentally**, and its correctness is then invisible to the
+verifier: there is no signal distinguishing the world where the check was sound from the world
+where it was not. *"I reproduced it"* carries identical weight in both and is worth very
+different amounts.
+
+This is mechanism C inverted. C says a visible derivation suppresses the question of how you
+know; this says the derivation can be visible, correct, **and correct for a reason the author
+never saw**. Both point at the same remedy, and this is the case that shows why it must include
+the command rather than only the data: **the form of the command is one of the inputs.**
+
 ## Why one remedy cannot cover three mechanisms
 
 This bean's first draft assessed four candidate fixes as though this were one problem. That was
