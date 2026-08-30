@@ -711,7 +711,7 @@ that run's output verbatim, and the fences under it carry the rest of each run.
 | 1 | the gate rejects a collection-typed property that is neither private nor copied out, on both shapes the criterion names | `./gradlew :architecture-tests:test --tests '*DefensiveCopy*' --rerun-tasks` | the two historical shapes are rejected in-repo, by name, and the run is green because the rejections are what the tests assert | `BUILD SUCCESSFUL in 15s`, `44 actionable tasks: 44 executed`; `tests="10" skipped="0" failures="0" errors="0"` with `testcase name="rejects the pre-fix PermissionGrant()"` and `testcase name="rejects the pre-fix ProcessDefinition()"` — full list below |
 | 2 | `private val` behind a copying getter is the fix, not the violation | the same run, plus `rule:archunit/noDomainTypePublishesACollectionItOwns` over live `core/core-domain/src/main` | the compliant shape raises nothing while the plants of it raise one violation each | `testcase name="accepts a private backing field behind a copying getter()"`, and `testcase name="noDomainTypePublishesACollectionItOwns()"` — both in the `failures="0"` run above, the second being the live scan over at least 20 sources and 12 collection properties |
 | 3 | the mechanism is chosen deliberately and recorded | `grep -n "Enforced by" documentation/20-ddd-practices.md` and `grep -n "^status" .beans/modus-0026*.md` | `doc:20` §3.1 names the shipped source scan; the Detekt path is still open on `bean:0026` rather than silently dropped | ``154:  `Enforced by:` `rule:archunit/noDomainTypePublishesACollectionItOwns`, a **source** scan of`` / ``155:  every file under `core/core-domain/src/main`.`` and `4:status: todo` for `modus-0026` |
-| 4 | the copy tests use a collection of size two or more | `grep -n "AGENTS_READ, AGENTS_RUN" GrantIssuedTest.kt` and `grep -n "assertEquals(6" BoundedContextsTest.kt` | every fixture is size two or more, and each test performs the down-cast the size makes possible | `GrantIssuedTest.kt:107:        capabilities: Set<Capability> = setOf(AGENTS_READ, AGENTS_RUN),` and `GrantIssuedTest.kt:56:        (taken as MutableSet<Capability>) += COST_READ`; `BoundedContextsTest.kt:11:        assertEquals(6, BoundedContexts.names.size)` and `BoundedContextsTest.kt:28:        (taken as MutableList<String>)[0] = "hijacked"` |
+| 4 | the copy tests use a collection of size two or more | `grep -n "AGENTS_READ, AGENTS_RUN" core/core-domain/src/test/kotlin/uk/m4xy/modus/core/domain/identity/GrantIssuedTest.kt` and `grep -n "assertEquals(6" core/core-domain/src/test/kotlin/uk/m4xy/modus/core/domain/BoundedContextsTest.kt`, each run from the repository root | every fixture is size two or more, and each test performs the down-cast the size makes possible | five hits in `GrantIssuedTest.kt`, the fixture default being `107:        capabilities: Set<Capability> = setOf(AGENTS_READ, AGENTS_RUN),`, and one in `BoundedContextsTest.kt`, `11:        assertEquals(6, BoundedContexts.names.size)`; the down-casts are `GrantIssuedTest.kt:56` and `BoundedContextsTest.kt:28` — all four commands and their complete output in the fence below |
 
 ### Criterion 1 and criterion 2 — the run at `8181726`
 
@@ -762,30 +762,79 @@ observed: {"conclusion":"success","databaseId":33272655061,
            "headSha":"8181726a43742890fe3e9cf98cac142f50fbe84b",
            "url":"https://github.com/m4xy/Modus/actions/runs/33272655061"}
 
-cmd:      GITHUB_TOKEN= gh pr view 40 --json statusCheckRollup
-observed: which halves             SUCCESS
-          build + mechanical gates SUCCESS
-          backoffice + e2e         SUCCESS
-          gate                     SUCCESS
-          (run 33272507536, https://github.com/m4xy/Modus/actions/runs/33272507536)
+cmd:      GITHUB_TOKEN= gh pr view 40 --json headRefOid,mergedAt,statusCheckRollup
+observed: head 0a1164932953ac14ee1ddde599b3ecc3e57b71ed, merged 2026-08-29T20:07:37Z
+          eight rows, two runs of the same workflow on that head, in full:
+            33272509606  which halves              SUCCESS
+            33272509606  build + mechanical gates  SUCCESS
+            33272509606  backoffice + e2e          SKIPPED
+            33272509606  gate                      SUCCESS
+            33272507536  which halves              SUCCESS
+            33272507536  build + mechanical gates  SUCCESS
+            33272507536  backoffice + e2e          SUCCESS
+            33272507536  gate                      SUCCESS
 ```
+
+Both runs are reported because the rollup carries both and quoting four of eight would be an
+unmarked elision. They differ in one row: `backoffice + e2e` is `SKIPPED` in one and
+`SUCCESS` in the other, which is `ci.yml`'s per-path filter doing its job across two pushes,
+and no row in either run is a failure.
 
 `doc:00-constitution` §9.1 asks for the mechanism observed where it is claimed to run, and
 `architecture-tests` is inside `qualityCheck`, which is what the `build + mechanical gates`
 job runs.
 
+### Criterion 4 — the fixtures, and the down-casts they make possible
+
+Paths in full, as run from the repository root. Nothing is elided.
+
+```
+cmd:      grep -n "AGENTS_READ, AGENTS_RUN" \
+            core/core-domain/src/test/kotlin/uk/m4xy/modus/core/domain/identity/GrantIssuedTest.kt
+observed: 32:        event().capabilities shouldBe setOf(AGENTS_READ, AGENTS_RUN)
+          38:        val supplied = mutableSetOf(AGENTS_READ, AGENTS_RUN)
+          43:        issued.capabilities shouldBe setOf(AGENTS_READ, AGENTS_RUN)
+          58:        issued.capabilities shouldBe setOf(AGENTS_READ, AGENTS_RUN)
+          107:        capabilities: Set<Capability> = setOf(AGENTS_READ, AGENTS_RUN),
+
+cmd:      grep -n "as MutableSet" \
+            core/core-domain/src/test/kotlin/uk/m4xy/modus/core/domain/identity/GrantIssuedTest.kt
+observed: 56:        (taken as MutableSet<Capability>) += COST_READ
+
+cmd:      grep -n "assertEquals(6" \
+            core/core-domain/src/test/kotlin/uk/m4xy/modus/core/domain/BoundedContextsTest.kt
+observed: 11:        assertEquals(6, BoundedContexts.names.size)
+
+cmd:      grep -n "as MutableList" \
+            core/core-domain/src/test/kotlin/uk/m4xy/modus/core/domain/BoundedContextsTest.kt
+observed: 28:        (taken as MutableList<String>)[0] = "hijacked"
+```
+
+Two capabilities and six context names. At size one the down-cast on line 56 would throw
+against Kotlin's immutable singleton and the test would pass while proving nothing, which is
+exactly what the criterion forbids.
+
 ### The third occurrence is fixed on `main`
 
 ```
 cmd:      grep -n "private val\|get() =" \
-            core/core-domain/.../identity/event/IdentityEvents.kt core/core-domain/.../BoundedContexts.kt
-observed: IdentityEvents.kt:40:    private val issued: Set<Capability> = granted.toSet()
-          IdentityEvents.kt:43:    public val capabilities: Set<Capability> get() = issued.toSet()
-          BoundedContexts.kt:44:    public val names: List<String> get() = declared.toList()
+            core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/identity/event/IdentityEvents.kt \
+            core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/BoundedContexts.kt
+observed: …/BoundedContexts.kt:33:    private val declared: List<String> =
+          …/BoundedContexts.kt:44:    public val names: List<String> get() = declared.toList()
+          …/identity/event/IdentityEvents.kt:40:    private val issued: Set<Capability> = granted.toSet()
+          …/identity/event/IdentityEvents.kt:43:    public val capabilities: Set<Capability> get() = issued.toSet()
+          (four of four; only the leading `core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain`
+           of each path is elided, and it is the path given in the command)
 ```
 
 Copy in at construction, copy out at the accessor, in the type the gate found on its first
 run — which is the shape §3.1 prescribes and the one criterion 2 says must not be reported.
+An earlier draft of this fence quoted three of the four lines and dropped
+`BoundedContexts.kt:33` without marking it, against this bean's own promise that elisions are
+marked. The dropped line is the backing field the accessor above copies out of, so it argued
+the point rather than against it — which is why an unmarked elision is worth catching even
+when it costs nothing: nobody can tell that from the outside.
 
 ## What else this found
 

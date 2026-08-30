@@ -123,12 +123,47 @@ closed, against the change that closes it.
 | 3 | A numbered criterion that nothing in the bean answers fails the build | the same, with plant 3 — criteria numbered 1-5, evidence rows 1, 2 and 3 | exit 1 once per unanswered number, naming the numbers | `FAIL check 14 …: criterion 4 is not answered in the evidence; no evidence row bears its number and nothing cites it` and the same for `criterion 5`, exit 1; and closing plant C3 |
 | 4 | An evidence cell holding only an evidence-kind name fails the build | the same, with plant 4 — row 2's cell reading `test-run` | exit 1, quoting the cell back and naming it a kind | ``FAIL check 14 …: criterion 2 records 'test-run' — an evidence KIND, not evidence; the cell must carry the command, the expectation and the verbatim observed output``, exit 1; and closing plant C4 |
 | 5 | An empty evidence cell fails the build | the same, with plant 5 | exit 1, naming the criterion whose cell is empty | `FAIL check 14 …: criterion 2 closes with an empty evidence cell (adr:0005-evidence-lives-in-the-work-item#evidence-home)`, exit 1; and closing plant C5 |
-| 6 | A fully evidenced closure passes, and the two corpus shapes both pass | `bash tools/docs-lint.sh` on the control, and on this change | exit 0, with the closing-transition denominator moving off zero | control: `docs-lint: OK — … 1 closing transitions, 3 criteria checked, 0 unnumbered.`, exit 0. **The closing run is the stronger control**: four beans closing at once, two in shape A and two in shape B — `docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.`, exit 0 |
+| 6 | A fully evidenced closure passes, and the two corpus shapes both pass | `bash tools/docs-lint.sh` on the control and on this change; then `grep -n "^## Success criteria and evidence$"` and `grep -n "^## Evidence$"` over the four closing beans, to count the shapes rather than assert them | exit 0 on both runs, and each closing bean classified by the headings this bean's own shape table defines | control: `docs-lint: OK — … 1 closing transitions, 3 criteria checked, 0 unnumbered.`, exit 0. The closing run is the stronger control — `docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.`, exit 0 — and the four split **1 shape A, 3 shape B**: `modus-0054:99` is the only `## Success criteria and evidence`, while `modus-0036:120`, `modus-0055:112` and `modus-0058:48` each carry a separate `## Evidence`. Both shapes pass in one run; they are not evenly split, and the count is below |
 | 7 | The check is not inert in CI, and its output distinguishes "ran and found nothing" from "could not run" | `GITHUB_TOKEN= gh run view <id> --json conclusion,event,headBranch`, a clone with `refs/remotes/origin/main` deleted, and the CI log of the pull request that closes this bean | a planted closure turns CI red where the check is claimed to run; a run with no merge base prints `-` rather than `0`; and a real closure is examined in CI rather than skipped | the two planted-closure runs are still on record and still red: `{"conclusion":"failure","event":"pull_request","headBranch":"feat/docs-lint-evidence-check","url":"…/runs/33264964045"}` and the same for `…/runs/33263152489`; the no-base run prints `- closing transitions, - criteria checked, - unnumbered`, exit 0; and CI on the closing pull request prints `4 closing transitions, 31 criteria checked, 0 unnumbered` — not `0`, not `-` — in the fence below |
 | 8 | The check count lives in `doc:05-authoring-for-agents#checks` and nowhere else | `grep -rn "checks" build.gradle.kts` and `sed -n '1,3p' tools/docs-lint.sh` | neither the build file nor the script states a number; both name the table that counts them | `build.gradle.kts:19:// The mechanical checks of doc:05-authoring-for-agents#checks — counted there and`; `# docs-lint — the mechanical checks of doc:05-authoring-for-agents#checks. That table` / `# is the one place the checks are counted; a count repeated here would drift, and did.` |
-| 9 | `./gradlew qualityCheck` green | `./gradlew qualityCheck` | green with `docsLint` inside it, on the tree that closes these four beans | `BUILD SUCCESSFUL in 15s`, `158 actionable tasks: 4 executed, 1 from cache, 153 up-to-date`, `> Task :docsLint` printing `docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.` — the same line the control in the plant block below carries, taken through the gate rather than through the script |
+| 9 | `./gradlew qualityCheck` green | `./gradlew qualityCheck` | green with `docsLint` inside it, on the tree that closes these four beans | `BUILD SUCCESSFUL in 15s`, `158 actionable tasks: 4 executed, 154 up-to-date`, `> Task :docsLint` printing `docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.` — the same line the control in the plant block below carries, taken through the gate rather than through the script |
 | 10 | A criteria-and-evidence table with no evidence column fails the build, and so does one whose only extra column is `evidence kind` | `bash tools/docs-lint.sh` with plants 6, 7 and 8 | exit 1 on the table rather than on the criteria it fails to answer, so the message names the root cause | `FAIL check 14 …: the table under 'Success criteria and evidence' numbers criteria in an evidence section but carries no evidence column; 'evidence kind' states what will be produced, not what was observed`, exit 1 — the same input that exited 0 with `3 criteria checked` before the fix; and closing plant C6 |
 | 11 | The run discloses what it could not check: unnumbered criteria are counted on the `OK` line | `bash tools/docs-lint.sh` on a closure whose criteria are bullets | the line separates "checked" from "could not check", and both counts move | `docs-lint: OK — … 1 closing transitions, 0 criteria checked, 2 unnumbered.`, exit 0. Re-observed on this change as closing plant C7 — `bean:0058`'s seven criteria restated as bullets moves the line to `4 closing transitions, 24 criteria checked, 7 unnumbered`, exit 0, against `31 criteria checked, 0 unnumbered` for the same tree with the table in place. That is the count doing its job twice over: `bean:0036` stated its criteria as bullets, and **numbering them into a table** to close it is the behaviour this disclosure exists to provoke |
+
+### The two shapes, counted rather than asserted
+
+An earlier draft of criterion 6's cell said the four closures were "two in shape A and two in
+shape B". That was a classification claim with no command behind it, and it was **wrong** —
+in the bean whose whole subject is that a cell must record what was observed. Review caught
+it. The count, by the definitions in the shape table above:
+
+```
+cmd:      grep -n "^## Success criteria and evidence$\|^## Success criteria$\|^## Evidence$" \
+            .beans/modus-0036--defensive-copy-rule.md \
+            .beans/modus-0054--cost-baseline-and-run-recorder.md \
+            .beans/modus-0055--evidence-required-to-close-a-bean.md \
+            .beans/modus-0058--unwritten-working-conventions.md
+observed: .beans/modus-0058-…:36:## Success criteria
+          .beans/modus-0058-…:48:## Evidence
+          .beans/modus-0054-…:99:## Success criteria and evidence
+          .beans/modus-0036-…:30:## Success criteria
+          .beans/modus-0036-…:120:## Evidence
+          .beans/modus-0055-…:32:## Success criteria
+          .beans/modus-0055-…:112:## Evidence
+exit:     0
+```
+
+One shape A — `modus-0054` — and three shape B. `modus-0036` is shape B on this test even
+though its closing evidence lives under a combined `## Criteria met — the closing evidence`
+heading, because the section that names its criteria and the section that holds the
+transcripts are two, which is what shape B is. Review confirmed the reading independently by
+renaming that heading to force a pure split: `docs-lint` still printed
+`4 closing transitions, 31 criteria checked, 0 unnumbered`, so nothing about the pass depends
+on how that one heading is worded.
+
+The criterion is met either way — shape A is exercised by `modus-0054` and shape B by the
+other three, in the same run — and it is met by a smaller margin than the sentence claimed.
+Recording the smaller margin is the point.
 
 ### The closing change, planted seven ways
 
@@ -138,10 +173,17 @@ closing in this same pull request — and each was restored from a copy taken be
 `doc:00-constitution` §9.1 asks for a mechanism observed where it is claimed to run; the
 input check 14 is claimed to read is a closure, and this is one.
 
+Every plant was **re-run after review**, against the final state of this change, and one of
+them stopped failing — see C3a. An earlier revision of this block quoted the plants as run
+against an earlier revision of the same change; those transcripts had gone stale under
+edits made to `modus-0058` in between, which is the defect `bean:0091` now carries.
+
 ```
-control:  the four closures as they stand in this change
-observed: docs-lint: OK — 19 documents, 106 anchors, 917 references, 64 beans,
-          28 graph edges, 21 selectable, 64 bean ids, 0 introduced, 64 on origin/main,
+control:  the four closures and the new bean, as this change stands
+observed: docs-lint: OK — [... nine corpus counts, elided: they describe the tree at the
+          moment of the run and move whenever a word is added to this change, including
+          by this transcript. The elision is marked because that is the rule; the full
+          line for an immutable tree is in the CI block below ...]
           4 closing transitions, 31 criteria checked, 0 unnumbered.
 exit:     0
 
@@ -162,7 +204,14 @@ observed: FAIL check 14 .beans/modus-0058-…: closes with an evidence section c
           docs-lint: 3 failure(s).
 exit:     1
 
-C3        evidence row 6 deleted, and the heading that cites it renamed
+C3a       evidence row 6 deleted, and the sub-heading that cites it renamed
+observed: docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.
+exit:     0        <- PASSES. This plant failed before review and passes after it: a
+                      correction added the words "which is what criterion 6 reads" to a
+                      line of prose, and that prose now answers the criterion whose
+                      evidence row was just deleted.
+
+C3b       the same, plus that one prose citation neutralised
 observed: FAIL check 14 .beans/modus-0058-…: criterion 6 is not answered in the evidence; no
           evidence row bears its number and nothing cites it (…#evidence-home)
           docs-lint: 1 failure(s).
@@ -192,11 +241,21 @@ C7        the criteria table restated as seven bullets (the disclosure, not a fa
 observed: docs-lint: OK — … 4 closing transitions, 24 criteria checked, 7 unnumbered.
 exit:     0
 
-restored: the four beans copied back from the pre-plant copies; `git status --short` lists
-          those four files and nothing else
+restored: `modus-0058` copied back from the pre-plant copy; `git status --short` lists the
+          four modified beans and the one new one, and nothing else
 observed: docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.
 exit:     0
 ```
+
+**C3a is the finding, and it is worth more than the six rejections.** The plant was not
+weakened; the bean around it changed. A correction elsewhere in `modus-0058` added the phrase
+"which is what criterion 6 reads" to ordinary prose, and `doc:05-authoring-for-agents#checks`
+says a citation by number answers a criterion — so a sentence written for a human reader
+silently took over the job of an evidence row, and deleting that row stopped being detectable.
+Nothing about the check changed between the two runs. This is `bean:0061`'s
+"the citation matcher cannot tell a citation from a mention", reproduced by accident, in a
+live closure, by an author who was fixing something else. It is one more reason the
+per-criterion condition is weaker than the `OK` line makes it look, and it is why C3b exists.
 
 And the same closure through the gate in CI, where the check is claimed to run. This is the
 first time check 14 has examined a real closing transition in CI: every prior CI observation
@@ -218,20 +277,34 @@ jobs:     which halves             pass
 exit:     0
 ```
 
-Byte-identical to the local `docsLint` line, which is the property `bean:0045`'s escape and
-check 11's two inert runs both lacked: the same denominators locally and in CI, on the same
-input. The commit that carries this transcript is the one after `b643f08`, so the run named
-here is the run of the closure without this paragraph in it — stated rather than smoothed
-over, because a transcript of a run cannot also be inside the tree that run examined.
+At that commit the CI line was byte-identical to the local one — review confirmed it
+independently by extracting the line from the run's raw log and comparing digests, both
+`e2f1607cf90c9e46ac6c677f4fcefc71`. That is the property `bean:0045`'s escape and check 11's
+two inert runs both lacked: the same denominators locally and in CI, on the same input.
 
-One figure in that control moves as it is read, and it is left as observed rather than
-quietly corrected: writing this transcript into this file added a typed reference, so the
-`references` count printed `917` when the plants were run and prints `918` once the block
-above exists. The counts check 14 owns — closing transitions, criteria checked, unnumbered —
-are properties of the four closures and do not move when prose is added around them. A
-transcript that reports the tree it is being written into cannot be exactly reproducible; the
-useful discipline is to say which of its numbers are self-referential, not to re-run until
-the number stops changing, which it never does.
+That line is quoted in full because `b643f08` is immutable: anyone can check out that commit
+and reproduce it exactly. The controls above are not, which is why their corpus counts are
+elided rather than quoted — this change has since grown by review's corrections and by one
+new bean, and every one of those edits moved the `references` figure, including the sentence
+you are reading.
+
+**The counts check 14 owns did not move through any of it**:
+`4 closing transitions, 31 criteria checked, 0 unnumbered`, locally and in CI, before and
+after the corrections, with and without `bean:0091`. That is the split worth knowing. The
+corpus counts describe the tree at the instant of the run and are self-referential in a
+document that reports them; the check-14 counts describe the four closures, and only a change
+to a closure moves them. Quote the second verbatim, elide the first with a marker, and pin
+anything that must be exact to a commit.
+
+The `references` count in that control is self-referential and is left as observed rather
+than quietly corrected: writing a transcript into a bean adds typed references, so the figure
+moved from `917` to `918` when this block was first written and to `924` once review's
+corrections and `bean:0091` were in. The control above is the last of those runs and the
+plants were re-run against it, so the block is internally consistent — and it will be wrong
+again the moment anything else is added to this change. The counts check 14 owns do not have
+that property. The useful discipline is to say which numbers are self-referential and re-take
+the transcript when the tree it describes changes materially, not to chase a figure that moves
+because it is being written down.
 
 C1 and C2 are worth reading past the headline. Both report criteria 3 and 5 unanswered and
 **not** criteria 1, 2, 4, 6 and 7 — because those five are cited by number in prose or in a

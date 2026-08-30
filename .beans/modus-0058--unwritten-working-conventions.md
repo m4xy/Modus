@@ -59,7 +59,7 @@ on the branch and has since been edited by another change is not a convention th
 | 4 | the worktree rule is stated where an implementing agent is addressed, with its own anchor, and rule 0.3 cites it | `grep -n "worktree-per-agent" documentation/80-agent-operating-procedure.md` | the anchor owns a section of its own, outside the orchestrator-only step 0, and rule 0.3 points at it | `49:## Working tree <a id="worktree-per-agent"></a>` — §0 begins at line 56, so the section precedes it — and `65:` rule 0.3 reads "the isolation rule is `#worktree-per-agent` and it binds the agents you spawn, not only you" |
 | 5 | `AGENTS.md` workflow step 2 is a pointer, not a second statement of the rule | `sed -n '67,68p' AGENTS.md` | step 2 names the anchor and states no rule of its own | two lines, the second being ``   (`doc:80-agent-operating-procedure#worktree-per-agent`). No direct commits to `main`.`` — the first names the branch kinds and the phrase "in a worktree of your own" and carries no rule text of its own; both in the fence below |
 | 6 | both documents stay inside `docs-lint` check 8's line budget | `wc -l AGENTS.md documentation/80-agent-operating-procedure.md`, and `bash tools/docs-lint.sh` | under the 120-line `AGENTS.md` ceiling check 8 hard-codes and the 500-line `max_lines` `documentation/README.md` states | at `f39f100`: `76 AGENTS.md`, `456 documentation/80-agent-operating-procedure.md`; at `8181726`: `82 AGENTS.md`, `456` — later merges grew `AGENTS.md` by six lines and it is still 38 under the ceiling. Check 8 is green in both runs of the gate below |
-| 7 | `./gradlew qualityCheck` green | `./gradlew qualityCheck` | green with `docsLint` inside it, both before and after this closure is written | clean tree: `BUILD SUCCESSFUL in 19s`, `167 actionable tasks: 54 executed, 113 from cache`, `0 closing transitions`. With the four closures in place: `BUILD SUCCESSFUL in 15s`, `158 actionable tasks: 4 executed, 1 from cache, 153 up-to-date`, `4 closing transitions, 31 criteria checked, 0 unnumbered` — both transcripts below |
+| 7 | `./gradlew qualityCheck` green | `./gradlew qualityCheck` | green with `docsLint` inside it, both before and after this closure is written | clean tree: `BUILD SUCCESSFUL in 19s`, `167 actionable tasks: 54 executed, 113 from cache`, `0 closing transitions`. With the four closures in place: `BUILD SUCCESSFUL in 15s`, `158 actionable tasks: 4 executed, 154 up-to-date`, `4 closing transitions, 31 criteria checked, 0 unnumbered` — both transcripts below |
 
 ### Criteria 1 to 5 — the closing runs at `8181726`
 
@@ -104,6 +104,8 @@ the rule. Rule 0.3 at line 65 cites the anchor rather than restating it.
 The two `gh` forms, re-run in this worktree with the same stale `GITHUB_TOKEN` in the
 environment that produced the original report:
 
+Both transcripts complete, nothing elided:
+
 ```
 cmd:      gh auth status
 observed: github.com
@@ -113,6 +115,8 @@ observed: github.com
 
             ✓ Logged in to github.com account m4xy (keyring)
             - Active account: false
+            - Git operations protocol: ssh
+            - Token: gho_************************************
             - Token scopes: 'gist', 'read:org', 'repo'
 exit:     1
 
@@ -121,9 +125,17 @@ observed: github.com
             ✓ Logged in to github.com account m4xy (keyring)
             - Active account: true
             - Git operations protocol: ssh
+            - Token: gho_************************************
             - Token scopes: 'gist', 'read:org', 'repo'
 exit:     0
 ```
+
+`- Active account:` is the line that carries the whole finding, and it is why both
+transcripts are quoted whole rather than trimmed to the first three lines: the keyring
+credential is present and usable in **both** runs. Nothing is broken about the account. The
+stale environment variable simply wins the selection, and clearing it inline moves
+`Active account: true` from the invalid credential to the working one. `gh` masks the token
+itself, so the complete output carries nothing secret.
 
 The third form, `env -u GITHUB_TOKEN gh …`, was **not** re-run here and does not need to be:
 `AGENTS.md` names it as the form to avoid, and the reason is that the sandbox refuses it —
@@ -150,16 +162,23 @@ was set `completed`, so check 14 had nothing to read. The same command with the 
 in place:
 
 ```
-cmd:      ./gradlew qualityCheck
-observed: > Task :docsLint
-          docs-lint: OK — 19 documents, 106 anchors, 918 references, 64 beans,
-          28 graph edges, 21 selectable, 64 bean ids, 0 introduced, 64 on origin/main,
+cmd:      ./gradlew ktlintFormat && ./gradlew qualityCheck
+observed: BUILD SUCCESSFUL in 2s
+          57 actionable tasks: 57 up-to-date            (ktlintFormat; the tree is unchanged)
+          > Task :docsLint
+          docs-lint: OK — [... nine corpus counts, elided: they move with every edit to
+          this change, including this transcript. Verbatim for an immutable tree in
+          `bean:0055`, against the CI run of `b643f08` ...]
           4 closing transitions, 31 criteria checked, 0 unnumbered.
           > Task :qualityCheck
           BUILD SUCCESSFUL in 15s
-          158 actionable tasks: 4 executed, 1 from cache, 153 up-to-date
+          158 actionable tasks: 4 executed, 154 up-to-date
 exit:     0
 ```
+
+The elision is marked rather than silent, which is this bean's own promise and the rule
+`bean:0091` now carries. What the line-budget row needs from that line is that `docsLint` ran
+and reported nothing against check 8, and that is not in the elided part.
 
 `wc -l` at the two commits, which is what criterion 6 reads:
 

@@ -111,9 +111,9 @@ carries today. The scripts behind the one-line results are in the fences under t
 | 4 | Dollars are integer micro-dollars, with cache read and both cache-write TTLs priced separately | `sed -n '73,110p' tools/cost_lib.py`, and the record check under criterion 8 | five per-million rates, integer arithmetic throughout, and the two cache-write TTLs priced apart from each other | `def rates_upm(model_id):` returns `input`, `output`, `cacheRead`, `cacheWrite5m`, `cacheWrite1h`, each `inp * MULT[0] // MULT[1]`; `cost_micros` folds the same five kinds; the summary row's `rates` carries `{"cacheRead": 500000, "cacheWrite1h": 10000000, "cacheWrite5m": 6250000, …}` for `claude-opus-5`; both spend records carry an integer `costUsd` (`4028418`, `146465476`) | A |
 | 5 | Input hashes recorded, and re-checkable | `python3 tools/cost-replay.py --check --transcripts <the project dir>` | the recorded hashes are compared before any figure is, and drift in the inputs is reported as drift in the inputs | `baseline inputs have moved on: 5 changed, 0 gone. The committed figures describe the 129 files hashed at generation and are not reproducible from today's transcripts. Regenerate to re-baseline.`, exit 1 — and `129` is the summary row's own `inputs` length | A |
 | 6 | One spend record per agent run is appended at the harness edge, and a lost cursor never re-bills | `python3` over `domains/modus/cost/0001.ndjson`, and `grep -n "Stop" .claude/settings.json` | one record per run, each naming the hook that wrote it, and the hook registered for both events | `records in log: 2`, `record 0 source='claude-code-hook' role='general-purpose' spawnDepth=1 billingBasis='full'`, `record 1 … role='root' spawnDepth=0 billingBasis='full'`; `.claude/settings.json` line 3 `"Stop": [`, line 14 `"SubagentStop": [`, both running `python3 "$CLAUDE_PROJECT_DIR/tools/cost-record.py"`. The four cursor outcomes are the transcript further down, unchanged | B |
-| 7 | `parentRunId` is populated for a subagent run | `MODUS_COST_TRANSCRIPTS=<the project dir> python3 tools/cost-record.py --self-test` | a subagent record carries the spawning run's id, and `gitBranch` is the real branch rather than the literal `HEAD` | `"parentRunId": "ffd4977c-3d34-41e9-a3ae-f60919540688"`, `"spawnDepth": 1`, `"gitBranch": "worktree-agent-a740f8f06c37b4bee"`, `self-test OK — every required field populated, gitBranch resolved to 'worktree-agent-a740f8f06c37b4bee'`, exit 0 | B |
+| 7 | `parentRunId` is populated for a subagent run | `MODUS_COST_TRANSCRIPTS=<the project dir> python3 tools/cost-record.py --self-test`, **run on a checkout with a named branch checked out** | a subagent record carries the spawning run's id, and `gitBranch` is the real branch rather than the literal `HEAD` | `"parentRunId": "ffd4977c-3d34-41e9-a3ae-f60919540688"`, `"spawnDepth": 1`, `"gitBranch": "worktree-agent-a740f8f06c37b4bee"`, `self-test OK — every required field populated, gitBranch resolved to 'worktree-agent-a740f8f06c37b4bee'`, exit 0. On a **detached HEAD** the same command exits 1 by design — the precondition and the refusal are both observed in the fence below | B |
 | 8 | Fields the harness cannot supply are omitted, never invented; the shape otherwise matches | `python3` comparing `doc:60-cost-model` §3.2's 22 field names against each record's keys — script below | the six the harness cannot know are absent **and** named in `unavailable`; nothing is nulled or guessed | subagent record: `present 16 of 22`, `absent: ['workItemId', 'epicId', 'stage', 'priceBookEntryId', 'skillId', 'rationale']`, `unavailable: ['epicId', 'priceBookEntryId', 'rationale', 'skillId', 'stage', 'workItemId']` — the same six, both ways. Root record: `present 15 of 22`, `parentRunId` additionally absent, which is the documented shape for a run a human started | B |
-| 9 | `./gradlew ktlintFormat && ./gradlew qualityCheck` green | `./gradlew qualityCheck` | green, `docsLint` included, at the commit this is being closed on | clean tree: `BUILD SUCCESSFUL in 19s`, `167 actionable tasks: 54 executed, 113 from cache`. With the four closures in place: `BUILD SUCCESSFUL in 15s`, `158 actionable tasks: 4 executed, 1 from cache, 153 up-to-date`, `> Task :docsLint` printing `docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.` | A, B |
+| 9 | `./gradlew ktlintFormat && ./gradlew qualityCheck` green | `./gradlew ktlintFormat && ./gradlew qualityCheck` — both halves, as the criterion words it, rather than `qualityCheck` alone | both green, the formatter changing nothing, and `docsLint` inside the second half | `ktlintFormat`: `BUILD SUCCESSFUL in 2s`, `57 actionable tasks: 57 up-to-date`, and `git status --short` empty after it — the tree was already formatted, so the mutator mutated nothing. `qualityCheck`: `BUILD SUCCESSFUL in 15s`, `158 actionable tasks: 4 executed, 154 up-to-date`, `> Task :docsLint` printing `docs-lint: OK — … 4 closing transitions, 31 criteria checked, 0 unnumbered.` | A, B |
 
 ### The scripts behind criteria 1, 2, 3, 6 and 8
 
@@ -252,6 +252,37 @@ exit:     0
 `gitBranch` is the branch, not `HEAD`: the recorder resolves it from the hook's `cwd` at
 record time instead of reading the transcript's own field, which is the one moment the real
 branch is knowable.
+
+### Criterion 7's precondition — the self-test needs a named branch checked out
+
+Resolving the branch from the checkout is what makes the field trustworthy, and it is also a
+precondition the criterion did not state. On a **detached HEAD** the self-test refuses:
+it prints the record it built, then exits 1 rather than reporting success on a run it cannot
+attribute. Both directions, observed in this worktree at the closing commit:
+
+```
+cmd:      git rev-parse --abbrev-ref HEAD          (before the branch was cut)
+observed: worktree-agent-a740f8f06c37b4bee
+cmd:      MODUS_COST_TRANSCRIPTS=<the project dir> python3 tools/cost-record.py --self-test
+observed: self-test OK — every required field populated, gitBranch resolved to
+            'worktree-agent-a740f8f06c37b4bee'
+exit:     0
+
+cmd:      git checkout --detach
+          git rev-parse --abbrev-ref HEAD
+observed: HEAD
+cmd:      the same self-test, same environment, same transcripts
+observed: (the full record on stdout, unchanged, then on stderr:)
+          self-test: gitBranch is the literal 'HEAD' — live resolution from the
+          hook's cwd failed, which is the defect this field exists to avoid.
+exit:     1
+reverted: git checkout chore/close-merged-beans; `git status --short` empty
+```
+
+That exit 1 is the tool working, not a defect: `HEAD` is precisely the value the replay found
+useless as a join key, and the recorder exists to avoid writing it. But an agent meeting it
+for the first time reads a failing self-test on a tool it did not change. The precondition is
+now in criterion 7's cell, so the next reader gets the one line instead of the hour.
 
 Idempotence, driven through the hook entry point rather than the self-test:
 
