@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  costMicros,
+  costMicrosOf,
   foldUsage,
   framesDisagree,
   isPricedModel,
@@ -81,7 +81,7 @@ function totalCostUsd(model: string | null, byMessage: Record<string, Usage>): n
   const usages = Object.values(byMessage);
   if (usages.length === 0) return 0;
   if (model === null || !isPricedModel(model)) return null;
-  return usages.reduce((total, usage) => total + (costMicros(model, usage) ?? 0), 0);
+  return usages.reduce((total, usage) => total + costMicrosOf(model, usage), 0);
 }
 
 /**

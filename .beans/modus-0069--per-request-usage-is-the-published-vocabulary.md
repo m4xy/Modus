@@ -49,9 +49,29 @@ set.
 scan started         2026-08-30T09:24:58Z   (finished 09:24:59Z — single pass)
 transcript files     91
 total lines read     29290
-file-set sha256[16]  73394a799c88dad4
 meta sidecars        89
 ```
+
+**The hash that stood here has been removed, and the reason matters more than the figure.** It
+read `file-set sha256[16] 73394a799c88dad4`, and it appeared in exactly one place in the
+repository: this line, asserting itself. Nothing computed it that a reader could re-run, and —
+decisively — **nothing a reader could run would ever reproduce it**, because the corpus it
+hashes lives in `~/.claude` on one machine and grows continuously. A different reader has a
+different file set by construction. A hash whose input no one else can hold is not a checksum;
+it is a number that looks like one, which is worse than no number because it invites the trust
+a checksum earns.
+
+So what remains is stated as what it is: **an author's attestation**, not a check. The instant
+and the line count say when the scan ran and how much it read, and a reader may believe or
+disbelieve them. That is honest, and it is all this kind of figure can be.
+
+The contrast worth drawing is `bean:0054`'s baseline, which *is* checkable and shows what the
+difference costs: it records **each input file's path and hash individually**, in the
+repository, and `tools/cost-replay.py --check` re-hashes those paths and reports drift. That
+works because the paths are named, so the check can go and look. Reproducing that property here
+would mean committing 91 paths and hashes for a corpus that is not the subject of this bean —
+`bean:0054` already owns it, and duplicating it would create a second record to disagree with
+the first.
 
 That file set is a superset of the 65 runs the committed baseline was generated from, and of
 the 82 the previous revision of this table read. Figures are evidence of a point in time, not
@@ -118,22 +138,86 @@ a different thing and is said so in the text.
 
 ## Success criteria and evidence
 
-Every row below was re-derived by opening the artefact it cites, not from memory of having
-fixed it. That is not diligence theatre: a "no bean" claim in row 1 survived a full review
-round *because* it was checked against recollection, which is what made the previous version
-of this table unusable as a checklist. Commands run from the repository root; elisions are
-marked `[...]` (`bean:0091`).
+**Every `cmd` below was executed at `fdfce90` and its `observed:` is that run's output.** That
+is an assertion, not a label: run them and they reproduce, and if one does not, this table is
+wrong and should be treated as wrong.
+
+The previous revision carried a *label* instead — "every row was re-derived by opening the
+artefact it cites, not from memory of having fixed it" — and it was false in four of eight
+rows. It survived a review round with the label attached. **A claimed-re-derived table and a
+re-derived one are indistinguishable from outside**, so the label bought nothing and cost a
+reviewer the work of running all eight commands to discover it. What is written above is
+falsifiable by the reader in the time it takes to paste a line, which a claim about my
+diligence is not.
+
+Two conventions follow from what went wrong, and both are load-bearing:
+
+- **Line numbers are not cited.** Four cells carried them and this pull request's own later
+  edits moved every one. A line number is a claim about a file's current shape, and any edit
+  above it falsifies the claim without touching what it describes.
+- **Absence is not asserted where a positive claim will do.** An `observed: no output` block
+  is falsified by its own record the moment the searched string appears in the searched
+  corpus — which happened **twice** in this change, to `git log -S "outputPerMTok: 75"` in
+  `bean:0090` and to `grep -rn "costUsdMicros"` here. A positive assertion cannot fail that
+  way, so each cell below asserts what *is* there.
+
+Elisions are marked `[...]` (`bean:0091`).
 
 | # | criterion | evidence |
 |---|---|---|
-| 1 | `transport.ts` states per-request usage, `messageId` deduplication keeping max `outputTokens`, five token kinds, and a run terminal that is synthesised — citing the corpus, and citing **no other of the three artefacts** as its authority | `cmd`: `grep -n "bean:" backoffice/src/agent/transport.ts` → `51: (bean:0059).` `70: bean:0069 records the counts.` `274: bean:0090 carries` `278: bean:0014/bean:0020`. So the file **does** name beans, and the earlier cell claiming it named "no bean" was false. What is true is narrower and is what the criterion says: none of them is cited as authority for the usage model. The file states this itself at line 41 — `Bean references below are provenance, not authority — the authority is the corpus.` |
-| 2 | `bean:0020`'s cumulative criterion is replaced, and its peak-context criterion is made satisfiable rather than claimed closed | `cmd`: `grep -n "cumulative" .beans/modus-0020--claude-code-runner.md` → no output. `cmd`: `grep -n "cache kinds" .beans/modus-0020--claude-code-runner.md` → the criterion now attributes derivability to the cache kinds, not to per-request reporting alone |
-| 3 | `bean:0014` is no longer silent: it states the published usage shape, and states the premise's enforcement status honestly | `cmd`: `grep -c "" .beans/modus-0014--execution-bounded-context.md` → the file carries a six-clause `## The usage vocabulary this context publishes` section. `cmd`: `grep -n "observed to hold\|not asserted" .beans/modus-0014--execution-bounded-context.md` → clause 2 reads `It is *observed to hold* on every run of the replayed corpus, and it is **not asserted**.` The previous version of this cell named a filename and nothing else, which asserts that a file exists rather than that a criterion is met |
-| 4 | No floating-point money survives in the seam, and no third name for it is introduced | `cmd`: `grep -n "1_000_000" backoffice/src/agent/transport.ts backoffice/src/routes/AgentConsole.tsx` → four hits: `248` (prose in a KDoc), `285` (a rate literal, `input: 1_000_000`), `376` (`costMicros`, integer micros in and integer micros out), `AgentConsole.tsx:157` (the render). So there are **two** arithmetic sites, not one, and the earlier cell saying "the only division is the render" was false. The claim that holds: exactly one site converts **to dollars**, and it is the render. `cmd`: `grep -rn "costUsdMicros" backoffice/src` → no output; the field is `costUsd`, integer micros, the name `doc:60#spend-record` already uses |
-| 5 | The console implements the rule it publishes — the reducer folds and dedupes rather than assigning | `cmd`: `grep -n "case 'usage'" -A6 backoffice/src/agent/useAgentSession.ts` → the branch computes `keepLargerFrame`, folds via `foldUsage`, and returns `state` unchanged when the frame is not larger. `[...]` the mock emits a partial frame, a finished frame and a repeated finished frame per request, so the dedupe path runs on every session |
-| 6 | The premise `keepLargerFrame` rests on is **detected**; the detector cannot be silenced by producer-chosen input; and every message reaches the fold whatever its id | `test-run`: `./gradlew e2eTest` -> `37 passed`. Firing: `a usage frame that disagrees on cache tokens is reported, not discarded` (`toHaveCount(1)`). Not silenceable: `a tool id colliding with the notice id does not suppress the detector` (`toHaveCount(1)`). Not firing spuriously: `an ordinary session reports no frame disagreement` (`toHaveCount(0)`) and `a message id naming an inherited property is counted, not silently dropped`, which also asserts the run costs the same as the identical clean run. Each was observed failing before its fix; the last reported a disagreement on a stream containing none, and dropped the message from the fold. **Scope, stated because the earlier version of this cell overclaimed:** "does not fire on a clean run" was evidenced only by the mock's own `msg_NN` ids, which establishes it for one id shape and not for wire input — and that gap is exactly where the inherited-property defect lived |
-| 7 | Sonnet 5 is priced at the rate actually in force, matching `cost_lib` for the same model id | `cmd`: `grep -n "claude-sonnet-5" backoffice/src/agent/transport.ts tools/cost_lib.py` → `transport.ts:284: 'claude-sonnet-5': { input: 2_000_000, output: 10_000_000 }` and `cost_lib.py:51: "claude-sonnet-5": (2_000_000, 10_000_000)`. Both halves of the seam now agree on a live rate; the previous `$3/$15` priced it 50% high for every day up to the 2026-08-31 lapse |
-| 8 | The gate is green | `command`: `./gradlew backofficeTypecheck backofficeLint backofficeFormatCheck` → `BUILD SUCCESSFUL`; `./gradlew docsLint` → `docs-lint: OK — [...] 0 failure(s)`; `./gradlew e2eTest` → `36 passed` |
+| 1 | `transport.ts` states per-request usage, `messageId` deduplication keeping max `outputTokens`, five token kinds, and a run terminal that is synthesised — citing the corpus, and citing **no other of the three artefacts** as its authority | `cmd`: `grep -n "bean:" backoffice/src/agent/transport.ts` -> five hits: `(bean:0059)`, `bean:0069 records the counts.`, `` `bean:0090` carries that gap.``, `` `bean:0002` records Opus 5``, `` `bean:0014`/`bean:0020` ``. So the file **does** name beans — an earlier cell claimed it named none, and a later one listed four of the five with two line numbers that no longer existed. What is true is narrower and is what the criterion says: none is cited as authority for the usage model. `cmd`: `grep -n "provenance, not" backoffice/src/agent/transport.ts` -> `Bean references below are provenance, not` (the sentence wraps; the grep is written to survive that) |
+| 2 | `bean:0020`'s cumulative criterion is replaced, and its peak-context criterion attributes derivability to the cache kinds | `cmd`: `grep -n "cumulative" .beans/modus-0020--claude-code-runner.md` -> **two** hits, not none as an earlier cell claimed: `why the earlier "running cumulative total" criterion here` and `successive differences of a cumulative`. Both are the *replacement* describing what it replaced, which is the criterion being met, not violated — but the cell asserting no output was simply false. `cmd`: `grep -n "successive differences" .beans/modus-0020--claude-code-runner.md` -> `successive differences of a cumulative`. An earlier cell grepped `"cache kinds"` and reported output; that phrase is wrapped as `**cache` / `kinds**` across two lines and **cannot** match — output was pasted for a command that returns nothing |
+| 3 | `bean:0014` is no longer silent: it states the published usage shape, and states the premise's enforcement status honestly | `cmd`: `grep -c "^[0-9]\. \*\*" .beans/modus-0014--execution-bounded-context.md` -> `6`, the six numbered clauses. An earlier cell used `grep -c ""`, a line count, which cannot show a section exists. `cmd`: `grep -n "observed to hold" .beans/modus-0014--execution-bounded-context.md` -> `It is *observed to hold* on every run of the replayed corpus, and it is **not` |
+| 4 | No floating-point money survives in the seam, and the field carries the name `doc:60#spend-record` already uses | `cmd`: `grep -n "1_000_000" backoffice/src/agent/transport.ts backoffice/src/routes/AgentConsole.tsx` -> four hits: KDoc prose, a rate literal `input: 1_000_000`, `costMicros` dividing integer micros by integer micros, and `AgentConsole.tsx` dividing by 1,000,000. Two arithmetic sites; exactly one converts **to dollars**, and it is the render. `cmd`: `grep -n "costUsd: number" backoffice/src/agent/useAgentSession.ts` -> one hit, the state field declaration, integer micros. (Written without a pipe deliberately: a `|` inside a Markdown table cell must be escaped as `\|`, so any command containing one is corrupt the moment a reader pastes it. The escaped form here matched eleven lines instead of one, because `\|` is alternation in a basic regular expression.) Asserted positively: an earlier cell claimed `grep -rn "costUsdMicros"` gave no output, and by then it gave one — the KDoc explaining why that name is *not* used had created the match |
+| 5 | The console implements the rule it publishes — the reducer folds and dedupes rather than assigning | `cmd`: `grep -n "keepLargerFrame(previous" backoffice/src/agent/useAgentSession.ts` -> the `usage` branch selecting the authoritative frame. `cmd`: `grep -n "foldUsage(usageByMessage)" backoffice/src/agent/useAgentSession.ts` -> the fold that replaces the old assignment. `cmd`: `grep -n "usageByMessage === state.usageByMessage" backoffice/src/agent/useAgentSession.ts` -> the early return that leaves state untouched when the frame is not larger. Three single-pattern commands rather than one alternation: an earlier cell used a `-A6` window that ended before two of the three, and the alternation that replaced it could not be pasted at all |
+| 6 | The premise `keepLargerFrame` rests on is **detected**; the detector cannot be silenced by producer-chosen input; and every message reaches the fold whatever its id | `test-run`: `./gradlew e2eTest` -> `37 passed`. Firing: `a usage frame that disagrees on cache tokens is reported, not discarded` (`toHaveCount(1)`). Not silenceable: `a tool id colliding with the notice id does not suppress the detector` (`toHaveCount(1)`). Not firing spuriously: `an ordinary session reports no frame disagreement` (`toHaveCount(0)`) and `a message id naming an inherited property is counted, not silently dropped`, which also asserts the run costs the same as the identical clean run. Each was observed failing before its fix. **Scope, because an earlier version of this cell overclaimed:** "does not fire on a clean run" was evidenced only by the mock's own `msg_NN` ids, which establishes it for one id shape and not for wire input — the gap the inherited-property defect lived in |
+| 7 | Sonnet 5 is priced at the rate in force, matching `cost_lib` for the same model id | `cmd`: `grep -n "claude-sonnet-5" backoffice/src/agent/transport.ts tools/cost_lib.py` -> `'claude-sonnet-5': { input: 2_000_000, output: 10_000_000 },` and `"claude-sonnet-5": (2_000_000, 10_000_000),`. Both halves of the seam agree on a live rate; the earlier `$3/$15` priced it 50% high every day up to the 2026-08-31 lapse |
+| 8 | The gate is green | `command`: `./gradlew backofficeTypecheck backofficeLint backofficeFormatCheck` -> `BUILD SUCCESSFUL`; `./gradlew docsLint` -> `docs-lint: OK [...] 0 failure(s)`; `./gradlew e2eTest` -> `37 passed` |
+
+### The claim is executable, which is why it is now made
+
+The header above asserts that every `cmd` was run. That assertion is worth something only
+because it was **mechanised**: a 28-line script extracts every `` `cmd`: `...` `` from this
+table, runs each in the repository root, and reports any that produce no output or that cannot
+be pasted at all.
+
+It caught two defects **reading would not have**, and both are invisible by construction
+because the fault is in how the cell *renders* the command rather than in the command's logic:
+
+- `grep -n "keepLargerFrame\|foldUsage\|return state;" ...` — a `|` inside a Markdown table
+  cell must be escaped as `\|`, so what a reader copies is not what was written. In a basic
+  regular expression `\|` is **alternation**, and the escaped form matched eleven lines where
+  one was intended. Replaced with three single-pattern commands: **a command containing a pipe
+  cannot be cited verbatim in a table cell**, and the escape changes its meaning silently.
+- `grep -n "provenance, not authority" ...` and `grep -n "cache kinds" ...` — both phrases wrap
+  across two lines in their source files, so neither grep can ever match. Both had output
+  pasted beside them.
+
+That is the executable form of the claim this table carried falsely for a round: **"every row
+was re-derived by opening the artefact" is unfalsifiable from outside, and "every command in
+this table runs" is checked by running them.** A table whose commands are extracted and
+executed cannot carry the claim falsely — the check does not verify that a cell's *conclusion*
+is right, but it does verify that the evidence offered for it is real and reachable, which is
+the failure that actually occurred here four times.
+
+The script is small enough to commit and general to any bean using the `cmd:`/`observed:`
+convention (`adr:0005-evidence-lives-in-the-work-item`, `bean:0091`). Whether it belongs in
+`tools/` is not this bean's call — `tools/` is owned elsewhere this sprint, and wiring it into
+`qualityCheck` would mean editing `build.gradle.kts`, which this bean does not own either. It
+is offered, not installed.
+
+### What a green check 14 does and does not say about this table
+
+Worth stating beside the table, because the two are easily confused. Check 14 verifies that
+each numbered criterion has a **non-empty** evidence cell that is not merely a list of
+evidence-kind names. A reviewer confirmed that `-`, `n/a`, `TODO` and `BUILD SUCCESSFUL` all
+satisfy it in these cells, and only a bare `test-run` fails.
+
+So **check 14 cannot see whether a cell is true**, and that is exactly how four false cells
+passed it through a full review round. The check is a floor against empty evidence, not a
+statement about content. Nothing mechanical in this repository reads an evidence cell against
+the artefact it describes; a reader running the commands is the only thing that does, which is
+what happened here and is why the table is now correct.
 
 ## A third defect: a claim repeated without checking, and a wrong correction nearly shipped
 

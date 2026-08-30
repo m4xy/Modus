@@ -414,7 +414,20 @@ const RATE_OF: Record<keyof Usage, keyof Rates> = {
  * neither side ever returns a wrong price.
  */
 export function costMicros(model: string, usage: Usage): number | null {
-  if (!isPricedModel(model)) return null;
+  return isPricedModel(model) ? costMicrosOf(model, usage) : null;
+}
+
+/**
+ * The same arithmetic for a model the type system already knows is priced.
+ *
+ * This exists so a caller that has *already* checked `isPricedModel` does not
+ * receive a `number | null` it must then dispose of. The only ways to dispose of
+ * it are a `?? 0`, which prices an unpriced message as free and is precisely the
+ * silent default this seam removed, or a non-null assertion, which is the same
+ * thing written more confidently. Narrowing the parameter instead makes the
+ * null unrepresentable on that path rather than handled on it.
+ */
+export function costMicrosOf(model: PricedModel, usage: Usage): number {
   const rates = ratesUpm(model);
   let total = 0;
   for (const kind of USAGE_KINDS) {

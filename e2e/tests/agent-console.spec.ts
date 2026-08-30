@@ -81,13 +81,22 @@ test('the cost counter climbs while the session runs', async ({ page }) => {
  * rates: Opus 5 ($5/$25 per MTok) is 5x Haiku 4.5 ($1/$5), and Sonnet 5 is 2x
  * on its introductory $2/$10. Mispricing ONE model relative to the others moves
  * its ratio, and that is what this catches: an Opus 5 entry of $15/$75 would
- * read 15x here.
+ * read about 15x here instead of 5x, and fail.
  *
  * That $15/$75 is not hypothetical, and this test exists because of it.
  * `bean:0002` records it under `## Review cycle 1`: Opus 5 shipped at $15/$75 in
  * PR #3 — 3x over on the console's default model — and was caught **in review**.
  * This test was then written as the regression guard, and that bean pre-computes
  * its behaviour: "Restoring 15/75 makes that ratio 14.95 and the test fails."
+ *
+ * "About 15x" above rather than 15x exactly, and 14.95 attributed to `bean:0002`
+ * rather than restated as current: the rates are an exact 15x multiple, but the
+ * cost is floored per message and per token kind, which takes proportionally
+ * more from the smaller figure and pulls the ratio just under. 14.95 is that
+ * bean's measurement under the pricing model of its day — two token kinds and
+ * floating-point dollars — so it is cited as its figure, not reproduced as ours.
+ * The assertion tolerance is what makes this immaterial, and stating a bare 15x
+ * beside a quoted 14.95 was a contradiction seven lines wide.
  *
  * One correction worth keeping, because two readers got it wrong in the same
  * way. An earlier version of this comment said the *test* caught the error; a
