@@ -28,7 +28,7 @@
 # assertion on either would have shown it in this file before review did.
 #
 # ONE MUTATION PER MECHANISM, NOT PER FILE. A mutation suite proves only that the tests
-# can detect THE MUTATION THAT WAS MADE. This analyser is two mechanisms — the classifier
+# can detect THE MUTATION THAT WAS MADE. Two mechanisms CHANGED here — the classifier
 # decides where a fence is, the citation-site requirement decides where a citation counts
 # — and a single mutation leaves the second one unexercised while the suite still reports
 # green. Both are mutated here, separately:
@@ -51,6 +51,16 @@
 # The two that fail are "control: the same citation at top level answers its criterion"
 # and the DEFECT pin. Without that control the container assertions would be satisfied by
 # a scanner that answers nothing at all.
+#
+# WHAT THIS SUITE DOES NOT COVER, stated because the sentence above would otherwise imply
+# it does. docs-lint-c14.awk owns five further mechanisms that this bean did not change and
+# that no assertion here reaches: `allkinds()`/HOLLOW, EMPTYCELL, `isevcol()`/NOEVCOL, NOEV,
+# and the `## `-heading region tracking. Neither mutation above touches them; grep this file
+# for any of their names and it returns nothing. They are moved-verbatim code — a normalised
+# diff against the inline awk they came from shows only the fence changes — so they are
+# INHERITED UNTESTED rather than newly untested, which is a weaker claim than covered and is
+# the honest one. NOEVCOL in particular suppresses the whole per-criterion cascade, so a
+# defect in it silences the assertions above without failing any of them.
 #
 # Fixtures are heredocs beside their assertions rather than a fixture directory: the
 # repository had no fixture location for docs-lint, and a fixture whose expected output
@@ -531,6 +541,93 @@ tail of the transcript
 ```
 EOF
 decides "DEFECT (open): an EVEN number of quoted markers still answers the criterion" \
+  "$(printf 'STATS\t1\t0')"
+
+# --- DEFECT: open, containers the citation rule does not model ----------------------
+#
+# The citation-site requirement models three containers. These are not modelled, and each
+# renders as code, as a container, or as nothing while standing at column zero with no
+# fence marker and no `>`. Every one answers its criterion today, on this branch and on
+# main alike. They belong to the citation matcher (bean:0061) and are recorded in
+# bean:0093; the assertions below pin today's behaviour so the day it changes is visible.
+#
+# doc:05-authoring-for-agents#checks states the rule positively for this reason: an
+# enumeration of excluded containers is an allowlist, and this is the proof.
+
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+2. two
+
+## Evidence
+
+### The run
+
+<pre>
+FAIL check 14: criterion 1 is not answered in the evidence
+FAIL check 14: criterion 2 is not answered in the evidence
+</pre>
+EOF
+decides "DEFECT (open): a raw HTML <pre> block answers its criteria" \
+  "$(printf 'STATS\t2\t0')"
+
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+
+## Evidence
+
+### The run
+
+<!-- criterion 1 is not answered in the evidence -->
+EOF
+decides "DEFECT (open): an HTML comment renders as nothing and still answers" \
+  "$(printf 'STATS\t1\t0')"
+
+# The info-string rule is CommonMark-correct and makes these lines prose rather than a
+# fence opener. main holds both only by accident: its toggle flips ON and hides the rest of
+# the file, which is the defect this bean removes and which would equally hide a real
+# evidence table. So this is the correct reading with an uncovered consequence, not a
+# regression to undo — and it is asserted as a verdict, not only as a classification.
+
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+
+## Evidence
+
+### The run
+
+```json```
+FAIL check 14: criterion 1 is not answered in the evidence
+EOF
+decides "DEFECT (open): a line-initial inline code span leaves the next line answering" \
+  "$(printf 'STATS\t1\t0')"
+
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+
+## Evidence
+
+### The run
+
+```sh -c `date`
+FAIL check 14: criterion 1 is not answered in the evidence
+EOF
+decides "DEFECT (open): a backtick in the info string does the same" \
   "$(printf 'STATS\t1\t0')"
 
 cat > "$FIX" <<'EOF'

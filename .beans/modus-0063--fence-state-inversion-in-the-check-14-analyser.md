@@ -513,6 +513,44 @@ assertion; until this it described rather than asserted.
   too: the transcript inside the container answers nothing, and a bean whose only evidence is
   quoted or indented has no entry and cannot close. Both directions fail closed.
 
+## The second review round: the rule was written as an enumeration, and that was the defect
+
+The citation-site rule shipped in the first round as three named non-sites — fence, block
+quote, four-column indent. Review got past it with a **raw HTML block**. `<pre>` is allowed by
+GitHub's sanitiser and renders exactly as a code block, but its content stands at column zero
+with no marker and no `>`, so `citation_site()` returns 1. Verified here, and the class is
+wider than one tag:
+
+```
+cmd:      the analyser over five fixtures, each a closing bean whose only evidence is the
+          check's own failure message inside a container
+observed: <pre>                        STATS 2 0   — both criteria answered
+          <!-- HTML comment -->        STATS 1 0   — renders as NOTHING and still answers
+          <details> wrapping a <pre>   STATS 1 0
+          a line-initial ```json```    STATS 1 0
+          a line-initial ```sh -c `date`   STATS 1 0
+exit:     0 for all five
+```
+
+All five escape on `main` too, so none is a regression. **The lesson is about the shape of the
+rule, not the count of containers.** An enumeration of excluded containers is an allowlist
+wearing different clothes, and it fails on the first container nobody named — which is the
+argument this bean already made against allowlists for the fence classifier, unapplied one
+section away from where it was written.
+
+`doc:05-authoring-for-agents#checks` now states the rule **positively**: a citation answers
+only from top-level Markdown prose, inside no container of any kind, so anything unlisted is
+excluded by construction rather than by omission. It carries an `Enforcement gap:` naming
+`bean:0061`, because the check models three containers and the rule names none — the
+documentation is deliberately stricter than the tool, and says so, rather than reading as
+exhaustive when it is not.
+
+The two info-string shapes are the reading being **correct** and having an uncovered
+consequence. `main` holds them only because its toggle flips ON and hides the rest of the
+file — the defect this bean removes, which would equally hide a real evidence table. All five
+are pinned as verdict assertions in `tools/docs-lint-test.sh`, which is the rule this bean
+encoded after the first round, applied to itself.
+
 ## Defect, open, and owed a bean
 
 - **An EVEN number of quoted markers still answers the criterion.** Two quoted markers

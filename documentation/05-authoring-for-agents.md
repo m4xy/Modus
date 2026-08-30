@@ -242,13 +242,24 @@ conventions:
   reversed — in both directions, so a bean quoting this check's own output answers its own
   criteria and a filled evidence table is reported absent (`bean:0063`).
 - A criterion is **answered** by an evidence row bearing its number, or by a `criterion N` or
-  `criteria N–M` citation standing in the bean's **top-level prose**. A citation inside a
-  fenced block, inside a block quote, or on a line indented four or more columns does not
-  answer anything. Each of the three is a way verbatim output is pasted into a bean, and in
-  this repository that output quotes this check's own `criterion N is not answered` message,
-  so counting citations inside them lets pasted output answer the criterion it reports as
-  unanswered (`bean:0061`, `bean:0063`). A fence is an entry but is not a citation site; a
-  block quote and an indented chunk are neither.
+  `criteria N–M` citation standing in the bean's **top-level Markdown prose** — a line that
+  carries the citation as prose and is inside no container of any kind. The rule is stated
+  positively and the containers it excludes are deliberately **not** enumerated: a fence, a
+  block quote, an indented chunk, a raw HTML block, an HTML comment, a link-reference or
+  footnote definition and anything else that renders as code, as a container or as nothing
+  all fail it by construction rather than by being listed. An enumeration would be an
+  allowlist and would fail on the first container nobody named, which is how this rule was
+  already got past once. The reason the rule exists at all: in this repository a bean's
+  pasted output quotes this check's own `criterion N is not answered` message, so counting a
+  citation inside a container lets pasted output answer the criterion it reports as
+  unanswered (`bean:0061`, `bean:0063`). A fence is an entry but is not a citation site; no
+  other container is either.
+
+  **Enforcement gap:** the check models three of those containers — the fence, the block
+  quote and the four-column indent. A raw HTML block, an HTML comment, a link-reference or
+  footnote definition and a table cell are each still read as top-level prose, so a citation
+  in one of them answers its criterion today. `bean:0061` owns the citation matcher and
+  carries the work.
   A criterion whose evidence is a section that
   never names it is unanswered however long that section is, because
   `adr:0005-evidence-lives-in-the-work-item#evidence-home` puts the evidence beside the
