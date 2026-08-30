@@ -140,10 +140,17 @@ exit:     0
 says the criterion **was false when written**, and the matcher reads it as answering that
 criterion. A completed bean closed a criterion on a sentence declaring that criterion false.
 
-A third was found on an unmerged bean this sprint — a sentence naming a criterion by number
-while describing what that criterion decides — and a fourth is recorded in `bean:0061`, which
-was caught the same way while documenting the defect. Four instances, none planted, three by
-authors who knew about the defect.
+A third is on `origin/main` and is not in this branch's base, which is why it is cited by
+commit rather than by path: `origin/main:.beans/modus-0058--unwritten-working-conventions.md`
+line 183 reads "`wc -l` at the two commits, which is what criterion 6 reads:". It arrived
+after this branch was cut and was verified against `origin/main` directly. It has a property
+the others do not: **it was introduced by an author correcting a review finding.** The act of
+responding to review is what closed the criterion.
+
+A fourth was found on an unmerged bean this sprint — a sentence naming a criterion by number
+while describing what that criterion decides — and a fifth is recorded in `bean:0061`, which
+was caught the same way while documenting the defect. Five instances, none planted, three by
+authors who already knew about the defect.
 
 **So the repair is stated here rather than left to the hand-off.** Whatever this bean adopts
 MUST also reject the two shapes above; they are named in the criteria below. If `bean:0061`
