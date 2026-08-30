@@ -146,7 +146,10 @@ is the failure with a known date attached and does not need the authority parsed
 
 `e2e/tests/agent-console.spec.ts` asserts `toBeCloseTo(5, 1)` and `toBeCloseTo(2, 1)` —
 **hardcoded literals**, not values derived from `BASE_RATES_UPM`. Follow what that means on
-2026-08-31, when Sonnet 5's introductory rate lapses:
+**2026-09-01**, the first day the standard rate applies — the introductory rate runs *through*
+2026-08-31, so the last day it holds and the first day it does not are different days, and an
+earlier revision of this section named the wrong one while the instance table above named the
+right one:
 
 | what happens | what the gate does |
 |---|---|

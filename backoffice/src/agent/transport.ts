@@ -302,7 +302,8 @@ export interface StreamTransport {
  *    disagree about a live rate. The previous value here was the standard
  *    $3 / $15, defended in a comment as "the rate from 2026-09-01" — which
  *    priced Sonnet 5 50% high for every day until then.
- *  - On **2026-09-01** the introductory rate lapses and $3 / $15 applies. This
+ *  - The introductory rate holds **through 2026-08-31**; from **2026-09-01**
+ *    the standard $3 / $15 applies. This
  *    table will then be 33% low, and **no gate will go red**. The e2e test that
  *    looks like it covers this prices the mock's tokens from this same table and
  *    then asserts a ratio derived from this same table: it compares the code to
