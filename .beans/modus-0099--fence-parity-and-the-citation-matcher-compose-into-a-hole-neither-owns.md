@@ -145,6 +145,15 @@ The general form is worth stating because it is not about these two mechanisms:
 > violation. Observed separately, both halves reject their own plants. The composed plant was
 > rejected by neither, and no test in either bean would have found it.
 
+Check 14 has at least one more composition of the same shape, found separately and recorded
+in the unmerged `modus-0087`: recognising an evidence table is gated on a closed vocabulary
+of four column headers, and when none matches, `NOEVCOL` fires and `!noevcol` suppresses the
+whole per-criterion cascade. So the real sequence is **header → numbering → citation →
+cell**, four mechanisms deep, and a defect at any position hides the state of everything
+behind it. The generalisation stands as written and the pairwise form understates it: a plant
+must reach the **last** mechanism in the chain, and a plant that stops at the first will pass
+while everything behind it is unexamined and silent.
+
 ## Success criteria
 
 | # | criterion | evidence kind |
