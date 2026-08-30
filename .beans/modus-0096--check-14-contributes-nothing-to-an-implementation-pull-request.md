@@ -10,10 +10,15 @@ created_at: 2026-08-30T00:00:00Z
 # Check 14 contributes nothing to any implementation pull request, by rule, and a green docs-lint line there says nothing about evidence
 
 `docs-lint` check 14 is the mechanism named against
-`adr:0005-evidence-lives-in-the-work-item#evidence-home`. On the pull request that does the
-work it examines nothing at all, and it is right to: `doc:00-constitution#bean-lifecycle`
-requires the bean to stay `in-progress` for the whole life of its own pull request, and check
-14's candidate set is beans that become `completed` in the change.
+`adr:0005-evidence-lives-in-the-work-item#evidence-home`. The invariant, stated tightly:
+**check 14 never examines the bean whose work the pull request contains.**
+
+On an implementation pull request it examines nothing at all, and it is right to:
+`doc:00-constitution#bean-lifecycle` requires the bean to stay `in-progress` for the whole
+life of its own pull request, and check 14's candidate set is beans that become `completed`
+in the change. The tighter form matters because a branch may close a previously merged bean
+while implementing the next one — and then check 14 does run, on the bean being closed, never
+on the bean being built.
 
 **This is not a check 14 defect.** The check is behaving exactly as specified and reporting
 its own vacuity truthfully. What is missing is anywhere saying what that means for a reader
@@ -70,12 +75,16 @@ fix can do:
 | property | consequence |
 |---|---|
 | it uses no MUST, SHOULD or MAY | `documentation/README.md` defines those as the normative vocabulary and requires a MUST to carry an `Enforced by:` or `Enforcement gap:` line. This passage carries neither keyword nor line, so its force comes from `doc:00`'s precedence and its placement, not from the vocabulary the package defines |
-| nothing enforces it | check 11 classifies by the status on the merge base. A bean set `completed` on its own branch moved from `in-progress`, which is a legal transition, so check 11 permits exactly the thing §7.2.1 forbids |
-| therefore the silence is voluntary | an author who ignored §7.2.1 would get check 14 running on their implementation PR. Compliance with the rule is what produces the blind spot |
+| nothing enforces it | check 11 classifies by the status on the merge base. A bean set `completed` on its own branch moved from `in-progress`, which is a legal transition, so check 11 permits exactly the thing §7.2.1 forbids. **Observed in the second arm of the pair above**: flipping `bean:0063` to `completed` on its own branch produced `1 closing transitions, 5 criteria checked` and exit 0 — no check 11 failure, because check 11 never looked |
+| the cause is check 14's scoping, not the rule | check 14 chose to scope by **closing transition**. It could have scoped by the bean the branch names. §7.2.1 does not cause the blind spot; it guarantees the chosen scope is empty on an implementation pull request |
 
-The third is the uncomfortable one and it is not an argument for non-compliance. It is the
-reason this cannot be fixed by tightening §7.2.1: the rule is already doing its job, and the
-gap is downstream of it.
+The third is the one to be careful with. An earlier version of this bean said "the silence is
+voluntary", on the reasoning that an author ignoring §7.2.1 would get check 14 running. That
+sentence does rhetorical work its evidence does not carry and it is withdrawn: nothing here is
+an author's choice, because complying with a rule of `doc:00-constitution` is not optional and
+violating it is not an available option. The accurate statement is that **nothing forced check
+14's scoping**, which is why the fix is downstream of §7.2.1 rather than in it — and why the
+third option below, running over the branch's bean regardless of status, is available at all.
 
 ## What it costs
 
@@ -105,11 +114,39 @@ token in the same sentence, and nothing near them says that the first number bei
 the second. Nothing in `doc:05-authoring-for-agents#checks` states that a green check 14 on an
 implementation PR asserts nothing about that bean's evidence.
 
-There is a live instance of the invitation in this repository: `bean:0054`'s criterion 9 and
-`bean:0055`'s criteria 6, 7 and 9 quote the counters verbatim inside their evidence cells.
-Those uses are correct — they are closing PRs, and the numbers there are real. But it puts the
-counters in evidence columns as a matter of house style, where the same line quoted from an
-implementation PR would read identically and mean nothing.
+There are live instances of the invitation in this repository. Both beans' evidence tables
+carry the header `| # | criterion | command | expectation | observed |`, so the evidence
+column check 14 reads is `observed`, the fifth data column:
+
+```
+cmd:      over origin/main, for each numbered row, test whether the `observed` cell contains
+          the counters line
+observed: .beans/modus-0054 row 9                    observed cell quotes the counters
+          .beans/modus-0055 rows 6, 7, 9 and 11      all four quote the counters
+          grep -c "closing transitions" on main's modus-0054  ->  1
+exit:     0
+```
+
+Five cells across two beans. Those uses are correct — they are closing pull requests and the
+numbers there are real — but they put the counters into evidence columns as house style,
+where the same line quoted from an implementation pull request would read identically and
+mean nothing.
+
+**This paragraph was reported in review as wrong on all four references, on a reading that
+none of those cells quotes the counters. That reading does not reproduce.** It matches the
+`expectation` column rather than the `observed` one — for `modus-0055` row 9, `expectation`
+reads "green with `docsLint` inside it, on the tree that closes these four beans" while
+`observed` reads "`BUILD SUCCESSFUL in 15s` … `docs-lint: OK — … 4 closing transitions, 31
+criteria checked, 0 unnumbered.`" A five-column evidence table is off by one between the two,
+and the check reads the last of them.
+
+That is worth more than the correction it replaces. **A sub-reference into another bean —
+"row 9 of that bean says X" — is invisible to `docs-lint` check 6 by construction.** Check 6
+resolves `bean:0054` and `bean:0055` happily, because both exist; it has no way to test
+whether the row named says what the citing sentence claims. Every other citing-while-restating
+instance found this sprint was at least in principle mechanisable. This one is not, short of a
+tool that reads the target's semantics — and it cuts both ways, since the review's own
+sub-reference was the one that missed.
 
 ## Options
 
