@@ -246,25 +246,33 @@ four, because nothing looks wrong: the conclusion still holds and the citation s
 **A conclusion that outlives its reason is indistinguishable, to the next reader, from one
 that was well argued.**
 
-## Two disagreements with `doc:20-ddd-practices` §5.1 as merged
+## The two §5.1 disagreements were resolved by deletion, not by the edit they asked for
 
-Surfaced rather than closed over, per the instruction to compare the merged row against this
-criterion as worded. Neither blocks the criterion; both are `documentation/` follow-ups this bean
-does not own.
+This section previously named two sentences in `doc:20-ddd-practices` §5.1 that this change
+falsifies on merge — an *"Instantiated today … Not yet"* enumeration, and a claim that ArchUnit
+scoped no port row — and asked that they be corrected as one-line edits so *"the next reader of
+§5.1 is not misled"*.
 
-1. **§5.1's note says the package is not instantiated.** *"Instantiated today: … Not yet:
-   `uk.m4xy.modus.core.domain.port` and the `core-application` and adapter rows, which state an
-   intended shape."* This bean's own pull request instantiates it, so that sentence is false the
-   moment the change merges. It was true when written.
-2. **§5.1's note says ArchUnit scopes no port row.** *"ArchUnit scopes three rows by package —
-   `PUBLISHED_LANGUAGE`, `DOMAIN_EVENTS`, `AGGREGATES` — and the port, kernel and default rows not
-   at all."* This change adds `rule:archunit/portsAreInterfaces` over every `..port..` package and
-   `rule:archunit/ambientCapabilityPortsAreLeaf` over the context-free one, so two of those rows
-   become scoped. Also false on merge.
+**Both sentences no longer exist.** PR #58 deleted the enumeration rather than correcting it,
+naming the commands that answer the question instead:
 
-Both are the ordinary cost of a document describing a tree that changed under it, and both are
-one-line edits. They are named here so the next reader of §5.1 is not misled by a sentence this
-bean falsified.
+```
+cmd:      git show origin/main:documentation/20-ddd-practices.md |
+            grep -c 'Instantiated today\|ArchUnit scopes'
+observed: 0
+```
+
+So the repair this section requested was done, by a better route than the one it proposed, and
+the section survived pointing at it. **`adr:0005-evidence-lives-in-the-work-item` makes the bean
+the record, so a stale bean outlives an accurate pull-request body** — this bean's own body said
+#58 solved it better while the bean went on describing the sentences as live.
+
+Kept, corrected, rather than cut, because the reason generalises and is the same shape as the
+table corruption three sections below with a different cause: **a claim can go stale because a
+script destroyed it, or because another change landed underneath it, and neither leaves a mark
+on the claim.** The document's defect was never the wrong list; it was that the document cached a
+fact living in the tree, and my ports would have been the next thing to expire it. Deleting the
+cache is the fix; correcting it would have reset the clock.
 
 ## Scope
 
@@ -286,7 +294,7 @@ a clock.
 | 2 | `IdGeneratorPort` returns the raw `String` a context's identifier value class wraps, and no type in `..core.domain.port` names any context's package | plants 2 and 3 — value-class return and parameter, each rejected by file and name, and each **invisible to the bytecode rule** |
 | 3 | The rule scoping `..core.domain.port` is **source-reading**, because a `@JvmInline value class` erases and leaves no bytecode edge (`bean:0034`) | plants 2 and 3 rejected by the source rule only; plant 4, an enum, fires on **both** — the control that isolates erasure rather than inferring it |
 | 4 | `portsAreInterfaces` is proven to reach every port package by **evaluating its own glob**, not by re-deriving it | plant 5 — narrowing `ALL_PORTS` is caught; plant 1 fires in `identity.port`, a package that already existed |
-| 5 | `doc:20-ddd-practices` §5.1's package table carries a row for `..core.domain.port`, and `docs-lint` is green with it | **MET.** PR #51 merged the row (`doc:20-ddd-practices` §5.1, the `uk.m4xy.modus.core.domain.port` row). Read as merged against this criterion as worded: the row exists and says what the criterion required. Two disagreements with the rest of the merged section are recorded below rather than closed over |
+| 5 | `doc:20-ddd-practices` §5.1's package table carries a row for `..core.domain.port`, and `docs-lint` is green with it | **MET.** PR #51 merged the row. Read as merged against this criterion as worded: the row exists and says what the criterion required. Two further sentences in that section were falsified by this change and have since been **deleted** by PR #58 rather than corrected — recorded below |
 | 6 | A hand-written test double for each port lives where `doc:35-testing` puts it, with no mocking framework, and is deterministic | `AmbientCapabilityDoubles.kt` in `core-domain/src/test`; no mocking dependency exists on the unit-test classpath allowlist (`doc:35-testing#unit-classpath`) |
 | 7 | The doubles' own behaviour is asserted, not merely relied on | `AmbientCapabilityDoublesTest`, 14 tests, green in the 109-test `:core-domain:test` run below |
 | 8 | The **gate's** input surface is asserted separately from its verdict, positively, so a blinded scan fails | plant 7 — a dead `IMPORT` regex fails perception **while the verdict stays green** |
@@ -399,9 +407,22 @@ observed: ArchitectureRulesTest > ambientCapabilityPortsAreLeaf FAILED
     63 tests completed, 3 failed
 ```
 
-Both rules fire on a type that does not erase; only the source rule fires on one that does.
-That pair makes "the bytecode rule is blind to value classes" an **observation** rather than
-an inference — the second observation decision 3 records as missing the first time.
+**The controlled comparison, which is the whole warrant for shipping a source-reading gate.**
+Both shapes on one interface, in one file, in one compile — the only difference is whether the
+returned type erases:
+
+| declaration | type | bytecode rule | source rule |
+|---|---|---|---|
+| `newActorId(): ActorId` | `@JvmInline value class` | **invisible** | fires |
+| `kind(): ActorKind` | `enum` | fires | fires |
+
+**The bytecode rule fired once.** The source rule caught both. Nothing else differs, so the
+blindness is attributable to erasure rather than to scope, spelling, or the rule being broken
+in general — the bytecode rule demonstrably works on the row below it.
+
+That is what makes "the bytecode rule is blind to value classes" an **observation** rather
+than an inference, and it is the second observation decision 3 records as missing the first
+time round. One green build was consistent with two mechanisms; this pair separates them.
 
 ### Plant 5 — the guard evaluates the rule's own glob
 

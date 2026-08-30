@@ -129,12 +129,17 @@ package- and adapter-level rules that sit under it.
 | `ControllersAreDomainScoped` | Every `@RequestMapping`/`@GetMapping`/… path starts with `/domains/{domainId}`, unless it matches the **non-domain-scoped route allowlist** in `doc:10-architecture#domain-root-convention` §5.1. The rule reads that list; it does not restate it. |
 | `NoFieldInjection` | No `@Autowired` on a field or setter anywhere. Constructor injection only. |
 
-**Enforcement gap (§4.2):** five of the thirteen rules in §4.2 do not exist either —
-`EventsAreDataClasses`, `PortsAreInterfaces`, `NoAmbientRandom`, `NoAmbientConcurrency` and
-`NoReflection`. `architecture-tests` implements the other eight, and `domainIsFrameworkFree`
-covers the first four rows as one rule rather than four. Until they exist, an event that is
-not a data class, a port that is not an interface, and a call to `UUID.randomUUID()` in the
-domain all merge green. `bean:0027` carries the audit; `bean:0034` carries the consequence
+**Enforcement gap (§4.2):** four of the thirteen rules in §4.2 do not exist —
+`EventsAreDataClasses`, `NoAmbientRandom`, `NoAmbientConcurrency` and `NoReflection`.
+`architecture-tests` implements the other nine, and `domainIsFrameworkFree` covers the first
+four rows as one rule rather than four. Until they exist, an event that is not a data class
+and a call to `UUID.randomUUID()` in the domain both merge green.
+
+`PortsAreInterfaces` is **half implemented** (`bean:0065`), so it is on neither list without
+qualification. `rule:archunit/portsAreInterfaces` rejects a non-interface in any `..port..`
+package — observed on a planted class in `identity.port`, a package that already existed. The
+row's second requirement, "no default implementations that perform IO", is enforced by
+nothing. `bean:0027` carries the audit; `bean:0034` carries the consequence
 that `PublishedLanguageIsLeaf` cannot lean on `EventsAreDataClasses` to see a value class in
 an erased position — which `bean:0034` has since closed with `PublishedLanguageSourceIsLeaf`,
 reading source rather than bytecode.
