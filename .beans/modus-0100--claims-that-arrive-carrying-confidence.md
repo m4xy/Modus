@@ -103,9 +103,33 @@ from a `git log -S` search empty across every ref. Relayed to two agents as esta
 accepted it**, and one came within a single edit of committing it into two artefacts. The
 incident is real, at `bean:0002`. A later reviewer then found the **search itself** defective:
 `git log -S` is **last-wins, not AND**, so a command passing two `-S` strings silently searches
-only the last. Reproduced here rather than taken on report —
-`git log --all -S "outputPerMTok" -S "zzzznevermatches"` returns 0 while the same two strings
-in the opposite order return 4.
+only the last. Reproduced here rather than taken on report:
+
+```
+cmd:      git log --all --oneline -S "outputPerMTok" -S "zzzznevermatches" -- backoffice/
+observed: empty
+
+cmd:      git log --all --oneline -S "zzzznevermatches" -S "outputPerMTok" -- backoffice/
+observed: commits, and the same commits the single-string search returns
+```
+
+Only the **asymmetry** is the evidence: one ordering finds nothing and the reverse finds the
+same history the single-string search does, so the second string is the only one consulted.
+Neither a count nor a commit id is recorded, because both are figures over a set this
+repository adds to daily and neither would survive a week.
+
+**The `-- backoffice/` pathspec is load-bearing, and the first version of this block omitted
+it.** Written unscoped, the control searched every ref — including `.beans/`, which is where
+this sentence lives. **Writing `zzzznevermatches` into the bean put it into the corpus the
+command searches**, so "returns nothing" became "returns one commit: the one that wrote this
+paragraph", and the reversed count grew with the branch. The block was falsified by being
+written, inside the passage claiming to have reproduced it, in a bean about claims that read as
+verified and are not.
+
+The pathspec fixes it by construction rather than by re-running: `.beans/` is outside
+`backoffice/`, so no amount of writing about the search can enter the corpus it searches. That
+is checkable here — the string is now in this repository's history, and the first command above
+still returns nothing.
 
 **Why a correction is more dangerous than the claim it corrects, rather than merely equally
 unverified:** in both instances the correction *had* been checked, carefully, by a competent
@@ -195,6 +219,12 @@ This is mechanism C inverted. C says a visible derivation suppresses the questio
 know; this says the derivation can be visible, correct, **and correct for a reason the author
 never saw**. Both point at the same remedy, and this is the case that shows why it must include
 the command rather than only the data: **the form of the command is one of the inputs.**
+
+The control block in mechanism A above is the same property from the other side, and it is why
+"the form of the command" includes the **pathspec**. That block was correct when written and
+false when read, because writing it added its own search string to the corpus it searched. A
+derivation over a repository can be **falsified by being recorded in that repository** — so the
+inputs a derivation names must include what it was scoped to, not only what it looked for.
 
 ## Why one remedy cannot cover three mechanisms
 
