@@ -35,77 +35,54 @@ this section said the test "once caught" it; a *reviewer* caught it, and the tes
 afterwards. The record is in `bean:0002`, under `## Review cycle 1`:
 
 ```
-cmd:      sed -n '130,136p;150,153p' .beans/modus-0002--backoffice-foundation.md
+cmd:      sed -n '130,144p;149,153p' .beans/modus-0002--backoffice-foundation.md
 observed: ### 1. Pricing was 3x over on the console's default model
+
           `PRICING` claimed $15/$75 per MTok for `claude-opus-5`. The list price is
           $5/$25, so the headline cost figure on the cost-conscious screen read 3x high.
+          Every row was re-checked against the published Anthropic model pricing (the
+          `claude-api` reference, 2026-08-28), not from memory:
+
+          | Model | Was | Now | Note |
+          | --- | --- | --- | --- |
           | `claude-opus-5` | 15 / 75 | **5 / 25** | wrong; the default model |
-          [...]
+          | `claude-sonnet-4-5` | 3 / 15 | *removed* | two generations superseded |
+          | `claude-sonnet-5` | — | **3 / 15** | introductory $2/$10 lapses 2026-08-31 |
+          | `claude-haiku-4-5` | 1 / 5 | 1 / 5 | already correct |
+
+          The list price is encoded rather than the introductory price, so the counter
+
           *Load-bearing:* `agent-console.spec.ts` now runs the identical session on three
-          models and asserts the cost ratios [...] Restoring 15/75 makes that ratio 14.95
-          and the test fails.
+          models and asserts the cost ratios, which are exactly the price ratios — Opus 5
+          is 5x Haiku 4.5, Sonnet 5 is 3x. Restoring 15/75 makes that ratio 14.95 and the
+          test fails.
 ```
+
+The ranges are the ones `bean:0103` uses, and they are wider than an earlier revision's
+`'130,136p;150,153p'`, which quoted the `| claude-opus-5 | 15 / 75 |` row while emitting
+neither it nor the table it sits in. The block above is that command's output, pasted
+unedited rather than reconciled — including the sentence `sed` truncates mid-line at 144,
+which is what the command actually prints.
 
 So the test's justification is **stronger** than a self-referential assertion usually deserves:
 it is a guard written in response to a specific, documented defect, not a nice-to-have.
 
-**How two readers concluded it never happened, which is the part worth keeping.** Checked
-against `git log`, the claim looks fabricated:
+**Why `git log` says otherwise, and why that is not this bean's finding.** Checked against
+committed history the incident looks fabricated, and readers concluded it had never happened.
+It had; the fix landed in review, before the merge, so committed history never held it.
+`bean:0103` owns that account whole — the pre-merge and squash-merge invisibility, `git log
+-S`'s last-wins argument handling, the hazard of an `observed:` block that lands inside its own
+searched corpus together with the mitigations available, and why
+`adr:0005-evidence-lives-in-the-work-item` makes `.beans/` the store that held the answer.
+`bean:0100` carries the same episode from the other side, as a claim arriving with confidence
+already attached, and its own control. An earlier revision of this section restated all of that
+at length because it predated both beans; it is removed rather than reconciled
+(`doc:05-authoring-for-agents#one-fact-one-place`).
 
-```
-cmd:      git log --all -S "opus-5" --oneline -- backoffice/src/agent/transport.ts
-observed: 10af4f7 feat(backoffice): scaffold the backoffice with a tokenised design system
-cmd:      git show 10af4f7:backoffice/src/agent/transport.ts | grep -n "opus-5"
-observed: 94:  'claude-opus-5': { inputPerMTok: 5, outputPerMTok: 25 },
-cmd:      git log --all -S "outputPerMTok: 75" --oneline -- backoffice/
-observed: no output
-```
-
-Exactly one commit has ever touched the line carrying the Opus 5 rate, and it introduced it at
-$5/$25 — so in committed history that rate has never changed at all.
-
-Three things about that transcript are deliberate, and each replaces something that was wrong
-in an earlier revision of this bean (a separate bean carries the general forms):
-
-- **Quantifier, not count.** It said "three commits have ever touched the file". That was six
-  within a day, because this branch's own commits touch it. A claim quantified over a growing
-  set is stale on arrival; a claim about the set is not.
-
-  The companion figure makes the case better than the argument does. The same transcript said
-  the value appears "on none of 88 refs". That count was **88, then 108, then 109, then 113**
-  across four readings — all within the single conversation in which the staleness of counts
-  was being discussed, none of them wrong when taken, and no two agreeing. A number that moved
-  three times inside one discussion *about numbers moving* needs no further argument. The
-  claim that does not rot is the one that quantifies over the set instead of counting it:
-  every ref, however many there are.
-- **Scoped with `-- backoffice/`.** The unscoped search asserted a string's absence while
-  *recording that string* in this bean — so once committed, the command returned the very
-  commit that wrote the transcript. The observation was invalidated by the act of recording it.
-- **One `-S`, not two.** The original used `-S "75_000_000" -S "outputPerMTok: 75"`, read as
-  "either string". `git log -S` is **last-wins**: the second replaces the first, so only
-  `outputPerMTok: 75` was ever searched and `75_000_000` was discarded with no error and no
-  warning.
-
-The reading of these searches is wrong even though each is individually correct — and note the
-inference was **overdetermined**. Fixing the `-S` bug and rerunning would still return nothing,
-because the real mechanism is the one below; the visible defect's repair would have raised
-confidence in the wrong answer. The defect was **fixed in review
-cycle 1 of PR #3, before the merge**, so only the corrected value was ever committed. `bean:0002`
-is that pull request's bean and `10af4f7` is its commit — the same commit both readers used as
-proof of absence.
-
-**A defect caught in review is invisible to committed history by construction.** Under
-squash-merge that is the normal case, not an edge one: the entire class of defects that review
-catches leaves no trace in `git log`, which is *why* `adr:0005-evidence-lives-in-the-work-item`
-puts the record in `.beans/`. Two independent readers searched the code history, found nothing,
-and concluded the event did not occur — without searching the store this project designates for
-exactly this. Absence of evidence in one store is not absence of the event, and the store that
-was skipped is the one cited in every other paragraph.
-
-That belongs in *this* bean because it is the same failure at one remove: **`git log -S` was
-trusted as an authority on a question it cannot answer.** Not a stale constant this time but a
-stale mental model of where the truth is kept — and, as with the rate table, nothing announced
-the mismatch.
+What this bean keeps is only what its thesis needs: **the $15/$75 defect was real, and this
+test is the guard raised in response to it** — which is why the self-referential assertion is
+worth keeping rather than deleting, and why everything below is about what that assertion
+cannot do rather than about whether it should exist at all.
 
 ## The three instances found so far
 
@@ -115,8 +92,8 @@ and could not fix the first two.
 | # | instance | state |
 |---|---|---|
 | 1 | `BASE_RATES_UPM` in `backoffice/src/agent/transport.ts` versus `doc:60-cost-model#price-book`. Sonnet 5's introductory rate lapses after 2026-08-31; on 2026-09-01 the table is 33% low. | **open.** Nothing detects it. The KDoc says so plainly rather than promising loudness no mechanism delivers. |
-| 2 | The same table versus `tools/cost_lib.py`'s `BASE_RATES_UPM`. Two halves of one seam, two hand-maintained copies of the same rates, no comparison. They disagreed on Sonnet 5 by 50% until `bean:0069`. | **open.** They agree today by inspection, which is not a mechanism. |
-| 3 | An unpriced model id defaulting silently. `?? BASE_RATES_UPM['claude-sonnet-5']` would price a `claude-opus-4-8` run 60% low with nothing on screen, defaulting onto the one entry whose rate has an expiry. | **closed locally** by `bean:0069`: `costMicros` returns `null` and the console shows no figure, mirroring `cost_lib.normalise_model`, which raises. |
+| 2 | The same table versus `tools/cost_lib.py`'s `BASE_RATES_UPM`. Two halves of one seam, two hand-maintained copies of the same rates, no comparison. They disagreed on Sonnet 5 by 50% until `bean:0069`. A third disagreement is about **whether a price is returned at all**, not about its value: `cost_lib.normalise_model` strips a dated suffix (`^(.*)-\d{8}$`) and therefore prices `claude-opus-5-20260101`, while `isPricedModel` is a bare own-property check and rejects the same id. Neither half ever returns a *wrong* rate; they disagree on an id shape a real producer emits, and the TypeScript half silently declines to price it. | **open.** They agree today by inspection, which is not a mechanism, and the suffix rule is not shared at all. |
+| 3 | An unpriced model id defaulting silently. `?? BASE_RATES_UPM['claude-sonnet-5']` would price a `claude-opus-4-8` run 60% low with nothing on screen, defaulting onto the one entry whose rate has an expiry. | **closed locally** by `bean:0069`: `totalCostUsd` in `useAgentSession.ts` returns `null` when `isPricedModel` rejects the id, so the console shows no figure — mirroring `cost_lib.normalise_model`, which raises. An earlier revision cited `costMicros`; the outcome is implemented and observable, but `costMicros` is exported and called by nothing, so the citation pointed at dead code while the live path ran through `totalCostUsd`. |
 
 Note the scale mismatch that makes instance 1 easy to under-rate: the TypeScript table carries
 **3 models**, `cost_lib` prices **8**. It is not a price book and must not be read as one.
@@ -171,6 +148,27 @@ The fix is not to update the literal. It is to derive the expectation from the s
 code uses — at which point the assertion covers the arithmetic honestly and stops making any
 claim about the rate, which is the authority's job and this bean's subject.
 
+## A finding recorded against this bean, not acted on here
+
+**This bean's own evidence block cites line numbers into another file.** The `sed -n
+'130,144p;149,153p'` above addresses `bean:0002` by line, and `bean:0069` records the opposite
+convention for exactly this reason: *a line number is a claim about a file's current shape, and
+any edit above it falsifies the claim without touching what it describes.*
+
+That is not a hypothetical here — it is the mechanism that produced the defect the block was
+just fixed for. The ranges were narrowed at some point to `'130,136p;150,153p'`, the quoted
+output was kept, and the quoted `| claude-opus-5 | 15 / 75 |` row then sat outside every range
+the command printed. Nothing noticed, because nothing compares a `cmd:` to its `observed:`
+outside `bean:0069`'s criteria table — which is `bean:0106`'s subject, and this block is one of
+its three worked instances.
+
+Not fixed here because the alternative is not obvious. `bean:0069`'s rule assumes a *content*
+match is available — a `grep` for a phrase that does not wrap — and what this block needs is a
+contiguous region including a table, which no single `grep` reproduces. The candidates are a
+`sed` between two matched patterns, or splitting the citation into several greps and losing the
+region. Choosing between them is a convention question for whichever bean owns `bean:0091`'s
+transcript rules, not a repair to make inside a review round.
+
 ## Success criteria
 
 - The class is named somewhere normative, with the internal-consistency versus
@@ -182,6 +180,14 @@ claim about the rate, which is the authority's job and this bean's subject.
   (`doc:00-constitution#observed-failing`), and observed **not** firing against a current one.
   A comparator that fires on every run is not coverage, and one that never fires has not been
   shown to work.
+
+  The second half of that is **not normative anywhere**. §9.1's MUST bullets require only the
+  planted violation; the requirement to observe a mechanism *not* firing on a clean input lives
+  in this bullet and in `bean:0069`'s detector evidence, and `bean:0105` records the sweep that
+  found no third statement of it, along with the adjacent vacuity requirement §9.1 does carry
+  and why that one does not cover this. Two unmerged beans agreeing is a convention, not a
+  rule. `bean:0105` owns getting it into §9.1; until that lands, this criterion is stricter
+  than the constitution it cites.
 - If the resolution is derivation from `domains/<domainId>/cost/price-book.md` rather than
   comparison, that is a valid closure and the constant is deleted rather than gated.
 

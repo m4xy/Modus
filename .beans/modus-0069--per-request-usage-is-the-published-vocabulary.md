@@ -208,6 +208,15 @@ convention (`adr:0005-evidence-lives-in-the-work-item`, `bean:0091`). Whether it
 `qualityCheck` would mean editing `build.gradle.kts`, which this bean does not own either. It
 is offered, not installed.
 
+**Its scope is the table, and round three found that the scope is the coverage.** The extractor
+reads every `cmd` from *this table*, and every defect this section describes was found inside
+it. Review re-ran the table's commands and reproduced all of them; it re-ran the `cmd:` blocks
+in prose — which the extractor never sees — and found several defective, including two in this
+file and one in `bean:0090` whose `sed` ranges no longer emitted the row quoted beneath them.
+Same file, same author, same sprint, differing in one variable. `bean:0106` owns extending the
+extractor to every `cmd:`/`observed:` block in a bean file and records that comparison as its
+evidence.
+
 ### What a green check 14 does and does not say about this table
 
 Worth stating beside the table, because the two are easily confused. Check 14 verifies that
@@ -253,10 +262,18 @@ merge**, so it appears in no commit — which is what a pre-merge fix looks like
 squash-merge is the normal case rather than an edge one.
 
 ```
-cmd:      grep -rn 'once caught\|15/\$75' backoffice/src e2e/tests .beans
-observed: .beans/modus-0002--backoffice-foundation.md:132: `PRICING` claimed $15/$75 per
-          MTok for `claude-opus-5`. The list price is [...]
+cmd:      grep -n '15/\$75' .beans/modus-0002--backoffice-foundation.md
+observed: 132:`PRICING` claimed $15/$75 per MTok for `claude-opus-5`. The list price is
 ```
+
+The search names the file that holds the record rather than sweeping
+`backoffice/src e2e/tests .beans`. The sweeping form is what found `bean:0002` — see *How it was
+caught* — and it is still the wrong command to *record*, for two reasons. It returns many lines
+across several files and only one of them was quoted, with nothing saying the rest were dropped:
+`[...]` marks elision **within** a line, not omitted lines (`bean:0091`). And two of the lines it
+returns are the `cmd:` and `observed:` lines of this block, so the assertion sits inside its own
+searched corpus and its output changes every time this bean is edited. The narrow form
+establishes the same fact, is one line long, and cannot rot that way.
 
 **A defect caught in review is invisible to committed history by construction**, which is why
 `adr:0005-evidence-lives-in-the-work-item` puts the record in `.beans/`. The search that
@@ -326,6 +343,16 @@ Two things about how it surfaced are worth keeping:
   N times for one fault is worse than useless because the count lies. The negative observation
   is not a courtesy; it is half the evidence.
 
+  **And it is normative nowhere.** §9.1's MUST bullets still require only the planted
+  violation, on `main` and on this branch alike — the document is byte-identical across the
+  two, so nothing in this change moved it. The requirement that a mechanism also be observed
+  *not* firing on a clean input currently lives in this bullet and in `bean:0090`'s success
+  criteria; `bean:0105` records the sweep behind that, and why the vacuity assertion §9.1 does
+  carry is a different question. Two unmerged beans agreeing on a rule makes it a convention
+  between them: a third bean written next week has nothing to read. `bean:0105` owns getting
+  the negative half into §9.1, and is named here rather than in a commit message so the gap is
+  visible from the artefact that depends on it.
+
 **A producer-controlled string used as an object key, in a seam that already knew better.**
 `usageByMessage` is a plain object and `messageId` is wire data the producer chooses, so an id
 naming an inherited property — `constructor`, `toString`, `valueOf` — was a lookup *hit* on a
@@ -363,9 +390,21 @@ checked against. **A checklist beats an exhortation**, and this one is three ite
 | `model` | the `BASE_RATES_UPM` key | `isPricedModel` |
 
 All three were found one at a time, by three separate review findings, over two rounds. Asked
-as one question, the list takes a minute to produce and is exhaustive for this seam. Any
-implementation of `bean:0014` inherits the same three namespaces across the wire and should
-produce its own list before writing lookups, not after review finds them individually.
+as one question, the list takes a minute to produce. Any implementation of `bean:0014` inherits
+the same three namespaces across the wire and should produce its own list before writing
+lookups, not after review finds them individually.
+
+**"Exhaustive for this seam" is narrowed to the transcript seam, because review found two more
+sites outside it.** `backoffice/src/mocks/handlers.ts` indexes `table[domainId]` in `scoped`
+and `costByDomain[domainId]` in the cost-summary handler. Both are the same shape — a
+caller-supplied key reaching a plain object with no own-property check — with the key taken
+from the URL rather than from a transcript frame. Neither ships: MSW handlers run in
+development and under test only, so nothing here is a live defect and nothing is fixed for it.
+What the two sites cost is the claim: a checklist that says *exhaustive* and stops at the
+namespaces one review round happened to visit is the exhortation it replaced, wearing a table.
+The scope now stated is the one the list was actually derived over — `transport.ts` and
+`useAgentSession.ts` — and the general question, *which keys in this file does someone else
+choose*, is the part worth carrying to `handlers.ts` and to `bean:0014`.
 
 ## Two claims checked and **not** encoded
 
@@ -389,10 +428,10 @@ derived from a cumulative `tokensIn`/`tokensOut` pair, so a runner built to that
 have met it. That document is also owned by another agent this sprint, so no edit to it was
 made from here.
 
-## Two behaviours that are correct and uncovered
+## Three behaviours that are correct and uncovered
 
-Neither is a defect. Both are recorded because "correct" and "covered" are different claims,
-and only one of them has evidence.
+None is a defect. All are recorded because "correct" and "covered" are different claims, and
+only one of them has evidence.
 
 **The losing-frame path has no shipped test.** `?fault=usage-disagreement` corrupts frame 2 of a
 message — a *winning* frame, larger `outputTokens`, so `kept !== previous` and the map updates.
@@ -410,6 +449,24 @@ understate the bill, which is the failure this whole bean exists to prevent. But
 reading a settled total may see it move. `bean:0014` should settle it when it defines the
 terminal event, since the question is really "what does `AgentRunCompleted` promise about the
 totals that precede it".
+
+**The unpriced-model path cannot be reached from the console at all.** `totalCostUsd` returns
+`null` when `isPricedModel` rejects the id, and that is the behaviour `bean:0090`'s instance 3
+is closed against. No e2e test covers it and none can: `AgentConsole.tsx` renders a fixed list
+of three model options and all three are in `BASE_RATES_UPM`, so no interaction with the
+shipped UI produces an unpriced id. The branch is reachable only from a producer sending a
+model the table does not carry, which is exactly the case `bean:0014` will introduce and this
+console cannot. Covering it needs either a fault injection like the existing `?fault=` ones or
+a unit test on the reducer, and neither is added here — what is recorded is that the
+uncoveredness is structural rather than an omission.
+
+There is a second, smaller thing in the same neighbourhood, and it is a citation rather than a
+behaviour: `costMicros` in `transport.ts` is exported and called by nothing. It is the checked
+front door described in the KDoc, `costMicrosOf` is what the reducer imports, and `bean:0090`'s
+instance 3 named `costMicros` as its closure — so the closure was cited at dead code while the
+implemented outcome ran through `totalCostUsd`. The citation is corrected in `bean:0090`; the
+export is left alone, since deleting a public function is a change this bean's contract does
+not cover.
 
 ## What is detected, and what still is not
 
@@ -448,11 +505,17 @@ implementation of `bean:0014` must not treat it as guaranteed by tooling.
   enforcement that the section above establishes does not exist:
 
   ```
-  cmd:      sed -n '168,171p;249,255p' tools/cost_lib.py
-  observed: 170:    `cache_creation_input_tokens` are byte-identical across every frame of a
-            171:    message; the replay asserts that on every run and reports the count, [...]
+  cmd:      grep -n 'byte-identical\|replay asserts\|never assumed' tools/cost_lib.py
+  observed: 170:    `cache_creation_input_tokens` are byte-identical across every frame of a message; the
+            171:    replay asserts that on every run and reports the count, so no figure is quoted here — a
             254:    undercounts. Asserted on every run, never assumed.
   ```
+
+  The `cmd:` is `grep -n` because the `observed:` is `grep -n` output: an earlier revision
+  carried these three numbered lines under a `sed -n '168,171p;249,255p'`, and `sed -n …p`
+  emits no line numbers and no gaps. The transcript was right and the command beside it was
+  not, which is the shape this bean's criteria table is mechanised against and which nothing
+  checks outside that table (`bean:0106`).
 
   Neither is true: nothing raises, and no Python runs in `qualityCheck`. This is the most
   load-bearing instance of the wrong claim left in the tree, because `cost_lib.py` is the
@@ -463,6 +526,17 @@ implementation of `bean:0014` must not treat it as guaranteed by tooling.
 
 - **Nothing compares a constant in code to the authority it must match.** Raised as
   `bean:0090`; the rate table is one instance of it.
+- **`bean:0103`'s instance block states a count where its own paragraph argues for a
+  quantifier.** It reads "Exactly one commit has ever touched the line carrying the Opus 5
+  rate", and then explains two lines later why a count over a growing set is stale on arrival.
+  The count is now wrong: `git log --all -G "claude-opus-5" -- backoffice/src/agent/transport.ts`
+  returns more than one, most of them this pull request's. `-S "opus-5"` cannot see them —
+  `-S` searches for a change in the *number of occurrences* of the string, and that number is
+  the same on both sides of every edit this branch made — so the block's own command still
+  returns a single commit and the sentence beside it still reads as though it had been checked.
+  The conclusion survives intact and is better stated as a claim about the set: in committed
+  history the Opus 5 rate has only ever been $5/$25, which `-G` confirms by showing every
+  commit that touched the line. `bean:0103` is merged on `main` and is not edited from here.
 - **`doc:60-cost-model#spend-record` §3.2 names four token kinds** — `inputTokens`,
   `outputTokens`, `cacheWriteTokens`, `cacheReadTokens` — and §3.2.1 says "all four token
   kinds". `tools/cost_lib.py` and every record already written to
