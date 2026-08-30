@@ -82,7 +82,7 @@ inside a code block that the check is documented as skipping.
 |---|---|---|
 | 6 references resolve | the naive toggle, `tools/docs-lint.sh:205` | this bean |
 | 14 a bean closes without evidence | a CommonMark state machine, `tools/lib/docs-lint-fence.awk` (`bean:0063`) | fixed |
-| 10 no bare bean paths | **none** — a `grep -noE` over whole files | a `beans/NNNN` path inside a fenced block is reported as prose. Fails CLOSED only: it can spuriously flag an example, never miss a real one. No corpus file trips it today |
+| 10 no bare bean paths | **none** — a `grep -noE` over whole files | a `beans/NNNN` path inside a fenced block is reported as prose. Within the file set it reads — `documentation/*.md`, `AGENTS.md`, `CLAUDE.md` — it can spuriously flag an example but cannot miss a real one. That file set is narrower than check 6's: `.beans/*.md` is outside it, and bare `beans/0…` paths do sit there unseen. `doc:05-authoring-for-agents#checks` defines that scope, so it is a spec choice and not a defect of this kind. No file in scope trips it today |
 | 11 completed beans are final | **none** — it diffs bytes and greps for `^## Amendments` and `**Claimed:**` | correct by construction. Immutability is a property of the byte sequence, and a fence has no bearing on it. A fenced block quoting `## Amendments` inside a completed bean's appended text would be miscounted against the amendment headings, which is a narrower and separate question |
 | 12, 13 bean graph and ids | **none** — front-matter and filenames only | front-matter is above the first fence by construction |
 
@@ -93,30 +93,93 @@ is the only other place a fence is relevant at all.
 
 | option | catches | cost |
 |---|---|---|
-| use `tools/lib/docs-lint-fence.awk`, which `bean:0063` already added, and refuse a file whose block never closes | both directions above, as an explicit error naming the file and the line | the fence file exists and is tested; the work is the refusal path and the blast radius below |
+| use `tools/lib/docs-lint-fence.awk`, which `bean:0063` already added, and refuse a file whose block never closes | both directions above — the fails-OPEN one via the refusal, not via the reference reappearing | the fence file exists and is tested, and the parser swap is measured below as a zero-diff drop-in. The work is the refusal path and its message |
 | leave check 6 and disclose the parity on the `OK` line | nothing, but stops it being silent | rejected in `bean:0063` for check 14 for the same reason |
 | make the `OK` line's reference count per-file rather than a total | the fails-OPEN direction, as a diff a reviewer must read | a count nobody diffs is not a check |
 
-## Blast radius — read this before starting
+## Blast radius, measured: there is none
 
-A correct fix **changes which lines check 6 reads across the entire document set**, and it is
-not a refactor:
+**Every claim in the first version of this section was wrong, and it was wrong in the
+direction that does harm.** It asserted, in bold and without measuring, that the
+`references` figure would move, that new check 6 failures would appear in `documentation/`,
+that references would stop resolving, and that amendments to frozen beans should be
+expected. It then told the next agent to measure — after four paragraphs telling them what
+they would find.
 
-- **The `references` figure on the `OK` line will move.** It is 921 on this branch. It is asserted
-  verbatim in the evidence of beans that are already `completed`, which `docs-lint` check 11
-  makes append-only: those transcripts cannot be corrected in place, only amended
-  (`adr:0005-evidence-lives-in-the-work-item#amendments`). Expect to write amendments, or to
-  argue that a historical transcript records what was observed then and is not made false by a
-  later change.
-- **New check 6 failures may appear in `documentation/`.** Any file whose fence markers are
-  currently mis-parsed has references that are being skipped and will start resolving. Each is
-  a real finding and each needs a fix in a tree that other agents hold.
-- **References inside fenced blocks stop resolving where they currently do.** The reverse
-  direction: any file that is currently reading a fenced template as live prose loses those
-  references from the count, and any of them that were resolving by accident are now invisible.
-- Measure all three before changing anything: run the current check 6 and a fence-aware check 6
-  over the corpus, and diff the reference sets per file. That diff **is** the evidence, and any
-  file in it is a finding.
+Measured. PR #46's `tools/lib/docs-lint-fence.awk`, the file criterion 4 mandates, was run
+over check 6's exact `REF_FILES` set with check 6's exact `REF_RE`, against today's naive
+toggle, and the two reference sets diffed per file:
+
+```
+cmd:      check 6's REF_RE over check 6's REF_FILES, once through the naive toggle and
+          once through PR #46's fence-aware parser, diffed per file
+observed: naive (check 6 today) unique refs: 921
+          PR46-fence-aware unique refs:      921
+          --- APPEAR only when fence-aware ---   (empty)
+          --- DISAPPEAR when fence-aware ---     (empty)
+          --- files whose fences never close --- (empty)
+exit:     0
+```
+
+**It is a zero-diff drop-in.** No file changes, the counter does not move, no new failure
+appears, nothing stops resolving. The corpus is fence-balanced and none of its fences nest,
+which is exactly the condition under which the two parsers agree.
+
+The instrument was validated in both directions before the zero was believed, because a
+diffing script that matches nothing and a corpus with nothing to match print the same
+result:
+
+```
+cmd:      the same measurement, with two planted shapes that separate the parsers — a
+          line-initial inline code span (which check 6's /^```/ toggles on and the
+          fence-aware parser does not open, because a backtick fence's info string may not
+          contain a backtick), and a three-column-indented fence (which check 6's /^```/
+          never sees, because it allows no leading whitespace, and the fence-aware parser
+          opens)
+observed: naive (check 6 today) unique refs: 922
+          PR46-fence-aware unique refs:      922
+          --- APPEAR only when fence-aware ---
+          .beans/modus-0033-…	doc:97-appears
+          --- DISAPPEAR when fence-aware ---
+          .beans/modus-0033-…	doc:96-disappears
+exit:     0
+```
+
+So the zero is a measurement, not a broken script.
+
+### The deadlock this section warned about could not have existed
+
+`adr:0005-evidence-lives-in-the-work-item#finalisation` makes a bean's evidence the durable
+record of what was required and **what was observed**, and `#amendments` is for what the
+original claimed against what was found to be true. A point-in-time counter that has since
+moved is not a claim found untrue; it is an observation that remains true of the run that
+produced it. No amendment is owed for one, ever.
+
+And the premise was false as well as the reasoning. No `completed` bean quotes 921. The
+`N references` figures the corpus does quote are already stale by up to several hundred, and
+nothing re-verifies a quoted counter against a current run. The proposed remedy also
+contradicts the sibling bean on evidence-cell strength, which argues that amendments written
+to satisfy a check are themselves a shape worth refusing. That bean has it right.
+
+### The general defect, because this one is not about check 6
+
+**A blast-radius estimate is a claim, and `doc:00-constitution#observed-failing` binds it
+like any other.** Stated as certainty without measurement it does a specific harm: a future
+agent reads "expect to write amendments" and defers a zero-diff change indefinitely. An
+overstated cost is not the safe direction to be wrong in. It is exactly as false as an
+understated one and it has the worse failure mode, because an understated cost is discovered
+the moment someone acts on it, and an overstated one is discovered by nobody, because it
+stops anyone acting at all.
+
+### One thing the measurement changed about the fix itself
+
+The fails-OPEN plant in `## Observed` is **not** closed by making check 6 fence-aware. Run
+against the fence-aware parser, the escaped reference stays hidden: the stray marker opens a
+block that never closes, so the reference is inside it under both parsers, for different
+reasons. What closes the plant is the **refusal** — the parser reports the unterminated
+block and the check fails the file, naming it. Criterion 1 is satisfied by that route and
+not by the reference becoming visible, and an implementation that adds fence-awareness
+without the refusal will observe the plant still passing.
 
 ## Success criteria
 
