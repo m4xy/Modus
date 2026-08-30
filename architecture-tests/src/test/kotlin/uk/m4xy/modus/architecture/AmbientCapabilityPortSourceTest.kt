@@ -212,6 +212,94 @@ class AmbientCapabilityPortSourceInputSurfaceTest {
         assertEquals(emptyList(), AmbientCapabilityPortSource.violations(source))
     }
 
+    /**
+     * A slash-star inside a **string literal** must not open a comment.
+     *
+     * This is the escape that defeated the first version, which deleted `/\*.*?\*​/` before
+     * anything was parsed: the phantom comment ran to the close of the next KDoc and everything
+     * between vanished from the scan's input. `@Suppress` takes `vararg String` and ignores
+     * unknown names, so the fixture is legal Kotlin and all five guards reported green.
+     */
+    @Test
+    fun `a slash-star inside a string literal does not blind the scan`() {
+        val source =
+            """
+            package uk.m4xy.modus.core.domain.port
+
+            public interface IdGeneratorPort {
+                @Suppress("/*")
+                public fun newActorId(): uk.m4xy.modus.core.domain.identity.published.ActorId
+
+                /** Ordinary KDoc, whose closing marker the phantom comment used to consume. */
+                public fun newId(): String
+            }
+            """.trimIndent()
+
+        assertEquals(
+            listOf("names 'uk.m4xy.modus.core.domain.identity.published.ActorId'"),
+            AmbientCapabilityPortSource.violations(source),
+        )
+    }
+
+    /** The declaration after the phantom comment must still be perceived, not merely judged. */
+    @Test
+    fun `a slash-star inside a string literal does not hide later declarations`() {
+        val source =
+            """
+            package uk.m4xy.modus.core.domain.port
+
+            public interface IdGeneratorPort {
+                @Suppress("/*")
+                public fun newActorId(): uk.m4xy.modus.core.domain.identity.published.ActorId
+
+                /** Ordinary KDoc. */
+                public fun newId(): String
+            }
+            """.trimIndent()
+
+        val perceived = AmbientCapabilityPortSource.perceived(source)
+
+        assertEquals(listOf("newActorId", "newId"), perceived.declarations)
+    }
+
+    /**
+     * A qualified name at a use site is checked against the allowlist, not against `uk.m4xy`.
+     *
+     * The first version scoped this arm to modus packages only, so `import java.util.UUID` was
+     * rejected while the inline form was accepted — and `java.util` is on the bytecode rule's
+     * allowlist, so the inline form passed **both** rules.
+     */
+    @Test
+    fun `a non-modus qualified name at a use site is caught`() {
+        val source =
+            """
+            package uk.m4xy.modus.core.domain.port
+
+            public interface IdGeneratorPort {
+                public fun raw(): java.util.UUID
+            }
+            """.trimIndent()
+
+        assertEquals(listOf("names 'java.util.UUID'"), AmbientCapabilityPortSource.violations(source))
+    }
+
+    @Test
+    fun `an unterminated comment is a violation rather than a confident empty verdict`() {
+        val source =
+            """
+            package uk.m4xy.modus.core.domain.port
+
+            public interface ClockPort {
+                public fun now(): String
+            /* and then the file ends
+            """.trimIndent()
+
+        assertEquals(
+            listOf("source ends inside a comment or string literal, so the scan cannot have read it"),
+            AmbientCapabilityPortSource.violations(source),
+        )
+    }
+
     @Test
     fun `the port's own package is not a foreign reference`() {
         val source =

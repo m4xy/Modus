@@ -67,9 +67,9 @@ unchanged; the reason is replaced by the three textual grounds now on `main`:
 
 | # | ground |
 |---|---|
-| 1 | **`doc:00` already defers to an owning document against its own precedence line.** §1.1 ends by deferring to `doc:10-architecture#module-dependencies` §4.1 and calling its own table the bug on disagreement. Ownership-over-precedence is a pattern the constitution applies to itself. |
-| 2 | **Precedence produces an incoherent result.** §1.3 covers time and identifiers and never mentions randomness, so it cannot name a third port. Reading precedence as decisive yields `{Clock, IdGenerator, RandomPort}` — two names from one document and one from another, for three ports of one kind. |
-| 3 | **The naming rule pre-existed and `doc:00` states nothing contrary.** `doc:20-ddd-practices#ports-and-adapters`'s outbound-port row already gave `<Noun>Port` with `ClockPort` as its own example, and the prohibitions table already named `ClockPort` as the replacement for `Instant.now()` — both on `main` before any of this. |
+| 1 | `ClockPort`, `IdGeneratorPort` and `RandomPort` are interfaces in `core-domain`, referencing nothing beyond the Kotlin stdlib and `java.time` | plants 1, 2, 3 and 6 below |
+| 2 | `IdGeneratorPort` returns the raw `String` a context's identifier value class wraps, and no type in `..core.domain.port` names any context's package | plants 2 and 3 — value-class return and parameter, each rejected by file and name, and each **invisible to the bytecode rule** |
+| 3 | The rule scoping `..core.domain.port` is **source-reading**, because a `@JvmInline value class` erases and leaves no bytecode edge (`bean:0034`) | plants 2 and 3 rejected by the source rule only; plant 4, an enum, fires on **both** — the control that isolates erasure rather than inferring it |
 
 `doc:20-ddd-practices#ambient-ports` §5.3 is now the single owner and says so in terms: it
 **decides** the names, and `doc:00` §1.3 names none.
@@ -136,9 +136,9 @@ rigour and transmits doubt about something decided.
 
 | # | proposition | status |
 |---|---|---|
-| 1 | Membership requires **every** test, so failing one is decisive | **Settled.** `adr:0004-domain-id-shared-kernel#shared-kernel-membership` states it verbatim: *"A type joins only if **every** statement below is true of it."* Do not hedge this. |
-| 2 | Test 2 fails for a port **today** | **Observed**, and conditional. It holds while `..published..` and `..event..` are leaf packages, since a published type naming a port would itself be the violation. |
-| 3 | **No port can ever join the kernel** | **Conjecture.** It depends on proposition 2 being permanent, and `adr:0004-domain-id-shared-kernel#deferred-conflict` explicitly defers the leaf-rule conflict to `bean:0023` and says "this decision should be re-read when it lands". |
+| 1 | `ClockPort`, `IdGeneratorPort` and `RandomPort` are interfaces in `core-domain`, referencing nothing beyond the Kotlin stdlib and `java.time` | plants 1, 2, 3 and 6 below |
+| 2 | `IdGeneratorPort` returns the raw `String` a context's identifier value class wraps, and no type in `..core.domain.port` names any context's package | plants 2 and 3 — value-class return and parameter, each rejected by file and name, and each **invisible to the bytecode rule** |
+| 3 | The rule scoping `..core.domain.port` is **source-reading**, because a `@JvmInline value class` erases and leaves no bytecode edge (`bean:0034`) | plants 2 and 3 rejected by the source rule only; plant 4, an enum, fires on **both** — the control that isolates erasure rather than inferring it |
 
 So propositions 1 and 2 carry this bean's decision, and proposition 3 is recorded as a
 conjecture nothing here establishes. No future change may cite this bean as having settled
@@ -282,16 +282,16 @@ a clock.
 
 | # | criterion | evidence |
 |---|---|---|
-| 1 | `ClockPort`, `IdGeneratorPort` and `RandomPort` are interfaces in `core-domain`, referencing nothing beyond the Kotlin stdlib and `java.time` | `rule:archunit/portsAreInterfaces` and `rule:archunit/ambientCapabilityPortSourceIsLeaf` green over all three; plants 1 and A–C below |
-| 2 | `IdGeneratorPort` returns the raw `String` a context's identifier value class wraps, and no type in `..core.domain.port` names any context's package | **plants A and B** — a value-class return and a value-class parameter, each rejected by file and name. The bytecode rule stayed green on both, which is why the gate reads source |
-| 3 | The rule scoping `..core.domain.port` is **source-reading**, because a `@JvmInline value class` erases to its underlying type and leaves no bytecode edge (`doc:00-constitution#observed-failing`, `bean:0034`) | plants A and B rejected by the source rule and **invisible** to the bytecode one; plant C, an enum, fires on both — the control that isolates erasure as the explanation |
-| 4 | `rule:archunit/portsAreInterfaces` reaches every port package, and the ambient package's membership is asserted at the granularity that matters | plant 1 rejected in `identity.port`, a package that exists today; `everyPortPackageIsSeenByPortsAreInterfaces` asserts the glob's reach |
+| 1 | `ClockPort`, `IdGeneratorPort` and `RandomPort` are interfaces in `core-domain`, referencing nothing beyond the Kotlin stdlib and `java.time` | plants 1, 2, 3 and 6 below |
+| 2 | `IdGeneratorPort` returns the raw `String` a context's identifier value class wraps, and no type in `..core.domain.port` names any context's package | plants 2 and 3 — value-class return and parameter, each rejected by file and name, and each **invisible to the bytecode rule** |
+| 3 | The rule scoping `..core.domain.port` is **source-reading**, because a `@JvmInline value class` erases and leaves no bytecode edge (`bean:0034`) | plants 2 and 3 rejected by the source rule only; plant 4, an enum, fires on **both** — the control that isolates erasure rather than inferring it |
+| 4 | `portsAreInterfaces` is proven to reach every port package by **evaluating its own glob**, not by re-deriving it | plant 5 — narrowing `ALL_PORTS` is caught; plant 1 fires in `identity.port`, a package that already existed |
 | 5 | `doc:20-ddd-practices` §5.1's package table carries a row for `..core.domain.port`, and `docs-lint` is green with it | **MET.** PR #51 merged the row (`doc:20-ddd-practices` §5.1, the `uk.m4xy.modus.core.domain.port` row). Read as merged against this criterion as worded: the row exists and says what the criterion required. Two disagreements with the rest of the merged section are recorded below rather than closed over |
 | 6 | A hand-written test double for each port lives where `doc:35-testing` puts it, with no mocking framework, and is deterministic | `AmbientCapabilityDoubles.kt` in `core-domain/src/test`; no mocking dependency exists on the unit-test classpath allowlist (`doc:35-testing#unit-classpath`) |
 | 7 | The doubles' own behaviour is asserted, not merely relied on | `AmbientCapabilityDoublesTest`, 14 tests, green in the 109-test `:core-domain:test` run below |
-| 8 | The **gate's** input surface is asserted separately from its verdict: a test states what the leaf scan *read* out of each shipped port, distinct from the verdict reached from it | `AmbientCapabilityPortSourcePerceptionTest`, observed failing on a dead `IMPORT` regex **while the verdict stayed green** — plant D. An earlier wording cited `AmbientCapabilityDoublesTest`, which asserts the doubles' input surface, a different artefact entirely |
-| 9 | `config/coverage/baseline.tsv` moves by exactly the rows this change earns, and any comment or provenance line `coverageBaselineWrite` drops is restored by hand and reported against `bean:0033` | it earns **none**: three interfaces generate no instructions, so every figure is byte-identical. The writer still erased six provenance lines — recorded below |
-| 10 | `./gradlew qualityCheck` green | `BUILD SUCCESSFUL`, `167 actionable tasks` |
+| 8 | The **gate's** input surface is asserted separately from its verdict, positively, so a blinded scan fails | plant 7 — a dead `IMPORT` regex fails perception **while the verdict stays green** |
+| 9 | `config/coverage/baseline.tsv` moves by exactly the rows this change earns, and any provenance `coverageBaselineWrite` drops is restored by hand and reported against `bean:0033` | it earns **none** — three interfaces generate no instructions, every numeric row byte-identical. The writer still erased six provenance lines; see below |
+| 10 | `./gradlew qualityCheck` green | `BUILD SUCCESSFUL`, `158 actionable tasks`, on the head this bean is evidenced against; command and output below |
 
 
 ## Sequencing
@@ -318,10 +318,10 @@ and after:
 
 | # | on `origin/main` | with this change |
 |---|---|---|
-| 1 | `modus-0047` (`AK`) | `modus-0047` (`AK`) |
-| 2 | `modus-0031` (`AT`) | **`modus-0066` (`AQ`)** |
-| 3 | `modus-0027` (`B`) | `modus-0027` (`B`) |
-| 4 | `modus-0017` (`C`) | `modus-0017` (`C`) |
+| 1 | `ClockPort`, `IdGeneratorPort` and `RandomPort` are interfaces in `core-domain`, referencing nothing beyond the Kotlin stdlib and `java.time` | plants 1, 2, 3 and 6 below |
+| 2 | `IdGeneratorPort` returns the raw `String` a context's identifier value class wraps, and no type in `..core.domain.port` names any context's package | plants 2 and 3 — value-class return and parameter, each rejected by file and name, and each **invisible to the bytecode rule** |
+| 3 | The rule scoping `..core.domain.port` is **source-reading**, because a `@JvmInline value class` erases and leaves no bytecode edge (`bean:0034`) | plants 2 and 3 rejected by the source rule only; plant 4, an enum, fires on **both** — the control that isolates erasure rather than inferring it |
+| 4 | `portsAreInterfaces` is proven to reach every port package by **evaluating its own glob**, not by re-deriving it | plant 5 — narrowing `ALL_PORTS` is caught; plant 1 fires in `identity.port`, a package that already existed |
 
 **One insertion, and it is a substitution.** `modus-0031` held second place and is now
 `blocked_by: [modus-0030, modus-0066]`, so the work that was second is gated on `0066`, and
@@ -336,3 +336,214 @@ unblocks anything. They were re-ordered to `CA` and `CB`, behind the store. A ba
 reorder presented as three local edits is the defect; a reorder that displaces the bean two of
 your own beans depend on is the defect doing damage.
 
+---
+
+## Evidence
+
+`doc:00-constitution#observed-failing`. Every plant was made at a real call site, run, and
+reverted (`doc:35-testing` §6). **Re-derived against the current head**, not restored: an
+earlier revision of this bean lost its whole evidence section to a script of mine that
+truncated the file at `## Sequencing`, and the criteria table kept pointing at transcripts
+that no longer existed. Restoring the old text would have re-attached evidence for a gate
+that has since been rebuilt twice.
+
+### Plant 1 — `portsAreInterfaces`, on a package that already existed
+
+```
+planted:  identity/port/PlantedRepository.kt — public class PlantedRepository
+cmd:      ./gradlew :architecture-tests:test --rerun-tasks
+observed: ArchitectureRulesTest > portsAreInterfaces FAILED
+    Class <uk.m4xy.modus.core.domain.identity.port.PlantedRepository> is no interface
+    63 tests completed, 1 failed
+```
+
+This closes one of the five §4.2 rules `doc:15-repository-layout` records as missing, and it
+is observed on `identity.port` rather than on the package this bean adds — so the glob is
+proven to reach the context-scoped packages, not assumed to.
+
+### Plants 2 and 3 — the erasing shapes, invisible to bytecode
+
+```
+planted:  IdGeneratorPort.kt — public fun newActorId(): ActorId
+observed: AmbientCapabilityPortSourceTest > ambientCapabilityPortSourceIsLeaf FAILED
+    core/core-domain/.../port/IdGeneratorPort.kt:
+      imports 'uk.m4xy.modus.core.domain.identity.published.ActorId'
+      names 'uk.m4xy.modus.core.domain.identity.published.ActorId'
+    63 tests completed, 2 failed
+```
+
+```
+planted:  IdGeneratorPort.kt — public fun idFor(actor: ActorId): String
+observed: same rule, same file, rejected by name
+```
+
+`rule:archunit/ambientCapabilityPortsAreLeaf` — the bytecode rule — **passed both times**.
+
+### Plant 4 — the enum control that isolates erasure
+
+```
+planted:  IdGeneratorPort.kt — public fun kind(): ActorKind      (an enum, not a value class)
+observed: ArchitectureRulesTest > ambientCapabilityPortsAreLeaf FAILED
+    Method <...port.IdGeneratorPort.kind()> has return type
+      <uk.m4xy.modus.core.domain.identity.published.ActorKind>
+          AmbientCapabilityPortSourceTest > ambientCapabilityPortSourceIsLeaf FAILED
+    ... names 'uk.m4xy.modus.core.domain.identity.published.ActorKind'
+    63 tests completed, 3 failed
+```
+
+Both rules fire on a type that does not erase; only the source rule fires on one that does.
+That pair makes "the bytecode rule is blind to value classes" an **observation** rather than
+an inference — the second observation decision 3 records as missing the first time.
+
+### Plant 5 — the guard evaluates the rule's own glob
+
+`everyPortPackageIsSeenByPortsAreInterfaces` re-derived the glob as `startsWith`/`endsWith`
+instead of reading `ALL_PORTS`, so narrowing the rule left `identity.port` unguarded with the
+guard still green. It now runs the rule's constant through `PackageMatcher`:
+
+```
+planted:  ALL_PORTS narrowed to "$DOMAIN_PORT_PACKAGE.."
+observed: everyPortPackageIsSeenByPortsAreInterfaces FAILED
+    portsAreInterfaces is scoped at 'uk.m4xy.modus.core.domain.port..', which reaches
+    [port], but the port packages in core-domain are [domainmgmt.port, identity.port, port]
+```
+
+### Plant 6 — a subpackage port with a colliding basename
+
+Both perception guards keyed on a basename, and `associate` keeps the last value for a
+duplicate key, so a subpackage port would have held the key set at three. Keyed on the
+relative path and the package-qualified name instead:
+
+```
+planted:  port/internal/ClockPort.kt — public fun sneak(): ...identity.published.ActorId
+observed: 63 tests completed, 5 failed
+    everyAmbientCapabilityPortIsSeenByItsOwnRule, everyPortPackageIsSeenByPortsAreInterfaces,
+    both perception tests, and the source verdict — the last naming
+    core/core-domain/.../port/internal/ClockPort.kt
+```
+
+### Plant 7 — a dead parse, while the verdict stays green
+
+```
+planted:  AmbientCapabilityPortSource.IMPORT changed to match `imports`, not `import`
+observed: AmbientCapabilityPortSourcePerceptionTest > the scan sees the one import that is
+          known to be present() FAILED
+    the scan did not see `import java.time.Instant` in ClockPort.kt, which declares it. A scan
+    that cannot see a known-present import has not read the file, and the leaf verdict over it
+    is vacuous. Imports actually seen: []
+    63 tests completed, 2 failed
+```
+
+`AmbientCapabilityPortSourceTest` — the **verdict** — passed. That is criterion 8's whole
+case. The input-surface test failed too, so the perception test is not the sole guard against
+this; the earlier claim that it was, was understated rather than overstated.
+
+### The two escapes that defeated the source gate, and were fixed
+
+**Escape A — a slash-star inside a string literal.** The stripper deleted a lazy slash-star
+regex before anything was parsed, so a slash-star inside a **string** opened a phantom comment
+running to the close of the next KDoc; everything between vanished from the scan's input.
+
+```
+planted:  IdGeneratorPort.kt, inside the interface, above the newId KDoc:
+          a @Suppress whose argument is a slash-star, then
+          public fun newActorId(): uk.m4xy.modus.core.domain.identity.published.ActorId
+before:   BUILD SUCCESSFUL          <- all five guards green, ActorId on a shipped port
+after:    AmbientCapabilityPortSourceTest > ambientCapabilityPortSourceIsLeaf FAILED
+    core/core-domain/.../port/IdGeneratorPort.kt:
+      names 'uk.m4xy.modus.core.domain.identity.published.ActorId'
+    63 tests completed, 2 failed
+```
+
+**Escape B — the qualified-name arm was modus-only.** An import of a JDK type was rejected
+while the same type inline was not, and `java.util` is on the bytecode rule's allowlist, so
+the inline form passed **both** rules.
+
+```
+planted:  public fun raw(): java.util.UUID
+before:   BUILD SUCCESSFUL
+after:    core/core-domain/.../port/IdGeneratorPort.kt: names 'java.util.UUID'
+    63 tests completed, 1 failed
+```
+
+### A failed reproduction is not evidence of absence
+
+**My first attempt at escape A did not reproduce it, and the gate went red.** I placed the
+fixture *after* the last KDoc, so the phantom comment found no closing delimiter, the regex
+matched nothing, and the scan read the file correctly. Had I stopped there I would have
+reported a live escape refuted.
+
+**The fixture's position is load-bearing, not only its content.** The asymmetry is nasty: a
+successful reproduction proves the escape, a failed one proves nothing, and only the first
+announces itself — a failed reproduction produces exactly the outcome the reproducer was
+hoping for, so nothing prompts a second attempt. The same lesson as *a check reporting total
+failure is as untrustworthy as one reporting total success*, from the other side: **red is not
+evidence the mechanism worked, only that this input did not defeat it.**
+
+### The documentation of a comment-parsing bug is subject to comment parsing
+
+Writing escape A into a KDoc reproduced it inside the compiler: a literal slash-star in a KDoc
+opens a **nested** block comment, and the build failed `Syntax error: Unclosed comment`. Those
+files now spell the delimiters out in prose. Third artefact this sprint bitten by the exact
+mechanism it documents, after a bean quoting check 14's message going unexamined by check 14,
+and `doc:20-ddd-practices` §5.1 — the section warning that a misplaced type escapes a rule —
+naming packages no rule could see.
+
+### A stale snapshot silently reverted a fix, and the gate caught it
+
+Reverting plant 7 with `cp` from a snapshot taken *before* the lexer rewrite restored the
+regex stripper wholesale. Nothing in the diff looked wrong. Re-running escapes A and B is what
+found it, which is why both were re-run after every structural change rather than once.
+
+### Criteria 6–7 — the doubles
+
+```
+cmd:      ./gradlew :core-domain:test --rerun-tasks
+observed: BUILD SUCCESSFUL — 109 tests
+```
+
+`SequenceIdGenerator.issued` and `SeededRandom.bounds` are copies, asserted by input-surface
+tests with no verdict counterpart: nothing a caller concludes would reveal a shared mutable
+record. Both use a **two**-element fixture, because `listOf(x)` of size one throws on mutation
+and the same test at size one passes while proving nothing (`doc:35-testing#fixture-variation`).
+
+### Criterion 10 — the gate
+
+```
+cmd:      ./gradlew ktlintFormat && ./gradlew qualityCheck
+observed: BUILD SUCCESSFUL
+          158 actionable tasks: 10 executed, 13 from cache, 135 up-to-date
+```
+
+### Criterion 9 — the baseline, and a sixth observation for `bean:0033`
+
+Three interfaces generate no instructions, so the ratchet does not move: every numeric row is
+byte-identical and `coverageBaselineIsComplete` sees the same module set.
+`coverageBaselineWrite` nevertheless erased **six lines of provenance** — both `# REGRESSION`
+blocks and the note recording that this keeps happening:
+
+```
+cmd:      ./gradlew coverageBaselineWrite
+observed: diff baseline.before.tsv config/coverage/baseline.tsv
+          8,13d7
+          < # REGRESSION accepted with -Pcoverage.regress: identity validators replaced ...
+          < #   :core-domain: covered branches 44 -> 38
+          < # REGRESSION accepted with -Pcoverage.regress: GrantIssued stores its capabilities ...
+          < #   :core-domain: covered instructions 1549 -> 1543
+          < # Restored by hand in bean:0032, bean:0030 and twice in bean:0036 after ...
+          < # it now also erases a PREVIOUS regression block when recording a new one. ...
+```
+
+Restored by hand. This sharpens `bean:0033`: **the erasure is not conditional on a
+regression.** The writer rebuilds the file from a constant header plus a note that is empty
+unless *this* run regressed, so a run where nothing changed destroys every hand-written line —
+which is what happened here, on a change whose figures were identical.
+
+### What this gate still does not catch
+
+Stated because an unstated limit reads as coverage.
+
+| shape | status |
+|---|---|
+| `import kotlin.io.path.Path` in a port | **passes the source rule.** `kotlin.` is allow-listed as a prefix, and `doc:00-constitution` §1.3 bans a path type from the domain outright. The bytecode rule catches it. Narrowing `kotlin.` means enumerating which parts of the standard library a port may name — a decision, not a patch |
+| a port with a default implementation performing IO | **unimplemented.** `doc:15-repository-layout#core-package-rules` §4.2's `PortsAreInterfaces` row requires "an `interface` with no default implementations that perform IO"; this change implements `beInterfaces()` and the second half of the row is not enforced by anything |

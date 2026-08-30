@@ -26,8 +26,9 @@ import java.time.Instant
  *
  * It is **not** shared kernel: `rule:archunit/sharedKernelIsLeaf` is scoped by an exact
  * name set, so it cannot see this package at all
- * (`adr:0004-domain-id-shared-kernel#shared-kernel-membership`). The rule that does see it
- * is `rule:archunit/ambientCapabilityPortsAreLeafInterfaces`.
+ * (`adr:0004-domain-id-shared-kernel#shared-kernel-membership`). The rules that do see it
+ * are `rule:archunit/portsAreInterfaces`, `rule:archunit/ambientCapabilityPortsAreLeaf` and,
+ * because bytecode cannot see a value class, `rule:archunit/ambientCapabilityPortSourceIsLeaf`.
  */
 public interface ClockPort {
     /**

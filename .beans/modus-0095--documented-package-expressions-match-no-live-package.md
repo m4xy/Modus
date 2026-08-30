@@ -28,7 +28,7 @@ fourth row in the same table uses the shape that can:
 |---|---|---|---|
 | 115 | `AggregatesAreSealedOrFinal` | `..domain.aggregate..` | **no** |
 | 117 | `PublishedLanguageIsLeaf` | `..domain.event..`, `..domain.published..` | **no** |
-| 120 | `PortsAreInterfaces` | `..domain.port..` | **no** |
+| 120 | `PortsAreInterfaces` | `..domain.port..` | **partly — see below** |
 | `adr:0004`:85 | `AggregatesAreSealedOrFinal`, quoted | `..domain.aggregate` | **no** |
 | 118 | `PublishedLanguageSourceIsLeaf` | `..domain.<ctx>.published..` | yes |
 
@@ -51,8 +51,8 @@ exit:     0
 The implementations are correct — they use `*` for the context segment. **Two of the three
 mis-rendered rules are implemented and passing**, so the defect is in the document alone
 today, and nothing is red. Its cost is the next rule: an agent implementing
-`PortsAreInterfaces` from row 120 writes `..domain.port..`, the rule matches no class, and a
-`noClasses(...)` assertion over an empty set passes. `rule:archunit/everyUnitTestPackageIsAnalysed`
+`PortsAreInterfaces` from row 120 writes `..domain.port..`, the rule matches fewer classes
+than it should, and an assertion over the shortfall passes. `rule:archunit/everyUnitTestPackageIsAnalysed`
 exists because that failure mode has happened here before
 (`doc:35-testing#purity-rules`). That row 118 already writes `<ctx>` explicitly is what
 makes this a slip rather than a convention.
@@ -82,6 +82,40 @@ entries and change in no other way (`adr:0005-evidence-lives-in-the-work-item#fi
 `docs-lint` check 11). The sentence is a record of what was corrected at the time and is not
 a live instruction, so an amendment may be the wrong instrument; deciding that is this bean's
 work, not `bean:0068`'s.
+
+## Amendment — row 120 is now only half wrong, and `bean:0065` is what changed it
+
+Row 120 recorded `..domain.port..` as matching **no** live package. That was true when this
+bean was written and is no longer, because `bean:0065` creates
+`uk.m4xy.modus.core.domain.port`.
+
+Measured with `PackageMatcher`, which is the matcher `resideInAPackage` uses, rather than
+read off the glob:
+
+| package | `..domain.port..` matches |
+|---|---|
+| `uk.m4xy.modus.core.domain.port` | **yes** |
+| `uk.m4xy.modus.core.domain.port.internal` | **yes** |
+| `uk.m4xy.modus.core.domain.identity.port` | no |
+| `uk.m4xy.modus.core.domain.domainmgmt.port` | no |
+
+So the documented glob reaches the context-free package and misses the two context-scoped
+ones — the reverse of what a reader would guess from the row, and the opposite half of the
+problem. An agent implementing `PortsAreInterfaces` from row 120 today gets a rule that
+guards the newest port package and silently leaves `identity.port` and `domainmgmt.port`
+unguarded, which is worse than matching nothing: a rule that matches nothing fails ArchUnit's
+`failOnEmptyShould`, and a rule that matches something is simply green.
+
+`bean:0065` implements the rule at `uk.m4xy.modus.core.domain..port..` instead, and asserts
+the glob's reach by evaluating it rather than by describing it. Row 120's correction is
+therefore "widen `<ctx>`", not "fix the root".
+
+**Recorded here rather than in `bean:0065` because the change that falsifies a sentence is
+the change that fixes it.** Three places asserted the old claim — this row, `bean:0065`'s
+guard KDoc and PR #55's `review_focus` — and all three were written from the row rather than
+from the matcher. That is the citation defect's fourth direction arriving again: a claim true
+when written, falsified by the merge of the change that makes it false, with nothing in
+between to notice.
 
 ## 3. The general form
 

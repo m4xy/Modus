@@ -5,6 +5,7 @@ import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.domain.JavaMethodCall
 import com.tngtech.archunit.core.domain.JavaModifier
+import com.tngtech.archunit.core.domain.PackageMatcher
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.junit.AnalyzeClasses
 import com.tngtech.archunit.junit.ArchTest
@@ -351,11 +352,12 @@ class ArchitectureRulesTest {
      * [portsAreInterfaces] perceives every port package, asserted rather than assumed.
      *
      * `doc:15-repository-layout#core-package-rules` §4.2 renders this rule's scope as
-     * `..domain.port..`, which matches **neither** the live `domain.<ctx>.port` nor the
-     * context-free `domain.port` — the sibling `PublishedLanguageSourceIsLeaf` row in the
-     * same table writes `<ctx>` explicitly, and this one does not. Implementing the rule
-     * therefore meant *choosing* its real scope rather than inheriting one, so the choice is
-     * asserted here: `$DOMAIN_ROOT..port..` must reach all three packages that exist.
+     * `..domain.port..`. Measured against `PackageMatcher` rather than assumed, that glob
+     * **does** match the context-free `uk.m4xy.modus.core.domain.port` and misses only the
+     * context-scoped `identity.port` and `domainmgmt.port` — so the documented scope guards
+     * two of the three port packages this repository has. Implementing the rule therefore
+     * meant *choosing* a wider scope, `$DOMAIN_ROOT..port..`, and the choice is asserted here
+     * by evaluating that glob rather than by describing it.
      *
      * Without this, a glob that silently matched only the context-free package would leave
      * `identity.port` and `domainmgmt.port` unguarded and the rule green — the §4.2 row being
@@ -363,14 +365,21 @@ class ArchitectureRulesTest {
      */
     @ArchTest
     fun everyPortPackageIsSeenByPortsAreInterfaces(classes: JavaClasses) {
-        val seen =
+        // The rule's OWN glob, evaluated by the matcher ArchUnit uses for resideInAPackage.
+        // An earlier version re-implemented it as startsWith/endsWith and so tested a
+        // reimplementation rather than the rule: narrowing ALL_PORTS to the context-free
+        // package left a non-interface in identity.port merging green with this guard still
+        // passing. A guard that does not read the thing it guards is not a guard.
+        val matcher = PackageMatcher.of(ALL_PORTS)
+        val reached =
             classes
-                .filter { it.packageName.startsWith("$DOMAIN_ROOT.") && it.packageName.endsWith(".port") }
-                .map { it.packageName.removePrefix("$DOMAIN_ROOT.") }
+                .map { it.packageName }
+                .filter { matcher.matches(it) }
+                .map { it.removePrefix("$DOMAIN_ROOT.") }
                 .toSortedSet()
 
-        check(seen == PORT_PACKAGES) {
-            "portsAreInterfaces is scoped at '$ALL_PORTS' and reaches $seen, but the port " +
+        check(reached == PORT_PACKAGES) {
+            "portsAreInterfaces is scoped at '$ALL_PORTS', which reaches $reached, but the port " +
                 "packages in core-domain are $PORT_PACKAGES. A package the glob misses is a " +
                 "package the rule leaves unguarded while reporting success " +
                 "(doc:00-constitution#observed-failing)"
@@ -409,7 +418,7 @@ class ArchitectureRulesTest {
                 .filter {
                     it.packageName == DOMAIN_PORT_PACKAGE ||
                         it.packageName.startsWith("$DOMAIN_PORT_PACKAGE.")
-                }.map { it.simpleName }
+                }.map { it.name.removePrefix("$DOMAIN_PORT_PACKAGE.") }
                 .toSortedSet()
 
         check(seen.isNotEmpty()) {
