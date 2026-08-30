@@ -193,13 +193,13 @@ Each check is decidable from repository contents alone.
 | 11 | completed beans are final | a bean that was `completed` on the merge base changes in any way other than gaining entries under a trailing `## Amendments` section, or an amendment omits its date, its authoring bean, `**Claimed:**`, `**Found:**` or `**Evidence:**` (`adr:0005-evidence-lives-in-the-work-item#amendments`) |
 | 12 | bean graph | a `blocked_by` or `parent` id matches other than exactly one bean file, a `blocked_by` edge names a `type: epic` bean, the `blocked_by` graph has a cycle, two beans that reach `AGENTS.md` step 1's tiebreak together share an `order` value, or no bean is selectable at all |
 | 13 | bean id uniqueness | a bean id names two files in the tree, a filename's id and its front-matter `# <id>` marker disagree, a bean filename is not `<prefix><id>--<slug>.md` at `.beans.yml`'s `id_length`, or an id this branch **introduces** already exists on `origin/main` |
-| 14 | a bean closes without evidence | a bean that is `completed` in the change and was not `completed` on the merge base carries no evidence section, an evidence section holding no entry, a numbered table in an evidence section with no evidence column, an unanswered numbered criterion, or an evidence cell that is empty or holds only a name from `doc:50-memory-and-evidence#evidence-kinds` |
+| 14 | a bean closes without evidence | a bean that is `completed` in the change and was not `completed` on the merge base carries no evidence section, an evidence section holding no entry, a numbered table in an evidence section with no evidence column, an unanswered numbered criterion, an evidence cell that is empty or holds only a name from `doc:50-memory-and-evidence#evidence-kinds`, or a fenced block that is never closed |
 
 **Enforced by:** `tools/docs-lint.sh`, run by the `docsLint` task inside `qualityCheck`
 (`rule:ci/build`). Each check has been observed rejecting a planted violation; check 11's
 four rejections and its one accepted amendment are recorded in `bean:0038`, check 12's
 six rejections and its one negative control in `bean:0035`, check 13's three in `bean:0051`,
-check 14's five, its negative control and its observed CI failure in `bean:0055`.
+check 14's six, its negative control and its observed CI failure in `bean:0055` and `bean:0063`.
 
 Check 11 classifies by the `status:` on the **merge base**, not on the branch, and diffs the
 base against the **working tree**. A bean moving `in-progress` → `completed` in the change
@@ -231,11 +231,39 @@ conventions:
   `evidence kind` column names what will be produced, not what was, so a numbered table in an
   evidence section that carries no evidence column restates its criteria and answers none of
   them. Check 14 rejects that table rather than letting its rows stand as their own evidence.
+- A **fence** opens on a line of three or more backticks or tildes, indented at most three
+  columns, and closes only on a line carrying at least as many of the SAME character and
+  then nothing but whitespace (CommonMark §4.5). A backtick fence's info string MUST NOT
+  contain a backtick. A transcript that quotes a fence marker MUST sit inside a longer
+  fence, which is what makes the quoted marker content rather than a delimiter.
+- A fenced block that is never closed fails check 14, naming the line it opened on. Which
+  marker is content and which is a delimiter is not decidable from a file that leaves one
+  open, and a check that guesses reads every line after it with its inside/outside sense
+  reversed — in both directions, so a bean quoting this check's own output answers its own
+  criteria and a filled evidence table is reported absent (`bean:0063`).
 - A criterion is **answered** by an evidence row bearing its number, or by a `criterion N` or
-  `criteria N–M` citation anywhere in the bean **outside a fenced block**. A fence is an entry
-  but is not a citation site: it holds verbatim output, and in this repository that output
-  quotes this check's own `criterion N is not answered` message, so reading citations inside
-  fences would let pasted output answer the criterion it reports as unanswered (`bean:0061`).
+  `criteria N–M` citation standing in the bean's **top-level Markdown prose** — a line that
+  carries the citation as prose and is inside no container of any kind. The rule is stated
+  positively and the containers it excludes are deliberately **not** enumerated: a fence, a
+  block quote, an indented chunk, a raw HTML block, an HTML comment, a link-reference or
+  footnote definition and anything else that renders as code, as a container or as nothing
+  all fail it by construction rather than by being listed. An enumeration would be an
+  allowlist and would fail on the first container nobody named, which is how this rule was
+  already got past once. The reason the rule exists at all: in this repository a bean's
+  pasted output quotes this check's own `criterion N is not answered` message, so counting a
+  citation inside a container lets pasted output answer the criterion it reports as
+  unanswered (`bean:0061`, `bean:0063`). A fence is an entry but is not a citation site; no
+  other container is either.
+
+  **Enforcement gap:** the rule above is a property; the check is not. `citation_site()`
+  blocks exactly two things — four or more columns of indent, and a `>` on the citation's
+  own line — and treats every other line as top-level prose. So a citation inside any
+  container that does not put one of those two on the citing line itself answers its
+  criterion today, including a lazy block-quote continuation (CommonMark §5.1 puts an
+  unprefixed paragraph line inside the quote), a raw HTML block, front matter, and a list
+  item. Stated as the mechanism rather than as a list of containers, because a list here
+  would go stale as containers are found and would be the same enumeration the rule above
+  exists to avoid. `bean:0061` owns the citation matcher and carries the work.
   A criterion whose evidence is a section that
   never names it is unanswered however long that section is, because
   `adr:0005-evidence-lives-in-the-work-item#evidence-home` puts the evidence beside the
