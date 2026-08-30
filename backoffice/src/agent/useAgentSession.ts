@@ -6,6 +6,7 @@ import {
   isPricedModel,
   keepLargerFrame,
   peakContextTokens,
+  usageOf,
   zeroUsage,
 } from './transport';
 import type {
@@ -181,7 +182,11 @@ function reduce(state: AgentSessionState, event: StreamEvent): AgentSessionState
       // with the largest `outputTokens` — rather than adding to the total.
       // Assigning here, as this reducer used to, silently required the producer
       // to send cumulative totals, which no real producer does.
-      const previous = state.usageByMessage[event.messageId];
+      // `usageOf`, not a bare index: `messageId` is producer-controlled and a
+      // plain object inherits from `Object.prototype`, so an id like
+      // `constructor` would hit an inherited value and silently drop the
+      // message from the fold. See `usageOf` for what that costs.
+      const previous = usageOf(state.usageByMessage, event.messageId);
 
       // The premise the selection rests on, checked rather than assumed. Frames
       // of one message must agree on the four non-output kinds; if they do not,

@@ -167,6 +167,49 @@ test('a tool id colliding with the notice id does not suppress the detector', as
   await expect(page.getByText('Complete').first()).toBeVisible({ timeout: 20_000 });
 });
 
+/**
+ * `messageId` is producer-controlled wire data, and the usage map is a plain
+ * object. So an id naming an inherited property is a lookup *hit* on a map that
+ * has never seen that message.
+ *
+ * Two failures follow silently, and the second is the expensive one: a
+ * disagreement is invented on a stream containing none, and `keepLargerFrame`
+ * compares against the inherited value, keeps it, and never writes the message
+ * into the map — so its tokens vanish from the fold and the run's cost and peak
+ * context are both understated with nothing on screen to say so.
+ *
+ * The stream here is otherwise untouched: same frames, same counts, no
+ * disagreement. Only one id is renamed, which any producer may legitimately do.
+ */
+test('a message id naming an inherited property is counted, not silently dropped', async ({
+  page,
+}) => {
+  await page.goto('/domains/modus/agents?replay=0&fault=proto-message-id');
+  await page.getByTestId('agent-run').click();
+  await expect(page.getByText('Complete').first()).toBeVisible({ timeout: 20_000 });
+
+  // No disagreement exists in this stream, so none may be reported.
+  await expect(
+    page.getByTestId('agent-transcript').getByText(/disagree on input or cache tokens/),
+  ).toHaveCount(0);
+
+  // And the renamed message is still in the fold. Compare against the identical
+  // clean run: an equal cost proves nothing was dropped, where the pre-fix code
+  // silently halved it.
+  const renamedCost = await page.getByTestId('agent-cost').innerText();
+  const renamedOut = await page.getByTestId('agent-tokens-out').innerText();
+
+  await page.goto(INSTANT);
+  await page.getByTestId('agent-run').click();
+  await expect(page.getByText('Complete').first()).toBeVisible({ timeout: 20_000 });
+
+  expect(parseUsd(renamedCost)).toBeCloseTo(
+    parseUsd(await page.getByTestId('agent-cost').innerText()),
+    6,
+  );
+  expect(renamedOut).toBe(await page.getByTestId('agent-tokens-out').innerText());
+});
+
 /** The happy path must NOT trip the detector, or the notice means nothing. */
 test('an ordinary session reports no frame disagreement', async ({ page }) => {
   await page.goto(INSTANT);

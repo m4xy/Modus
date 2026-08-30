@@ -131,7 +131,7 @@ marked `[...]` (`bean:0091`).
 | 3 | `bean:0014` is no longer silent: it states the published usage shape, and states the premise's enforcement status honestly | `cmd`: `grep -c "" .beans/modus-0014--execution-bounded-context.md` → the file carries a six-clause `## The usage vocabulary this context publishes` section. `cmd`: `grep -n "observed to hold\|not asserted" .beans/modus-0014--execution-bounded-context.md` → clause 2 reads `It is *observed to hold* on every run of the replayed corpus, and it is **not asserted**.` The previous version of this cell named a filename and nothing else, which asserts that a file exists rather than that a criterion is met |
 | 4 | No floating-point money survives in the seam, and no third name for it is introduced | `cmd`: `grep -n "1_000_000" backoffice/src/agent/transport.ts backoffice/src/routes/AgentConsole.tsx` → four hits: `248` (prose in a KDoc), `285` (a rate literal, `input: 1_000_000`), `376` (`costMicros`, integer micros in and integer micros out), `AgentConsole.tsx:157` (the render). So there are **two** arithmetic sites, not one, and the earlier cell saying "the only division is the render" was false. The claim that holds: exactly one site converts **to dollars**, and it is the render. `cmd`: `grep -rn "costUsdMicros" backoffice/src` → no output; the field is `costUsd`, integer micros, the name `doc:60#spend-record` already uses |
 | 5 | The console implements the rule it publishes — the reducer folds and dedupes rather than assigning | `cmd`: `grep -n "case 'usage'" -A6 backoffice/src/agent/useAgentSession.ts` → the branch computes `keepLargerFrame`, folds via `foldUsage`, and returns `state` unchanged when the frame is not larger. `[...]` the mock emits a partial frame, a finished frame and a repeated finished frame per request, so the dedupe path runs on every session |
-| 6 | The premise `keepLargerFrame` rests on is **detected**, the detector cannot be silenced by producer-chosen input, and it is observed firing, firing exactly once, and not firing on a clean run | `test-run`: `./gradlew e2eTest` → `36 passed (7.6s)`, covering `a usage frame that disagrees on cache tokens is reported, not discarded` (`toHaveCount(1)`), `a tool id colliding with the notice id does not suppress the detector` (`toHaveCount(1)`), and `an ordinary session reports no frame disagreement` (`toHaveCount(0)`). Each was observed failing before its fix — the collision test by reverting only the `block.kind === 'notice'` clause, which gave `expect(locator).toHaveCount(expected) failed` with 0 notices where 1 was expected |
+| 6 | The premise `keepLargerFrame` rests on is **detected**; the detector cannot be silenced by producer-chosen input; and every message reaches the fold whatever its id | `test-run`: `./gradlew e2eTest` -> `37 passed`. Firing: `a usage frame that disagrees on cache tokens is reported, not discarded` (`toHaveCount(1)`). Not silenceable: `a tool id colliding with the notice id does not suppress the detector` (`toHaveCount(1)`). Not firing spuriously: `an ordinary session reports no frame disagreement` (`toHaveCount(0)`) and `a message id naming an inherited property is counted, not silently dropped`, which also asserts the run costs the same as the identical clean run. Each was observed failing before its fix; the last reported a disagreement on a stream containing none, and dropped the message from the fold. **Scope, stated because the earlier version of this cell overclaimed:** "does not fire on a clean run" was evidenced only by the mock's own `msg_NN` ids, which establishes it for one id shape and not for wire input — and that gap is exactly where the inherited-property defect lived |
 | 7 | Sonnet 5 is priced at the rate actually in force, matching `cost_lib` for the same model id | `cmd`: `grep -n "claude-sonnet-5" backoffice/src/agent/transport.ts tools/cost_lib.py` → `transport.ts:284: 'claude-sonnet-5': { input: 2_000_000, output: 10_000_000 }` and `cost_lib.py:51: "claude-sonnet-5": (2_000_000, 10_000_000)`. Both halves of the seam now agree on a live rate; the previous `$3/$15` priced it 50% high for every day up to the 2026-08-31 lapse |
 | 8 | The gate is green | `command`: `./gradlew backofficeTypecheck backofficeLint backofficeFormatCheck` → `BUILD SUCCESSFUL`; `./gradlew docsLint` → `docs-lint: OK — [...] 0 failure(s)`; `./gradlew e2eTest` → `36 passed` |
 
@@ -148,9 +148,18 @@ file has passed an implicit review by merely existing, and an author repeating o
 they are describing the codebase rather than asserting something.
 
 **The second, which this bean nearly committed.** Checked against `git log`, the claim looks
-fabricated — Opus 5 is $5/$25 in all three commits that ever touched `transport.ts`, and
-`git log --all -S` finds the value on none of 88 refs. On that basis a correction was written
-saying the incident **never happened**, and it was one edit from landing in both artefacts.
+fabricated — the only commit that ever touched the line carrying the Opus 5 rate introduced it
+at $5/$25, and `git log --all -S "outputPerMTok: 75" -- backoffice/` returns nothing. On that
+basis a correction was written saying the incident **never happened**, and it was one edit from
+landing in both artefacts.
+
+(Two defects in that sentence, both fixed above and both generalised in a separate bean
+raised for the purpose. It said
+"all three commits" — six within a day, since this branch touches the file; a count over a
+growing set is stale on arrival where a quantifier is not. And the search was originally
+unscoped and doubled, `-S "75_000_000" -S "outputPerMTok: 75"`, which `git log` resolves
+**last-wins** rather than as "either" — so half of it never ran — while the unscoped form also
+matched this bean's own prose once committed, making the transcript falsify itself.)
 
 It did happen. `.beans/modus-0002--backoffice-foundation.md:130` records it with a before/after
 table and pre-computes this very test's response to it. The defect was fixed **before the
@@ -252,6 +261,28 @@ the recorder exists — `bean:0014` and `bean:0020`'s work, not a specification 
 derived from a cumulative `tokensIn`/`tokensOut` pair, so a runner built to that spec could not
 have met it. That document is also owned by another agent this sprint, so no edit to it was
 made from here.
+
+## Two behaviours that are correct and uncovered
+
+Neither is a defect. Both are recorded because "correct" and "covered" are different claims,
+and only one of them has evidence.
+
+**The losing-frame path has no shipped test.** `?fault=usage-disagreement` corrupts frame 2 of a
+message — a *winning* frame, larger `outputTokens`, so `kept !== previous` and the map updates.
+The other branch is the one where a disagreeing frame *loses*: `kept === previous`, the map is
+not rewritten, and the early return is what stops the reducer discarding the notice along with
+the frame. That branch was checked by review and behaves correctly; nothing in the suite
+exercises it. It is the branch where the detector's suppression and its retention interact, so
+it is the one most likely to break under a later edit.
+
+**Usage arriving after `session-end` still moves the cost.** The reducer does not gate on
+`status`, so a late `usage` event folds normally and a run's total can change after the UI reads
+"Complete". This is arguably right — a late frame is still real spend, and dropping it would
+understate the bill, which is the failure this whole bean exists to prevent. But it is
+*undecided* rather than decided: nothing states which reading is intended, and a consumer
+reading a settled total may see it move. `bean:0014` should settle it when it defines the
+terminal event, since the question is really "what does `AgentRunCompleted` promise about the
+totals that precede it".
 
 ## What is detected, and what still is not
 

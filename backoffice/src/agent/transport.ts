@@ -161,6 +161,42 @@ export function framesDisagree(a: Usage, b: Usage): boolean {
   return NON_OUTPUT_KINDS.some((kind) => a[kind] !== b[kind]);
 }
 
+/**
+ * Look one message's usage up, treating **only own properties as present**.
+ *
+ * `messageId` is producer-controlled wire data (see the `usage` event below), and
+ * a plain object literal inherits from `Object.prototype`. So a producer sending
+ * `constructor`, `toString`, `valueOf`, `hasOwnProperty` or `__proto__` as a
+ * message id gets a *hit* on a map that has never seen that message, and the
+ * value is a function rather than a `Usage`.
+ *
+ * The consequences are silent and they are not cosmetic:
+ *  - `framesDisagree` compares `undefined !== 0` on every kind and reports a
+ *    disagreement on a stream that contains none.
+ *  - `keepLargerFrame` evaluates `n > undefined`, which is `false`, so it keeps
+ *    the inherited value, `kept === previous` holds, the map is never updated,
+ *    and **the message never enters it at all**. `Object.values` never sees it,
+ *    so its tokens are missing from the fold — the run's cost and its peak
+ *    context are both understated, with nothing on screen to say so.
+ *
+ * `Object.create(null)` would fix the initial map and not the invariant: the
+ * reducer rebuilds the map by spreading, and a spread produces a fresh object
+ * with `Object.prototype` back on the chain. The guard therefore lives at the
+ * lookup, which is the one place that can be made unconditionally safe.
+ *
+ * `isPricedModel` already does this for the model-name namespace, which is
+ * producer-controlled in exactly the same way. This function exists because that
+ * reasoning was applied there and not here, in the same file.
+ */
+export function usageOf(
+  byMessage: Readonly<Record<string, Usage>>,
+  messageId: string,
+): Usage | undefined {
+  return Object.prototype.hasOwnProperty.call(byMessage, messageId)
+    ? byMessage[messageId]
+    : undefined;
+}
+
 /** Rule 2 over a whole run: dedupe by `messageId`, then sum what survives. */
 export function foldUsage(byMessage: Readonly<Record<string, Usage>>): Usage {
   return Object.values(byMessage).reduce<Usage>(addUsage, zeroUsage());

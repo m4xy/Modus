@@ -68,13 +68,15 @@ export type MockFault =
   | 'stream-error'
   | 'transport-error'
   | 'usage-disagreement'
-  | 'usage-disagreement-collision';
+  | 'usage-disagreement-collision'
+  | 'proto-message-id';
 
 const FAULTS: readonly string[] = [
   'stream-error',
   'transport-error',
   'usage-disagreement',
   'usage-disagreement-collision',
+  'proto-message-id',
 ];
 
 export function faultFromLocation(search: string = window.location.search): MockFault {
@@ -222,6 +224,8 @@ export class MockStreamTransport implements StreamTransport {
   private faulted(script: ScriptStep[]): ScriptStep[] {
     if (this.fault === 'none') return script;
 
+    if (this.fault === 'proto-message-id')
+      return this.withRenamedMessage(script, 'msg_01', 'constructor');
     if (this.fault === 'usage-disagreement') return this.withDisagreeingFrame(script, 'msg_01');
     if (this.fault === 'usage-disagreement-collision') {
       // The collision must be planted on a LATER message: the tool block has to
@@ -268,6 +272,22 @@ export class MockStreamTransport implements StreamTransport {
         },
       };
     });
+  }
+
+  /**
+   * Rename one message's `messageId`, changing nothing else.
+   *
+   * The stream stays entirely well-formed: same frames, same token counts, no
+   * disagreement anywhere in it. Only the id changes, to a name that a plain
+   * object inherits from `Object.prototype`. A producer may legitimately send
+   * any string here, so this is ordinary input rather than an attack.
+   */
+  private withRenamedMessage(script: ScriptStep[], from: string, to: string): ScriptStep[] {
+    return script.map((step) =>
+      step.event.type === 'usage' && step.event.messageId === from
+        ? { ...step, event: { ...step.event, messageId: to } }
+        : step,
+    );
   }
 
   /**

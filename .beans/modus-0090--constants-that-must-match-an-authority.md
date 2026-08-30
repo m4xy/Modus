@@ -53,13 +53,35 @@ it is a guard written in response to a specific, documented defect, not a nice-t
 against `git log`, the claim looks fabricated:
 
 ```
-cmd:      git log --all --oneline -- backoffice/src/agent/transport.ts
-observed: three commits have ever touched the file; Opus 5 is $5/$25 in all three
-cmd:      git log --all -S "75_000_000" -S "outputPerMTok: 75" --oneline
-observed: no output — the value appears in no commit on any of 88 refs
+cmd:      git log --all -S "opus-5" --oneline -- backoffice/src/agent/transport.ts
+observed: 10af4f7 feat(backoffice): scaffold the backoffice with a tokenised design system
+cmd:      git show 10af4f7:backoffice/src/agent/transport.ts | grep -n "opus-5"
+observed: 94:  'claude-opus-5': { inputPerMTok: 5, outputPerMTok: 25 },
+cmd:      git log --all -S "outputPerMTok: 75" --oneline -- backoffice/
+observed: no output
 ```
 
-Both searches are correct and the inference from them is not. The defect was **fixed in review
+Exactly one commit has ever touched the line carrying the Opus 5 rate, and it introduced it at
+$5/$25 — so in committed history that rate has never changed at all.
+
+Three things about that transcript are deliberate, and each replaces something that was wrong
+in an earlier revision of this bean (a separate bean carries the general forms):
+
+- **Quantifier, not count.** It said "three commits have ever touched the file". That was six
+  within a day, because this branch's own commits touch it. A claim quantified over a growing
+  set is stale on arrival; a claim about the set is not.
+- **Scoped with `-- backoffice/`.** The unscoped search asserted a string's absence while
+  *recording that string* in this bean — so once committed, the command returned the very
+  commit that wrote the transcript. The observation was invalidated by the act of recording it.
+- **One `-S`, not two.** The original used `-S "75_000_000" -S "outputPerMTok: 75"`, read as
+  "either string". `git log -S` is **last-wins**: the second replaces the first, so only
+  `outputPerMTok: 75` was ever searched and `75_000_000` was discarded with no error and no
+  warning.
+
+The reading of these searches is wrong even though each is individually correct — and note the
+inference was **overdetermined**. Fixing the `-S` bug and rerunning would still return nothing,
+because the real mechanism is the one below; the visible defect's repair would have raised
+confidence in the wrong answer. The defect was **fixed in review
 cycle 1 of PR #3, before the merge**, so only the corrected value was ever committed. `bean:0002`
 is that pull request's bean and `10af4f7` is its commit — the same commit both readers used as
 proof of absence.
