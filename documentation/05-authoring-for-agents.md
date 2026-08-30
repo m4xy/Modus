@@ -263,7 +263,9 @@ conventions:
   unprefixed paragraph line inside the quote), a raw HTML block, front matter, and a list
   item. Stated as the mechanism rather than as a list of containers, because a list here
   would go stale as containers are found and would be the same enumeration the rule above
-  exists to avoid. `bean:0061` owns the citation matcher and carries the work.
+  exists to avoid. `bean:0093` closes it: its criteria require the class to be rejected by
+  construction rather than by a list extended one container at a time. It is `blocked_by`
+  `bean:0061`, which owns the citation matcher and decides what a citation is at all.
   A criterion whose evidence is a section that
   never names it is unanswered however long that section is, because
   `adr:0005-evidence-lives-in-the-work-item#evidence-home` puts the evidence beside the
