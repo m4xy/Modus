@@ -181,6 +181,93 @@ answer. The machine's honest job is the floor (the first candidate) plus a state
 `doc:05-authoring-for-agents#checks` that a green check 14 asserts the record's shape and not
 its truth, so that nobody reads it the way it has been read.
 
+## A third gate sits in front of both conditions, and it silences them
+
+The two conditions in the table above only ever run on a table check 14 recognises as
+carrying evidence. Recognition is a **closed vocabulary of four column headers** —
+`evidence`, `observed`, `output`, `result` — and when a numbered table in an evidence section
+matches none of them, `NOEVCOL` fires and the analyser suppresses the entire per-criterion
+cascade:
+
+```awk
+if (C[i]) { nc++; if (!A[i] && !noevcol) { printf "UNANSWERED\t%d\n", i } }
+```
+
+`!noevcol` is the mask. One unrecognised column header silences the audit of every criterion
+in the bean — not a wrong verdict, an **absent** one, reported as a single line about table
+shape.
+
+```
+planted:  three numbered criteria, and an evidence table headed `| # | ground | verified |`
+          answering only the first two. The third is genuinely unanswered.
+observed: FAIL check 14 …: the table under 'Evidence' numbers criteria in an evidence
+          section but carries no evidence column; 'evidence kind' states what will be
+          produced, not what was observed
+          docs-lint: 1 failure(s).
+exit:     1
+
+control:  the identical table, the one header renamed `verified` -> `observed`
+observed: FAIL check 14 …: criterion 3 is not answered in the evidence; no evidence row
+          bears its number and nothing cites it
+          docs-lint: 1 failure(s).
+exit:     1
+```
+
+The genuinely unanswered criterion is invisible until the header is renamed. An author
+reading the first run learns that a column header is unrecognised and learns nothing about
+whether their criteria are answered.
+
+**So the sequence is header → numbering → cell condition, and a defect in the first hides the
+state of the other two.** `bean:0061` owns the numbering gate and this bean owns the cell
+conditions; neither runs at all when the vocabulary gate rejects the table. The check is most
+silent exactly when a bean's structure is least conventional, which is when it would most
+want to be talking.
+
+### Is the vocabulary documented? Yes — so this is the smaller half of the finding
+
+`doc:05-authoring-for-agents#checks` states it, in the definition list an author writing a
+bean is already reading:
+
+> An **evidence column** is one headed `evidence`, `observed`, `output` or `result`.
+
+So nobody is guessing, and the failure is actionable from the documentation without reading
+the implementation. What the failure **message** does not do is name the four accepted
+headers, so acting on it means one hop to `doc:05`. That is an ergonomics gap, not a
+discoverability one, and it is much smaller than the masking.
+
+### Observed in flight, and it does not say what it was reported to say
+
+`modus-0068` is `in-progress` on `main` and carries a `| # | ground | verified |` table in its
+evidence section. Flipped to `completed` it reports exactly one failure and no per-criterion
+line at all — the masking, on a real bean. Renaming that one header was reported to me as
+yielding zero unanswered criteria. **It does not.**
+
+```
+cmd:      modus-0068 flipped to `completed`, header `verified` -> `observed`, nothing else
+expected: the cascade unmasked, with nothing unanswered
+observed: FAIL check 14 …modus-0068…: criterion 5 is not answered in the evidence; …
+          FAIL check 14 …modus-0068…: criterion 6 is not answered in the evidence; …
+          FAIL check 14 …modus-0068…: criterion 7 is not answered in the evidence; …
+          FAIL check 14 …modus-0068…: criterion 8 is not answered in the evidence; …
+          FAIL check 14 …modus-0068…: criterion 9 is not answered in the evidence; …
+          FAIL check 14 …modus-0068…: criterion 10 is not answered in the evidence; …
+          FAIL check 14 …modus-0068…: criterion 14 is not answered in the evidence; …
+          docs-lint: 7 failure(s).
+exit:     1
+```
+
+Seven, not zero. The header its owner is already fixing is masking seven unanswered criteria
+today, and fixing the header alone will surface all seven at once.
+
+And the unmasked reading is **also** unsound, which is the part that matters here. That
+table's `#` column numbers *grounds*, not criteria — it is a list of supporting arguments that
+happens to be numbered. Recognising it as an evidence table makes those row numbers answer
+criteria they have nothing to do with, so the low-numbered criteria are marked answered by
+grounds that were never about them, and only the criteria beyond the table's length are
+reported. **Neither reading of that bean is correct**: masked, it audits nothing; unmasked, it
+answers criteria from a table that is not about them. That is the numbering semantics
+`bean:0061` owns, reached through the vocabulary gate this bean owns, on one table.
+
 ## This bean shipped with one of its own criteria pre-closed
 
 Found by flipping it to `completed` and reading which criteria check 14 named:
@@ -277,7 +364,7 @@ because it is unmerged, and a typed reference to an unmerged bean fails check 6.
 | 2 | Whatever is adopted is a requirement naming a property, not a list of rejected strings, and the plural/article/trailing-word variations above are observed against it | planted violation, reverted |
 | 3 | `doc:05-authoring-for-agents#checks` states what a green check 14 does and does not assert, and its check 14 row carries an `Enforcement gap:` line naming the bean that closes the unmechanised half, per `doc:00-constitution#observed-failing` | diff |
 | 4 | The retroactive effect on the `completed` corpus is measured and named per file at check 14's real cell scope — every table carrying an evidence column, not only those in a criteria or evidence region | analyser run over the corpus, before and after |
-| 5 | What the analyser perceives about a cell is asserted separately from what it decides | test-run |
+| 5 | What the analyser perceives about a cell is asserted separately from what it decides, and the NOEVCOL mask is either removed or its suppression of the per-criterion cascade is stated as deliberate with its reason | test-run |
 | 6 | `./gradlew qualityCheck` green | test-run |
 
 ## Not in scope
