@@ -202,10 +202,10 @@ sweep is what stopped it. A check that has never changed an outcome is indisting
 ceremony; this one is now known to be load-bearing, and that is worth more here than a tidy
 history would be.
 
-## Two defects this bean committed, found by running the gate## Two defects this bean committed, found by running the gate
+## Three defects this bean committed, found by running the gate
 
-Recorded rather than quietly fixed, because both are instances of the class this bean is
-about and one of them is a class nobody here had named.
+Recorded rather than quietly fixed, because each is an instance of the class this bean is
+about, and two of them are classes nobody here had named.
 
 **A value meaning "not priced" was also made to mean "nothing yet" — F3 in miniature, on
 myself.** `costUsd: null` was intended for "the model is not in `BASE_RATES_UPM`", and was
@@ -239,6 +239,47 @@ Two things about how it surfaced are worth keeping:
   that fires on every run has also been "observed firing" and is worthless, and one that fires
   N times for one fault is worse than useless because the count lies. The negative observation
   is not a courtesy; it is half the evidence.
+
+**A producer-controlled string used as an object key, in a seam that already knew better.**
+`usageByMessage` is a plain object and `messageId` is wire data the producer chooses, so an id
+naming an inherited property — `constructor`, `toString`, `valueOf` — was a lookup *hit* on a
+map that had never seen that message. Two silent failures followed: `framesDisagree` compared
+`undefined !== 0` and reported a disagreement on a stream containing none, and
+`keepLargerFrame` evaluated `n > undefined` as `false`, kept the inherited value, left the map
+unwritten, and **dropped the message from the fold entirely** — halving the run's cost and
+understating peak context with nothing on screen to say so.
+
+`Object.create(null)` does not fix this, and it was the first fix considered. It corrects the
+initial map and not the invariant: the reducer rebuilds by spreading, and a spread produces a
+fresh object with `Object.prototype` back on the chain. **The guard has to be at the lookup,
+which is the only place that can be made unconditionally safe** — hence `usageOf`.
+
+**The interesting part is not the bug; it is the unit of analysis.** The obvious reading is a
+transfer failure — a lesson learned in one place and not carried to another. It is not, and the
+file refutes it: `isPricedModel`, twenty lines away, already reads
+`Object.prototype.hasOwnProperty.call(BASE_RATES_UPM, model)`, written by this bean, for a
+producer-controlled string, for exactly this reason. The same principle, in the same file, for
+the same class of input, applied once and not twice.
+
+So the failure is that **each lookup was treated as a local question instead of asking which
+namespaces in this seam are producer-controlled**. That question has a short answer —
+`messageId`, `callId`, `model` — and it should have been asked once rather than three times.
+
+That distinction matters because it changes the remedy. "Carry the lesson forward" is an
+exhortation, and it scales with vigilance, which is to say it does not scale. "List this seam's
+producer-controlled namespaces" is a question with a finite answer that can be written down and
+checked against. **A checklist beats an exhortation**, and this one is three items long:
+
+| namespace | reaches | guarded by |
+|---|---|---|
+| `messageId` | the `usageByMessage` key | `usageOf` |
+| `callId` | the transcript block id | `block.kind === 'notice'` in the suppression check |
+| `model` | the `BASE_RATES_UPM` key | `isPricedModel` |
+
+All three were found one at a time, by three separate review findings, over two rounds. Asked
+as one question, the list takes a minute to produce and is exhaustive for this seam. Any
+implementation of `bean:0014` inherits the same three namespaces across the wire and should
+produce its own list before writing lookups, not after review finds them individually.
 
 ## Two claims checked and **not** encoded
 

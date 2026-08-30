@@ -70,6 +70,14 @@ in an earlier revision of this bean (a separate bean carries the general forms):
 - **Quantifier, not count.** It said "three commits have ever touched the file". That was six
   within a day, because this branch's own commits touch it. A claim quantified over a growing
   set is stale on arrival; a claim about the set is not.
+
+  The companion figure makes the case better than the argument does. The same transcript said
+  the value appears "on none of 88 refs". That count was **88, then 108, then 109, then 113**
+  across four readings — all within the single conversation in which the staleness of counts
+  was being discussed, none of them wrong when taken, and no two agreeing. A number that moved
+  three times inside one discussion *about numbers moving* needs no further argument. The
+  claim that does not rot is the one that quantifies over the set instead of counting it:
+  every ref, however many there are.
 - **Scoped with `-- backoffice/`.** The unscoped search asserted a string's absence while
   *recording that string* in this bean — so once committed, the command returned the very
   commit that wrote the transcript. The observation was invalidated by the act of recording it.
