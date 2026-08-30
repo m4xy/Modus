@@ -5,6 +5,7 @@ import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.domain.JavaMethodCall
 import com.tngtech.archunit.core.domain.JavaModifier
+import com.tngtech.archunit.core.domain.PackageMatcher
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.junit.AnalyzeClasses
 import com.tngtech.archunit.junit.ArchTest
@@ -217,6 +218,57 @@ class ArchitectureRulesTest {
             .should(dependOnlyOnLeafSafeTypes("the Kotlin stdlib, java.time and the rest of the shared kernel"))
             .because("every context imports the shared kernel, so anything it drags behind it is imported unseen")
 
+    /**
+     * `doc:15-repository-layout#core-package-rules` §4.2 `PortsAreInterfaces`, at the scope
+     * that document gives it: **every** `..domain.port..` package, context-scoped ones
+     * included. One of the five §4.2 rules that paragraph records as not existing — until
+     * this, "a port that is not an interface" merged green.
+     *
+     * A port with an implementation inside `core-domain` is not a port:
+     * `doc:00-constitution` §1.2 declares the interface inside and puts every implementation
+     * outside. The three port packages that exist today — `identity.port` twice and
+     * `domainmgmt.port` — are what make this rule observable on real code rather than on an
+     * empty package.
+     *
+     * `bean:0027` carries the audit of the remaining four.
+     */
+    @ArchTest
+    val portsAreInterfaces: ArchRule =
+        classes()
+            .that()
+            .resideInAPackage(ALL_PORTS)
+            .should()
+            .beInterfaces()
+            .because("a port with an implementation inside core-domain is not a port (doc:00-constitution §1.2)")
+
+    /**
+     * The context-free ambient-capability ports are additionally **leaf**.
+     *
+     * This is deliberately narrower than [portsAreInterfaces] and cannot be merged into it.
+     * A per-context port legitimately names its own context: `PermissionGrantRepository`
+     * imports `PermissionGrant`, `ActorId` and `GrantId`, exactly as
+     * `doc:20-ddd-practices#ports-and-adapters` §5.2 intends — a repository port speaks in
+     * its own aggregate's types. Applying a leaf condition at `..domain.port..` scope would
+     * reject all three ports that exist today.
+     *
+     * What makes `..core.domain.port` different is that it belongs to no context and every
+     * context injects it, so a dependency added here is one every context inherits without
+     * seeing it — the same argument `rule:archunit/sharedKernelIsLeaf` rests on, for the same
+     * reason. A port returning `identity.published.ActorId` would put one context's published
+     * language on the injection path of every other context, including those
+     * `doc:10-architecture#bounded-contexts` §3.1 forbids from importing `identity` at all.
+     *
+     * Nothing on `main` could see this package before `bean:0065`: [SHARED_KERNEL] is an
+     * exact name set and [PUBLISHED_LANGUAGE] a `*.published..` wildcard.
+     */
+    @ArchTest
+    val ambientCapabilityPortsAreLeaf: ArchRule =
+        classes()
+            .that()
+            .resideInAPackage(DOMAIN_PORTS)
+            .should(dependOnlyOnLeafSafeTypes("the Kotlin stdlib and java.time"))
+            .because("every context injects an ambient capability, so anything it drags behind it is imported unseen")
+
     @ArchTest
     val thereAreNoPackageCycles: ArchRule =
         slices()
@@ -296,6 +348,93 @@ class ArchitectureRulesTest {
         check(missing.isEmpty()) { "ArchUnit imported nothing for: $missing (imported ${packages.size} packages)" }
     }
 
+    /**
+     * [portsAreInterfaces] perceives every port package, asserted rather than assumed.
+     *
+     * `doc:15-repository-layout#core-package-rules` §4.2 renders this rule's scope as
+     * `..domain.port..`. Measured against `PackageMatcher` rather than assumed, that glob
+     * **does** match the context-free `uk.m4xy.modus.core.domain.port` and misses only the
+     * context-scoped `identity.port` and `domainmgmt.port` — so the documented scope guards
+     * two of the three port packages this repository has. Implementing the rule therefore
+     * meant *choosing* a wider scope, `$DOMAIN_ROOT..port..`, and the choice is asserted here
+     * by evaluating that glob rather than by describing it.
+     *
+     * Without this, a glob that silently matched only the context-free package would leave
+     * `identity.port` and `domainmgmt.port` unguarded and the rule green — the §4.2 row being
+     * closed in name only. `bean:0095` carries correcting the document.
+     */
+    @ArchTest
+    fun everyPortPackageIsSeenByPortsAreInterfaces(classes: JavaClasses) {
+        // The rule's OWN glob, evaluated by the matcher ArchUnit uses for resideInAPackage.
+        // An earlier version re-implemented it as startsWith/endsWith and so tested a
+        // reimplementation rather than the rule: narrowing ALL_PORTS to the context-free
+        // package left a non-interface in identity.port merging green with this guard still
+        // passing. A guard that does not read the thing it guards is not a guard.
+        val matcher = PackageMatcher.of(ALL_PORTS)
+        val reached =
+            classes
+                .map { it.packageName }
+                .filter { matcher.matches(it) }
+                .map { it.removePrefix("$DOMAIN_ROOT.") }
+                .toSortedSet()
+
+        check(reached == PORT_PACKAGES) {
+            "portsAreInterfaces is scoped at '$ALL_PORTS', which reaches $reached, but the port " +
+                "packages in core-domain are $PORT_PACKAGES. A package the glob misses is a " +
+                "package the rule leaves unguarded while reporting success " +
+                "(doc:00-constitution#observed-failing)"
+        }
+    }
+
+    /**
+     * Non-vacuity and membership for [ambientCapabilityPortsAreLeaf]. **Nothing more.**
+     *
+     * An earlier version of this KDoc sold it as the answer to "green forever while
+     * examining nothing", and `bean:0065` criterion 4 banked on that. It is not. This
+     * asserts which **names** reside in the package; the escape that got past the gate was
+     * in what those names **declare** — a `@JvmInline value class` return type, which leaves
+     * the name set untouched. This guard stayed green through that escape and was right to.
+     *
+     * Perception asserted at the wrong granularity is worse than perception not asserted,
+     * because it discharges the obligation in the author's mind and in the criterion table.
+     * The declaration-level perception this package actually needs is
+     * [AmbientCapabilityPortSourcePerceptionTest], over source, where the type survives.
+     *
+     * What this is still worth: it fails if the package empties or is renamed, and it makes
+     * adding a port a deliberate edit. Be honest about the mechanism — both constants live a
+     * few lines from the rule and the message ends "update this set deliberately", so it
+     * **enforces a pause, not an invariant** (`doc:00-constitution#mechanical-enforcement`).
+     * A pause is worth something in review and is not a gate.
+     *
+     * Scoped with the rule's own `..`, not `==`: [ambientCapabilityPortsAreLeaf] covers
+     * subpackages, and a guard narrower than the rule it guards reports on a set the rule
+     * does not have. A port in `..core.domain.port.internal` was verified invisible to the
+     * `==` form, value-class return and all.
+     */
+    @ArchTest
+    fun everyAmbientCapabilityPortIsSeenByItsOwnRule(classes: JavaClasses) {
+        val seen =
+            classes
+                .filter {
+                    it.packageName == DOMAIN_PORT_PACKAGE ||
+                        it.packageName.startsWith("$DOMAIN_PORT_PACKAGE.")
+                }.map { it.name.removePrefix("$DOMAIN_PORT_PACKAGE.") }
+                .toSortedSet()
+
+        check(seen.isNotEmpty()) {
+            "ambientCapabilityPortsAreLeaf selected no class at all: nothing resides in " +
+                "$DOMAIN_PORT_PACKAGE or below it, so the rule is vacuously satisfied and " +
+                "enforces nothing (doc:00-constitution#observed-failing)"
+        }
+        check(seen == AMBIENT_CAPABILITY_PORTS) {
+            "$DOMAIN_PORT_PACKAGE and its subpackages hold $seen, but the rule is declared to " +
+                "cover $AMBIENT_CAPABILITY_PORTS. A port added without being named here is a " +
+                "port nobody chose to put on every context's injection path. This checks names " +
+                "only — what they declare is AmbientCapabilityPortSourcePerceptionTest's job. " +
+                "Update this set deliberately."
+        }
+    }
+
     companion object {
         const val ROOT: String = "uk.m4xy.modus"
 
@@ -305,6 +444,34 @@ class ArchitectureRulesTest {
         private const val ADAPTERS = "$ROOT.adapter.."
         private const val MODULES = "$ROOT.module.."
         private const val APP = "$ROOT.app.."
+
+        /**
+         * The context-free ambient-capability port package (`bean:0065`). A sibling of the
+         * shared kernel, not a member of it: [SHARED_KERNEL] is a name set, so
+         * [sharedKernelIsLeaf] cannot see this package however it is spelled.
+         */
+        private const val DOMAIN_PORT_PACKAGE = "$DOMAIN_ROOT.port"
+        private const val DOMAIN_PORTS = "$DOMAIN_PORT_PACKAGE.."
+
+        /**
+         * Every port package, context-scoped and context-free alike — the scope
+         * `doc:15-repository-layout#core-package-rules` §4.2 gives `PortsAreInterfaces`.
+         */
+        private const val ALL_PORTS = "$DOMAIN_ROOT..port.."
+
+        /**
+         * The ports [ambientCapabilityPortsAreLeaf] is declared to cover, asserted
+         * by [everyAmbientCapabilityPortIsSeenByItsOwnRule]. Written out so that adding one is
+         * a visible edit rather than a silent widening of what every context injects.
+         */
+        private val AMBIENT_CAPABILITY_PORTS = sortedSetOf("ClockPort", "IdGeneratorPort", "RandomPort")
+
+        /**
+         * Every port package [portsAreInterfaces] must reach, relative to `$DOMAIN_ROOT`.
+         * Written out so that the glob's reach is asserted rather than assumed, and so that a
+         * new context's port package is a deliberate edit here.
+         */
+        private val PORT_PACKAGES = sortedSetOf("domainmgmt.port", "identity.port", "port")
 
         private const val PUBLISHED_LANGUAGE = "$DOMAIN_ROOT.*.published.."
         private const val DOMAIN_EVENTS = "$DOMAIN_ROOT.*.event.."
