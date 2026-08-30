@@ -307,7 +307,7 @@ exists. The `blocked_by` edge is on `bean:0014`, which the orchestrator carries.
 **Correction to an earlier claim in this bean.** It said the sequencing "now lives where the
 selector reads it". That is half true, and the half that is false matters: `blocked_by` is
 machine-checked by `docs-lint` check 12, but **nothing sorts by priority then order**. Check
-12 computes the ready *set* (`tools/docs-lint.sh:442`) and uses it only for a duplicate
+12 computes the ready *set* (`tools/docs-lint.sh`) and uses it only for a duplicate
 `(priority, order)` guard and a non-emptiness check; `N selectable` is a set size, not an
 ordering. The ranking in `AGENTS.md` step 1 is applied by whoever is reading. `bean:0094`
 carries the gap.

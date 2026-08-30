@@ -15,16 +15,16 @@ created_at: 2026-08-30T00:00:00Z
 ties break on `order`, ascending; a bean with no `order` sorts after every bean that has one.
 
 **Nothing computes it.** `docs-lint` check 12 comes within one line of doing so and stops.
-It builds the ready set at `tools/docs-lint.sh:442`:
+It builds the ready set at `tools/docs-lint.sh`:
 
 ```sh
 printf '%s\t%s\t%s\t%s\n' "$priority" "$order" "$id" "$file" >> "$TMP/bean-ready.tsv"
 ```
 
 — priority, order, id, file, one row per selectable bean, in exactly the shape the rule
-needs. That file is then used twice: line 474 sorts it to find **duplicate** `(priority,
-order)` pairs, and line 481 checks it is **non-empty**. It is never ranked. No tool in the
-repository answers "which bean is next".
+needs. That file is then used exactly twice: once sorted to find **duplicate** `(priority,
+order)` pairs among selectable beans, and once to check it is **non-empty**. It is never
+ranked. No tool in the repository answers "which bean is next".
 
 So check 12 validates every *input* to the algorithm — edges resolve, no cycles, no ties,
 the set is non-empty — while leaving the algorithm itself to be run in an agent's head.

@@ -15,7 +15,7 @@ created_at: 2026-08-29T00:00:00Z
 > `-Pcoverage.regress=<reason>`, and **the reason is recorded below**.
 
 It is recorded below only until the next baseline write, whatever that write is about.
-`build-logic/src/main/kotlin/modus.coverage.gradle.kts:258` rebuilds the file from a
+`build-logic/src/main/kotlin/modus.coverage.gradle.kts` rebuilds the file from a
 constant header, a note derived solely from **this** run's regressions, and the rows:
 
 ```kotlin
@@ -68,7 +68,7 @@ observed: diff baseline.before.tsv config/coverage/baseline.tsv
 Both regression blocks **and the note recording that this keeps happening** were destroyed by
 a write whose every row was unchanged. Restored by hand again, in `bean:0065`.
 
-The mechanism is plain once stated in this order (`modus.coverage.gradle.kts:246`, `:258`):
+The mechanism is plain once stated in this order (`modus.coverage.gradle.kts`, `:258`):
 `header` is a constant, `note` is empty unless **this** run regressed, and the file is
 rebuilt as `header + note + rows`. Nothing reads the existing file's comments. So the
 condition for losing provenance is not "a regression happened" — it is "`coverageBaselineWrite`
@@ -95,5 +95,5 @@ restorations so far was caught by a human or agent reading the diff by eye.
 - Decide and record whether a reason should expire — a module whose figures have moved
   twice since may no longer be explained by it. Preserving forever and preserving until the
   module's row next changes are both defensible; silently dropping on any write is not.
-- The `// The reason lives in the file…` comment at `modus.coverage.gradle.kts:244` is
+- The `// The reason lives in the file…` comment at `modus.coverage.gradle.kts` is
   corrected or deleted. It is the claim this bean disproves.
