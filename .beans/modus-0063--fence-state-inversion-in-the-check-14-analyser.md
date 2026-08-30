@@ -405,8 +405,31 @@ exit:     0
 ```
 
 `0 closing transitions, 0 criteria checked` on that run is the point `bean:0096` records:
-check 14 never examines the bean whose work the change contains. **The pull request carrying
-this closure is the first run in which it examines this bean at all.**
+check 14 never examines the bean whose work the change contains. The pull request carrying
+this closure is the first run in which it examines this bean at all.
+
+**What that run does not establish, measured on this file.** Review deleted `### Criterion 1`
+and `### Criterion 3`'s evidence sub-sections outright and re-ran the analyser:
+
+```
+cmd:      the check 14 analyser over this bean, intact and with those two sub-sections cut
+observed: intact                         STATS 5 0
+          106 lines of evidence deleted  STATS 5 0
+exit:     0
+```
+
+Identical. Both criteria stay answered because `## Criterion 3, amended` and prose elsewhere
+name them from **outside** `## Evidence`, and the matcher counts a citation wherever it
+stands. So `5 criteria checked` on the closing run means five criteria were *examined*, not
+five criteria *evidenced* — the counter cannot tell this bean from one with a hundred lines
+cut out of it.
+
+Both criteria do carry real evidence; it is above, and a reader can check it. The point is
+that the **green gate is not what establishes that**, and this bean should not be read as
+claiming otherwise. It is `bean:0093`'s citation defect occurring inside the closure of the
+bean that sits beside it in the same family — the third demonstration this sprint that a
+criterion answered from outside its evidence section is indistinguishable from one answered
+inside it.
 
 ## Attacks tried against the fix
 
