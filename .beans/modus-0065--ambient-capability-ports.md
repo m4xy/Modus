@@ -567,3 +567,53 @@ Stated because an unstated limit reads as coverage.
 |---|---|
 | `import kotlin.io.path.Path` in a port | **passes the source rule.** `kotlin.` is allow-listed as a prefix, and `doc:00-constitution` §1.3 bans a path type from the domain outright. The bytecode rule catches it. Narrowing `kotlin.` means enumerating which parts of the standard library a port may name — a decision, not a patch |
 | a port with a default implementation performing IO | **unimplemented.** `doc:15-repository-layout#core-package-rules` §4.2's `PortsAreInterfaces` row requires "an `interface` with no default implementations that perform IO"; this change implements `beInterfaces()` and the second half of the row is not enforced by anything |
+
+---
+
+## One script destroyed three tables in this bean, and two were reported as delivered
+
+Recorded here because this is where the damage was. The general form belongs elsewhere and the
+orchestrator carries it; this section is the instance and its cause.
+
+**The cause.** The script that rebuilt this bean's `## Evidence` section replaced criteria rows
+by matching any line beginning `| N | `. That pattern matches **every** numbered table in the
+file, not the one intended. Three were overwritten with criteria rows:
+
+| table | what it held | how it was recovered |
+|---|---|---|
+| Decision 1's three textual grounds | the `bean:0068` replacement for the retracted precedence gloss | restored **verbatim from the script that authored it** |
+| the settled / observed / conjecture split | the whole of the corollary ruling | restored **verbatim from the script that authored it** |
+| the sequencing ready-list | the reorder measurement, under prose reading *"Measured rather than asserted"* | **re-measured**, never restored |
+
+**Two of the three had been reported to the orchestrator as delivered.** The reports were honest
+— the work had been done — and the artefact was not, because a later script destroyed it in
+sections nobody had reason to re-open. Those come apart, and an orchestrator's explicit request
+for a table by name is the strongest available marker that it should not vanish. It vanished
+anyway.
+
+**Why it survived a repair pass aimed at the same script's damage.** The earlier pass rebuilt
+`## Evidence`, and rebuilding `## Evidence` does not touch `## Sequencing` or the decisions above
+it. The repair was scoped to the damage that had been *noticed*, so two further instances of the
+same script's damage sat a few sections away, unexamined, through a full review round.
+`docs-lint` was green throughout: it validates references, not table semantics, so no mechanical
+check would have found any of the three.
+
+**The repair rule this yields, and it is the part worth carrying:** how a destroyed artefact may
+be repaired depends on what it claimed.
+
+- A table of **argument** can be restored from the text that authored it, because the argument
+  is the text.
+- A table of **measurement** may not. Restoring it would assert a measurement nobody took —
+  **a restored measurement is a fabricated measurement, however confident the reconstruction.**
+  It must be re-run.
+
+Re-running it is what proved the rule rather than merely illustrating it. The measurement had
+**changed**: the pull request that raised these beans merged in the interim, so the reorder that
+section argued for had already landed, and this branch's actual effect turned out to be smaller
+than every earlier revision claimed. A restored table would have been a true-looking claim about
+a world that no longer existed — and it would have read as more rigorous than the correct one,
+because it was the one whose prose said "measured".
+
+**Sweep before repairing, not after.** The sweep that found the other two was one script over
+every bean, looking for identical rows appearing in more than one table. It took less time than
+the first repair pass did, and it is the step that pass skipped.
