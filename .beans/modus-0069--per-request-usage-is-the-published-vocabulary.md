@@ -488,22 +488,29 @@ observed: 109:            "frameDisagreements": C.frame_disagreements(messages),
           673:    w("| repeated frames of one `message.id` agree on input and cache [...]
 ```
 
-**Every occurrence computes the figure, carries it through the summary structure, or renders it
-into a table row — and none of them raises.** That is stated over the set rather than counted,
-and this paragraph has now been wrong twice for wanting to count it: it said "all six uses render
-a table row", which was wrong in both halves, and the revision that corrected it gave a total and
-named the rendering lines. Both are figures about `tools/cost-replay.py`, a file this change does
-not own and another branch is actively rewriting. The grep above reproduces against that branch
-too, so the count was exposure rather than a defect — but the quantifier is what the argument
-needed either way, and it is the form that survives the file being edited by its owner.
+**Every occurrence initialises, computes, carries or renders the figure — and none of them
+raises.** Four verbs, because one of them is a zero-initialisation of the accumulator and that is
+none of the other three. The `none raises` half is settled by looking for a branch rather than by
+reading prose: `grep -nE 'if .*(frame_disagreements|frameDisagreements)'` over the file returns
+nothing, so no control flow anywhere depends on the figure.
 
-`cost-replay.py` does exit non-zero: on a bean file missing its `BEGIN`/`END` markers, and on
-finding no transcripts to replay. Neither path is reachable from a frame disagreement, which is
-the claim that matters here. `--check` returns on input drift before reaching any comparison, and
-compares file text when it does; and `./gradlew qualityCheck` runs **no Python at all**
-(`cost_lib.py`'s own module docstring records that gap). So the premise is observed to hold on
-this corpus and enforced nowhere. An implementation of `bean:0014` must not treat it as
-guaranteed by tooling.
+That is stated over the set rather than counted, and this paragraph has now been wrong twice for
+wanting to count it: it said "all six uses render a table row", which was wrong in both halves,
+and the revision that corrected it gave a total and named the rendering lines. Both are figures
+about `tools/cost-replay.py`, a file this change does not own and another branch is actively
+rewriting. The grep above reproduces against that branch too, so the count was exposure rather
+than a defect — but the quantifier is what the argument needed either way, and it is the form
+that survives the file being edited by its owner.
+
+`cost-replay.py` exits non-zero on four paths, **none of them reachable from a frame
+disagreement**, which is the claim that matters. That is a quantifier and not a list for the
+reason the paragraph above gives, and the third revision of the same sentence: it first said
+"there is no `raise` and no non-zero exit", which was false; the correction to that named two of
+the four, which is an enumeration wearing a correction's clothes and rots identically. `--check`
+returns on input drift before reaching any comparison, and compares file text when it does; and
+`./gradlew qualityCheck` runs **no Python at all** (`cost_lib.py`'s own module docstring records
+that gap). So the premise is observed to hold on this corpus and enforced nowhere. An
+implementation of `bean:0014` must not treat it as guaranteed by tooling.
 
 ## Findings for others, not acted on here
 

@@ -1,29 +1,40 @@
 ---
 # modus-0107
-title: bean:0103 states a count where its own next paragraph argues for a quantifier
+title: bean:0103 states a count in the same paragraph that argues for a quantifier
 status: todo
 type: fix
 priority: normal
 created_at: 2026-08-30T00:00:00Z
 ---
 
-# `bean:0103` states a count where its own next paragraph argues for a quantifier
+# `bean:0103` states a count in the same paragraph that argues for a quantifier
 
-One sentence, in a merged bean, and it is wrong in the way the paragraph beneath it warns
-against. `bean:0103`'s *The instance, in full* reads:
+One sentence, in a merged bean, wrong in the way the sentence directly after it warns against —
+and the two are one paragraph, not neighbouring ones. `bean:0103`'s *The instance, in full* reads:
 
 > Exactly one commit has ever touched the line carrying the Opus 5 rate, and it introduced it at
-> $5/$25 — so the rate has never been changed in committed history at all.
-
-and then, immediately after, explains that **a claim quantified over a set that grows is stale on
-arrival, while a claim about the set itself is not**, citing an earlier revision of the same block
-that said "three commits" and was six within a day.
+> $5/$25 — so the rate has never been changed in committed history at all. That is phrased as a
+> quantifier over the set rather than as a count of it, deliberately: **a claim quantified over a
+> set that grows is stale on arrival, while a claim about the set itself is not.**
 
 The count is now wrong. The conclusion is not.
 
+**And the claim is asserted to satisfy the rule it violates, in the same breath.** The paragraph
+does not merely state the quantifier rule near a count — it labels the count as compliant with
+it: *"That is phrased as a quantifier over the set rather than as a count of it, deliberately."*
+It is not, and the word doing the damage is `deliberately`, because it tells the next reader the
+question has already been considered.
+
+That is the failure `bean:0069` names as **a claimed-re-derived table and a re-derived one are
+indistinguishable from outside**, occurring inside the document that warns about it, applied by
+its author to their own sentence. A self-certification is worth nothing precisely where it is
+most persuasive, and a reviewer who reads that clause has been given a reason not to check the
+sentence it describes. It survived two rounds for that reason as much as for the `-S` result
+below.
+
 ## Why the block's own command does not reveal it
 
-This is the part worth keeping, and it is why the sentence survived review twice.
+The second reason it survived, and the mechanical one.
 
 ```
 cmd:      git log --all -S "opus-5" --oneline -- backoffice/src/agent/transport.ts
@@ -104,7 +115,7 @@ cell filled now would be a plan rather than an observation
 
 | # | criterion | evidence |
 |---|---|---|
-| 1 | `bean:0103`'s *The instance, in full* states the claim over the set — the Opus 5 rate has only ever been $5/$25 in committed history — with no count of commits | |
+| 1 | `bean:0103`'s *The instance, in full* states the claim over the set — the Opus 5 rate has only ever been $5/$25 in committed history — with no count of commits, and the "phrased as a quantifier … deliberately" clause is either true of what follows it or gone | |
 | 2 | Any command cited beside it is `-G`, and the block says what `-S` answers instead, so the next reader does not repeat the substitution | |
 | 3 | Nothing else in `bean:0103` is restated or moved; the change is the one sentence and its evidence block (`doc:05-authoring-for-agents#one-fact-one-place`) | |
 | 4 | The `-S` occurrence-count property is recorded wherever `bean:0103` keeps its `-S` last-wins finding, rather than in a second place | |
