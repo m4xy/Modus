@@ -1,7 +1,7 @@
 ---
 # modus-0063
 title: A quoted fence marker inverts the check 14 analyser's fence state for the rest of the file
-status: in-progress
+status: completed
 type: fix
 priority: high
 created_at: 2026-08-29T00:00:00Z
@@ -194,174 +194,156 @@ than added beside.
 
 ## Evidence
 
-Every plant below is on `.beans/modus-0033`, a `status: todo` bean, closed by flipping its
-status and appending the shape, then reverted with `git checkout -- .beans`; `git status
---porcelain` is empty after each run. Each planted shape is reproduced as a fixture in
+**Every transcript in this section was re-taken against `main` at `2c958e4`, on the tree
+this closure is cut from — not quoted from the branch that implemented the change.** The
+figures therefore differ from the ones in the implementing pull request wherever the corpus
+has grown since, and where they do, the difference is stated rather than smoothed over.
+
+Every plant is on `.beans/modus-0033`, a `status: todo` bean, closed by flipping its status
+and appending the shape, then reverted with `git checkout -- .beans`; `git status
+--porcelain` is empty after each run. Each planted shape is also a fixture in
 `tools/docs-lint-test.sh`, where it is asserted rather than narrated.
 
 ### Criterion 1 — a quoted marker no longer changes how any other line is classified
 
 `tools/docs-lint-test.sh` asserts the classification of individual lines directly, as tests
 distinct from any verdict, and every residual carries a verdict assertion as well as a
-perception one — the rule F4 below states. The perception half is not the half that matters
-on its own: F1 and F2 are perception divergences that were only visible as verdicts.
-
-The tests were observed failing against the toggle they replace. The state machine was
-swapped for a stand-in reproducing the old behaviour behind the same three function names,
-the suite was run, and the stand-in was reverted:
+perception one.
 
 ```
-cmd:      cp <classifier-only stand-in> tools/lib/docs-lint-fence.awk && bash tools/docs-lint-test.sh
-expected: the perception assertions fail; the decision assertions largely pass. The stand-in
-          keeps the real measurement helpers and replaces only fence_classify, so the
-          mutation isolates the classifier
-observed: FAIL perception: a three-backtick marker inside a four-backtick fence is content
-          FAIL perception: an odd number of markers leaves a block open, and says so
-          FAIL perception: a tilde fence is a fence, and a backtick marker inside it is content
-          FAIL perception: a backtick in the info string is an inline code span, not a fence
-          FAIL perception: a marker indented four columns is not a delimiter
-          FAIL perception: a tab-indented marker is not a delimiter
-          FAIL perception: a closing marker may carry nothing but whitespace
-          FAIL verdict: a quoted fence marker is refused, not laundered into an answer
-          FAIL verdict: quoted correctly, the pasted output stays inside the fence and answers nothing
-          FAIL verdict: a stray marker above a filled table is named, not reported as missing evidence
-          FAIL verdict: a tilde-fenced transcript cannot answer its own criteria
-          FAIL perception: RESIDUAL: a fence indented into a list item is not seen
-          FAIL perception: the length rule applies to tilde fences too
-          FAIL perception: a shorter tilde marker does not close a longer tilde fence
-          docs-lint-test: 21 passed, 16 failed.
-exit:     1
-
-cmd:      <the citation-site guard reverted to `s = tolower(line)`> && bash tools/docs-lint-test.sh
-expected: the three container-block verdicts fail and nothing else does
-observed: FAIL verdict: a fenced transcript indented into a list item cannot answer its criteria
-          FAIL verdict: a block-quoted transcript cannot answer its criteria
-          FAIL verdict: an indented chunk with no marker at all cannot answer its criterion
-          docs-lint-test: 34 passed, 3 failed.
-exit:     1
-
-cmd:      <both mutations reverted> && bash tools/docs-lint-test.sh
+cmd:      bash tools/docs-lint-test.sh
+expected: green on main
 observed: docs-lint-test: 37 passed, 0 failed.
 exit:     0
 ```
 
-Two mutations, because there are two mechanisms: the classifier decides where a fence is,
-and the citation-site requirement decides where a citation counts. A single mutation would
-have left one of them untested.
+The assertions were then observed failing, once per mechanism. A suite proves only that it
+can detect the mutation that was made, so each mechanism is mutated on its own:
+
+```
+cmd:      bash tools/docs-lint-test.sh against each mutation in turn, on main
+observed: unmutated                                  rc=0  37 passed,  0 failed
+          classifier only (pre-0063 toggle)          rc=1  21 passed, 16 failed
+          citation site only (guard bypassed)        rc=1  34 passed,  3 failed
+          citation scanner deleted                   rc=1  30 passed,  7 failed
+exit:     0, 1, 1, 1
+```
+
+The classifier mutation replaces `fence_classify` with the toggle this bean removes, keeping
+the real measurement helpers, so it isolates the classifier. The second bypasses
+`citation_site()`; the third deletes the citation scanner outright, and is the complement of
+the second — narrowing the scanner and deleting it are different faults, and the container
+assertions pass under both, which is why the top-level-prose control exists.
+
+The same run also measures the mechanisms this change did **not** touch, and two of them fail
+open with the suite completely green:
+
+```
+cmd:      the same, mutating the mechanisms docs-lint-c14.awk inherited unchanged
+observed: isevcol-true  (every column is an evidence column)  rc=0  37 passed, 0 failed
+          allkinds-off  (HOLLOW detection disabled)           rc=0  37 passed, 0 failed
+          isevcol-false (no column is ever evidence)          rc=1  36 passed, 1 failed
+          noevcol forced on (cascade suppressed)              rc=1  28 passed, 9 failed
+exit:     0, 0, 1, 1
+```
+
+Recorded because it bounds what this closure claims: the two green rows make check 14 accept
+beans it should reject and nothing in the suite notices. They are inherited untested, not
+newly untested — the analyser is moved-verbatim code — and the test file's header says so.
 
 ### Criterion 2 — the fails-OPEN plant is observed rejected
 
-Before, reproducing this bean's `## Observed` exactly. The control and the plant differ only
-in the stray marker:
-
 ```
-cmd:      <fails-OPEN control planted> ; bash tools/docs-lint.sh
-observed: FAIL check 14 .beans/modus-0033-…: criterion 1 is not answered in the evidence; …
-          FAIL check 14 .beans/modus-0033-…: criterion 2 is not answered in the evidence; …
+cmd:      the fails-OPEN control planted on modus-0033; bash tools/docs-lint.sh
+expected: both criteria reported unanswered
+observed: FAIL check 14 .beans/modus-0033-…: criterion 1 is not answered in the evidence;
+          no evidence row bears its number and nothing cites it (adr:0005-…)
+          FAIL check 14 .beans/modus-0033-…: criterion 2 is not answered in the evidence;
+          no evidence row bears its number and nothing cites it (adr:0005-…)
           docs-lint: 2 failure(s).
 exit:     1
 
-cmd:      <fails-OPEN plant> ; bash tools/docs-lint.sh
-observed: docs-lint: OK — 19 documents, … 1 closing transitions, 2 criteria checked, 0 unnumbered.
-exit:     0
-```
-
-After. The plant is refused, and the message names the line rather than the criteria:
-
-```
-cmd:      <fails-OPEN control planted> ; bash tools/docs-lint.sh
-observed: FAIL check 14 .beans/modus-0033-…: criterion 1 is not answered in the evidence; …
-          FAIL check 14 .beans/modus-0033-…: criterion 2 is not answered in the evidence; …
-          docs-lint: 2 failure(s).
-exit:     1
-
-cmd:      <fails-OPEN plant> ; bash tools/docs-lint.sh
+cmd:      the fails-OPEN plant — the same file, its transcript quoting one fence marker
+expected: refusal naming the fence, NOT the OK line the defect produced
 observed: FAIL check 14 .beans/modus-0033-…: a fenced block opened at line 71 is never
-          closed, so every line after it is read as code and no absence of evidence below it
-          can be observed; close the fence, or — when the marker is part of a transcript's
-          verbatim output — wrap that transcript in a longer fence so the quoted marker is
-          content (doc:05-authoring-for-agents#checks)
+          closed, so every line after it is read as code and no absence of evidence below
+          it can be observed; close the fence, or — when the marker is part of a
+          transcript's verbatim output — wrap that transcript in a longer fence so the
+          quoted marker is content (doc:05-authoring-for-agents#checks)
           docs-lint: 1 failure(s).
 exit:     1
 ```
 
-Rejected, not merely no longer accepted. The same evidence rewritten the way the message
-directs — the transcript wrapped in a four-backtick fence — is read with the pasted output
-inside the fence, where it answers nothing, and check 14 reports both criteria unanswered
-(`tools/docs-lint-test.sh`, "quoted correctly, the pasted output stays inside the fence and
-answers nothing").
+Rejected, not merely no longer accepted. On the tree this bean was raised against the same
+plant produced `docs-lint: OK — … 2 criteria checked`, exit 0.
 
 ### Criterion 3 — the fails-CLOSED plant is observed refused, naming the fence
 
+**This criterion was amended by the orchestrator before review closed**; `## Criterion 3,
+amended` above records what it said, who changed it and the argument. It asked for the plant
+to be observed *passing*; it asks now for it to be observed **refused, with a message naming
+the unterminated fence and telling the author how to disambiguate**.
+
 ```
-cmd:      <fails-CLOSED plant: one lone marker above a filled table> ; bash tools/docs-lint.sh
-expected: refusal, naming the unterminated fence and the remedy
+cmd:      the fails-CLOSED plant — one lone fence marker above a filled evidence table
+expected: refusal naming the fence and the remedy
 observed: FAIL check 14 .beans/modus-0033-…: a fenced block opened at line 65 is never
-          closed, so every line after it is read as code and no absence of evidence below it
-          can be observed; close the fence, or — when the marker is part of a transcript's
-          verbatim output — wrap that transcript in a longer fence so the quoted marker is
-          content (doc:05-authoring-for-agents#checks)
+          closed, so every line after it is read as code and no absence of evidence below
+          it can be observed; close the fence, or — when the marker is part of a
+          transcript's verbatim output — wrap that transcript in a longer fence so the
+          quoted marker is content (doc:05-authoring-for-agents#checks)
           docs-lint: 1 failure(s).
 exit:     1
 
-cmd:      <fails-CLOSED control: the identical table, marker removed> ; bash tools/docs-lint.sh
-observed: docs-lint: OK — 19 documents, … 1 closing transitions, 2 criteria checked, 0 unnumbered.
+cmd:      the fails-CLOSED control — the identical table, the stray marker removed
+expected: clean
+observed: docs-lint: OK — 19 documents, 107 anchors, 1094 references, 77 beans, 37 graph
+          edges, 24 selectable, 77 bean ids, 0 introduced, 77 on origin/main, 1 closing
+          transitions, 2 criteria checked, 0 unnumbered.
 exit:     0
 ```
 
-The criterion this answers is the amended one, and `## Criterion 3, amended` above records
-what it said before, who changed it and on what argument. Against the original wording —
-"observed passing" — this is a refusal, not a pass. The message names the line, the cause and
-the two ways to disambiguate; the two false `criterion N is not answered` lines naming the
-wrong problem are gone.
+Against the original wording this is a refusal and not a pass. What changed for the author is
+that two false `criterion N is not answered` lines naming the wrong problem became one line
+naming the fence and the remedy.
 
 ### Criterion 4 — the corpus parses as it did
 
-The analyser was run over every `status: completed` bean, before and after, and a bean is
-clean when it emits nothing but its `STATS` line:
-
 ```
-cmd:      the check 14 analyser over the 23 `status: completed` beans, before the change
-observed: clean=16 flagged=7 total=23
-          flagged: modus-0001 (NOEV + 13 UNANSWERED), modus-0028 (EMPTYEV + 5 UNANSWERED),
-          modus-0030 (NOEVCOL), modus-0032 (NOEVCOL), modus-0048 (6 HOLLOW),
-          modus-0051 (2 UNANSWERED), modus-0052 (1 HOLLOW)
-exit:     0
-
-cmd:      the same, after the change
-observed: clean=16 flagged=7 total=23
-          the same seven files with byte-identical findings
-exit:     0
-
-cmd:      bash tools/docs-lint.sh, on the tree, before and after
-observed: docs-lint: OK — 19 documents, 106 anchors, 914 references, 64 beans, 28 graph
-          edges, 19 selectable, 64 bean ids, 0 introduced, 64 on origin/main, 0 closing
-          transitions, 0 criteria checked, 0 unnumbered.
+cmd:      the check 14 analyser over every `status: completed` bean on main
+expected: the same findings as before the change, on a corpus that has since grown
+observed: clean=20 flagged=7 total=27
+          flagged: modus-0001, modus-0028, modus-0030, modus-0032, modus-0048,
+                   modus-0051, modus-0052
 exit:     0
 ```
 
-No corpus bean changes classification, so nothing newly flagged and nothing newly excused.
-The beans in flight are unaffected for the same reason: every one of them is fence-balanced
-today, and a balanced file that never nests is read identically by both implementations.
+**The criterion says "the 23 beans `completed` on `main`", which is what the corpus held when
+this bean was written; it now holds 27.** The 23 are a subset of the 27 and their findings are
+byte-identical to the pre-change run — the same seven files, the same codes, the same
+criterion numbers. The four beans completed since are all clean. So the criterion is satisfied
+on its own terms and on the larger corpus, and the denominator is stated rather than quietly
+updated.
 
 ### Criterion 5 — `./gradlew qualityCheck` green
 
 ```
 cmd:      ./gradlew qualityCheck
+expected: green, with docsLint and docsLintTest inside it
 observed: > Task :docsLintTest
           docs-lint-test: 37 passed, 0 failed.
           > Task :docsLint
-          docs-lint: OK — 19 documents, 106 anchors, 914 references, 64 beans, 28 graph
-          edges, 19 selectable, 64 bean ids, 0 introduced, 64 on origin/main, 0 closing
+          docs-lint: OK — 19 documents, 107 anchors, 1094 references, 77 beans, 37 graph
+          edges, 25 selectable, 77 bean ids, 0 introduced, 77 on origin/main, 0 closing
           transitions, 0 criteria checked, 0 unnumbered.
-          BUILD SUCCESSFUL in 14s
+          BUILD SUCCESSFUL in 20s
           159 actionable tasks: 5 executed, 154 up-to-date
 exit:     0
 ```
 
-`docsLintTest` is a dependency of `qualityCheck` rather than a command someone remembers,
-because a test outside the aggregate is not run — the failure
-`doc:00-constitution#observed-failing` records against check 11.
+`0 closing transitions, 0 criteria checked` on that run is the point `bean:0096` records:
+check 14 never examines the bean whose work the change contains. **The pull request carrying
+this closure is the first run in which it examines this bean at all.**
 
 ## Attacks tried against the fix
 
