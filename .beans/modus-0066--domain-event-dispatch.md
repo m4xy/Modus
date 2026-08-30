@@ -20,7 +20,7 @@ core/core-domain/.../identity/aggregate/PermissionGrant.kt:40
     public val pendingEvents: List<DomainEvent> get() = events.toList()
 ```
 
-`Domain.kt:34` states the intended contract in one line — *"Raised, not dispatched: the
+`Domain.kt` states the intended contract in one line — *"Raised, not dispatched: the
 application layer drains these after the write."* **There is no application layer.**
 `core/core-application/src/main` holds two files, `ListBoundedContexts.kt` and a
 provisional `UseCase.kt` whose own KDoc says it will be "superseded by the real application
@@ -35,7 +35,7 @@ Two consequences, and the second is the one that will bite:
    An aggregate re-saved in a second transaction would re-publish everything it has ever
    raised. Unbounded accumulation on one instance holds for `Domain` alone:
    `Domain.adoptProcess` mutates and returns `this` and may be called any number of times,
-   whereas `PermissionGrant.revoke` opens with `check(!revoked)` (`PermissionGrant.kt:70`)
+   whereas `PermissionGrant.revoke` opens with `check(!revoked)` (`PermissionGrant.kt`)
    and so raises at most once — an earlier draft named both and was wrong about the second.
    Re-publication on a second save is the general defect and it applies to all three roots;
    growth without bound is `Domain`'s. The copy-out that `bean:0036` gated is correct and
@@ -48,8 +48,8 @@ nothing, so it does not appear as a consumer.
 
 | # | consumer | event | publisher | publisher exists? | consumer exists? | dispatch exists? |
 |---|---|---|---|---|---|---|
-| 1 | `domainmgmt` | `GrantRevoked` | `identity` | yes — `identity/event/IdentityEvents.kt:67`, raised at `PermissionGrant.kt:71` | yes — `Domain` aggregate | **no** |
-| 2 | `work` | `ProcessDefinitionChanged` | `domainmgmt` | yes — `domainmgmt/event/DomainMgmtEvents.kt:36`, raised at `Domain.kt:56` | no — `work` is `WorkContext`, an object holding `NAME` | **no** |
+| 1 | `domainmgmt` | `GrantRevoked` | `identity` | yes — `identity/event/IdentityEvents.kt`, raised at `PermissionGrant.kt` | yes — `Domain` aggregate | **no** |
+| 2 | `work` | `ProcessDefinitionChanged` | `domainmgmt` | yes — `domainmgmt/event/DomainMgmtEvents.kt`, raised at `Domain.kt` | no — `work` is `WorkContext`, an object holding `NAME` | **no** |
 | 3 | `memory` | `WorkItemClosed` | `work` | no | no | **no** |
 | 4 | `memory` | `AgentRunCompleted` | `execution` | no | no | **no** |
 | 5 | `execution` | `WorkItemTransitioned` | `work` | no | no | **no** |
