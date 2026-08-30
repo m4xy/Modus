@@ -149,10 +149,30 @@ Check 14 has at least one more composition of the same shape, found separately a
 in the unmerged `modus-0087`: recognising an evidence table is gated on a closed vocabulary
 of four column headers, and when none matches, `NOEVCOL` fires and `!noevcol` suppresses the
 whole per-criterion cascade. So the real sequence is **header → numbering → citation →
-cell**, four mechanisms deep, and a defect at any position hides the state of everything
-behind it. The generalisation stands as written and the pairwise form understates it: a plant
-must reach the **last** mechanism in the chain, and a plant that stops at the first will pass
-while everything behind it is unexamined and silent.
+cell**, four mechanisms deep. The pairwise form understates it, and it does so in **two
+directions**, which is the whole of the finding:
+
+> **Downstream — a defect at any position hides the state of everything behind it.** A plant
+> must reach the **last** mechanism in the chain; one that stops at the first passes while
+> everything behind it is unexamined and silent.
+>
+> **Upstream — a defect early in the chain can make the whole suite report success.**
+> `NOEVCOL` does not merely fail to be covered. It *suppresses* the per-criterion cascade, so
+> a defect in it silences every assertion downstream of it **without failing any of them**.
+> The tests that cover the citation matcher and the cell conditions go green because nothing
+> reached them.
+
+The second direction is worse than the first and is the one a suite cannot self-report. An
+uncovered mechanism is a known unknown: the suite is silent about it and its own scope
+statement can say so. A **masking** mechanism converts every downstream assertion into a
+false positive — the suite is not silent, it is affirmatively wrong, and its green line is
+produced by the defect rather than despite it. So the untested mechanisms in
+`tools/docs-lint-test.sh` are not merely uncovered; one of them can make the covered ones lie.
+
+The testable property that follows: **for a chain, assert that each mechanism is REACHED, not
+only that it decides correctly once reached.** A verdict assertion proves what a mechanism
+decides. It cannot distinguish "decided correctly" from "never ran and the expected output
+happened to match", and in this chain those two are one `NOEVCOL` away from each other.
 
 ## Success criteria
 
@@ -163,7 +183,8 @@ while everything behind it is unexamined and silent.
 | 3 | A fixture pinning the composed shape exists in `tools/docs-lint-test.sh`, asserted as a verdict and not only as a classification | test-run |
 | 4 | The accidental instance — a criterion pre-answered by prose about it, with no marker involved — is either closed or recorded as belonging to `bean:0061` | citation |
 | 5 | `doc:05-authoring-for-agents#checks` states that a bean's own lint transcript is not evidence for the criteria it names | diff |
-| 6 | `./gradlew qualityCheck` green | test-run |
+| 6 | The upstream direction is answered: either `NOEVCOL`'s suppression of the per-criterion cascade is removed, or `tools/docs-lint-test.sh` asserts that each mechanism in the chain is **reached** and not only that it decides correctly once reached | test-run |
+| 7 | `./gradlew qualityCheck` green | test-run |
 
 ## Not in scope
 
