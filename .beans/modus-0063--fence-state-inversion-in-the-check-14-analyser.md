@@ -251,6 +251,35 @@ Recorded because it bounds what this closure claims: the two green rows make che
 beans it should reject and nothing in the suite notices. They are inherited untested, not
 newly untested — the analyser is moved-verbatim code — and the test file's header says so.
 
+The two green rows are not merely uncovered — here is what each lets through, on real
+completed beans and on the shape check 14 was built to catch:
+
+```
+cmd:      allkinds-off, then the analyser over .beans/modus-0048
+observed: unmutated  6 HOLLOW findings
+          mutated    STATS 8 0  — no findings at all
+exit:     0
+
+cmd:      isevcol-true, then the analyser over a fixture in the bean:0045 shape — a
+          numbered table in an evidence section whose only extra column is `evidence kind`,
+          with cells that are not bare kind names
+observed: unmutated  NOEVCOL  Success criteria and evidence
+          mutated    STATS 2 0  — no findings at all
+exit:     0
+```
+
+`allkinds-off` would accept a `completed` bean whose evidence cells are bare kind names —
+the defect `bean:0056` exists for. `isevcol-true` removes the `NOEVCOL` guard, which is the
+`bean:0045` defect check 14 was built to close.
+
+On `modus-0030` and `modus-0032` that second loss is **masked** rather than clean: their
+`NOEVCOL` disappears, but both stay flagged because their restated cells are bare kind names
+and `HOLLOW` catches them instead. The fixture above is what shows the guard itself is gone,
+since a bean whose cells are ordinary prose has nothing left to catch it. Stated precisely
+because "NOEVCOL → gone" alone would overstate it on those two files and understate it in
+general.
+
+
 ### Criterion 2 — the fails-OPEN plant is observed rejected
 
 ```
@@ -309,21 +338,55 @@ naming the fence and the remedy.
 
 ### Criterion 4 — the corpus parses as it did
 
+Both arms are run here, over the same corpus, with the pre-change analyser reconstructed
+from the commit before the fix merged. **An earlier draft of this closure replaced the pair
+with a name list and the prose claim "byte-identical"; that made the claim uncheckable
+without redoing the reconstruction, and it is restored below.** Closure is the last moment
+evidence can be added freely — `docs-lint` check 11 makes a `completed` bean append-only —
+so it is the worst point in the workflow at which to trim.
+
 ```
-cmd:      the check 14 analyser over every `status: completed` bean on main
-expected: the same findings as before the change, on a corpus that has since grown
-observed: clean=20 flagged=7 total=27
-          flagged: modus-0001, modus-0028, modus-0030, modus-0032, modus-0048,
-                   modus-0051, modus-0052
+cmd:      git show e756042^:tools/docs-lint.sh, its inline check 14 analyser extracted to
+          pre-c14.awk, run over every `status: completed` bean on this branch
+observed: BEFORE (analyser at e756042^): clean=21 flagged=7 total=28
+
+cmd:      the analyser on this tree, over the same beans
+observed: AFTER  (analyser on this tree): clean=21 flagged=7 total=28
+
+cmd:      diff of the two full outputs, flagged files and per-file codes included
+observed: IDENTICAL
+          pre lines: 39   post lines: 39
 exit:     0
 ```
 
-**The criterion says "the 23 beans `completed` on `main`", which is what the corpus held when
-this bean was written; it now holds 27.** The 23 are a subset of the 27 and their findings are
-byte-identical to the pre-change run — the same seven files, the same codes, the same
-criterion numbers. The four beans completed since are all clean. So the criterion is satisfied
-on its own terms and on the larger corpus, and the denominator is stated rather than quietly
-updated.
+The per-file codes, identical in both arms:
+
+```
+FLAGGED modus-0001--foundation-documentation-package
+    NOEV
+    UNANSWERED 1 .. UNANSWERED 13
+FLAGGED modus-0028--normative-gate-commands
+    EMPTYEV
+    UNANSWERED 2, 3, 4, 5, 6
+FLAGGED modus-0030--domainmgmt-domain-aggregate
+    NOEVCOL  Success criteria and evidence
+FLAGGED modus-0032--domain-id-shared-kernel
+    NOEVCOL  Success criteria and evidence
+FLAGGED modus-0048--extract-the-first-skills
+    HOLLOW 3 citation, 4 citation, 5 citation, 6 citation, 7 diff, 8 test-run
+FLAGGED modus-0051--parallel-bean-id-allocation
+    UNANSWERED 5, 6
+FLAGGED modus-0052--orchestrator-role
+    HOLLOW 8 test-run
+clean=21 flagged=7 total=28
+```
+
+**The denominator is 28 on this branch and 27 on `main`**, because this bean becomes
+`completed` in this change and is itself clean. The criterion as written names 23, which is
+what the corpus held when it was raised; the 23 are a subset of the 27, their findings are
+unchanged, and the beans completed since — `modus-0036`, `0054`, `0055`, `0058`, closed in
+`08936ee` — appear in neither arm's flagged list. The criterion is satisfied on its own
+terms, on `main`'s corpus, and on this branch's.
 
 ### Criterion 5 — `./gradlew qualityCheck` green
 
