@@ -18,8 +18,9 @@ awk '/^```/ { fence = !fence; next } !fence { print }' "$f"
 ```
 
 and resolves the typed `doc:` / `bean:` / `adr:` / `rule:` references in what survives. That is
-the toggle `bean:0063` replaced in check 14, unchanged, in the check that decides whether a
-pointer resolves. Every line matching a line-initial run of three backticks flips it; a marker
+the toggle `bean:0063` **is replacing** in check 14 — on a branch, not on `main`, where check
+14 still reads `fence = 1 - fence` and `tools/lib/` does not exist — unchanged here, in the
+check that decides whether a pointer resolves. Every line matching a line-initial run of three backticks flips it; a marker
 that is **content** contributes an odd flip, and every line after it is read with its
 inside/outside sense reversed.
 
@@ -81,7 +82,7 @@ inside a code block that the check is documented as skipping.
 | check | fence handling | consequence |
 |---|---|---|
 | 6 references resolve | the naive toggle, `tools/docs-lint.sh:205` | this bean |
-| 14 a bean closes without evidence | a CommonMark state machine, `tools/lib/docs-lint-fence.awk` (`bean:0063`) | fixed |
+| 14 a bean closes without evidence | on `main`, the same naive toggle. A CommonMark state machine in `tools/lib/docs-lint-fence.awk` replaces it on `bean:0063`'s branch | fixed there, not yet merged; this bean is `blocked_by` it |
 | 10 no bare bean paths | **none** — a `grep -noE` over whole files | a `beans/NNNN` path inside a fenced block is reported as prose. Within the file set it reads — `documentation/*.md`, `AGENTS.md`, `CLAUDE.md` — it can spuriously flag an example but cannot miss a real one. That file set is narrower than check 6's: `.beans/*.md` is outside it, and bare `beans/0…` paths do sit there unseen. `doc:05-authoring-for-agents#checks` defines that scope, so it is a spec choice and not a defect of this kind. No file in scope trips it today |
 | 11 completed beans are final | **none** — it diffs bytes and greps for `^## Amendments` and `**Claimed:**` | correct by construction. Immutability is a property of the byte sequence, and a fence has no bearing on it. A fenced block quoting `## Amendments` inside a completed bean's appended text would be miscounted against the amendment headings, which is a narrower and separate question |
 | 12, 13 bean graph and ids | **none** — front-matter and filenames only | front-matter is above the first fence by construction |
