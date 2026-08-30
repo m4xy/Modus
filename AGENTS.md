@@ -47,8 +47,9 @@ multi-statement `for … do … done` loop that pipes. `cat file >> target` is a
 Write new files with the Write tool.
 
 Planting a violation and reverting it (`doc:00-constitution#observed-failing`) usually means a
-script ending in `git checkout -- .beans`, which reverts **uncommitted** work under that path
-as well as the plant. Commit before you plant, or the plant erases the change you are proving.
+script ending in `git checkout -- .beans`, which reverts uncommitted edits to **tracked**
+files under that path as well as the plant — a new bean is untracked and survives, a bean you
+are closing, amending or correcting does not. Commit before you plant (`bean:0102`).
 
 JDK 25 toolchain. Versions live in `gradle/libs.versions.toml` and nowhere else.
 Style rules: `doc:30-code-style`. The Module extension contract: `doc:10-architecture`.
