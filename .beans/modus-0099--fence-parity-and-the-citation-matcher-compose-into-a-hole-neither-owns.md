@@ -19,8 +19,13 @@ tell a citation from a mention.
 **Composed, they are worse than either.** In this repository a bean's evidence is a
 transcript of `docs-lint` output, and that output is this check's own
 `criterion N is not answered` message. Invert the parity and that transcript stops being
-code and becomes prose. The matcher then reads it, and a range citation such as
-`criteria 1-11` answers eleven criteria in one line.
+code and becomes prose. The matcher then reads it — and a **range** citation answers a
+whole span at once, so one phrase naming a span of eleven closes eleven.
+
+The range mechanism is worth separating from the single mention, because it is cheaper for
+an author to write and it is the form that appears in real transcripts. Any fix aimed only
+at the single-mention case leaves it open, and it is the one that does the most damage per
+line.
 
 > **A bean is one stray line-initial fence marker away from closing every criterion it
 > numbers, on evidence it never recorded.**
@@ -91,15 +96,60 @@ Six findings to one. It stays non-zero only because that bean has no evidence se
 all; a bean that has one goes green, which is the plant above. **The exit code is not the
 severity — the suppression is.**
 
-### A third instance, and nobody planted it
+### The matcher half alone, occurring by accident, at least three times
 
-The control run above also shows criteria 1, 2, 3, 5 and 6 flagged and **criterion 4
-absent**. Nothing was planted to cause that. `modus-0087` contains, in top-level prose, the
-phrase "criterion 4's decision, and it is constrained by check 11", and the matcher marks
-criterion 4 answered on that alone. A bean documenting check 14's weakness shipped with one
-of its six criteria pre-closed by check 14's weakness, and no marker was needed — the
-matcher half is sufficient on its own for a single criterion. This is the second such
-accident found this sprint and the first found without looking for it.
+The control run above flags five of `modus-0087`'s six criteria and omits **the fourth**.
+Nothing was planted to cause that: that bean carried, in top-level prose, a sentence naming
+that criterion by number while saying what it decides, and the matcher marked it answered on
+that alone. No fence marker was involved — the matcher half is sufficient on its own.
+
+It is not the second instance and it is not the strongest. Three are confirmed on
+`origin/main` or in flight, and the sharpest is a `completed` bean:
+
+```
+cmd:      check 14's own matcher over the non-fenced lines of each file
+observed: .beans/modus-0028--normative-gate-commands.md:90   (completed, on main)
+            "…so criterion 1 was false when written. Criterion 7 was added to make the
+             sweep exhaustive rather than sampled."
+            — one line, closing TWO criteria, one of them on a sentence stating that
+              criterion was false when written
+          .beans/modus-0058--unwritten-working-conventions.md:183   (on main)
+            "`wc -l` at the two commits, which is what criterion 6 reads:"
+          .beans/modus-0087   (in flight)
+            a sentence naming a criterion by number while saying what it decides
+exit:     0
+```
+
+`modus-0028`'s is the one to quote: a bean already `completed` on `main` closes a criterion
+on a sentence asserting that criterion was **false**, and closes another on the sentence
+explaining why that one had to be added. The matcher reads presence of a number and never
+the polarity of the claim around it.
+
+### The upstream direction, observed
+
+The masking claim below is argued from the code elsewhere in this bean;
+`doc:00-constitution#observed-failing` wants it observed. Two runs on one fixture, differing
+by one word inside a column header:
+
+```
+cmd:      a closing bean whose one table is `| # | criterion | evidence |`, with an empty
+          cell on the first row and `citation` on the second
+observed: FAIL check 14 …: criterion 1 closes with an empty evidence cell
+          FAIL check 14 …: criterion 2 records 'citation' — an evidence KIND, not evidence
+          -> 2 findings
+exit:     1
+
+cmd:      the identical file, the header now `| # | criterion | evidence (verbatim) |`
+observed: FAIL check 14 …: the table under 'Success criteria and evidence' numbers criteria
+          in an evidence section but carries no evidence column
+          -> 1 finding
+exit:     1
+```
+
+One word in a header, and both downstream conditions vanish. `EMPTYCELL` and `HOLLOW` never
+run because the table is no longer recognised as carrying evidence, and `!noevcol` in the
+`END` block suppresses the per-criterion cascade on top of that. The chain is now measured in
+both directions rather than reasoned about in one.
 
 ## Which fix closes it — measured, and not the one to guess
 
@@ -161,6 +211,17 @@ directions**, which is the whole of the finding:
 > a defect in it silences every assertion downstream of it **without failing any of them**.
 > The tests that cover the citation matcher and the cell conditions go green because nothing
 > reached them.
+
+A third property sits underneath both directions and is not about check 14 at all. Every
+mechanism in this chain was built correctly for the question in front of its author, and the
+composition was nobody's question. The same shape has now appeared three times in one sprint
+in one author's work: the anti-allowlist argument written into a fence classifier and then
+contradicted by an enumeration a few lines below it; a rule restated as a property with an
+enforcement note listing instances one line under it; and this chain. **A principle is
+encoded where it was learned, and nothing carries it to its next application.** No check
+reads prose, a reviewer would have to hold two sections in mind at once, and the format has
+no way to say "this argument also governs that mechanism". That is the gap the chain rule
+above is a partial answer to, and it is worth more than the chain itself.
 
 The second direction is worse than the first and is the one a suite cannot self-report. An
 uncovered mechanism is a known unknown: the suite is silent about it and its own scope
