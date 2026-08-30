@@ -7,7 +7,7 @@ priority: high
 order: AT
 created_at: 2026-08-29T00:00:00Z
 parent: modus-0012
-blocked_by: [modus-0030]
+blocked_by: [modus-0030, modus-0066]
 ---
 
 # Module installation and per-domain module visibility
