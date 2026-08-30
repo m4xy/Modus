@@ -90,7 +90,7 @@ build file, and every bean but this one.
 | 13 | The ambient-capability port names have exactly one owning anchor, `doc:00-constitution` §1.3 defers to it, and the third port `doc:00` never named survives | citation |
 | 14 | `doc:60-cost-model#spend-record` names the token kinds the recorder actually writes, and §2's model can price them | citation |
 | 15 | `doc:20-ddd-practices` §5.1 has a row for the context-free port package, stating that it is not the shared kernel and does not inherit `adr:0004`'s membership gate | citation |
-| 16 | Every package named in §5.1's tables carries the root and segment order this repository uses, and the rows with no members are named as having none | command |
+| 16 | Every package named in §5.1's tables carries the root and segment order this repository uses, and the section names the command that says which of them have members rather than answering it | command |
 
 ## Evidence
 
@@ -136,7 +136,7 @@ which is the evidence that it reads as one.
 |---|---|---|
 | 13 | one owner, deferred to, third port intact | `documentation/20-ddd-practices.md` §5.3 carries `<a id="ambient-ports">` and "This section **decides** the names"; `documentation/00-constitution.md` §1.3 reads "named by `doc:20-ddd-practices#ambient-ports` §5.3 and by nothing here"; `RandomPort` was never in `doc:00` and is untouched in §5.3. Re-derived against the finished files, not the intention: `grep -rn '\`Clock\`' documentation/ \| wc -l` → `1`, the one line in §5.3 that discusses the unsuffixed form on purpose. Before this correction it was 4 |
 | 15 | the context-free port package has a row that denies the kernel gate | `documentation/20-ddd-practices.md:307`, the §5.1 row for `uk.m4xy.modus.core.domain.port`: "**A subpackage of the shared kernel's package, and not a member of the shared kernel.**", followed by the name-set argument, the membership test it fails and the condition that test stands under. Quote re-read off the row at certification, not carried from the row it replaced — see below |
-| 16 | root and segment order correct on every row; rows with no members named as such | `grep -c "com\.modus"` → `0` in both `documentation/20-ddd-practices.md` and `documentation/10-architecture.md`. That grep proves the **root** and nothing more, which is why the criterion is now worded to what it evidences: the `core-domain` rows match `grep -rh "^package " core/` (15 live packages under `uk.m4xy.modus.core.domain`) and `ArchitectureRulesTest.kt:309-311`, and §5.1's note names the five rows that have no members — `…core.domain.port`, the `core-application` row and the three `adapter.*` rows |
+| 16 | root and segment order correct on every row; the section names the command rather than answering it | `grep -c "com\.modus"` → `0` in both `documentation/20-ddd-practices.md` and `documentation/10-architecture.md`. That grep proves the **root** and nothing more, which is why the criterion is worded to what it evidences: the `core-domain` rows match `grep -rhE "^package uk\." core/ \| sort -u`, and §5.1 now sends a reader to that command for which packages have members and to `doc:15-repository-layout#core-package-rules` §4.2 for which rules scope them, instead of listing either |
 | 11 | budgets held | `doc:00` 500 of 500, the §1.3 rewrite being line-for-line; `doc:20` 500 of 500, having reached the ceiling exactly during the review fixes; `doc:10` 288 of 500 and `doc:15` 233 of 500, each one line longer than `main` and otherwise substitutions in place |
 | 12 | the gate | the run below, on this branch |
 
@@ -148,7 +148,7 @@ observed: 500 documentation/00-constitution.md
           500 documentation/20-ddd-practices.md
 exit:     0
 
-cmd:      ./gradlew qualityCheck                      (re-run on the corrected head)
+cmd:      ./gradlew qualityCheck                      (superseded — see the §5.1 note correction below)
 observed: docs-lint: OK — 19 documents, 107 anchors, 985 references, 68 beans, 28 graph
           edges, 24 selectable, 68 bean ids, 2 introduced, 66 on origin/main, 0 closing
           transitions, 0 criteria checked, 0 unnumbered.
@@ -232,6 +232,9 @@ observed: uk.m4xy.modus.core.domain
           uk.m4xy.modus.core.domain.identity.port
           uk.m4xy.modus.core.domain.identity.published        (and domainmgmt alike)
 exit:     0
+          note: this is the run as made. The unfiltered form also returns one prose row
+          from a comment, which is why §5.1 sends readers to `grep -rhE "^package uk\."`
+          instead; the row did not affect what this run established.
 
 cmd:      sed -n '300p;309,311p' architecture-tests/src/test/kotlin/uk/m4xy/modus/architecture/ArchitectureRulesTest.kt
 observed: const val ROOT: String = "uk.m4xy.modus"
@@ -297,6 +300,79 @@ The rule stack entry 3 carries — re-derive a claim against the artefact at the
 certified, not at the moment it is believed — covers both. This is its fourth instance in
 this bean and the only one where the claim was correct and the evidence still false.
 
+#### A claim about what does not exist yet has an expiry date, set by another branch
+
+The note this branch added to §5.1 listed which package rows had members and which stated an
+intention. It was true when written, it was the correction review asked for, and it was
+falsified by a branch that had not merged: `feat/ambient-capability-ports` creates
+`uk.m4xy.modus.core.domain.port` and adds two rules scoping it, so both "Not yet:
+`uk.m4xy.modus.core.domain.port`" and "the port, kernel and default rows not at all" become
+false the moment it lands.
+
+This is the fourth variant of one failure this bean has now catalogued. The first was a claim
+asserted beyond a stationary source; the second, an accurate quote whose target moved; the
+third, a criterion written against a document that did not exist yet. **This one no review
+could have caught**, because at review time the statement was true and the thing that
+falsifies it was on another branch. Only sequencing defends against it, and the only sound
+sequence is that the change which creates the thing also corrects the claim.
+
+The correction is not to update the list. **A normative section MUST NOT carry a snapshot of
+repository state that another branch can invalidate**; it names where the answer lives
+instead. §5.1 now sends a reader to `grep -rhE "^package uk\." core/ | sort -u` for which
+packages have members, and to `doc:15-repository-layout#core-package-rules` §4.2 for which
+rows a rule scopes and which of those rules exist, and states that a row is a placement rule,
+never a claim that its package exists yet. That has no expiry, needs no edit when the ports
+land, and is a line shorter, which is how it fits a document that was at 500 of 500.
+
+Two edits inside one paragraph, and the second was made only after review. The sentence above
+first named the unfiltered `grep -rh "^package " core/` and `ArchitectureRulesTest`'s package
+constants — both artefacts this branch's own later corrections had already replaced, the first
+because it returns a prose row from a comment and the second because
+`doc:15-repository-layout#core-package-rules` §4.2 owns that fact. Criterion 16's evidence row
+was updated for both; this narrative was not.
+
+So the paragraph asserting **"a criterion has two rows in this bean and amending one is
+amending half of it"** was itself amended in one place and left stale in another, one screen
+below where it says so. The rule generalises past the criteria table: **every restatement of a
+change is a row of it.** The evidence cell, the narrative, the pull-request body and the commit
+message are four copies of one fact, and `doc:05-authoring-for-agents#one-fact-one-place`
+binds them exactly as it binds two documents — with the extra hazard that these four are
+written in one sitting, which is what makes them feel like one act rather than four.
+
+**The evidence cell went with it, and only on the second pass.** Criterion 16's row in the
+Success-criteria table was amended in the same commit as the note; its row in the Evidence
+table was not, so for one push the bean carried the old criterion text in one column and the
+new one in another — one fact in two places, disagreeing — with an evidence cell certifying
+"§5.1's note names the five rows that have no members", which is exactly what the change
+deletes. That is this bean's instance #2, an accurate quote whose target moved, committed
+inside the change that adds instance #4. A criterion has **two** rows in this bean and
+amending one is amending half of it.
+
+Criterion 16's second clause was rewritten with it. It required "the rows with no members are
+named as having none", which is the snapshot this correction removes — a criterion that would
+have certified the defect. The criterion now requires the section to name the command rather
+than answer the question, and this bean is `in-progress`, so amending it is an edit and not an
+`## Amendments` entry (`doc:00-constitution#bean-lifecycle`).
+
+```
+cmd:      wc -l documentation/20-ddd-practices.md
+observed: 499 documentation/20-ddd-practices.md
+exit:     0
+
+cmd:      git diff --name-only origin/main
+observed: .beans/modus-0068--encode-sprint-1-findings.md
+          documentation/20-ddd-practices.md
+exit:     0
+
+cmd:      ./gradlew qualityCheck
+observed: docs-lint: OK — 19 documents, 107 anchors, 1098 references, 77 beans, 37 graph
+          edges, 25 selectable, 77 bean ids, 0 introduced, 77 on origin/main, 0 closing
+          transitions, 0 criteria checked, 0 unnumbered.
+          BUILD SUCCESSFUL in 17s
+tree:     this branch rebased onto origin/main at 2c958e4
+exit:     0
+```
+
 #### The suffix argument, at its full strength
 
 Stated in review and stronger than this bean first put it. `core-domain` may reference
@@ -317,9 +393,10 @@ domain code, where `clock` is a `java.time.Clock`. An unsuffixed `Clock` port wo
 beside it in the same file, in the same expression. The gate is manufacturing the collision
 the suffix avoids. §5.3 now says so.
 
-**This changes what the ambient-ports bean must implement.** It is a sibling's bean, it is
-not on `origin/main` yet, and it is not touched here; the orchestrator carries the ruling to
-it. Its id is deliberately not written as a typed reference: `docs-lint` check 6 resolves
+**This changes what the ambient-ports bean must implement.** It is a sibling's bean and is
+not touched here; the orchestrator carries the ruling to it. It has since merged, so
+`bean:0065` resolves today — but it did not when this was written, and the record of that is
+the point. Its id was deliberately not written as a typed reference: `docs-lint` check 6 resolves
 `bean:NNNN` against this tree and a bean living only on a sibling's branch resolves to zero
 files, so the reference fails the gate. Observed on the first draft of this paragraph:
 `FAIL check 6 … resolves to 0 files, expected exactly 1`. The second draft named the id in
@@ -334,9 +411,9 @@ because the input never reached the verdict in the shape the test supplied. `doc
 `doc:35-testing` is at 500 of its 500 lines and a second instance is not worth what it would
 displace. The instance is here instead.
 
-Since corroborated independently by the analyser work, and a bean is being raised for check 6
-by the agent that owns `tools/docs-lint.sh`. Its id is not written here for the reason the
-paragraph above gives. Two agents hitting one defect from different directions, neither
+Since corroborated independently by the analyser work, and a bean was raised for check 6 by
+the agent that owns `tools/docs-lint.sh` — `bean:0086`, which has since merged and so resolves
+here; when this was written it did not, for the reason the paragraph above gives. Two agents hitting one defect from different directions, neither
 looking for it, is stronger than a plant: a plant proves the mechanism can fail, and this
 proves it does.
 
