@@ -4,7 +4,7 @@ title: Nine ArchUnit rules depend on the absence of an archunit.properties file
 status: todo
 type: fix
 priority: high
-order: AS
+order: CA
 created_at: 2026-08-29T00:00:00Z
 ---
 

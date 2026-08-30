@@ -57,12 +57,22 @@ port for the one capability with no rule at all.
 name-pattern rule in §5.1's second table (`<Noun>Port` or `<Aggregate>Repository`).
 
 `doc:00-constitution` §1.3 says "a `Clock` port passed as a constructor argument", which
-reads like a type name and is not one: that section's subject is the **ban** on ambient
-capability, and it states no rule about port naming. §5.3 and §5.1 are the only places that
-do. Precedence resolves two documents stating the same rule differently; it does not let one
-document overrule a rule the other never states — a distinction worth writing down, because
-the precedence claim was true and irrelevant at the same time, which is harder to catch than
-a false one.
+reads like a type name and is not one.
+
+**An earlier version of this decision justified the suffix with a gloss on `doc:00`'s
+precedence line — "precedence resolves two documents stating the same rule differently; it
+does not let one overrule a rule the other never states". That gloss is nowhere in `doc:00`,
+whose precedence line is flatly unqualified, and `bean:0068` retracted it.** The ruling is
+unchanged; the reason is replaced by the three textual grounds now on `main`:
+
+| # | ground |
+|---|---|
+| 1 | **`doc:00` already defers to an owning document against its own precedence line.** §1.1 ends by deferring to `doc:10-architecture#module-dependencies` §4.1 and calling its own table the bug on disagreement. Ownership-over-precedence is a pattern the constitution applies to itself. |
+| 2 | **Precedence produces an incoherent result.** §1.3 covers time and identifiers and never mentions randomness, so it cannot name a third port. Reading precedence as decisive yields `{Clock, IdGenerator, RandomPort}` — two names from one document and one from another, for three ports of one kind. |
+| 3 | **The naming rule pre-existed and `doc:00` states nothing contrary.** `doc:20-ddd-practices#ports-and-adapters`'s outbound-port row already gave `<Noun>Port` with `ClockPort` as its own example, and the prohibitions table already named `ClockPort` as the replacement for `Instant.now()` — both on `main` before any of this. |
+
+`doc:20-ddd-practices#ambient-ports` §5.3 is now the single owner and says so in terms: it
+**decides** the names, and `doc:00` §1.3 names none.
 
 The suffix is also what keeps the type legible. `core-domain` may reference `java.time`
 types, so an unsuffixed `Clock` would stand beside `java.time.Clock` in the same file, and
@@ -118,21 +128,21 @@ identity requirement than equality of values, not a weaker one. `adr:0004` chose
 over duplication to stop two contexts holding types that must agree but need not; that is
 this case exactly, one level up.
 
-**An untested corollary, recorded as a conjecture and not as a rule.** The test-2 argument
-above settles these three ports. It also suggests a general claim — *no port can ever join
-the shared kernel* — which this bean does **not** assert and no future change may cite it as
-having settled. That generalisation is valid only if both of the following hold, and neither
-has been verified here:
+**Three propositions, at three different strengths.** An earlier version of this section
+listed both conditions below as unverified. That was wrong about the first, and wrong in the
+direction that matters: it hedged a claim the ADR states verbatim, while the same bean relied
+on that claim as settled thirty lines earlier. Hedging what you have the evidence for reads as
+rigour and transmits doubt about something decided.
 
-1. test 2 is a **necessary** condition of membership rather than one of four tests weighed
-   together, and
-2. no future design could place a port type into a context's published language.
+| # | proposition | status |
+|---|---|---|
+| 1 | Membership requires **every** test, so failing one is decisive | **Settled.** `adr:0004-domain-id-shared-kernel#shared-kernel-membership` states it verbatim: *"A type joins only if **every** statement below is true of it."* Do not hedge this. |
+| 2 | Test 2 fails for a port **today** | **Observed**, and conditional. It holds while `..published..` and `..event..` are leaf packages, since a published type naming a port would itself be the violation. |
+| 3 | **No port can ever join the kernel** | **Conjecture.** It depends on proposition 2 being permanent, and `adr:0004-domain-id-shared-kernel#deferred-conflict` explicitly defers the leaf-rule conflict to `bean:0023` and says "this decision should be re-read when it lands". |
 
-The first is a reading of `adr:0004` that its owner has not given; the second is unverifiable
-from here. Both are plausible, which is the danger rather than the reassurance: a plausible
-unverified generalisation left in a bean is how a conjecture is cited as authority a sprint
-later. If the general claim is worth settling it is `adr:0004`'s owner's call and a separate
-work item, not a side effect of placing three ports.
+So propositions 1 and 2 carry this bean's decision, and proposition 3 is recorded as a
+conjecture nothing here establishes. No future change may cite this bean as having settled
+it; if it is worth settling, that is `adr:0004`'s owner's call after `bean:0023`.
 
 **What this costs, and who pays it.** `doc:20-ddd-practices` §5.1's package table needs a row
 for the new package. That is a `documentation/` change and `documentation/` is not this bean's
