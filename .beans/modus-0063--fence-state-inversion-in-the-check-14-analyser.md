@@ -538,6 +538,24 @@ wearing different clothes, and it fails on the first container nobody named — 
 argument this bean already made against allowlists for the fence classifier, unapplied one
 section away from where it was written.
 
+That last clause is the transferable part, and it is not a lapse in reasoning. **A principle
+gets applied where it was learned and not one function over.** The anti-allowlist argument
+was written against the fence classifier, at the time the classifier was the question; the
+citation rule was written later, against a different question, and nothing in the file
+connects them. Both are mine, in one change, a few lines apart, and the second contradicts the
+first. Neither review round caught it by reading — it took an attack that walked through the
+enumeration.
+
+So the generalisation is not "remember the principle". It is that **a principle stated in
+prose beside one mechanism does not propagate to the next mechanism by being true**, and
+nothing in this repository makes it propagate: no check reads it, and a reviewer would have to
+hold two sections in mind at once to notice. The countermeasure available today is the cheap
+one — when a rule is written as a list, ask what makes the list complete, and if the answer is
+"the cases we thought of", rewrite it positively. A second instance of the same shape was
+reported to me this round in the architecture tests, where one rule is scrupulously honest
+about the limit of what it enforces while its neighbour, written in the same commit,
+overclaims. I have not read that code and record it as reported, not verified.
+
 `doc:05-authoring-for-agents#checks` now states the rule **positively**: a citation answers
 only from top-level Markdown prose, inside no container of any kind, so anything unlisted is
 excluded by construction rather than by omission. It carries an `Enforcement gap:` naming
