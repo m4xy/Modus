@@ -96,6 +96,27 @@ The two-dot form is not *wrong*; it answers a different question. It is the wron
 pre-push review, and since the repository never states the instruction at all, every agent
 given it in a brief inherits whichever form the brief happened to use.
 
+### Its provenance, which is the part that generalises
+
+Reported by the orchestrator on being shown the measurement, and recorded here as reported
+rather than as something this bean verified — the incident predates it and left no artefact
+this branch can reach:
+
+- The instruction originates in **an orchestrator brief, not the documentation**, and has
+  been issued in every brief this sprint in the two-dot form.
+- It was added in response to a real incident: an agent force-pushed a staged revert of
+  `main`'s entire history. The command was the check meant to stop that recurring.
+- **In the form it was issued, it would not have caught it.** Against a branch whose base has
+  moved, the two-dot form's output is dominated by files the branch never touched, which is
+  precisely the noise a staged revert of history would hide inside.
+
+So a safety instruction was propagated to every agent for a sprint, in a form that could not
+perform the function it was added for, and nothing detected that — because the repository
+never stated the rule, so there was no artefact for a check or a reviewer to compare against.
+**A convention that lives only in briefs has no place a defect in it can be found.** That is
+the argument for this bean's whole shape: the fix is not a better brief, it is a line on disk
+where the next reader can disagree with it.
+
 ## Why it belongs in `AGENTS.md` rather than in a document
 
 `AGENTS.md`'s Commands block already carries two conventions of exactly this class: the stale
@@ -129,6 +150,32 @@ raise a bean *only if the line would not fit the budget* treated the requirement
 fallback for a space problem. It is not one, and following it was still the author's error to
 catch.
 
+## The bean did not stop its own author repeating the hazard
+
+The plant-script hazard above was written into this bean and into `AGENTS.md`. Its author
+then hit it **twice more** while doing the work of this sprint — once mid-way through a
+review round on `bean:0087`, losing a corpus re-measurement, a reversed blast-radius section,
+a rewritten criteria row and a `blocked_by` edge; and once more during a later round on
+`bean:0093`, after the `AGENTS.md` line had already merged.
+
+Three occurrences, by the person who documented it, with the documentation in front of him.
+That is this bean's own evidence and it points somewhere specific:
+
+> **A convention its own author cannot follow while writing it down is not a convention
+> problem.**
+
+The failure is not insufficient knowledge of the rule — knowledge was maximal, and it still
+did not fire at the moment of use, because the hazard's trigger is a command that looks
+routine and whose damage is silent and immediate. Restating it more forcefully has been tried
+by construction: the third occurrence happened with the rule already on `main`.
+
+It is the same shape `modus-0100` records for verification — named by filename because it is
+still unmerged, and a typed reference to an unmerged bean fails check 6. "Instruct agents to
+verify" was in every brief all sprint and was still insufficient. Both point at the same conclusion: where a
+rule must fire at a specific keystroke, the fix is a mechanism at that keystroke, not a
+sentence somewhere a reader has already agreed with. What that mechanism is, this bean does
+not decide; it is not reachable from a repository that cannot see a scratch script.
+
 ## Success criteria
 
 | # | criterion | evidence kind |
@@ -138,7 +185,8 @@ catch.
 | 3 | The tracked/untracked boundary is observed rather than asserted | test-run |
 | 4 | `AGENTS.md` carries the three-dot form, or `@{u}`, as the pre-push review command — an addition, since the repository states no such instruction today and the two-dot habit arrives from task briefs | diff |
 | 5 | The difference between the two forms is observed on real refs, not asserted | test-run |
-| 6 | `bash tools/docs-lint.sh` green, check 8 included | test-run |
+| 6 | The convention's provenance is stated — that it originates in briefs rather than in the repository, and that the form issued could not perform the function it was added for | citation |
+| 7 | `bash tools/docs-lint.sh` green, check 8 included | test-run |
 
 ## Not in scope
 
