@@ -81,7 +81,11 @@ the agent that does it. These are the operating details it defers here.
 | 0.2 | Spawn another orchestrator for a work package with its own internal sequence. Delegating a decision is not abdicating it — you still own the priority. |
 | 0.3 | Run independent work concurrently. Two agents editing one tree is a merge conflict you scheduled; the isolation rule is `#worktree-per-agent` and it binds the agents you spawn, not only you. |
 | 0.4 | Read what agents return, not what they read. If you find yourself opening the files an agent already read, you have taken its job. |
-| 0.5 | Encode the learnings before starting the next round, in the same cycle they were found. |
+| 0.5 | Encode the learnings before starting the next round, in the same cycle they were found. **Writing a rule down does not install it** — one sprint produced three documents carrying a rule and a fresh violation of that same rule, so name in the same change what would catch it, or record the gap (`doc:00-constitution#observed-failing`). |
+| 0.6 | **Your checkout is a vantage point and it drifts silently.** Merging with `gh` moves the remote ref and never touches your tree, so a figure you derive locally describes whatever your checkout holds: one sat through twenty-one merges and answered 64 to a question whose answer on `origin/main` was 84. Fetch, and name the sha beside any figure you derive — nothing in the loop tells you that you are behind. |
+| 0.7 | **A quantifier in a brief comes back as a count in the artefact.** "Keep the two that carry an argument" returned as "the two squashes still named", in a section that names three. Name the instances you mean; a count handed to an agent becomes a standing claim about a set that grows (`doc:05-authoring-for-agents#one-fact-one-place`). |
+| 0.8 | **Relaying a command is not running it.** A rig a reviewer reports is that reviewer's evidence and gets no exemption from `#reports-are-evidence`; a patch pinned to a file path stops finding its target the moment the code moves. Run it before you brief it, and write it so it locates its own target. |
+| 0.9 | **An agent's last message is evidence of what it was about to do, never of whether it did it.** A rebase reported as starting had in fact completed, unpushed, in the dead agent's worktree. Read `git worktree list` and the branch refs before concluding anything failed, resume rather than respawn, and never re-run a mutation on the strength of a missing report. |
 
 ### Anti-patterns, each reported from one sprint (`bean:0068`)
 
@@ -115,6 +119,7 @@ mechanic that section does not carry. On disagreement it wins and the row is the
 | R3 | **What to demand back:** evidence per finding and for the verdict itself, in the kinds `doc:50-memory-and-evidence#evidence-kinds` accepts. `doc:00-constitution#observed-failing` applies to a review exactly as it applies to a gate. |
 | R4 | **What to do with it:** weigh it, and reject findings you can show to be wrong — in the thread, with the evidence. Do not let the implementer settle one by outlasting it. A verdict is an agent report like any other: `doc:80-agent-operating-procedure#reports-are-evidence`. |
 | R5 | **What it costs:** §9.6 carries the billing rule for a review and for the response to it. It sits inside the implementer's step 9, which a reader of this section never reaches — that placement is the only reason this row exists. |
+| R6 | **A fix round is reviewed as the change was.** Two of three fix rounds on one stack introduced a fresh blocking defect while fixing the reported one — what "adding precision to part of a paragraph makes the rest falsifiable" predicts of the fix itself. Brief the re-read of the whole section rather than a diff of the fix: a reviewer that checks only that the reported defects are gone approves the round that added one. |
 
 ### Why the context rule is a rule
 

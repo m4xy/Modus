@@ -12,6 +12,8 @@ provides:
   - doc:50-memory-and-evidence#evidence-kinds
   - doc:50-memory-and-evidence#primary-sources
   - doc:50-memory-and-evidence#unverified-shapes
+  - doc:50-memory-and-evidence#capturing
+  - doc:50-memory-and-evidence#corpus-figures
   - doc:50-memory-and-evidence#evidence-record
   - doc:50-memory-and-evidence#writing-a-memory
   - doc:50-memory-and-evidence#invalidation
@@ -109,10 +111,13 @@ These six are the complete list. There is no `other`.
 | "The build passed" with no command and no exit code | Which build? Which commit? |
 | Code you wrote in this session, cited as proof it works | A `citation` proves the code says something. Only a `test-run` proves it does something. |
 | A figure with no command | A number nobody can re-derive is a recollection, and it does not stay one: it is copied forward by the next reader and becomes load-bearing. Three agents cited a `122s` baseline that had never been measured; the runs that existed were 133s and 134s (`bean:0068`). |
-| A count with no command and no tree — "51 references" | A count is an observation of one tree at one moment, and both halves are part of it. Without them nobody can get the same number, or find out why they got a different one. |
+| A count with no command and no tree — "51 references" | A count is an observation of one tree at one moment, and both halves are part of it. Without them nobody can get the same number, or find out why they got a different one. The stamp earns its keep twice: one command on one commit cannot print two answers, so two figures under one stamp that disagree are mutually falsifiable and one of them is already false. That is how a figure left over from a tree that had ceased to exist was found beside its replacement, under prose asserting the counts were unchanged; unstamped, the pair would have read as two measurements and neither would have been checkable against the other. |
 | Arithmetic over a table of figures | That the rows sum is a fact about the addition. It says nothing about whether any figure in them was ever observed, and checking it is not checking the measurement (`bean:0068`). |
 | A citation that resolves but does not carry the claim made at it | The reference resolves, so every mechanical check passes and the reader stops at the pointer (`doc:05-authoring-for-agents#one-fact-one-place`). |
 | A mechanism observed firing, never observed silent | Firing on every input is also firing. Enforcement is discrimination, so the claim needs **three** observations rather than one: the mechanism fires on the planted fault, it fires the expected *number* of times, and it is silent on the unmodified source. Any two of the three admit a mechanism that enforces nothing. The positive half is `doc:00-constitution#observed-failing`; `bean:0089` carries why the halves are not in one document. |
+| A fence composed from understanding rather than captured from a run | The author who read the code correctly still transcribed it wrongly: a `sed` range opened two lines early, a `grep -n` pasted with its line numbers stripped, two lines of output pasted as one, an eight-space indent rendered as two, a dropped trailing comma. Reasoning was sound in every one, so attention is not the remedy and capture is (§2.6). |
+| A figure whose measurement needs apparatus nobody has built | What a figure costs to obtain predicts its fabrication better than its author's care does: one author captured every other fence in the same commit correctly and invented the two whose measurement needed the linter patched, a status planted and two detached heads run. The repair is to build the rig and publish it, patch step included — deleting the numerals dodges the claim instead of evidencing it. |
+| A search over chosen phrasings, offered as evidence about a rule | A `grep` is evidence about where a string occurs. Where a *rule* is stated is a claim about meaning, and the paraphrase between the two was made once, in the author's head, and appears in no record (§2.7, `bean:0112`). |
 
 **A mechanism that retains a running "best" value corrupts the state it compares against.**
 Once the retained value is itself the corrupt one, every later comparison is against the
@@ -172,12 +177,55 @@ stale on arrival, and this one grew by a row inside the stack that introduced it
 | a citation that resolves but does not carry the claim made at it | does the cited anchor state this, or does it merely sit near it? | `doc:05-authoring-for-agents#one-fact-one-place` |
 | a reason invented for a **declined** fix | was this reason weighed before the decline, or written after it? | `doc:80-agent-operating-procedure#respond-to-review` |
 | a mechanism observed firing, never observed silent | did anything watch it *not* fire, and was the count asserted? | §2.2, and `doc:00-constitution#observed-failing` for the positive half |
+| a figure whose measurement needs apparatus | what would have to be built to obtain this, and was it built? A review that twice said "could not verify" has marked the highest-risk figure in the change, not a neutral one | §2.2 |
+| a locator — a line number, a line range, a section extent — quoted with no command beside it | what was run to get this, and does it still return it? | §2.6 |
 
 **The invented reason for a declined fix is the worst of them**, named by its property rather
 than by its position for the reason above. The others read as unfinished work and invite a
 second look; a fabricated justification reads as a trade-off somebody made, and closes the
 question for every later reader. A decline with no reason leaves a thread open, which is a defect with
 a fix. A decline with an invented one leaves nothing to fix.
+
+### 2.6 Capturing a transcript <a id="capturing"></a>
+
+**Run the command, redirect its output to a file, and paste from the file.** A fence is a capture,
+never a composition: one written from understanding is a paraphrase however well its author reads
+the code (§2.2). `bean:0104` names the inverse direction — a scripted edit produces no reading of
+its own result — and the two are one rule.
+
+- **Mark every elision** — `[...]`, or `[same]` for output quoted in full elsewhere
+  (`bean:0091`) — and never elide the part the claim rests on. An elision can conceal output no
+  run could produce: `docs-lint: OK [...] 0 failure(s)` splices two mutually exclusive branches
+  of a script whose failure branch is guarded on a non-zero count, and drops the twelve counts
+  the script's own comment calls its vacuity assertion (`bean:0069`).
+- **When a reader cannot tell a marked elision from a dropped character, recapture the block whole.**
+  Restoring the character fixes the instance and leaves the block unreadable as evidence.
+- **A locator carries the command that produced it, inline.** "§9.1 spans lines 400 to 423" was a
+  `sed` range chosen to bound an excerpt, reread forty lines later as the section's extent, which
+  ends at 461. A locator with its derivation is self-checking; one without it is a standing
+  assertion nobody will test, and once its record closes, correcting it costs an amendment
+  (`adr:0005-evidence-lives-in-the-work-item#finalisation`).
+
+### 2.7 A figure whose subject is this repository <a id="corpus-figures"></a>
+
+Most evidence here is a claim about a corpus this repository holds, and `.beans/` is both the
+subject and the medium of it. Reproducibility settles none of the three failures below: each
+survives a re-run.
+
+- **Reproducible is not correct.** A sweep can return the same files before and after a rebase and
+  be wrong about its own subject on every tree it ever ran on — re-running checks that the command
+  still does what it did, not that it answers the question the prose asks of it. A claim of
+  **absence** needs a second search by different words, and a control. `bean:0105` is the worked
+  instance, closed and not to be edited; `bean:0112` carries the shape.
+- **Anyone's merge falsifies a corpus sweep, and its author cannot prevent that.** Other shapes fail
+  visibly — a count disagrees, a fence errors; a sweep fails plausibly, since six real files read
+  exactly like six real files. Stamp it, and when a merge is known to change the swept corpus,
+  re-running the sweep belongs to that merge: the author has already left.
+- **A record that measures a corpus it belongs to changes that corpus** — raising a bean about a
+  sweep added a ninth file to the eight it returns (`bean:0105`). Capture such a figure against a
+  sentinel: replace the recorded value with a marker, run the command with the asserted string
+  absent from the tree so the result cannot satisfy itself, paste it, re-run and diff. State which
+  step the record is measurement-neutral at rather than assuming it.
 
 ---
 

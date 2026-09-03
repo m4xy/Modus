@@ -16,12 +16,14 @@ blocked_by: [modus-0045]
 workflow. It does not enforce the build. Verified:
 
 ```
-cmd:      gh api repos/m4xy/Modus/rulesets/21765196 -q '.rules[].type'
-observed: deletion non_fast_forward pull_request
+cmd:      GITHUB_TOKEN= gh api repos/m4xy/Modus/rulesets/21765196 -q '.rules[].type'
+observed: deletion
+          non_fast_forward
+          pull_request
 
-cmd:      gh api repos/m4xy/Modus/rulesets/21765196 \
+cmd:      GITHUB_TOKEN= gh api repos/m4xy/Modus/rulesets/21765196 \
             -q '.rules[] | select(.type=="required_status_checks")'
-observed: (nothing — the rule does not exist)
+observed: (no output, exit 0 — the rule does not exist)
 ```
 
 Both commands read `.rules[].type` and the `required_status_checks` rule's absence. Neither
@@ -70,7 +72,7 @@ Modifying branch protection is refused to the agent by the harness, correctly: i
 outward-facing governance change that can lock the repository. One command, run by a human:
 
 ```bash
-gh api repos/m4xy/Modus/rulesets/21765196 > /tmp/ruleset.json
+GITHUB_TOKEN= gh api repos/m4xy/Modus/rulesets/21765196 > /tmp/ruleset.json
 python3 - <<'EOF'
 import json
 r = json.load(open('/tmp/ruleset.json'))
@@ -85,7 +87,7 @@ r['rules'].append({
 json.dump({k: r[k] for k in ("name", "target", "enforcement", "conditions", "rules")},
           open('/tmp/ruleset-new.json', 'w'))
 EOF
-gh api -X PUT repos/m4xy/Modus/rulesets/21765196 --input /tmp/ruleset-new.json
+GITHUB_TOKEN= gh api -X PUT repos/m4xy/Modus/rulesets/21765196 --input /tmp/ruleset-new.json
 ```
 
 `context: "gate"` and nothing else. Naming `build` or `frontend` would block every change
@@ -94,3 +96,19 @@ that legitimately skips one, which is the whole reason the `gate` job exists.
 Then the observed-failing half, which is the criterion and not a formality: open a pull
 request whose CI is red, confirm the merge is refused, fix it, confirm the merge is allowed.
 Until that is recorded, `doc:00-constitution` §7.2.4's `Enforcement gap:` stays.
+
+## The API that answers about itself
+
+Rulesets and classic branch protection are two APIs over one question, and the classic one
+answers about the classic resource. On this repository, whose `main-protected` ruleset is
+active, it reports the branch as unprotected:
+
+```
+cmd:      GITHUB_TOKEN= gh api repos/m4xy/Modus/branches/main/protection
+observed: {"message":"Branch not protected","documentation_url":"https://docs.github.com/rest/branches/branch-protection#get-branch-protection","status":"404"}gh: Branch not protected (HTTP 404)
+```
+
+Every command in this bean is a rulesets command and none is affected. The trap is one call
+away from anyone auditing the state, and an audit written against the classic endpoint would
+report an unprotected `main` and find nothing to do (`bean:0115` re-verified the ruleset at
+`05939b8`).
