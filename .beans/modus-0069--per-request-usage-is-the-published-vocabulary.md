@@ -513,10 +513,17 @@ observed: 109:            "frameDisagreements": C.frame_disagreements(messages),
           345:    frame_disagreements = 0
           350:        frame_disagreements += r["frameDisagreements"]
           398:        "frameDisagreements": frame_disagreements,
-          504:        "| frames disagreeing on input or cache tokens | %d |" % s[...]
-          514:        "            | %d disagreement(s)" % s["frameDisagreements"]
-          673:    w("| repeated frames of one `message.id` agree on input and cache [...]
+          504:        "| frames disagreeing on input or cache tokens | %d |" % s["frameDisagreements"],
+          514:        "            | %d disagreement(s)" % s["frameDisagreements"],
+          673:    w("| repeated frames of one `message.id` agree on input and cache tokens | %d disagreement(s) |" % s["frameDisagreements"])
 ```
+
+The block above is recaptured whole and **unelided**. An earlier revision marked lines 504
+and 673 with `[...]` and pasted line 514 one character short — a dropped trailing comma with
+no marker, which is `bean:0091`'s instance 1 sitting forty lines above prose about a command
+that did not match its own transcript. The elisions were legitimate and the drop was not, and
+nothing in the block distinguished them; three long lines are cheaper than a reader having to
+trust that distinction.
 
 **Every occurrence initialises, computes, carries or renders the figure — and none of them
 raises.** Four verbs, because one of them is a zero-initialisation of the accumulator and that is

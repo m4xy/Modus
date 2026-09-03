@@ -128,5 +128,5 @@ cell filled now would be a plan rather than an observation
 | # | criterion | evidence |
 |---|---|---|
 | 1 | `doc:50-memory-and-evidence` §2.2 names the shape — a match-based search offered as evidence about where a rule is stated — with the reason it fails silently and in one direction, not only the prohibition | |
-| 2 | The rule states what makes such a search admissible, at minimum a discrimination observation: the same pattern run against a case known to state the thing, shown to match | |
+| 2 | The rule states what makes such a search admissible. A discrimination observation — the same pattern run against a case known to state the thing, shown to match — is the floor and is **not** sufficient on its own, because the author picks the control: the only control that would have failed `bean:0105`'s sweep is `doc:50` §2.2, which the author would have had to already suspect. So the rule must also say when a filter is inadmissible at all and the corpus must be enumerated and read instead — which removes the filter rather than testing it, and is the third remedy above | |
 | 3 | The instance is cited to `bean:0105`'s closed record rather than restated, and that record is not edited to accommodate this (`adr:0005-evidence-lives-in-the-work-item#finalisation`) | |
