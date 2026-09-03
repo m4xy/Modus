@@ -564,13 +564,26 @@ implementation of `bean:0014` must not treat it as guaranteed by tooling.
   one-sentence fix; it is not restated here, and `bean:0103` is merged on `main` and not edited
   from here. Recorded as its own work item rather than left as this bullet, because a bullet in
   a bean that is about to close has no owner.
-- **`doc:60-cost-model#spend-record` §3.2 names four token kinds** — `inputTokens`,
-  `outputTokens`, `cacheWriteTokens`, `cacheReadTokens` — and §3.2.1 says "all four token
-  kinds". `tools/cost_lib.py` and every record already written to
-  `domains/modus/cost/0001.ndjson` carry **five**, splitting `cacheWriteTokens` into
-  `cacheWrite5mTokens` and `cacheWrite1hTokens` because the two are billed at different
-  multipliers; the ndjson carries the folded `cacheWriteTokens` alongside them. The normative
-  document is behind its own implementation. `documentation/` is owned by another agent this
-  sprint, so this is reported rather than fixed.
+- **`doc:60-cost-model#spend-record` §3.2 named four token kinds where the implementation
+  carried five. Closed on `main` before this branch merged, and kept here as a closed
+  finding rather than deleted**, because the paragraph it was reported in is the one a reader
+  checks it against. §3.2 said `inputTokens`, `outputTokens`, `cacheWriteTokens`,
+  `cacheReadTokens`, and §3.2.1 said "all four token kinds", while `tools/cost_lib.py` and
+  every record in `domains/modus/cost/0001.ndjson` carried five — `cacheWriteTokens` split
+  into `cacheWrite5mTokens` and `cacheWrite1hTokens`, which bill at different multipliers.
+  `6fbf0e0` names the five and records `cacheWriteTokens` as their carried sum rather than a
+  measurement:
+
+  ```
+  cmd:      grep -c 'all four token kinds\|cacheWriteTokens`, `cacheReadTokens' documentation/60-cost-model.md
+  observed: 0
+  ```
+
+  A zero is only worth reading if the same command returns non-zero on the tree that had the
+  defect, which is the negative half this change argues for elsewhere and costs one line here:
+  the same grep over `git show 905a5f9:documentation/60-cost-model.md` returns **2**. So the
+  document is no longer behind its own implementation, and this bullet asserts nothing
+  a reader must act on. It was reported and not fixed from here because `documentation/` was
+  owned by another agent this sprint; that agent fixed it.
 - **`bean:0016`** will consume this vocabulary when it attributes spend, and
   **`bean:0021`** carries it over the wire. Neither is edited here.
