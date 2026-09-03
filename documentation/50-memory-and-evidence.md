@@ -193,10 +193,11 @@ never a composition: one written from understanding is a paraphrase however well
 the code (§2.2). `bean:0104` names the inverse direction — a scripted edit produces no reading of
 its own result — and the two are one rule.
 
-- **Mark every elision** (`[...]`, or `[same]` for output quoted in full elsewhere), and never elide
-  the part the claim rests on. An elision can conceal output no run could produce:
-  `docs-lint: OK [...] 0 failure(s)` splices two mutually exclusive branches of a script whose
-  failure branch is guarded on a non-zero count, and drops the twelve counts (`bean:0091`).
+- **Mark every elision** — `[...]`, or `[same]` for output quoted in full elsewhere
+  (`bean:0091`) — and never elide the part the claim rests on. An elision can conceal output no
+  run could produce: `docs-lint: OK [...] 0 failure(s)` splices two mutually exclusive branches
+  of a script whose failure branch is guarded on a non-zero count, and drops the twelve counts
+  the script's own comment calls its vacuity assertion (`bean:0069`).
 - **When a reader cannot tell a marked elision from a dropped character, recapture the block whole.**
   Restoring the character fixes the instance and leaves the block unreadable as evidence.
 - **A locator carries the command that produced it, inline.** "§9.1 spans lines 400 to 423" was a
@@ -214,16 +215,17 @@ survives a re-run.
 - **Reproducible is not correct.** A sweep can return the same files before and after a rebase and
   be wrong about its own subject on every tree it ever ran on — re-running checks that the command
   still does what it did, not that it answers the question the prose asks of it. A claim of
-  **absence** needs a second search by different words, and a control (`bean:0112`).
+  **absence** needs a second search by different words, and a control. `bean:0105` is the worked
+  instance, closed and not to be edited; `bean:0112` carries the shape.
 - **Anyone's merge falsifies a corpus sweep, and its author cannot prevent that.** Other shapes fail
   visibly — a count disagrees, a fence errors; a sweep fails plausibly, since six real files read
   exactly like six real files. Stamp it, and when a merge is known to change the swept corpus,
   re-running the sweep belongs to that merge: the author has already left.
 - **A record that measures a corpus it belongs to changes that corpus** — raising a bean about a
-  sweep added a ninth file to the eight it returns. Capture such a figure against a sentinel:
-  replace the recorded value with a marker, run the command with the asserted string absent from the
-  tree so the result cannot satisfy itself, paste it, re-run and diff. State which step the record
-  is measurement-neutral at rather than assuming it.
+  sweep added a ninth file to the eight it returns (`bean:0105`). Capture such a figure against a
+  sentinel: replace the recorded value with a marker, run the command with the asserted string
+  absent from the tree so the result cannot satisfy itself, paste it, re-run and diff. State which
+  step the record is measurement-neutral at rather than assuming it.
 
 ---
 
