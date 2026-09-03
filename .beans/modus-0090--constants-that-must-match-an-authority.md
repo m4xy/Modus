@@ -92,7 +92,7 @@ and could not fix the first two.
 
 | # | instance | state |
 |---|---|---|
-| 1 | `BASE_RATES_UPM` in `backoffice/src/agent/transport.ts` versus `doc:60-cost-model#price-book`. Sonnet 5's introductory rate lapses after 2026-08-31; on 2026-09-01 the table is 33% low. | **open.** Nothing detects it. The KDoc says so plainly rather than promising loudness no mechanism delivers. |
+| 1 | `BASE_RATES_UPM` in `backoffice/src/agent/transport.ts` versus `doc:60-cost-model#price-book`. Sonnet 5's introductory rate lapsed after 2026-08-31, so from 2026-09-01 the table is 33% low. **Written as a prediction; now an observation** — the date passed on this branch, between the last review round and the merge. | **open, and no longer hypothetical.** Nothing detected it, exactly as the KDoc said nothing would. See "The dated sibling" below. |
 | 2 | The same table versus `tools/cost_lib.py`'s `BASE_RATES_UPM`. Two halves of one seam, two hand-maintained copies of the same rates, no comparison. They disagreed on Sonnet 5 by 50% until `bean:0069`. A third disagreement is about **whether a price is returned at all**, not about its value: `cost_lib.normalise_model` strips a dated suffix (`^(.*)-\d{8}$`) and therefore prices `claude-opus-5-20260101`, while `isPricedModel` is a bare own-property check and rejects the same id. Neither half ever returns a *wrong* rate; they disagree on an id shape a real producer emits, and the TypeScript half silently declines to price it. | **open.** They agree today by inspection, which is not a mechanism, and the suffix rule is not shared at all. |
 | 3 | An unpriced model id defaulting silently. `?? BASE_RATES_UPM['claude-sonnet-5']` would price a `claude-opus-4-8` run 60% low with nothing on screen, defaulting onto the one entry whose rate has an expiry. | **closed locally** by `bean:0069`: `totalCostUsd` in `useAgentSession.ts` returns `null` when `isPricedModel` rejects the id, so the console shows no figure — mirroring `cost_lib.normalise_model`, which raises. An earlier revision cited `costMicros`; the outcome is implemented and observable, but `costMicros` is exported and called by nothing, so the citation pointed at dead code while the live path ran through `totalCostUsd`. |
 
@@ -149,6 +149,44 @@ The fix is not to update the literal. It is to derive the expectation from the s
 code uses — at which point the assertion covers the arithmetic honestly and stops making any
 claim about the rate, which is the authority's job and this bean's subject.
 
+## The dated sibling: a constant whose obligation to change is scheduled by nothing
+
+**2026-09-01 has passed. No mechanism fired.** That was predicted in the section above, in
+instance 1, and in `transport.ts`'s KDoc — three places, all of them prose, all of them
+correct, none of them a mechanism. The prediction cost nothing to make and bought nothing:
+the constant went stale on the day it said it would and the suite stayed green, which is
+the outcome the KDoc named in advance.
+
+That is a distinct shape from the one this bean is named for, and it belongs here rather
+than in a bean of its own because it is the same absence with a clock attached:
+
+| shape | what is missing | when it bites |
+|---|---|---|
+| a constant that must match an authority | a comparison | whenever either side moves |
+| a constant that is correct only until a date | a **schedule** | on one known day, with nobody watching |
+
+The second is the cheaper of the two to catch and the easier to forget, and the reason is
+in the difference between the columns: the date is *already written down*, in the code, in
+the document, and in this bean. Nothing has to parse `doc:60#price-book`'s prose or model an
+authority to know that `2026-08-31` was a boundary — the string is sitting in a comment four
+lines above the constant it governs. What is missing is anything that reads a date in a
+comment as an obligation rather than as narration.
+
+**This is why the constant is not corrected on this branch.** `tools/cost_lib.py` records
+that every run in the replayed corpus predates the lapse, so `(2_000_000, 10_000_000)` is
+the right rate for the corpus it prices and the wrong rate for a run after 2026-09-01. Both
+statements are true at once, and only a price book with `effectiveFrom`/`effectiveTo` can
+hold both — which is the resolution this bean already names and which does not exist yet.
+Moving the TypeScript half alone would price the corpus wrongly *and* break the agreement
+with `cost_lib` that instance 2 exists to protect: a seam disagreeing by 50% is the defect
+`bean:0069` was raised to fix, and re-creating it to fix a different defect is not a trade
+this bean is willing to make silently.
+
+So the honest state is: **a known-stale constant, shipped deliberately, with the date it
+went stale recorded in four places and scheduled in none.** An interim mechanism that reads
+only lapsed dates — no authority parsing, no Markdown table reader — would have caught this
+one on the morning of 2026-09-01, and is the cheapest thing this bean could deliver.
+
 ## A finding recorded against this bean, not acted on here
 
 **This bean's own evidence block cites line numbers into another file.** The `sed -n
@@ -187,9 +225,11 @@ transcript rules, not a repair to make inside a review round.
   reason and with a pointer back to `doc:00-constitution#observed-failing` for the positive
   half. When this bullet was written that was not so — the requirement lived only here and in
   `bean:0069`'s detector evidence — so this criterion no longer stands stricter than the
-  documentation it cites; it duplicates a live document, which is what `bean:0105` criterion 3
-  is for. `bean:0105` also records why the sweep that found "no third statement" could not
-  see `doc:50`: it searched four phrasings, and §2.2 uses none of them.
+  documentation it cites. It now duplicates a live document, and collapsing it to a bare
+  citation of `doc:50-memory-and-evidence` §2.2 is a loose end this bean carries:
+  `bean:0105` is closed and cannot own it. That closed record does carry why the sweep which
+  found "no third statement" could not see `doc:50` — it searched four phrasings and §2.2
+  uses none of them — and `bean:0112` owns that defect as a general one.
 - If the resolution is derivation from `domains/<domainId>/cost/price-book.md` rather than
   comparison, that is a valid closure and the constant is deleted rather than gated.
 
