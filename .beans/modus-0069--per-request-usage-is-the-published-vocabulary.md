@@ -172,9 +172,25 @@ Elisions are marked `[...]` (`bean:0091`).
 | 3 | `bean:0014` is no longer silent: it states the published usage shape, and states the premise's enforcement status honestly | `cmd`: `grep -c "^[0-9]\. \*\*" .beans/modus-0014--execution-bounded-context.md` -> `6`, the six numbered clauses. An earlier cell used `grep -c ""`, a line count, which cannot show a section exists. `cmd`: `grep -n "observed to hold" .beans/modus-0014--execution-bounded-context.md` -> `It is *observed to hold* on every run of the replayed corpus, and it is **not` |
 | 4 | No floating-point money survives in the seam, and the field carries the name `doc:60#spend-record` already uses | `cmd`: `grep -n "1_000_000" backoffice/src/agent/transport.ts backoffice/src/routes/AgentConsole.tsx` -> four hits: KDoc prose, a rate literal `input: 1_000_000`, `costMicros` dividing integer micros by integer micros, and `AgentConsole.tsx` dividing by 1,000,000. Two arithmetic sites; exactly one converts **to dollars**, and it is the render. `cmd`: `grep -n "costUsd: number" backoffice/src/agent/useAgentSession.ts` -> one hit, the state field declaration, integer micros. (Written without a pipe deliberately: a `|` inside a Markdown table cell must be escaped as `\|`, so any command containing one is corrupt the moment a reader pastes it. The escaped form here matched eleven lines instead of one, because `\|` is alternation in a basic regular expression.) Asserted positively: an earlier cell claimed `grep -rn "costUsdMicros"` gave no output, and by then it gave one — the KDoc explaining why that name is *not* used had created the match |
 | 5 | The console implements the rule it publishes — the reducer folds and dedupes rather than assigning | `cmd`: `grep -n "keepLargerFrame(previous" backoffice/src/agent/useAgentSession.ts` -> the `usage` branch selecting the authoritative frame. `cmd`: `grep -n "foldUsage(usageByMessage)" backoffice/src/agent/useAgentSession.ts` -> the fold that replaces the old assignment. `cmd`: `grep -n "usageByMessage === state.usageByMessage" backoffice/src/agent/useAgentSession.ts` -> the early return that leaves state untouched when the frame is not larger. Three single-pattern commands rather than one alternation: an earlier cell used a `-A6` window that ended before two of the three, and the alternation that replaced it could not be pasted at all |
-| 6 | The premise `keepLargerFrame` rests on is **detected**; the detector cannot be silenced by producer-chosen input; and every message reaches the fold whatever its id | `test-run`: `./gradlew e2eTest` -> `37 passed`. Firing: `a usage frame that disagrees on cache tokens is reported, not discarded` (`toHaveCount(1)`). Not silenceable: `a tool id colliding with the notice id does not suppress the detector` (`toHaveCount(1)`). Not firing spuriously: `an ordinary session reports no frame disagreement` (`toHaveCount(0)`) and `a message id naming an inherited property is counted, not silently dropped`, which also asserts the run costs the same as the identical clean run. Each was observed failing before its fix. **Scope, because an earlier version of this cell overclaimed:** "does not fire on a clean run" was evidenced only by the mock's own `msg_NN` ids, which establishes it for one id shape and not for wire input — the gap the inherited-property defect lived in |
-| 7 | Sonnet 5 is priced at the rate in force, matching `cost_lib` for the same model id | `cmd`: `grep -n "claude-sonnet-5" backoffice/src/agent/transport.ts tools/cost_lib.py` -> `'claude-sonnet-5': { input: 2_000_000, output: 10_000_000 },` and `"claude-sonnet-5": (2_000_000, 10_000_000),`. Both halves of the seam agree on a live rate; the earlier `$3/$15` priced it 50% high on every day the introductory rate held, which is every day through 2026-08-31 |
-| 8 | The gate is green | `command`: `./gradlew backofficeTypecheck backofficeLint backofficeFormatCheck` -> `BUILD SUCCESSFUL`; `./gradlew docsLint` -> `docs-lint: OK [...] 0 failure(s)`; `./gradlew e2eTest` -> `37 passed` |
+| 6 | The premise `keepLargerFrame` rests on is **detected**; the detector cannot be silenced by producer-chosen input; and every message reaches the fold whatever its id | `test-run`: `./gradlew e2eTest` -> `37 passed` (three runs of four; read the note below the table, and note that the fourth run's failure is none of the four tests named here). Firing: `a usage frame that disagrees on cache tokens is reported, not discarded` (`toHaveCount(1)`). Not silenceable: `a tool id colliding with the notice id does not suppress the detector` (`toHaveCount(1)`). Not firing spuriously: `an ordinary session reports no frame disagreement` (`toHaveCount(0)`) and `a message id naming an inherited property is counted, not silently dropped`, which also asserts the run costs the same as the identical clean run. Each was observed failing before its fix. **Scope, because an earlier version of this cell overclaimed:** "does not fire on a clean run" was evidenced only by the mock's own `msg_NN` ids, which establishes it for one id shape and not for wire input — the gap the inherited-property defect lived in |
+| 7 | Sonnet 5 is priced identically to `cost_lib` for the same model id, and the date on which that figure stops being the rate in force is stated rather than left to be found | `cmd`: `grep -n "claude-sonnet-5" backoffice/src/agent/transport.ts tools/cost_lib.py` -> `'claude-sonnet-5': { input: 2_000_000, output: 10_000_000 },` and `"claude-sonnet-5": (2_000_000, 10_000_000),`. Both halves of the seam carry the same figure, and that figure is the **introductory** $2/$10. It held through 2026-08-31 and the standard $3/$15 applies from 2026-09-01, so on any day this is read from 2026-09-01 the constant is **33% low** and this cell's earlier wording — "priced at the rate in force" — is false. That is the exposure `bean:0090` criterion 1 records as **open**, which `transport.ts`'s KDoc names by date and which the comment above the ratio test in `agent-console.spec.ts` says will stay green through. The earlier `$3/$15` was 50% high on every day the introductory rate held, which is every day through 2026-08-31, and is correct again from 2026-09-01. Moving the figure is `bean:0090`'s and not this bean's: `tools/cost_lib.py` carries the same constant, is owned elsewhere this sprint, and the two halves must move together or this criterion is what breaks |
+| 8 | The gate is green | `command`: `./gradlew backofficeTypecheck backofficeLint backofficeFormatCheck` -> `BUILD SUCCESSFUL`. `command`: `./gradlew docsLint` -> `docs-lint: OK — 19 documents, 109 anchors, 1379 references, 94 beans, 37 graph edges, 43 selectable, 94 bean ids, 5 introduced, 89 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.` — captured whole. **The earlier cell read `docs-lint: OK [...] 0 failure(s)`, which no run can print.** `tools/docs-lint.sh` either prints `docs-lint: $n_fail failure(s).` and exits 1, or prints the `OK —` counts line; the branches are mutually exclusive and the failure branch is guarded by `n_fail > 0`, so `0 failure(s)` is unreachable. The `[...]` concealed a splice of the two, and it concealed precisely the twelve counts the script's own comment calls the vacuity assertion that `doc:00-constitution#observed-failing` asks for — an elision that removed the only part of the line carrying information. The counts move with any edit to any bean or document, this cell included, so the line above is the run on this branch final tree and a later tree gives different numbers under the same `OK`. `test-run`: `./gradlew e2eTest` -> `37 passed`, on three of four consecutive runs; the fourth is read below |
+
+### `37 passed` reproduces three times in four, and the fourth is worth naming
+
+Four consecutive full-suite runs on this branch rebased onto `6fbf0e0` gave `37 passed`
+three times and `1 failed / 36 passed` once. The failure is the same test every time —
+`streams assistant text, tool calls and results incrementally` — and the same strict-mode
+violation: `transcript.getByText('Swap the mock transport for a real SSE client.')` is a
+substring locator, and mid-stream the assistant paragraph transiently contains that string
+as well as the echoed prompt, so it resolves to two elements. Run on its own it passed three
+times of three; the window opens only under the five-worker parallelism the suite uses.
+
+**That test and that assertion are pre-existing and untouched here** — the line is
+byte-identical on `origin/main` — so the flake is not this change's and not this bean's to
+fix. It is recorded because `37 passed` is quoted twice above as a `test-run`, and a
+`test-run` that reproduces three times in four is a weaker claim than one that reproduces.
+None of the four assertions criterion 6 rests on is the failing test.
 
 ### The claim is executable, which is why it is now made
 
@@ -343,15 +359,17 @@ Two things about how it surfaced are worth keeping:
   N times for one fault is worse than useless because the count lies. The negative observation
   is not a courtesy; it is half the evidence.
 
-  **And it is normative nowhere.** §9.1's MUST bullets still require only the planted
-  violation, on `main` and on this branch alike — the document is byte-identical across the
-  two, so nothing in this change moved it. The requirement that a mechanism also be observed
-  *not* firing on a clean input currently lives in this bullet and in `bean:0090`'s success
-  criteria; `bean:0105` records the sweep behind that, and why the vacuity assertion §9.1 does
-  carry is a different question. Two unmerged beans agreeing on a rule makes it a convention
-  between them: a third bean written next week has nothing to read. `bean:0105` owns getting
-  the negative half into §9.1, and is named here rather than in a commit message so the gap is
-  visible from the artefact that depends on it.
+  **And §9.1 still does not carry it.** Its MUST bullets require only the planted violation,
+  on `main` and on this branch alike — `doc:00-constitution` is byte-identical across the
+  two, so nothing in this change moved it. What *has* moved is where the rule lives: when
+  this bullet was written the requirement existed only here and in `bean:0090`'s success
+  criteria, and `9c9940d` has since stated it normatively in `doc:50-memory-and-evidence`
+  §2.2, with the reason. So this bullet is no longer half of a convention between two
+  unmerged beans; it is a restatement of a live document, which
+  `doc:05-authoring-for-agents#one-fact-one-place` says it should be a citation instead.
+  `bean:0105` carries the correction, the recaptured sweep, and why the sweep that
+  established the original gap could not see `doc:50` — collapsing this bullet into a
+  citation is that bean's criterion 3 and is not done here.
 
 **A producer-controlled string used as an object key, in a seam that already knew better.**
 `usageByMessage` is a plain object and `messageId` is wire data the producer chooses, so an id

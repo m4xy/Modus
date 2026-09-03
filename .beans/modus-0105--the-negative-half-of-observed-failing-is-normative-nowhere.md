@@ -9,6 +9,13 @@ created_at: 2026-08-30T00:00:00Z
 
 # The negative half of `observed-failing` is normative nowhere
 
+> **Overtaken on the day it was raised. The title is false and is kept only because two
+> merged beans cite this file by path.** `9c9940d` (2026-08-30) put the rule in
+> `doc:50-memory-and-evidence` §2.2, where it is normative and discoverable. What remains
+> is narrower — §9.1 itself, and the instrument this bean used to establish the gap — and
+> is under "What survives" below. The two sections above it are still true of §9.1 and are
+> left as they were written.
+
 `doc:00-constitution#observed-failing` requires that a mechanism be watched rejecting a planted
 violation. It does not require that the same mechanism be watched **not** firing on input that
 does not violate anything, and it does not say why that second observation matters.
@@ -31,22 +38,41 @@ observed: ### 9.1 A gate is unverified until it has been observed failing <a id=
 
           - Every `Enforced by:` line MUST name a mechanism that has been observed rejecting a
             planted violation of the rule it claims to enforce. The observation is recorded
-            verbatim (§3), in the work item and in the pull-request body.
+            verbatim (§3), in the work item (`adr:0005-evidence-lives-in-the-work-item#evidence-home`).
           - The procedure is `35-testing.md` §6, applied to gates rather than to tests: plant,
             observe the named mechanism fail, revert.
           - A mechanism that cannot be made to fail MUST be demoted to an `Enforcement gap:` naming
             the work item that closes it. An unfalsifiable gate is worse than an admitted gap,
             because it also stops anyone looking.
+          - The rule binds a **fix** as it binds a gate: a fix nothing can be observed to protect is
+            not yet enforced (`bean:0064`, `doc:35-testing#load-bearing-evidence`).
+
+          **Enumerating the shapes a gate accepts fails open; requiring the token that settles the
+          question fails closed.** Three successive allowlists on the defensive-copy gate were each
+          walked past by an expression nobody had named. The requirement that replaced them fails closed —
+          *a non-private function mentioning a backing field MUST declare a return type* — and costs nothing
+          in `core-domain` today, being broader than collections (`bean:0036`, `bean:0064`). An allowlist
+          binds only over a set the tool enumerates exhaustively — a resolved classpath (`doc:35-testing#unit-classpath`).
 
           **A gate can be real, correct, observed failing — and still not run.** `docs-lint` check 11
 ```
+
 
 The range is anchored on the section heading and on the first line after the normative bullets,
 rather than on line numbers, so it does not rot when the document moves; the last line is the
 terminator and is the start of a separate finding, not part of the rule.
 
-Three bullets, one direction each, and all three are about the mechanism saying *no*. Nothing
-about the clean case, and nothing about the count.
+**The anchoring worked and the transcript still had to be recaptured.** `9c9940d` added a
+fourth bullet and a paragraph *inside* the range, so the block above is a re-run against
+`6fbf0e0` and not the one this bean was raised with. An anchored range survives the document
+**moving**, which is what it was chosen for, and not the document **changing**, which is a
+different property and was never claimed. The earlier capture also quoted "in the work item
+**and in the pull-request body**", a clause `9c9940d` struck; a reader checking §9.1 against
+that block would have found the quotation wrong with nothing to say which half was stale.
+
+Four bullets now, one direction each, and all four are about the mechanism saying *no* — the
+one added binds a **fix** rather than a gate and does not change the direction. Nothing about
+the clean case, and nothing about the count.
 
 `doc:35-testing#load-bearing-evidence` §6 is the procedure §9.1 delegates to, and for *tests*
 it does carry a weak form of the other direction — step 1 records that the test passes on
@@ -101,50 +127,98 @@ say *no*. It does not ask whether the mechanism says *no* only when it should, o
 thing that is wrong. All three questions are cheap to answer at the moment the plant is being
 made, and only the first is required.
 
-## Why this is raised rather than fixed in the pull request that found it
+## Where the rule is stated, and what the sweep can and cannot tell you
 
-The rule currently exists in two places, both of them unmerged work items, and both of them
-this sprint's:
+When this bean was raised the rule existed in two places, both of them unmerged work items,
+and both of them this sprint's:
 
 | where | form |
 |---|---|
 | `bean:0069`, in its detector evidence | three observations required of the detector: fires on a plant, fires exactly once, does not fire on a clean run |
 | `bean:0090`, in its success criteria | "A comparator that fires on every run is not coverage, and one that never fires has not been shown to work" |
 
-Those two are the whole of it. The sweep behind that, so the next reader does not have to
-re-derive it:
+**That is no longer the whole of it, and it stopped being so the same day.** `9c9940d`
+merged on 2026-08-30 and put the rule in `doc:50-memory-and-evidence` §2.2, in the table of
+what is not evidence, under the row *"A mechanism observed firing, never observed silent"*:
+
+```
+cmd:      grep -o 'the claim needs \*\*three\*\* observations rather than one[^.]*\.' documentation/50-memory-and-evidence.md
+observed: the claim needs **three** observations rather than one: the mechanism fires on the planted fault, it fires the expected *number* of times, and it is silent on the unmodified source.
+```
+
+All three observations, the reason beside them — *"Enforcement is discrimination"* — and a
+pointer to `doc:00-constitution#observed-failing` for the positive half. So the negative half
+**is** normative and **is** discoverable from `documentation/`; `bean:0089` records why the
+two halves could not be put in one document; and this bean's premise is spent.
+
+### The sweep, re-run, and why it did not see that
+
+Kept because what it now demonstrates is worth more than what it was written to demonstrate:
 
 ```
 cmd:      grep -rl 'not firing\|does not fire\|fires on every\|never fires' .beans documentation | sort
 observed: .beans/modus-0068--encode-sprint-1-findings.md
           .beans/modus-0069--per-request-usage-is-the-published-vocabulary.md
           .beans/modus-0086--check-6-resolves-references-through-a-naive-fence-toggle.md
+          .beans/modus-0089--anchors-cited-by-completed-beans-pin-a-document.md
           .beans/modus-0090--constants-that-must-match-an-authority.md
           .beans/modus-0105--the-negative-half-of-observed-failing-is-normative-nowhere.md
+          .beans/modus-0110--dispatching-a-review-and-an-edit-against-one-head.md
           documentation/80-agent-operating-procedure.md
 ```
 
-Files, not lines, because what is being established is *where the rule is stated*, and reading
-decides that; a count of matches would answer a different question. The `| sort` is part of the
-command rather than something done to its output — `grep -rl` emits in traversal order, which is
-filesystem-dependent, so without it this block reproduces as a set and not as a byte stream.
+Eight files where there were six. `bean:0089` and `bean:0110` are the newcomers and neither
+states the rule as a requirement: `bean:0089` narrates this same gap and records that its
+remedy went to `doc:50` rather than to §9.1, and `bean:0110`'s line is about choosing a merge
+order so that a gate does not fire, which is `doc:80`'s sense of the phrase and not this one.
+`bean:0068` and `bean:0086` narrate specific mechanisms that did not fire, which is a report
+and not a requirement, and `doc:80`'s line is the merge-order one. Read on its own, then, the
+longer list says exactly what the shorter one said.
 
-Every hit outside the table above was read, and none of them states the rule. `doc:80`'s line is
-about choosing a merge order so that a gate does not fire; `bean:0068` and `bean:0086` narrate
-specific mechanisms that did not fire, which is a report and not a requirement. `modus-0105` is
-this file, in the corpus by construction — the assertion sits inside what it searches, so the
-list grows whenever a bean discusses the subject, and the reading rather than the list is what
-carries the claim.
+**`documentation/50-memory-and-evidence.md` is not in it.** It is the one file that settles
+the question, and the sweep cannot see it: §2.2 writes the rule as *"Firing on every input is
+also firing"* and *"never observed silent"*, and the four patterns match neither.
 
-**Two unmerged beans agreeing is a convention between them, not a rule.** Neither is normative;
-neither is discoverable from `documentation/`; a bean written next week reads §9.1, does what it
-says, and is correct to. The two authors of the convention are the two who already know it,
-which is the population it does not need to reach.
+```
+cmd:      grep -c 'not firing\|does not fire\|fires on every\|never fires' documentation/50-memory-and-evidence.md
+observed: 0
+```
 
-`documentation/` is owned by another agent this sprint and §9.1 is byte-identical on `main` and
-on the branch that found this, so no edit was made from either. Raising the bean is the whole of
-what the finding supports: the job is to get the negative half into §9.1, and the job needs an
-owner rather than a third bean stating it in prose.
+That is the finding worth keeping. A `grep -rl` over four hand-chosen phrasings is **a search
+for a wording presented as a search for a rule**, and the two come apart the moment someone
+states the rule in words the searcher did not think of. It failed silently and in the
+direction that flattered the conclusion: it returned a list, the list looked complete, every
+file in it genuinely did support *"no third statement exists"*, and nothing in the output
+said the instrument had missed the case that decides the question. Files rather than lines
+was the right call — reading decides where a rule is stated, and a match count answers a
+different question — but the corpus filter was doing work the prose credited to the reading.
+
+The `| sort` stays part of the command rather than something done to its output: `grep -rl`
+emits in traversal order, which is filesystem-dependent, so without it this block reproduces
+as a set and not as a byte stream. That was right and is unchanged.
+
+`modus-0105` is this file, in the corpus by construction — the assertion sits inside what it
+searches, so the list grows whenever a bean discusses the subject, and the reading rather
+than the list is what carries the claim. That was written as a caveat. It reads better as the
+first sign that the sweep was measuring its own corpus rather than the rule.
+
+## What survives
+
+Not the title, and not the two-unmerged-beans argument. What is left is smaller, and unowned:
+
+- **§9.1 is unchanged and still requires only the planted violation.** A reader who opens
+  `doc:00-constitution#observed-failing`, does what it says and stops has satisfied it, and
+  nothing at that anchor points forward to `doc:50-memory-and-evidence` §2.2. `bean:0089`
+  records why: the pointer costs a line the file does not have. One rule, two documents, and
+  no edge from the half a reader reaches first.
+- **`bean:0069` and `bean:0090` still state the rule rather than citing it.** That was a
+  convention between two unmerged beans when this was written. It is now a
+  `doc:05-authoring-for-agents#one-fact-one-place` duplication against a live document.
+- **The three open questions below are not answered by `doc:50` §2.2**, which states the
+  requirement without bounding it.
+
+Whether that residue is worth a bean of its own, or is `bean:0089`'s to absorb, is not this
+file's call to make.
 
 ## What the amendment has to settle, stated as the open questions
 
@@ -167,9 +241,9 @@ a cell filled now would be a plan rather than an observation
 
 | # | criterion | evidence |
 |---|---|---|
-| 1 | `doc:00-constitution` §9.1 states the negative half — a mechanism must be observed not firing on input that does not violate the rule — with the reason, not only the requirement | |
-| 2 | The three open questions above are each answered in the amendment or explicitly deferred in it, so a reader knows which of them the rule covers | |
-| 3 | `bean:0069` and `bean:0090` cite §9.1 for the negative half instead of stating it, so the rule has one home (`doc:05-authoring-for-agents#one-fact-one-place`) | |
+| 1 | A reader arriving at `doc:00-constitution#observed-failing` is led to the negative half — by §9.1 stating it, or by an edge to `doc:50-memory-and-evidence` §2.2 where `9c9940d` put it. `bean:0089` owns why neither is free today, so this is met by whichever way that bean's `adr:0003`/`adr:0005` question is settled | |
+| 2 | The three open questions above are each answered where the rule is stated, or explicitly deferred there, so a reader knows which of them it covers | |
+| 3 | `bean:0069` and `bean:0090` cite the rule instead of stating it, so it has one home (`doc:05-authoring-for-agents#one-fact-one-place`) | |
 
 ## Scope, stated as a limit
 

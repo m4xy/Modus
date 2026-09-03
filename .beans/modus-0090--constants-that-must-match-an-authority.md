@@ -182,13 +182,14 @@ transcript rules, not a repair to make inside a review round.
   A comparator that fires on every run is not coverage, and one that never fires has not been
   shown to work.
 
-  The second half of that is **not normative anywhere**. §9.1's MUST bullets require only the
-  planted violation; the requirement to observe a mechanism *not* firing on a clean input lives
-  in this bullet and in `bean:0069`'s detector evidence, and `bean:0105` records the sweep that
-  found no third statement of it, along with the adjacent vacuity requirement §9.1 does carry
-  and why that one does not cover this. Two unmerged beans agreeing is a convention, not a
-  rule. `bean:0105` owns getting it into §9.1; until that lands, this criterion is stricter
-  than the constitution it cites.
+  The second half of that is **not in §9.1**, whose MUST bullets require only the planted
+  violation. It is normative: `9c9940d` put it in `doc:50-memory-and-evidence` §2.2, with the
+  reason and with a pointer back to `doc:00-constitution#observed-failing` for the positive
+  half. When this bullet was written that was not so — the requirement lived only here and in
+  `bean:0069`'s detector evidence — so this criterion no longer stands stricter than the
+  documentation it cites; it duplicates a live document, which is what `bean:0105` criterion 3
+  is for. `bean:0105` also records why the sweep that found "no third statement" could not
+  see `doc:50`: it searched four phrasings, and §2.2 uses none of them.
 - If the resolution is derivation from `domains/<domainId>/cost/price-book.md` rather than
   comparison, that is a valid closure and the constant is deleted rather than gated.
 

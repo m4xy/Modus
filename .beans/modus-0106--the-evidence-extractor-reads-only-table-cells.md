@@ -25,17 +25,25 @@ both carry evidence in both shapes.
 
 | region | what it is | how it reproduced |
 |---|---|---|
-| the criteria table in `bean:0069` | 12 `` `cmd`: `` commands across its 8 numbered rows — the region the extractor scans | every one runs and emits the output the cell reports |
+| the criteria table in `bean:0069` | 12 `` `cmd`: `` commands across its 8 numbered rows — the region the extractor scans | every one runs; one of the 8 rows reported an output no run can produce |
 | prose in `bean:0069` and `bean:0090` | 7 fenced `cmd:`/`observed:` blocks — the region the extractor does not scan | 3 of the 7 were defective |
 
 Same change, same two files, same author, same sprint, same `bean:0091` transcript conventions
 applied throughout. The variable that differs between the two regions is whether a machine ran
-the command. **The mechanised region is clean and the unmechanised region is not.** That is a
-controlled comparison nobody designed, and it is better evidence for extending the extractor
-than any argument about completeness would have been.
+the command. That is a controlled comparison nobody designed, and it is better evidence for
+extending the extractor than any argument about completeness would have been.
 
-The three defects were each of a kind reading does not catch, which is the same property the
-extractor's first two catches had:
+**The result is sharper than "the mechanised region is clean", which is what this section
+said before the rebase and is not what happened.** The mechanised region is clean *for the
+property the extractor checks* — every command in it runs and can be pasted. It carried one
+defect of the property the extractor does not check, and that defect is criterion 8's, below.
+So the two regions do not differ in author care. They differ in which property was mechanised,
+and the region that had one property checked failed only on the other. That is a better
+argument for criterion 2 than for criterion 1: extending the *scan* to prose would not have
+caught criterion 8, and extending the *comparison* to output would have caught all four.
+
+The first three defects were each of a kind reading does not catch, which is the same
+property the extractor's first two catches had:
 
 - **A `sed` whose ranges no longer emit the line quoted beneath them.** `bean:0090` ran
   `sed -n '130,136p;150,153p'` over `bean:0002` and quoted the `| claude-opus-5 | 15 / 75 |`
@@ -52,7 +60,20 @@ extractor's first two catches had:
   and its output changes whenever the bean is edited. `[...]` marks elision within a line, not
   omitted lines, so nothing said the rest had been dropped.
 
-None of the three is a wrong conclusion. Every conclusion those blocks support is still true.
+The fourth was found on the rebase onto `6fbf0e0`, and it is the one inside the scanned
+region:
+
+- **An elision concealing a splice of two mutually exclusive branches.** `bean:0069`'s
+  criterion 8 recorded `./gradlew docsLint` -> `docs-lint: OK [...] 0 failure(s)`.
+  `tools/docs-lint.sh` prints `docs-lint: $n_fail failure(s).` and exits 1, *or* the
+  `docs-lint: OK — …` counts line; the failure branch is guarded by `n_fail > 0`, so no run
+  can print `0 failure(s)` and no run can print both halves. The command runs and produces
+  output, so the extractor passes it. What the `[...]` removed was the twelve counts the
+  script's own comment calls the vacuity assertion — so the elision deleted the only part of
+  the line that carried information and left a form of words that reads identically on the
+  day it is right and on every day after. It is corrected in `bean:0069` with a full capture.
+
+None of the four is a wrong conclusion. Every conclusion those blocks support is still true.
 What was wrong in each case is the *correspondence between a command and the output printed
 beside it* — which is exactly the failure the extractor was built for, and exactly the failure
 that is invisible to a reader who reads both halves and finds each plausible.
@@ -112,7 +133,7 @@ cell filled now would be a plan rather than an observation
 | 1 | The extractor reads every `cmd:`/`observed:` block in a bean file, in prose and in table cells alike, and reports which region each came from | |
 | 2 | It compares a prose block's `observed:` against the command's real output, not merely that the command produces something, with `[...]` treated as elision | |
 | 3 | A command it cannot run where it runs is reported as **not checked**, distinguishable in the output from one that passed (`doc:00-constitution#observed-failing`: a check that examines nothing and a check that passes must not both print OK) | |
-| 4 | **Observed failing** against each of the three defects recorded above, replanted from `PR #45`'s pre-fix revision, and observed **not** firing against the fixed revision — see `bean:0105` for why the second half is stated here rather than cited | |
+| 4 | **Observed failing** against each of the three defects recorded above, replanted from `PR #45`'s pre-fix revision, and observed **not** firing against the fixed revision, which `doc:50-memory-and-evidence` §2.2 requires and `bean:0105` records the history of | |
 | 5 | Its own region boundary is tested against a bean whose prose quotes an example command it must not execute | |
 
 ## Why this is not `bean:0104`
