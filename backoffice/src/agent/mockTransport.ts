@@ -1,10 +1,10 @@
-import { costOf } from './transport';
 import type {
   PromptRequest,
   StreamEvent,
   StreamHandlers,
   StreamSubscription,
   StreamTransport,
+  Usage,
 } from './transport';
 
 interface ScriptStep {
@@ -46,12 +46,42 @@ export function replaySpeedFromLocation(search: string = window.location.search)
  *                       could be sent.
  *  - `transport-error`  the connection itself drops mid tool call, surfacing
  *                       through `onError` rather than as a stream event.
+ *  - `usage-disagreement`
+ *                       two frames of one `messageId` disagree on a cache kind.
+ *                       This does not happen in the measured corpus, and that is
+ *                       the point: `keepLargerFrame` discards the losing frame
+ *                       on the premise that it cannot happen, and a premise no
+ *                       test has ever falsified is a premise nobody has watched
+ *                       hold (`doc:00-constitution#observed-failing`). This
+ *                       fault is how the detector is seen to fire.
+ *  - `usage-disagreement-collision`
+ *                       the same disagreement, plus a tool block whose id
+ *                       collides with the notice id the detector would use.
+ *                       Block ids share one namespace across kinds and a tool
+ *                       block's id is the producer's `callId` — external input
+ *                       against a real transport — so a suppression check that
+ *                       does not filter on kind can be silenced by a producer
+ *                       choosing an id. This fault is how that is watched.
  */
-export type MockFault = 'none' | 'stream-error' | 'transport-error';
+export type MockFault =
+  | 'none'
+  | 'stream-error'
+  | 'transport-error'
+  | 'usage-disagreement'
+  | 'usage-disagreement-collision'
+  | 'proto-message-id';
+
+const FAULTS: readonly string[] = [
+  'stream-error',
+  'transport-error',
+  'usage-disagreement',
+  'usage-disagreement-collision',
+  'proto-message-id',
+];
 
 export function faultFromLocation(search: string = window.location.search): MockFault {
   const raw = new URLSearchParams(search).get('fault');
-  return raw === 'stream-error' || raw === 'transport-error' ? raw : 'none';
+  return FAULTS.includes(raw ?? '') ? (raw as MockFault) : 'none';
 }
 
 /** Roughly four characters to a token — good enough for a plausible counter. */
@@ -69,7 +99,7 @@ function cannedTurns(prompt: string): Turn[] {
       tool: {
         name: 'Read',
         input: 'backoffice/src/agent/transport.ts',
-        summary: '96 lines · StreamTransport, StreamEvent, PRICING',
+        summary: '286 lines · StreamTransport, StreamEvent, BASE_RATES_UPM',
         detail:
           'export interface StreamTransport {\n  readonly kind: "mock" | "sse" | "websocket";\n  start: (request, handlers) => StreamSubscription;\n}',
         ok: true,
@@ -77,7 +107,7 @@ function cannedTurns(prompt: string): Turn[] {
       },
     },
     {
-      say: 'The event union already carries a cumulative `usage` event, so the SSE client can forward server totals untouched. Checking whether anything else constructs transports directly.\n\n',
+      say: 'The event union carries a per-request `usage` event keyed by `messageId`, so the SSE client forwards each frame untouched and the console does the deduplication. Checking whether anything else constructs transports directly.\n\n',
       tool: {
         name: 'Grep',
         input: 'MockStreamTransport --glob "backoffice/src/**/*.tsx"',
@@ -194,6 +224,16 @@ export class MockStreamTransport implements StreamTransport {
   private faulted(script: ScriptStep[]): ScriptStep[] {
     if (this.fault === 'none') return script;
 
+    if (this.fault === 'proto-message-id')
+      return this.withRenamedMessage(script, 'msg_01', 'constructor');
+    if (this.fault === 'usage-disagreement') return this.withDisagreeingFrame(script, 'msg_01');
+    if (this.fault === 'usage-disagreement-collision') {
+      // The collision must be planted on a LATER message: the tool block has to
+      // already be in the transcript when the disagreeing frame arrives, or
+      // there is nothing for the suppression check to trip over.
+      return this.withCollidingToolId(this.withDisagreeingFrame(script, 'msg_02'), 'msg_02');
+    }
+
     const firstToolCall = script.findIndex((step) => step.event.type === 'tool-call');
     const upToTheToolCall = script.slice(0, firstToolCall + 1);
 
@@ -207,20 +247,128 @@ export class MockStreamTransport implements StreamTransport {
     ];
   }
 
+  /**
+   * Corrupt one repeated frame so it disagrees with its predecessor on a cache
+   * kind, leaving everything else intact.
+   *
+   * The run still completes; only the premise is broken. `cacheReadTokens` is
+   * changed rather than `outputTokens` precisely because `outputTokens` is
+   * *expected* to differ between frames — that is what the selection rule is
+   * for. A cache kind differing means the two frames are not the same request,
+   * and the consumer must say so rather than quietly keeping one.
+   */
+  private withDisagreeingFrame(script: ScriptStep[], messageId: string): ScriptStep[] {
+    let seen = 0;
+    return script.map((step) => {
+      if (step.event.type !== 'usage' || step.event.messageId !== messageId) return step;
+      // The second frame of that message: the first established the entry, so
+      // this is the earliest point a disagreement can be detected.
+      if (++seen !== 2) return step;
+      return {
+        ...step,
+        event: {
+          ...step.event,
+          usage: { ...step.event.usage, cacheReadTokens: step.event.usage.cacheReadTokens + 4_096 },
+        },
+      };
+    });
+  }
+
+  /**
+   * Rename one message's `messageId`, changing nothing else.
+   *
+   * The stream stays entirely well-formed: same frames, same token counts, no
+   * disagreement anywhere in it. Only the id changes, to a name that a plain
+   * object inherits from `Object.prototype`. A producer may legitimately send
+   * any string here, so this is ordinary input rather than an attack.
+   */
+  private withRenamedMessage(script: ScriptStep[], from: string, to: string): ScriptStep[] {
+    return script.map((step) =>
+      step.event.type === 'usage' && step.event.messageId === from
+        ? { ...step, event: { ...step.event, messageId: to } }
+        : step,
+    );
+  }
+
+  /**
+   * Give the first tool call the id the disagreement notice for `messageId`
+   * would use, so a suppression check that does not filter on block kind sees
+   * the tool block and stays silent.
+   *
+   * The tool result is renamed with it, or the block never resolves and the
+   * test would fail for an unrelated reason.
+   */
+  private withCollidingToolId(script: ScriptStep[], messageId: string): ScriptStep[] {
+    const collidingId = `disagreement-${messageId}`;
+    let firstCallId: string | null = null;
+    return script.map((step) => {
+      if (step.event.type === 'tool-call') {
+        firstCallId ??= step.event.callId;
+        if (step.event.callId !== firstCallId) return step;
+        return { ...step, event: { ...step.event, callId: collidingId } };
+      }
+      if (step.event.type === 'tool-result' && step.event.callId === firstCallId) {
+        return { ...step, event: { ...step.event, callId: collidingId } };
+      }
+      return step;
+    });
+  }
+
+  /**
+   * One turn is one REQUEST, and the whole conversation so far is re-sent on it.
+   *
+   * That re-send is why cache reads dominate real spend: everything already in
+   * the prompt is read back from cache on every subsequent request, while only
+   * the newly-appended tail is written. The script models that rather than a
+   * single growing `tokensIn`, because a counter with two fields cannot show
+   * where the money goes — see the transport's rules 2 and 3.
+   */
   private buildScript(request: PromptRequest): ScriptStep[] {
     const steps: ScriptStep[] = [];
-    // The prompt plus a system preamble and the repository map is the input cost
-    // you actually pay on turn one — it is not free, so we show it.
-    let tokensIn = 4_820 + tokensFor(request.prompt);
-    let tokensOut = 0;
+    // The system preamble, the repository map and the prompt — the prefix that
+    // request one writes to cache and every later request reads back.
+    let prefixTokens = 4_820 + tokensFor(request.prompt);
+    let appended = prefixTokens;
+    let cachedPrefix = 0;
+    let messageIndex = 0;
 
+    let messageId = '';
+    let usage: Usage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWrite5mTokens: 0,
+      cacheWrite1hTokens: 0,
+    };
+
+    /** Start a new request: read the cached prefix back, write the new tail. */
+    const beginRequest = (): void => {
+      messageId = `msg_${(++messageIndex).toString().padStart(2, '0')}`;
+      usage = {
+        // A few tokens are never cacheable — the turn's own framing.
+        inputTokens: 12,
+        outputTokens: 0,
+        cacheReadTokens: cachedPrefix,
+        cacheWrite5mTokens: appended,
+        cacheWrite1hTokens: 0,
+      };
+      cachedPrefix = prefixTokens;
+      appended = 0;
+    };
+
+    /**
+     * A usage frame for the request in flight. The same `messageId` is reported
+     * more than once — a partial frame mid-generation, the finished one at
+     * `assistant-end`, and the finished one again alongside a tool block, which
+     * is the frame multiplicity a stored transcript actually has. A consumer
+     * that summed these would multiply the bill; one that kept the first would
+     * lose most of the output. Deduplicating on `messageId` and keeping the
+     * largest `outputTokens` is the only reading that gets both right.
+     */
     const usageEvent = (): StreamEvent => ({
       type: 'usage',
-      usage: {
-        tokensIn,
-        tokensOut,
-        costUsd: costOf(request.model, tokensIn, tokensOut),
-      },
+      messageId,
+      usage: { ...usage },
     });
 
     steps.push({
@@ -232,19 +380,29 @@ export class MockStreamTransport implements StreamTransport {
         startedAt: new Date().toISOString(),
       },
     });
-    steps.push({ after: 40, event: usageEvent() });
 
     let callIndex = 0;
     for (const turn of cannedTurns(request.prompt)) {
-      for (const piece of chunk(turn.say)) {
-        tokensOut += tokensFor(piece);
+      beginRequest();
+      steps.push({ after: 40, event: usageEvent() });
+
+      const pieces = chunk(turn.say);
+      const partialAt = Math.floor(pieces.length / 2);
+      pieces.forEach((piece, index) => {
+        usage.outputTokens += tokensFor(piece);
         steps.push({
           after: 18 + Math.round(piece.length * 4),
           event: { type: 'assistant-delta', text: piece },
         });
-      }
+        // The partial frame: a real transcript writes one mid-generation, with
+        // an output count a later frame supersedes.
+        if (index === partialAt) steps.push({ after: 10, event: usageEvent() });
+      });
       steps.push({ after: 60, event: { type: 'assistant-end' } });
       steps.push({ after: 20, event: usageEvent() });
+
+      prefixTokens += usage.outputTokens;
+      appended += usage.outputTokens;
 
       if (turn.tool) {
         const callId = `call_${++callIndex}`;
@@ -257,6 +415,9 @@ export class MockStreamTransport implements StreamTransport {
             input: turn.tool.input,
           },
         });
+        // The duplicate frame the transcript writes per content block: identical
+        // to the one above, and a no-op for a consumer that dedupes correctly.
+        steps.push({ after: 10, event: usageEvent() });
         steps.push({
           after: turn.tool.workMs,
           event: {
@@ -268,9 +429,11 @@ export class MockStreamTransport implements StreamTransport {
             durationMs: turn.tool.workMs,
           },
         });
-        // Tool output is re-read on the next turn: that is where input cost grows.
-        tokensIn += tokensFor(turn.tool.detail) + 320;
-        steps.push({ after: 30, event: usageEvent() });
+        // Tool output joins the prompt, so the NEXT request writes it to cache
+        // and every request after that reads it back.
+        const grew = tokensFor(turn.tool.detail) + 320;
+        prefixTokens += grew;
+        appended += grew;
       }
     }
 
