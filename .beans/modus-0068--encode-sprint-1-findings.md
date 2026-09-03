@@ -419,6 +419,61 @@ because the input never reached the verdict in the shape the test supplied. `doc
 `doc:35-testing` is at 500 of its 500 lines and a second instance is not worth what it would
 displace. The instance is here instead.
 
+#### Check 6 and check 13 have opposite blind spots, and a bean id passes through both
+
+The paragraph above turns on check 6 resolving `bean:NNNN` against **this tree**, so it cannot
+see a bean that exists only on a sibling's branch. Check 13's id-uniqueness condition resolves
+against **`origin/main`**, so it cannot see one either — for the mirror-image reason. Put
+together, an id allocated on two concurrent branches is unique as far as every mechanism can
+tell: both branches lint green, and they stay green until the second one merges. **The first
+merge is what creates the collision, and nothing looks again after it.**
+
+That happened here. This branch raised its KDoc bean as `0105`; `#45` had already pushed a
+different `0105` to its own branch. Both were green. It is renumbered to `0108`, verified
+absent from every ref and from all history rather than from `origin/main` alone:
+
+```
+cmd:      git log --all --diff-filter=A --name-only --pretty=format: -- '.beans/*010[5-9]*' | sort -u
+tree:     before the rename, with `modus-0105--a-kdoc-…` still the path this branch added
+observed: .beans/modus-0105--a-kdoc-asserts-two-domain-rules-that-do-not-exist.md
+          .beans/modus-0105--the-negative-half-of-observed-failing-is-normative-nowhere.md
+          .beans/modus-0106--the-evidence-extractor-reads-only-table-cells.md
+          .beans/modus-0107--bean-0103-states-a-count-where-its-own-paragraph-argues-for-a-quantifier.md
+exit:     0
+
+cmd:      git log --all --name-only --pretty=format: | grep -c "modus-0108"
+tree:     the same moment, before any commit carrying `modus-0108` existed
+observed: 0
+exit:     0
+```
+
+**Neither fence reproduces on the tree that ships them, and both fail in ways this bean
+already names.** The second is self-referential in the strict sense: the commit that carries
+the assertion is the commit that puts `modus-0108` into `git log --all --name-only`, so
+re-running it here returns a non-zero count *because the claim was acted on*. The first
+asserts a history that no longer exists — the branch was rewritten by the rename, so no commit
+on any ref now adds `modus-0105--a-kdoc-…`, and `0108`, `0109` and `0110` are present and
+unlisted; read today it refutes the claim it is offered for.
+
+They are stamped rather than re-quoted because **what they record is a moment, not a
+property**: the question "was `0108` free" is only answerable before `0108` was taken, and a
+re-quote against the shipped tree would print numbers that answer a different question. That
+is the fourth class this bean separates — reproducible, non-reproducible, externally
+dependent, and now **spent**: a check whose own success destroys the condition it verified.
+An allocation check is spent by construction, and stamping the moment is the only honest form
+it has.
+
+`bean:0051` owns parallel id allocation and prescribes allocating against `origin/main`; that
+is the right rule and it is not sufficient, because `origin/main` is precisely the set that
+omits every unmerged sibling. **A bean id is allocated against a set no single agent can see.**
+
+**Neither mechanism nor review caught it.** Both branches' reviewers verified their ids "across
+all refs" and both were right when they looked; the id became non-unique only when a sibling
+pushed. It was caught because one party held both branches in view at once, which is a property
+of the orchestration and not of the repository. That is the honest status: today, concurrent id
+allocation is safe only to the extent that someone is watching all of it, and `bean:0051`'s
+detect-rather-than-prevent residual is what that costs.
+
 Since corroborated independently by the analyser work, and a bean was raised for check 6 by
 the agent that owns `tools/docs-lint.sh` — `bean:0086`, which has since merged and so resolves
 here; when this was written it did not, for the reason the paragraph above gives. Two agents hitting one defect from different directions, neither
@@ -543,18 +598,24 @@ observed: 500 documentation/00-constitution.md
 exit:     0
 
 cmd:      ./gradlew qualityCheck
-observed: docs-lint: OK — 19 documents, 109 anchors, 1263 references, 84 beans, 37 graph
-          edges, 34 selectable, 84 bean ids, 1 introduced, 83 on origin/main, 0 closing
+observed: docs-lint: OK — 19 documents, 109 anchors, 1300 references, 89 beans, 37 graph
+          edges, 39 selectable, 89 bean ids, 5 introduced, 84 on origin/main, 0 closing
           transitions, 0 criteria checked, 0 unnumbered.
-tree:     this branch rebased onto origin/main at 905a5f9
+tree:     this branch rebased onto origin/main at 9c9940d
 exit:     0
 ```
 
-The counts are unchanged across that rebase, and the reason is worth one line rather than a
-re-assertion: `#52` merged, so the commit this branch used to carry is now carried by `main`.
-The tree is byte-identical either way, so `docs-lint` reads the same corpus and prints the
-same figures. They were re-run rather than carried — the run is what established that they
-had **not** moved, which is not a fact that could be assumed in either direction.
+This block and the criterion-12 block of the section below quote **one run**, because they
+stamp one tree. They had come to carry two figure sets — `1263 references, 84 beans` here
+against `1290, 88` there — under the same `tree:` line, and one command on one commit cannot
+print both: the lower set was left over from a tree that had stopped existing. The run above
+is on the final tree of this branch, transcribed into both places from the one terminal.
+
+Two things moved these figures while the branch was open, and neither is `main` growing
+underneath it: `#53` merged the bean its own branch introduced, moving one id out of this
+branch's introduced set and onto `origin/main`; and the review round that produced this
+version raised `bean:0111`, which adds a bean to the tree and to that set. Both are legible
+in the line above, so neither is restated here.
 
 The `BUILD SUCCESSFUL in Ns` line is dropped from this block. A duration does not reproduce —
 this branch has printed 17s, 19s, 20s and 22s for the same command on the same tree — so
@@ -617,12 +678,43 @@ destination's rows, diff the sets; do not re-read the destination for the ones y
 moving. Run here over all nineteen MAY/MUST-NOT pairs the deleted table stated:
 
 ```
-cmd:      python3 - <<'EOF'   (each deleted pair tested for presence in §4.1)
+cmd:      python3 - <<'EOF'
+            t = open('documentation/10-architecture.md').read()
+            i = t.index('### 4.1'); sec = t[i:t.index('\n## ', i)]
+            checks = [                       # every MAY/MUST-NOT pair the deleted table stated
+              ("core-domain MAY Kotlin stdlib",      "| `core:core-domain` | Kotlin stdlib | ALLOW |"),
+              ("core-domain MAY java.time types",    "| `core:core-domain` | `java.time.*` (types only, no `now()`) | ALLOW |"),
+              ("core-domain MUST NOT (catch-all)",   "| `core:core-domain` | anything else | DENY |"),
+              ("core-application MAY core-domain",   "| `core:core-application` | `core:core-domain` | ALLOW |"),
+              ("core-application MAY Kotlin stdlib", "| `core:core-application` | Kotlin stdlib | ALLOW |"),
+              ("core-application MAY coroutines",    "| `core:core-application` | `kotlinx.coroutines` | ALLOW |"),
+              ("core-application MUST NOT (catch-all)", "| `core:core-application` | anything else | DENY |"),
+              ("adapters MAY core",                  "| `adapters:*` | `core:core-domain`, `core:core-application` | ALLOW |"),
+              ("adapters MAY third-party",           "| `adapters:*` | `org.springframework.*`, its own third-party libs | ALLOW |"),
+              ("adapters MUST NOT other adapters",   "| `adapters:*` | another `adapters:*` | DENY |"),
+              ("adapters MUST NOT modules/app",      "| `adapters:*` | `modules:*`, `app:*` | DENY |"),
+              ("modules MAY core",                   "| `modules:*` | `core:core-domain`, `core:core-application` | ALLOW |"),
+              ("modules MAY spring/third-party",     "| `modules:*` | `org.springframework.*`, its own third-party libs | ALLOW |"),
+              ("modules MUST NOT another module",    "| `modules:*` | another `modules:*` | DENY |"),
+              ("modules MUST NOT adapters+app",      "| `modules:*` | `adapters:*`, `app:*` | DENY |"),
+              ("app MAY everything",                 "| `app:modus-server` | any Gradle module | ALLOW |"),
+              ("backoffice MAY contract",            "| `backoffice/` | the REST API contract, over HTTP | ALLOW |"),
+              ("e2e MAY running system",             "| `e2e/` | the running system, over HTTP | ALLOW |"),
+              ("backoffice/e2e MUST NOT Kotlin",     "| `backoffice/`, `e2e/` | any Kotlin source | DENY |"),
+            ]
+            lost = [n for n, r in checks if r not in sec]
+            print("LOST:", len(lost), lost)
+          EOF
 observed: LOST: 2 ['core-application MAY Kotlin stdlib', 'modules MUST NOT adapters+app']
           re-run after restoring both rows:
-          LOST: 0
+          LOST: 0 []
 exit:     0
 ```
+
+The script is written out rather than elided. A fence reading `python3 - <<'EOF'` with the body
+removed is a figure whose command cannot be re-run — `doc:50-memory-and-evidence` §2.2's first
+row, in the bean that adds it. The enumeration is also the part worth checking: the conclusion
+depends entirely on the nineteen pairs being the right nineteen, and only the list shows that.
 
 Its first run reported all nineteen lost, because the section slice terminated on the table's
 own `|---|` separator. A check reporting total failure is as untrustworthy as one reporting
@@ -690,4 +782,141 @@ Two corrections were made in passing, both in the family this bean is about:
   beside a fact being corrected is invisible precisely because the corrector's attention is
   on the fact.** Deleting it is not tidiness, it is the only intervention the evidence
   supports.
+
+### `docs/spend-record-behind-its-recorder` — the spend record was behind its own recorder
+
+Routed in by the orchestrator mid-task and **verified here rather than relayed**, because a
+relayed figure is how a false one becomes load-bearing (§2.2 of `doc:50-memory-and-evidence`,
+this bean's own criterion 5).
+
+| # | criterion | observed |
+|---|---|---|
+| 14 | the record names what is written, and the price book can price it | `documentation/60-cost-model.md` §3.2 now names `cacheRead`, `cacheWrite5m` and `cacheWrite1h` and says why the split exists; §3.2.1's "all four token kinds" is gone; §2.1 gains the rule that an entry prices every kind, not input and output alone; §3.2's `Enforcement gap:` now names `bean:0111`, having named two beans that cannot close it |
+| 11 | budget held | `doc:60-cost-model` 473 of 500 |
+| 12 | the gate | the run below, on this branch |
+
+```
+cmd:      ./gradlew qualityCheck
+observed: docs-lint: OK — 19 documents, 109 anchors, 1300 references, 89 beans, 37 graph
+          edges, 39 selectable, 89 bean ids, 5 introduced, 84 on origin/main, 0 closing
+          transitions, 0 criteria checked, 0 unnumbered.
+tree:     this branch rebased onto origin/main at 9c9940d
+exit:     0
+```
+
+The duration is omitted for the reason the gates section gives: it does not reproduce, and a
+line that cannot be re-derived makes the block around it look unverifiable. The counts are the
+gates section's counts, from the same run on the same tree, and the two figures that moved
+since the previous run moved for the reason given there.
+
+What was checked, and what was found to differ from the relay:
+
+```
+cmd:      sed -n '116,122p' tools/cost_lib.py
+observed: USAGE_KINDS = (
+              "inputTokens",
+              "outputTokens",
+              "cacheReadTokens",
+              "cacheWrite5mTokens",
+              "cacheWrite1hTokens",
+          )
+exit:     0
+
+cmd:      grep -n "cacheWriteTokens" tools/cost-record.py
+observed: 255:        "cacheWriteTokens": usage["cacheWrite5mTokens"] + usage["cacheWrite1hTokens"],
+          344:                           "outputTokens", "cacheReadTokens", "cacheWriteTokens",
+exit:     0
+
+cmd:      grep -n "MULT" tools/cost_lib.py
+observed: 34:CACHE_READ_MULT = (1, 10)  # 0.1x
+          35:CACHE_WRITE_5M_MULT = (5, 4)  # 1.25x
+          36:CACHE_WRITE_1H_MULT = (2, 1)  # 2x
+          79:        "cacheRead": inp * CACHE_READ_MULT[0] // CACHE_READ_MULT[1],
+          80:        "cacheWrite5m": inp * CACHE_WRITE_5M_MULT[0] // CACHE_WRITE_5M_MULT[1],
+          81:        "cacheWrite1h": inp * CACHE_WRITE_1H_MULT[0] // CACHE_WRITE_1H_MULT[1],
+exit:     0
+```
+
+The multipliers are sourced in `tools/cost_lib.py`'s own comment to the `claude-api` skill,
+`shared/prompt-caching.md:141`, read at CLI 2.1.236 on 2026-08-29 — not to this document,
+which deliberately refuses to carry them (§2).
+
+**Corrected against the relay.** `cacheWriteTokens` is still written, as the sum of the two
+halves, so the record carries the four kinds §3.2 named *plus* the split — not five instead
+of four; the second hit, `:344`, is the self-test's required-field list, so the folded field
+is checked for as well as written. And the relayed corpus figures (861,927,115 tokens, cache reads 97.51%) are not
+what this tree holds. Measured here instead, and the command is given so the difference is
+attributable rather than mysterious:
+
+```
+cmd:      python3 - <<'EOF'
+            import json
+            ks = ("inputTokens", "outputTokens", "cacheReadTokens",
+                  "cacheWrite5mTokens", "cacheWrite1hTokens")
+            t = {k: 0 for k in ks}; n = 0
+            for line in open('domains/modus/cost/0001.ndjson'):
+                line = line.strip()
+                if not line: continue
+                d = json.loads(line); n += 1
+                for k in ks: t[k] += d.get(k, 0) or 0
+            tot = sum(t.values())
+            print(f"records {n}  total {tot:,}")
+            for k in ks: print(f"{k:18}{t[k]:>12,} {100*t[k]/tot:6.2f}%")
+          EOF
+tree:     origin/main at 8181726, domains/modus/cost/0001.ndjson
+observed: records 2  total 249,780,821
+          inputTokens              1,226   0.00%
+          outputTokens           627,369   0.25%
+          cacheReadTokens    248,029,474  99.30%
+          cacheWrite5mTokens     116,944   0.05%
+          cacheWrite1hTokens   1,005,808   0.40%
+exit:     0
+```
+
+That script was elided to `for line in open(...): ...` until review caught it — **in the same
+commit that added the rule against eliding a script**, about forty lines apart. The rule was
+written for the §4.1 set-difference fence and applied there, not to the fence already sitting
+further down the same file. A rule added to a document does not retroactively audit the
+document it is added to, and nothing prompts a sweep, because the new text feels like the
+whole of the change.
+
+**Then writing it out exposed something the rule as first stated does not cover.** The
+de-elided body did not produce the `observed:` block above it: `print("records", n, "total",
+tot)` emits one space and an unformatted integer, and `f"{k:22} …"` pads two columns wider
+than the output shows. Six lines of six differed. The measurement was never in doubt — the
+numbers reproduce exactly from the cited tree — and the script was not wrong either; the
+**transcription** of it into the fence was, and had been for as long as the fence was elided.
+For that whole period **nobody could tell, because there was nothing anyone could run.**
+De-eliding ended the period and produced the failure in the same act.
+
+So elision does not merely make a fence unrunnable. **It conceals that the fence is already
+broken**, and de-eliding is the act that surfaces it. An elided command cannot be falsified,
+which makes it the one kind of evidence that never decays visibly: it reads the same on the
+day it is right and every day after it stops being. The corrected body now reproduces the
+block byte-for-byte.
+
+This bean's criteria table is audited end to end for the first time on this branch, by
+flipping it to `completed` and running check 14. The same flip on every earlier head in the
+stack does **not** produce a per-criterion audit: on three of them a table header outside
+check 14's vocabulary trips `NOEVCOL`, which suppresses the whole cascade, and on the fourth
+the check names one criterion whose evidence is written and sitting on the next branch.
+`bean:0101` carries all five runs and the correction of an earlier, invented one.
+
+The relay is itself finding 6, arriving while finding 6 was being written down: a figure
+travelled one hop from the tree that produced it, arrived with no command and no tree, and
+would have been copied into a document had it not been checked. It is recorded here at the
+orchestrator's own suggestion, because the finding is worth more with a live instance than
+without one, and the instance cost nothing but the checking.
+
+Both measurements support the same conclusion — the cache-read term dominates and fresh
+input rounds to zero — and they disagree on every digit, because they were taken on
+different trees. That is why neither number is written into `doc:60-cost-model`: a figure
+that moves with every recorded run is a drift generator wherever it is copied
+(`doc:05-authoring-for-agents#one-fact-one-place`). The rule went in; the number stayed here.
+
+One half of the relay did **not** hold on checking. `doc:60-cost-model` §2 does not omit
+cache pricing by oversight: it states that the multipliers "must not be written from memory"
+and sends the reader to the `claude-api` skill, which is exactly what `tools/cost_lib.py`
+did. The real gap was narrower and structural — the price-book entry shape had two rates
+where the record has five kinds — and that is what §2.1 now states.
 
