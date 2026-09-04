@@ -253,9 +253,10 @@ early would defeat the ordering.
 
 ## Amendments
 
-Four entries, all from the first review round on this bean's own pull request, #69, against
-head `13d8c27`. Every figure below was redirected to a file and pasted from it. The only
-edits to a capture are elisions of an absolute path, each marked `[...]`.
+Five entries, all from the first review round on this bean's own pull request, #69, against
+head `13d8c27`; the last is taken on the head that round produced. Every figure below was
+redirected to a file and pasted from it. The only edits to a capture are elisions of an
+absolute path, each marked `[...]`.
 
 ### 2026-09-04 · bean:0049
 
@@ -518,3 +519,43 @@ flight. Nothing here rests on them — the load-bearing observation is `exit: 0`
 `OK`, twice (`doc:50-memory-and-evidence#corpus-figures`). Entry 5's line is not re-taken
 here; re-running it belongs to the merge, and two further pull requests that move the same
 counts are in flight on this sprint.
+
+### 2026-09-04 · bean:0049
+
+*The anchored regexes under CI's awk, which is not the awk they were written against.*
+
+**Claimed:** `tools/lib/bash32-scan.awk:8-11` — the pattern ERE "behaves the same under BSD awk
+and gawk for the constructs used here — no backslash escapes, no interval expressions, no word
+boundaries"; and entry 1, that CI's awk was observed to have the POSIX character classes
+rather than assumed to.
+
+**Found:** the anchoring added bracket-expression forms that neither observation covers — `[!]`
+holding a literal `!` where `^` is the negation character, a positive `[]]` holding a literal
+`]`, and `["']`. Those are exactly the shapes that differ between awks, so the claim needed
+re-taking rather than inheriting. It could not be checked locally: no gawk, mawk or busybox
+awk is installed on the development machine. It was checked on the runner instead, and all
+twenty-one samples are still caught exactly once with the extended negative control still
+clean. The observation is not load-bearing on its own — an awk that compiled the brackets
+differently would fail the planted-sample assertions loudly rather than report every script
+clean — but it is the only direct evidence that the widened patterns are portable.
+
+**Evidence:**
+
+```
+cmd:      command -v gawk mawk busybox
+observed: (no output)
+exit:     1
+cmd:      awk --version 2>&1 | head -1
+observed: awk version 20200816            # BSD awk, what every local figure above was taken under
+cmd:      gh run view --job 100960561182 --log      # qualityCheck on ubuntu-latest, head ea4185f
+observed: bash-compat: interpreter /bin/bash (bash 5.2.21(1)-release)
+          bash-compat: OK — 3 scripts parsed, 21 rules, 21 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+          docs-lint-test: 37 passed, 0 failed.
+          docs-lint: OK — 19 documents, 111 anchors, 1520 references, 101 beans, 37 graph edges, 46 selectable, 101 bean ids, 1 introduced, 100 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+```
+
+That `docs-lint` line reads `101 beans` where this tree measures `99`, because CI lints the
+merge of this branch with `origin/main` and `origin/main` has gained beans since this branch
+was cut. It is the corpus moving under the figure, not two measurements disagreeing
+(`doc:50-memory-and-evidence#corpus-figures`). The `bash-compat` line is unaffected: it counts
+rules and scripts, neither of which the merge changes.
