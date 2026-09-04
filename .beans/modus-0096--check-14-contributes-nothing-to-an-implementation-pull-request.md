@@ -271,8 +271,14 @@ cmd:      git rev-parse HEAD && \
           diff /tmp/pasted.txt /tmp/rerun.txt && echo "identical: what this bean records is what a re-run prints"
 expect:   the head named, and the paste adding no document, anchor, reference or bean: any line
           the diff reports differs in the `on origin/main` field and in nothing else
-observed: SENTINEL-NEUTRALITY — replaced by the run made at the commit named in this cell
-exit:     SENTINEL
+observed: c9b0194c91ad7b12e918f7ac2ca019d758e51916
+          1,2c1,2
+          < docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 98 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          < docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 98 on origin/main, 1 closing transitions, 5 criteria checked, 0 unnumbered.
+          ---
+          > docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 100 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          > docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 100 on origin/main, 1 closing transitions, 5 criteria checked, 0 unnumbered.
+exit:     1
 ```
 
 ### Criterion 2 — a reader of a green line can determine that no evidence was examined
@@ -353,13 +359,26 @@ exit:     0
 
 Re-run on the committed head, so the gate is observed green on a tree that differs from the one
 this pull request presents only by the paste of this cell and of the criterion 1 re-run above it.
-Its counters line is elided rather than marked `[same]`: it is not the same, because `origin/main`
-moved after arm A was taken, and pasting the field this run prints would re-take a figure left
-here at the head that produced it.
+Its counters line is elided rather than marked `[same]`: it is not the same as arm A, because
+`origin/main` moved after arm A was taken. It is byte-identical to the first `>` line of the
+criterion 1 diff above, which is where the counters a run on this tree prints are quoted in full.
 
 ```
 cmd:      git rev-parse HEAD && ./gradlew qualityCheck
 expect:   BUILD SUCCESSFUL, with :docsLintTest and :docsLint inside it
-observed: SENTINEL-GATE — replaced by the run made at the commit named in this cell
-exit:     SENTINEL
+observed: c9b0194c91ad7b12e918f7ac2ca019d758e51916
+          [...]
+          > Task :docsLintTest
+          [...]
+          docs-lint-test: 37 passed, 0 failed.
+          [...]
+          > Task :docsLint
+          docs-lint: OK — [...]
+          [...]
+          > Task :qualityCheck
+          [...]
+          BUILD SUCCESSFUL in 26s
+          159 actionable tasks: 5 executed, 154 up-to-date
+          Configuration cache entry reused.
+exit:     0
 ```
