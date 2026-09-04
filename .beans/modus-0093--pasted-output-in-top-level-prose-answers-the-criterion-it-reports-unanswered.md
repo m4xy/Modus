@@ -1,11 +1,11 @@
 ---
 # modus-0093
 title: Pasted check 14 output standing in top-level prose answers the criterion it reports unanswered
-status: todo
+status: in-progress
 type: fix
 priority: high
 created_at: 2026-08-29T00:00:00Z
-blocked_by: [modus-0061, modus-0063]
+blocked_by: [modus-0063]
 ---
 
 # Pasted check 14 output standing in top-level prose answers the criterion it reports unanswered
@@ -111,8 +111,32 @@ accepting its own failure output as evidence, which is the defect class
 takes, it must reject this shape, and if it closes by accepting the looseness this bean is
 what remains open.
 
-`blocked_by: [modus-0061]` for that reason: what a citation *is* is that bean's decision, and
-fixing this first would pre-empt it with a narrower rule chosen against one example.
+`blocked_by: [modus-0061]` was carried for that reason: what a citation *is* is that bean's
+decision, and fixing this first would pre-empt it with a narrower rule chosen against one
+example.
+
+### The edge is dropped, and the paragraph above is why
+
+The rest of this bean falsifies its own premise, and the reversal is recorded here rather
+than made silently. Three things had already happened by the time the edge was written down:
+
+- The section above rules that *"accepting the looseness is not available"* for this shape.
+  So `bean:0061`'s fifth criterion is not a decision with two outcomes any more — this bean
+  fixed one of them shut. An edge whose downstream constrains its upstream to a single
+  answer is a citation, not a dependency.
+- The option was **measured**, twice, over the whole `completed` corpus, and stated as a
+  property rather than as a rule chosen against one example. That is the specific harm the
+  edge was written to prevent, and it did not happen.
+- Option 1's own cost row says it catches *"this, and `bean:0061`'s mention problem, with
+  one rule"*. Landing it first therefore makes `bean:0061` cheaper — its fifth criterion
+  arrives already discharged — and blocking it makes that bean more expensive, not less.
+
+The edge is **dropped, not inverted.** `bean:0061`'s subject is the three un-numbering
+escapes and the absent-criteria case; none of them depends on where a citation may stand, so
+an inverted edge would block that bean's real work behind this one for the sake of a
+criterion this change answers on its way past. It stays selectable and gains a note.
+
+`blocked_by: [modus-0063]` remains and is satisfied — that bean is `completed`.
 
 ## The boundary, and the two instances observed in the wild
 
@@ -304,6 +328,265 @@ and neither needs an amendment for this change to be possible.
 | 5 | **Every** `DEFECT (open)` assertion in `tools/docs-lint-test.sh` is flipped to a rejection, each with a verdict assertion and not only a perception one — there are six, and they are one class: pasted output at column zero answering its criterion | test-run |
 | 6 | `doc:05-authoring-for-agents#checks` states the citation rule that results | diff |
 | 7 | `./gradlew qualityCheck` green | test-run |
+
+## Evidence
+
+Branch `fix/0093-citation-structural-site`, based on `main` at `1c19cf0`. Every figure below
+was redirected to a file and pasted from it. Two heads are in play and each run says which it
+was taken at, because the corpus measurement must be taken on a tree this bean has not yet
+edited:
+
+- **`1c19cf0`** — the merge base, `.beans/` and `tools/` unmodified. The corpus differential.
+- **`1c19cf0`+`tools/`** — the merge base with only this change's `tools/` edits applied and
+  `.beans/` unmodified, so that `git checkout -- .beans` after a plant restores the base.
+  Every planted run.
+- **the branch head** — everything, including this section. The re-measurement at the end.
+
+### Criterion 1 — the plant is observed rejected
+
+Planted on `.beans/modus-0033`, a `status: todo` bean, by flipping its status to `completed`
+and appending a numbered criteria table and an `## Evidence` section holding two fences with
+the check's own failure lines standing between them, at column zero. Reverted with
+`git checkout -- .beans`; `git status --porcelain` was empty before every run and showed only
+this change's three modified files after each.
+
+First against the analyser as it stands on `main`, at `1c19cf0`+`tools/` with
+`tools/lib/docs-lint-c14.awk` restored to its base content — the defect, reproduced here
+rather than quoted from the section above:
+
+```
+cmd:      /bin/bash tools/docs-lint.sh
+observed: docs-lint: OK — 19 documents, 111 anchors, 1552 references, 102 beans, 37 graph edges, 45 selectable, 102 bean ids, 0 introduced, 102 on origin/main, 1 closing transitions, 2 criteria checked, 4 unnumbered.
+exit:     0
+```
+
+`2 criteria checked` and exit 0: both criteria answered by the two lines reporting them
+unanswered. Then the identical plant with the narrowed `citation_site()`:
+
+```
+cmd:      /bin/bash tools/docs-lint.sh
+observed: FAIL check 14 .beans/modus-0033--baseline-writer-erases-regression-provenance.md: criterion 1 is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+          FAIL check 14 .beans/modus-0033--baseline-writer-erases-regression-provenance.md: criterion 2 is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+          docs-lint: 2 failure(s).
+exit:     1
+```
+
+The two runs differ in one file and in nothing else. `4 unnumbered` in the first is
+`.beans/modus-0033`'s own four bullet criteria, which the plant leaves in place; the plant
+adds the numbered table beneath them.
+
+### Criterion 2 — the control still fails for its own reason, and a structural citation still closes
+
+The same bean, the same two lines, moved inside one fence — the original control, which must
+still fail because a fence is an entry and not a citation site. At `1c19cf0`+`tools/`:
+
+```
+cmd:      /bin/bash tools/docs-lint.sh
+observed: FAIL check 14 .beans/modus-0033--baseline-writer-erases-regression-provenance.md: criterion 1 is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+          FAIL check 14 .beans/modus-0033--baseline-writer-erases-regression-provenance.md: criterion 2 is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+          docs-lint: 2 failure(s).
+exit:     1
+```
+
+And the negative control that makes the two rejections above mean something — the same bean
+with its evidence filed under `### Criterion 1` and `### Criterion 2` sub-headings, which is
+the shape the new rule asks for:
+
+```
+cmd:      /bin/bash tools/docs-lint.sh
+observed: docs-lint: OK — 19 documents, 111 anchors, 1552 references, 102 beans, 37 graph edges, 45 selectable, 102 bean ids, 0 introduced, 102 on origin/main, 1 closing transitions, 2 criteria checked, 4 unnumbered.
+exit:     0
+```
+
+Without this run the two above would also be produced by a check that answers nothing at all.
+The same control exists in `tools/docs-lint-test.sh` for both structural sites, and the
+mutation table under criterion 5 measures what it is worth.
+
+### Criterion 3 — a property, not a list
+
+`tools/lib/docs-lint-c14.awk`, before:
+
+```
+function citation_site(line,   lead, body) {
+  lead = fence_lead(line)
+  if (fence_cols(line, lead) >= 4) { return 0 }
+  body = substr(line, lead + 1)
+  if (substr(body, 1, 1) == ">") { return 0 }
+  return 1
+}
+```
+
+after:
+
+```
+function citation_site(line) {
+  return (line ~ /^#+ / || (intable && line ~ /^\|/))
+}
+```
+
+The before accepts every line and subtracts two containers by name. The after accepts two
+sites and names no container at all, so the escapes are refused without being enumerated: the
+raw `<pre>`, the HTML comment, the `<details>` wrapper, the lazy block-quote continuation, the
+list item, the front matter and the pasted transcript at column zero are all simply not
+headings and not table rows. `intable` is the analyser's own table state, which is why a
+`|`-leading line inside a raw HTML block is not a table row either — the plain
+`line ~ /^\|/` form was measured too and gives byte-identical verdicts over all 102 beans, so
+the stricter form was taken at no cost.
+
+The rule as adopted is stated at `doc:05-authoring-for-agents#checks`; see criterion 6.
+
+### Criterion 4 — every bean measured before and after, and every changed bean named
+
+The check 14 analyser run over every bean file twice at `1c19cf0`, once as-is and once with
+the narrowed `citation_site()`, and the verdict sets diffed per file. Named, not counted.
+
+Over the `status: completed` corpus — the beans check 11 has frozen:
+
+```
+cmd:      the check 14 analyser over every `status: completed` bean, before and after,
+          diffed per file
+observed: CHANGED modus-0028--normative-gate-commands.md
+              >  UNANSWERED	1
+              >  UNANSWERED	7
+          CHANGED modus-0035--beans-graph-check.md
+              >  UNANSWERED	1
+              >  UNANSWERED	2
+              >  UNANSWERED	3
+              >  UNANSWERED	4
+              >  UNANSWERED	5
+              >  UNANSWERED	6
+          (no other file differs)
+exit:     0
+```
+
+Two files, the same two the section above measured at 23 completed beans and re-measured at
+27. The corpus is now 102 beans of which 35 are `completed`, and the answer is unchanged.
+Neither bean fails: check 11 freezes both and check 14 never re-reads a bean the merge base
+already closed.
+
+Over **all** beans, which is the forward cost — a bean in flight that closes after this lands
+must file its citations structurally:
+
+```
+cmd:      the same differential over all 102 bean files
+observed: CHANGED modus-0028--normative-gate-commands.md          >  UNANSWERED 1, 7
+          CHANGED modus-0035--beans-graph-check.md                >  UNANSWERED 1..6
+          CHANGED modus-0049--bash-32-claim-is-unenforced.md      >  UNANSWERED 1, 3
+          CHANGED modus-0061--check-14-is-gated-on-numbered-criteria.md
+                                                                  >  UNANSWERED 1, 2, 3
+          CHANGED modus-0062--docs-lint-does-not-scan-claude-skills.md
+                                                                  >  UNANSWERED 1, 2
+          CHANGED modus-0086--check-6-resolves-references-through-a-naive-fence-toggle.md
+                                                                  >  UNANSWERED 1, 4
+          CHANGED modus-0091--transcript-discipline-in-evidence.md
+                                                                  >  UNANSWERED 3, 6
+          CHANGED modus-0098--pull-request-bodies-restate-evidence.md
+                                                                  >  UNANSWERED 1
+          CHANGED modus-0101--a-stacked-bean-is-unauditable-until-the-stack-lands.md
+                                                                  >  UNANSWERED 1, 5
+          CHANGED modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md
+                                                                  >  UNANSWERED 2, 3
+          CHANGED modus-0119--spend-records-carry-no-seq-kind-or-crc.md
+                                                                  >  UNANSWERED 1, 2, 3, 5, 6, 7, 9
+          (no other file differs)
+exit:     0
+```
+
+The `UNANSWERED N, M` form on the right is this bean's transcription of one `UNANSWERED` line
+per number; the per-file diff prints them one to a line, as the `completed` block above shows
+in full. No other elision.
+
+**`.beans/modus-0049` is the one that needs acting on and it is not this bean's to act on.**
+It is `status: in-progress` and is being closed on a parallel branch. If that branch closes it
+after this merges, check 14 will report its first and third criteria unanswered, because both
+are cited only from running prose. Its second is not affected: it is headed
+`## Criterion 2 cannot be met as written`, and a heading is a structural site. The fix is one
+edit — its evidence sub-headings read `### 1 — …` and `### 3 — …`, and naming the criterion in
+them (`### Criterion 1 — …`) answers them. Recorded here rather than done here, because that
+bean belongs to another branch.
+
+The instrument was validated against a known positive before the result was believed: a
+fixture answering its one numbered criterion only from a running-prose line reports nothing
+before and `UNANSWERED 1` after. It is `tools/docs-lint-test.sh`'s "the planted defect: pasted
+output at top level cannot answer its criterion", and it fails if the differential is a script
+matching nothing.
+
+### Criterion 5 — every `DEFECT (open)` assertion flipped, as a verdict
+
+All six are now rejections, and each is a verdict assertion:
+
+```
+cmd:      /usr/bin/grep -c 'decides "DEFECT' tools/docs-lint-test.sh
+observed: 0
+exit:     1
+```
+
+`grep` here is `/usr/bin/grep`, the BSD grep 2.6.0-FreeBSD that CI also runs, named because
+the interactive shell's `grep` is a harness-installed `ugrep 7.8.4`. The pattern is anchored
+on `decides "DEFECT` and not on `DEFECT (open)`: the latter still matches once, in the comment
+that records what those six pins used to assert, and a count that included it would be
+measuring the wrong thing. `exit: 1` is `grep -c` finding nothing, which is the result.
+
+```
+cmd:      /bin/bash tools/docs-lint-test.sh
+observed: [...]
+          ok   verdict: an EVEN number of quoted markers no longer answers the criterion
+          ok   verdict: a raw HTML <pre> block no longer answers its criteria
+          ok   verdict: an HTML comment renders as nothing and no longer answers
+          ok   verdict: <details> wrapping a <pre> does not answer either
+          ok   verdict: a line-initial inline code span leaves the next line unable to answer
+          ok   verdict: a backtick in the info string does the same
+          [...]
+          docs-lint-test: 43 passed, 0 failed.
+exit:     0
+```
+
+The suite gained a third assertion layer, and the reason is `doc:00-constitution#observed-failing`'s
+negative half. The old suite could not distinguish this narrowing from **deleting the citation
+scanner outright**: both produced the same failure set, because its only assertion that
+required something to BE answered was a line of top-level prose, which is exactly what the
+narrowing refuses. So a `citation_site()` probe was added beside the fence probe, asserting
+the function's own answer per line, and two negative controls replaced the one that was
+inverted. Re-measured, at the 43-assertion suite:
+
+```
+cmd:      each mutation applied to a copy of tools/, then /bin/bash tools/docs-lint-test.sh
+observed: none                       rc=0  docs-lint-test: 43 passed, 0 failed.
+          classifier                 rc=1  docs-lint-test: 31 passed, 12 failed.
+          citation-site-off          rc=1  docs-lint-test: 30 passed, 13 failed.
+          citation-scanner-deleted   rc=1  docs-lint-test: 40 passed, 3 failed.
+          isevcol-true               rc=1  docs-lint-test: 42 passed, 1 failed.
+          isevcol-false              rc=1  docs-lint-test: 42 passed, 1 failed.
+          allkinds-off               rc=0  docs-lint-test: 43 passed, 0 failed.
+```
+
+`citation-scanner-deleted` now fails, which it could not before. `isevcol-true` was one of two
+mutations that made check 14 accept beans it should reject with the suite completely green;
+it is now caught, incidentally rather than by design, and the file says so. `allkinds-off`
+remains a green fail-open and is untouched by this bean.
+
+**The accepted boundary, asserted rather than left to be discovered.** The matcher still reads
+the presence of a number and never the polarity of the claim around it — this change removed
+running prose from its reach, not the polarity blindness. A heading therefore answers the
+criterion it names whatever it says about it, and `.beans/modus-0049`'s `## Criterion 2 cannot
+be met as written` is the live instance. That is intended: a heading is an author filing a
+section under a criterion, and the section under it is that criterion's evidence home
+(`adr:0005-evidence-lives-in-the-work-item#evidence-home`). It is pinned as a verdict
+assertion — "accepted: a heading that denies its criterion still answers it" — and stated in
+`doc:05-authoring-for-agents#checks`, so the day it stops being acceptable it is visible.
+
+### Criterion 6 — the rule is stated
+
+`documentation/05-authoring-for-agents.md`. The `Enforcement gap:` paragraph is deleted rather
+than reworded: it existed because the rule was a property and the check was a list, and that
+is no longer true. What replaces it names the two structural sites, keeps the containers
+un-enumerated, records the measured cost of refusing mentions along with pasted output, and
+states the heading boundary above. The `Enforced by:` paragraph gains this bean's observed
+rejections beside `bean:0055`'s and `bean:0063`'s.
+
+### Criterion 7 — `./gradlew qualityCheck` green
+
+Recorded below, at the branch head.
 
 ## Not in scope
 

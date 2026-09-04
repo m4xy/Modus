@@ -24,26 +24,30 @@ function isevcol(h) {
   return (h == "evidence" || h == "observed" || h == "observed output" ||
           h == "output" || h == "result")
 }
-# Where a `criterion N` citation counts. A fence is not the only way to paste output into
-# a bean, and it is not the only container this line-oriented analyser cannot enter:
+# Where a `criterion N` citation counts: a STRUCTURAL SITE, and nowhere else. A structural
+# site is a heading this analyser tracks, or a row of a table it has entered — the two
+# places a bean names a criterion in order to file evidence under it, rather than in order
+# to talk about it.
 #
-#   CommonMark §4.4  a line indented four or more columns is an indented code block
-#   CommonMark §5.1  a `>`-prefixed line is a block quote, and a fence inside one is a
-#                    fence this analyser does not see
+# This replaces an exclusion rule, and the replacement is the point. The exclusion rule
+# accepted every line and then subtracted containers it could name — four or more columns
+# of indent (CommonMark §4.4), a `>` on the citing line (§5.1). That is an allowlist by
+# another name: it was walked past by a raw HTML block, an HTML comment, a `<details>`
+# wrapper, a lazy block-quote continuation, and by ordinary top-level prose holding a
+# pasted transcript, in which this check's own `criterion N is not answered` message
+# answered the criterion it reports unanswered (bean:0093). Each escape cost one more
+# subtraction, and the next container nobody had named was free again.
 #
-# Both RENDER AS code on GitHub while a line-oriented reader sees prose, so a transcript
-# pasted either way had its `criterion N is not answered` lines citation-scanned, and they
-# answered the criteria they report unanswered. The classifier is NOT loosened to reach
-# them: an indented marker that opened a fence would be back to inverting state on a line
-# whose meaning the file does not fix. Instead the citation is REQUIRED to stand in
-# unambiguous top-level prose. A criterion cited only from inside a container is
-# unanswered, which is the direction that fails closed.
-function citation_site(line,   lead, body) {
-  lead = fence_lead(line)
-  if (fence_cols(line, lead) >= 4) { return 0 }
-  body = substr(line, lead + 1)
-  if (substr(body, 1, 1) == ">") { return 0 }
-  return 1
+# A positive property does not have that failure mode. Running prose is not a citation site
+# whatever it renders as, so pasted output, a container's contents, and a sentence merely
+# ABOUT a criterion number are all rejected BY CONSTRUCTION rather than by extension — the
+# matcher never has to read polarity, because it never reads running prose at all. A
+# criterion cited only from prose is unanswered, which is the direction that fails closed.
+#
+# `intable` is the analyser's own table state, set on the delimiter row below, so a
+# `|`-leading line inside a raw HTML block is not a table row here either.
+function citation_site(line) {
+  return (line ~ /^#+ / || (intable && line ~ /^\|/))
 }
 function allkinds(c,   t, i, n, a) {
   t = norm(c)
@@ -129,7 +133,8 @@ function allkinds(c,   t, i, n, a) {
   }
 
   # A criterion is answered by an evidence row bearing its number, or by being cited by
-  # number from top-level prose: `### Criterion 3`, `Criteria 1-5`, `criterion 6`.
+  # number from a structural site: `### Criterion 3` as an evidence sub-heading, or a
+  # table row reading `| 3 | … | criteria 1–5 | …`. Not from running prose.
   s = citation_site(line) ? tolower(line) : ""
   while (match(s, /criteri(on|a)[^0-9a-z]*[0-9]+([^0-9a-z]{1,3}[0-9]+)?/)) {
     t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)

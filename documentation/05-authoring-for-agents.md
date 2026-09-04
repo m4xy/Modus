@@ -221,6 +221,10 @@ Each check is decidable from repository contents alone.
 four rejections and its one accepted amendment are recorded in `bean:0038`, check 12's
 six rejections and its one negative control in `bean:0035`, check 13's three in `bean:0051`,
 check 14's six, its negative control and its observed CI failure in `bean:0055` and `bean:0063`.
+The citation rule below was observed rejecting a criterion cited from top-level prose, from a
+raw `<pre>`, from an HTML comment, from a `<details>` wrapper, from a line-initial inline code
+span and from a backtick info string, against negative controls for each of its two structural
+sites, in `bean:0093`.
 
 Check 11 classifies by the `status:` on the **merge base**, not on the branch, and diffs the
 base against the **working tree**. A bean moving `in-progress` → `completed` in the change
@@ -275,34 +279,39 @@ conventions:
   reversed — in both directions, so a bean quoting this check's own output answers its own
   criteria and a filled evidence table is reported absent (`bean:0063`).
 - A criterion is **answered** by an evidence row bearing its number, or by a `criterion N` or
-  `criteria N–M` citation standing in the bean's **top-level Markdown prose** — a line that
-  carries the citation as prose and is inside no container of any kind. The rule is stated
-  positively and the containers it excludes are deliberately **not** enumerated: a fence, a
-  block quote, an indented chunk, a raw HTML block, an HTML comment, a link-reference or
-  footnote definition and anything else that renders as code, as a container or as nothing
-  all fail it by construction rather than by being listed. An enumeration would be an
-  allowlist and would fail on the first container nobody named, which is how this rule was
-  already got past once. The reason the rule exists at all: in this repository a bean's
-  pasted output quotes this check's own `criterion N is not answered` message, so counting a
-  citation inside a container lets pasted output answer the criterion it reports as
-  unanswered (`bean:0061`, `bean:0063`). A fence is an entry but is not a citation site; no
-  other container is either.
+  `criteria N–M` citation standing at a **structural site**: a heading, or a row of a table.
+  Running prose is not a citation site, whatever it renders as. Write the citation as an
+  evidence sub-heading — `### Criterion 3` — or in a cell of the evidence table.
 
-  **Enforcement gap:** the rule above is a property; the check is not. `citation_site()`
-  blocks exactly two things — four or more columns of indent, and a `>` on the citation's
-  own line — and treats every other line as top-level prose. So a citation inside any
-  container that does not put one of those two on the citing line itself answers its
-  criterion today, including a lazy block-quote continuation (CommonMark §5.1 puts an
-  unprefixed paragraph line inside the quote), a raw HTML block, front matter, and a list
-  item. Stated as the mechanism rather than as a list of containers, because a list here
-  would go stale as containers are found and would be the same enumeration the rule above
-  exists to avoid. `bean:0093` closes it: its criteria require the class to be rejected by
-  construction rather than by a list extended one container at a time. It is `blocked_by`
-  `bean:0061`, which owns the citation matcher and decides what a citation is at all.
-  A criterion whose evidence is a section that
-  never names it is unanswered however long that section is, because
-  `adr:0005-evidence-lives-in-the-work-item#evidence-home` puts the evidence beside the
-  criterion it satisfies and a reader must be able to find the pairing.
+  The rule names where a citation may stand, and the containers it excludes are deliberately
+  **not** enumerated: a fence, a block quote, an indented chunk, a raw HTML block, an HTML
+  comment, a `<details>` wrapper, a link-reference or footnote definition, a list item and
+  anything else that renders as code, as a container or as nothing all fail it by
+  construction rather than by being listed. An enumeration would be an allowlist and would
+  fail on the first container nobody named, which is how this rule was got past twice. The
+  reason the rule exists at all: in this repository a bean's pasted output quotes this
+  check's own `criterion N is not answered` message, and the matcher reads the presence of a
+  number and never the polarity of the claim around it, so any rule that reads running prose
+  lets pasted output answer the criterion it reports as unanswered (`bean:0061`, `bean:0063`,
+  `bean:0093`). A fence is an entry but is not a citation site; no other container is either.
+
+  The same rule refuses a **mention** — a sentence about a criterion number that was never
+  meant to answer it — for the same reason and without a second mechanism: it too is running
+  prose. That is a narrowing with a measured cost, not a free one. Two beans `completed` on
+  `main` cite criteria only from prose and would be reported unanswered if they closed again;
+  check 11 freezes them and check 14 never re-reads a bean the base already closed, so
+  neither fails today, and both are named with the measurement in `bean:0093`.
+
+  A criterion whose evidence is a section that never names it is unanswered however long that
+  section is, because `adr:0005-evidence-lives-in-the-work-item#evidence-home` puts the
+  evidence beside the criterion it satisfies and a reader must be able to find the pairing.
+
+  The check reads the number, never the polarity of the claim around it, and the rule does
+  not change that — it puts the number somewhere polarity does not arise. So a heading
+  answers the criterion it names whatever it says about it: `### Criterion 2 cannot be met as
+  written` answers criterion 2, because the section under that heading is that criterion's
+  evidence home and a ruling with its reason is an answer. That is the boundary of the rule,
+  and it is accepted rather than closed: a heading is authored, not pasted.
 
 A criterion the bean does not number is outside the per-criterion condition; the `OK` line's
 `closing transitions`, `criteria checked` and `unnumbered` counts are what say how much was
