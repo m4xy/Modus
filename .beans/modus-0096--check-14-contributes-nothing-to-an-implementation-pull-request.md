@@ -262,24 +262,22 @@ The run prints the discriminating number already; what was missing was an anchor
 means. Both halves now exist, and the anchor is one hop from the check that printed the line.
 
 ```
-cmd:      git rev-parse HEAD && awk '/^Check 14.s conditions are structural/,/^$/' \
+cmd:      git rev-parse HEAD && awk '/^Every condition in check 14/,/^$/' \
             documentation/05-authoring-for-agents.md
 expect:   the paragraph states that `0 closing transitions` means no bean's evidence was
           examined, and that an implementation pull request always reports it
-observed: c2b12c053210ddd2129f34dd25634788af7d8318
-          Check 14's conditions are structural. It decides that an evidence home exists, that every
-          numbered criterion is answered by a row bearing its number, and that no evidence cell is empty
-          or composed of evidence-kind names. Whether the output in a cell was ever produced, whether the
-          command beside it reproduces that output, and whether either bears on the criterion the row is
-          filed under are outside what the check can decide. Scope compounds it:
-          `doc:00-constitution#bean-lifecycle` holds a bean `in-progress` for the whole life of its own
-          pull request, so on the pull request that implements a bean, that bean is never a candidate.
-          `0 closing transitions` on the `OK` line is that statement — no bean's evidence was examined,
-          and the zero beside it under `criteria checked` follows from the empty candidate set, not from
-          a bean inspected and found bare. A non-zero pair comes from a bean the change *closes*, whose
-          implementation merged earlier and was reviewed elsewhere. A green check 14 therefore
-          establishes the shape of the evidence in the beans a change closes, and nothing at all about
-          the implementation under review (`bean:0096`).
+observed: c937150e7538e60e8c3181eb1f68a7aa787b328a
+          Every condition in check 14's row above is structural. Whether the output in an evidence cell
+          was ever produced, whether the command beside it reproduces that output, and whether either
+          bears on the criterion the cell is filed under are outside what the check can decide. Scope
+          compounds it: `doc:00-constitution#bean-lifecycle` holds a bean `in-progress` for the whole
+          life of its own pull request, so on the pull request that implements a bean, that bean is
+          never a candidate. `0 closing transitions` on the `OK` line is that statement — no bean's
+          evidence was examined, and the zero beside it under `criteria checked` follows from the empty
+          candidate set, not from a bean inspected and found bare. A non-zero pair comes from a bean the
+          change *closes*, whose implementation merged earlier and was reviewed elsewhere. A green check
+          14 therefore establishes the shape of the evidence in the beans a change closes, and nothing
+          at all about the implementation under review (`bean:0096`).
 ```
 
 Residual, stated rather than claimed away: a reader who consults no anchor still sees only the
