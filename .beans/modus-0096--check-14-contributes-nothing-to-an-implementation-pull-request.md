@@ -215,7 +215,9 @@ Arm A, the change as it is reviewed: `bean:0096` `in-progress`, as
 ```
 cmd:      git rev-parse HEAD && bash tools/docs-lint.sh
 expect:   exit 0; the counters report no closing transition and no criterion examined
-observed: <<SENTINEL-RUN-A>>
+observed: c2b12c053210ddd2129f34dd25634788af7d8318
+          docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 98 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+exit:     0
 ```
 
 Arm B, the counterfactual: the identical tree with this bean's `status:` flipped to `completed`,
@@ -228,7 +230,9 @@ immediately after the run; the plant is uncommitted and the bean was committed f
 cmd:      sed -i '' 's/^status: in-progress/status: completed/' .beans/modus-0096--*.md
           bash tools/docs-lint.sh; git checkout -- .beans
 expect:   exit 0; one closing transition and this bean's five criteria examined and sound
-observed: <<SENTINEL-RUN-B>>
+observed: modus-0096 line 4: status: completed
+          docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 98 on origin/main, 1 closing transitions, 5 criteria checked, 0 unnumbered.
+exit:     0
 ```
 
 The pair is the bean's claim: one status field, forbidden to the author of this pull request,
@@ -251,11 +255,24 @@ The run prints the discriminating number already; what was missing was an anchor
 means. Both halves now exist, and the anchor is one hop from the check that printed the line.
 
 ```
-cmd:      awk '/^Check 14.s conditions are structural/,/^$/' \
+cmd:      git rev-parse HEAD && awk '/^Check 14.s conditions are structural/,/^$/' \
             documentation/05-authoring-for-agents.md
 expect:   the paragraph states that `0 closing transitions` means no bean's evidence was
           examined, and that an implementation pull request always reports it
-observed: <<SENTINEL-PARA>>
+observed: c2b12c053210ddd2129f34dd25634788af7d8318
+          Check 14's conditions are structural. It decides that an evidence home exists, that every
+          numbered criterion is answered by a row bearing its number, and that no evidence cell is empty
+          or composed of evidence-kind names. Whether the output in a cell was ever produced, whether the
+          command beside it reproduces that output, and whether either bears on the criterion the row is
+          filed under are outside what the check can decide. Scope compounds it:
+          `doc:00-constitution#bean-lifecycle` holds a bean `in-progress` for the whole life of its own
+          pull request, so on the pull request that implements a bean, that bean is never a candidate.
+          `0 closing transitions` on the `OK` line is that statement — no bean's evidence was examined,
+          and the zero beside it under `criteria checked` follows from the empty candidate set, not from
+          a bean inspected and found bare. A non-zero pair comes from a bean the change *closes*, whose
+          implementation merged earlier and was reviewed elsewhere. A green check 14 therefore
+          establishes the shape of the evidence in the beans a change closes, and nothing at all about
+          the implementation under review (`bean:0096`).
 ```
 
 Residual, stated rather than claimed away: a reader who consults no anchor still sees only the
@@ -278,7 +295,8 @@ Conditional criterion, and its condition does not hold: this change edits no fil
 ```
 cmd:      git diff --name-only origin/main...HEAD
 expect:   documentation and this bean only; nothing under tools/
-observed: <<SENTINEL-DIFF>>
+observed: .beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md
+          documentation/05-authoring-for-agents.md
 ```
 
 No completed bean quoting the `OK` line verbatim is amended, because none is invalidated.
