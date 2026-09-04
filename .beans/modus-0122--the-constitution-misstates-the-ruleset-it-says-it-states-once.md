@@ -149,5 +149,7 @@ tree:     `5ce4b80`, the head of PR #74, which does not touch `documentation/`. 
 ```
 
 The `grep` here is `ugrep 7.8.4`, the harness shim on the interactive `PATH`, not the
-BSD `grep 2.6.0-FreeBSD` at `/usr/bin/grep` that CI has; both are plain fixed-string searches
-and agree, and the awk lines are what the claim rests on.
+BSD `grep 2.6.0-FreeBSD` at `/usr/bin/grep` that CI has. Both `grep` lines were re-run under
+`/usr/bin/grep` and printed byte-identical output, so the two do not have to be told apart for
+this record; the version strings come from `grep --version` and `/usr/bin/grep --version`. The
+`awk` lines are what the claim rests on in any case.
