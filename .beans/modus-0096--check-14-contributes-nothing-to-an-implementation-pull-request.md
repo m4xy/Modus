@@ -331,9 +331,9 @@ one this pull request presents only by the paste of this cell:
 ```
 cmd:      git rev-parse HEAD && ./gradlew qualityCheck
 expect:   BUILD SUCCESSFUL; the counters unchanged from arm A
-observed: 6842412a092afc1c758193e158172da80a796b89
+observed: 50e95860deba82437a51c6f5ea83833b207adb50
           docs-lint-test: 37 passed, 0 failed.
           docs-lint: OK — [same]
-          BUILD SUCCESSFUL in 26s
+          BUILD SUCCESSFUL in 21s
 exit:     0
 ```
