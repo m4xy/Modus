@@ -148,6 +148,26 @@ This is the same widening `bean:0055` refused for a different reason: a matcher 
 fence rule below — inside a fence the matcher reads nothing, and outside it the matcher reads
 anything — and both are one decision about where a citation may be written.
 
+### This section is answered by `bean:0093`, and that bean is no longer blocked on this one
+
+`bean:0093` narrows `citation_site()` to a structural site — a heading, or a row of a table —
+so running prose is no longer read for citations at all. Every one of the eight matches above
+stands in running prose, and none of them answers anything after that change. The fifth
+success criterion below is therefore discharged by acting rather than by stating the looseness
+as accepted, and this bean did not have to decide it.
+
+That is also why `bean:0093` no longer carries `blocked_by: modus-0061`. It had been added on
+the reading that this bean owns what a citation is, but `bean:0093` had already ruled that
+accepting the looseness was unavailable for pasted output, and had measured the alternative
+over the whole `completed` corpus. The edge was dropped rather than inverted: nothing in the
+un-numbering escapes above depends on where a citation may stand, so this bean stays
+selectable and its remaining work is unchanged.
+
+The warning two paragraphs up — *"in a bean about criterion numbering, plain prose is
+unsafe"* — expires with that change, and the paragraph it describes can be reworded to name
+its numbers when this bean is next edited. It is left as written here so the reason it was
+worded that way survives.
+
 ## Two doc/code disagreements in what merged <a id="disagreements"></a>
 
 ### A `criterion N` citation inside a fence does not answer <a id="fence"></a>
