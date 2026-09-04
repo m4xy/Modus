@@ -506,40 +506,41 @@ is not what this criterion rests on. Neither conclusion is a failure, and `gate`
 
 ```
 cmd:      git rev-parse HEAD && ./gradlew qualityCheck
-observed: 1c19cf0fc911f10992181a494a4f74a5703644dc
+observed: aad2eee57e86e65ab1993afab6b13fece03a1eb7
           [...]
           docs-lint-test: 37 passed, 0 failed.
           [...]
           bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
           bash-compat: OK — 3 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
           [...]
-          docs-lint: OK — 19 documents, 111 anchors, 1574 references, 103 beans, 37 graph edges, 47 selectable, 103 bean ids, 1 introduced, 102 on origin/main, 2 closing transitions, 8 criteria checked, 0 unnumbered.
+          docs-lint: OK — 19 documents, 111 anchors, 1575 references, 103 beans, 37 graph edges, 47 selectable, 103 bean ids, 1 introduced, 102 on origin/main, 2 closing transitions, 8 criteria checked, 0 unnumbered.
 
           > Task :qualityCheck
 
           BUILD SUCCESSFUL in 21s
           160 actionable tasks: 6 executed, 154 up-to-date
 exit:     0
-tree:     `chore/close-0049-and-0096`, uncommitted, everything this pull request presents
-          except this block. `git rev-parse HEAD` reports `1c19cf0` because the branch is cut
-          from it and nothing is committed yet.
+tree:     `chore/close-0049-and-0096` at `aad2eee`, the first commit of this pull request,
+          with `bean:0049`'s Block E uncommitted on top of it. Everything this pull request
+          presents is present except this block.
 ```
 
-Each `[...]` marks omitted output: Gradle's task list and the 37 named lines of
-`docsLintTest` before the first, the npm typecheck and lint output between the second and
+Each `[...]` marks omitted output: Gradle's task list and the 37 named lines of `docsLintTest`
+before the first, the backoffice and e2e typecheck and lint output between the second and
 third, and Gradle's incubating problems-report line and its Gradle 10 deprecation notice
 before `BUILD SUCCESSFUL`. Nothing the criterion rests on was trimmed — `exit:` is stated
 separately and `BUILD SUCCESSFUL` is present — and no line inside the capture was edited.
 
-The `docs-lint` counters here read `1574 references` and `103 beans` where criterion 1's pair
-reads `1552` and `102`: the pair was taken before `bean:0120` and these two closing sections
+The `docs-lint` counters here read `1575 references` and `103 beans` where criterion 1's pair
+reads `1552` and `102`: the pair was taken before `bean:0120` and these closing sections
 existed, and those are the only causes. `2 closing transitions, 8 criteria checked` is
 identical across both, which is the field this bean is about.
 
 Appending this block is the last edit to the tree the run measured, so the run does not cover
-its own transcript. That is unavoidable for the final gate capture and is stated rather than
+its own transcript. That is unavoidable for a final gate capture and is stated rather than
 papered over; CI re-runs the same gate over the committed tree, and its result is on the pull
 request.
+
 ### Block E — the run that proves check 14 examined this close rather than passed over it
 
 `docs-lint: OK` on a tree with no closing bean and `docs-lint: OK` on this one differ only in

@@ -380,6 +380,70 @@ The first command is what ties the second to this close: the checks are green on
 request whose merge commit is the tree blocks A and B read. `backoffice + e2e SKIPPED` is the
 per-path subset behaving as `doc:00-constitution#workflow` §7.2.4 describes.
 
+
+### Block E — criteria 1 and 3 under the narrowing `bean:0093` carries, checked rather than assumed
+
+A parallel branch narrows check 14's `citation_site()` so that a criterion counts as answered
+only from a heading or a table row, never from running prose at column zero. On the tree this
+bean merged into, that would leave criteria 1 and 3 unanswered: this bean's evidence
+sub-headings are entry numbers — `### 1 —`, `### 2 —`, `### 3 —` — and only criterion 2 sits
+under a heading naming it, `## Criterion 2 cannot be met as written`. That was checked here
+rather than taken on report, by running the analyser twice over the same input with only
+`citation_site()` replaced, on a copy; `tools/` was not edited.
+
+```
+cmd:      git show 1c19cf0:.beans/modus-0049--bash-32-claim-is-unenforced.md > <copy>
+          awk -v KINDS="$KINDS" -f <copy of fence.awk> -f <copy of docs-lint-c14.awk> <copy>
+          awk -v KINDS="$KINDS" -f <copy of fence.awk> -f <narrowed copy> <copy>
+expect:   the analyser as it stands answers all three; the narrowed one does not
+observed: --- analyser as it stands
+          STATS	3	0
+          --- narrowed to heading-or-table-row
+          UNANSWERED	1
+          UNANSWERED	3
+          STATS	3	0
+exit:     0
+
+cmd:      the same two analysers, and a third narrowed to HEADING ONLY, over this branch's
+          version of this bean and of `.beans/modus-0096--*.md`
+expect:   no UNANSWERED line under any of the three
+observed: === .beans/modus-0049--bash-32-claim-is-unenforced.md
+          --- analyser as it stands
+          STATS	3	0
+          --- narrowed to heading-or-table-row
+          STATS	3	0
+          === .beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md
+          --- analyser as it stands
+          STATS	5	0
+          --- narrowed to heading-or-table-row
+          STATS	5	0
+          === this branch, narrowed to HEADING ONLY
+          --- bean:0049
+          STATS	3	0
+          --- bean:0096
+          STATS	5	0
+exit:     0
+```
+
+`<copy>` and the `<...>` paths are scratchpad files, elided as `[...]` is elsewhere. The
+substituted function is three lines — return 1 on `^#+ ` and, in the heading-or-table-row arm
+only, on `^\|`; return 0 otherwise — and everything else in the analyser is byte-identical to
+`tools/lib/docs-lint-c14.awk`.
+
+**The closing section above already answers all three from headings and table rows**, so this
+close needs no repair, under either narrowing and under the analyser as it stands. What carries
+criteria 1 and 3 is the table at the head of this section, plus the headings of Block A —
+*criteria 1 and 3* — Block B — *criterion 2* — and Block C — *criterion 1*.
+
+**The proposed repair would have been wrong, and is not made.** It was to rename the evidence
+sub-headings `### 1 — …` and `### 3 — …` to `### Criterion 1 — …` and `### Criterion 3 — …`.
+Those are **entry** numbers, not criterion numbers, and the mapping breaks at three: entry 3 is
+*the mechanism that was built, observed rejecting both (a substitute, not criterion 2)*, and its
+own title says so. Criterion 3 has no evidence entry, because criterion 3 does not apply — its
+antecedent is false. Renaming entry 3 would have filed a substitute for criterion 2 under the
+criterion this bean records as inapplicable, and it would have done so in the one change in which
+this bean's body can still be edited at all: after this merge, `docs-lint` check 11 makes it
+append-only.
 ## Amendments
 
 Entries from the review rounds on this bean's own pull request, #69. **Each entry names the
