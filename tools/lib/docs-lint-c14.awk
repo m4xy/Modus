@@ -98,11 +98,18 @@ function citation_site(line) {
 #              EVIDENCE CELL of a row answered the criterion that stdout reports unanswered
 #
 # All three are decided from state this analyser already holds — `region`, the heading
-# level, `evcol` — so none of them needs a new perception layer, and all three fail CLOSED:
-# a citation that does not satisfy them is not read, and its criterion is reported
-# UNANSWERED. None of them reads polarity. `### Criterion 2 cannot be met as written` is
-# refused where it stands outside the evidence region or heads nothing, and answers where it
-# does not, exactly as before (doc:05-authoring-for-agents#checks).
+# level, `evcol` — so none of them needs a new perception layer, and all three are written to
+# fail CLOSED: a citation that does not satisfy them is not read, and its criterion is
+# reported UNANSWERED. None of them reads polarity. `### Criterion 2 cannot be met as written`
+# is refused where it stands outside the evidence region or heads nothing, and answers where
+# it does not, exactly as before (doc:05-authoring-for-agents#checks).
+#
+# `WRITTEN TO` IS THE LOAD-BEARING QUALIFIER AND IT WAS EARNED. This comment said `all three
+# fail CLOSED` flatly, and `cell` did not: the mask DELETED the evidence cell instead of
+# replacing it, which made the cut cell's two neighbours adjacent and let the matcher span the
+# seam, ANSWERING a criterion cited from no cell of the file. Failing closed is a property of
+# the mask's construction and not of its intent, and the construction is under citation_text()
+# below, as CUTCHAR. A direction a mechanism is aimed in is not a direction it goes.
 #
 # citation_text() owns region and cell. It returns the TEXT of the line a citation may be
 # read from, or the empty string for none, and it is the whole of the answer for a row.
@@ -152,6 +159,34 @@ function rowcells(line, c,   s, n) {
   n = split(s, c, "|")
   return (s ~ /\|[ \t]*$/) ? n - 1 : n
 }
+# THE CUT REPLACES THE EVIDENCE CELL; IT DOES NOT DELETE IT, and the difference is the
+# whole of CUTCHAR. Deleting the cell makes its two NEIGHBOURS adjacent, and the matcher
+# below spans the seam: `criteri(on|a)[^0-9a-z]*[0-9]+` skips up to any run of characters
+# that are neither digit nor letter, and the `|` this loop writes between the surviving
+# cells is one of them. So on
+#
+#   | # | claim                 | evidence      | runs   |
+#   |---|-----------------------|---------------|--------|
+#   | 1 | covers both criteria  | ran the suite | 3 runs |
+#
+# the deleting form read `| 1 | covers both criteria | 3 runs `, matched `criteria | 3`,
+# and ANSWERED CRITERION 3 from a citation that stands in no cell of the file: `criteria`
+# is in the claim column, `3` is in the runs column, and the evidence cell that separated
+# them is the one thing the rule says not to read. That is the mask MANUFACTURING an answer
+# — fail-OPEN in the one place these three conditions exist to fail closed — and it is
+# measured on all three awks in bean:0121, with base 494f174 reporting `UNANSWERED 3` and
+# the deleting form reporting it answered.
+#
+# WHY A LETTER AND NOT SUBSEP, which is what this file uses everywhere else it needs a
+# character no author wrote. SUBSEP does not work here and was measured not to: `\034` is
+# neither a digit nor a lowercase letter, so `[^0-9a-z]*` swallows it exactly as it swallows
+# the `|`, and the seam stays open. The barrier has to be a character the matcher's own gap
+# class EXCLUDES, and that class is `[^0-9a-z]` — so the placeholder must be drawn from
+# `[0-9a-z]`, and it must not be a digit, or the cut would supply the criterion NUMBER
+# itself. That leaves exactly the lowercase letters, and CUTCHAR is one. It cannot cite on
+# its own account: it holds no digit, and `criteri(on|a)` is a contiguous literal, so a
+# letter standing behind a `|` cannot complete one either.
+BEGIN { CUTCHAR = "z" }
 function citation_text(line,   last, c, i, t) {
   if (!citation_site(line)) { return "" }
   if (line !~ /^## / && region != "EV" && region != "BOTH") { return "" }
@@ -159,7 +194,7 @@ function citation_text(line,   last, c, i, t) {
   last = rowcells(line, c)
   if (evcol > 1 && evcol <= last) {
     t = ""
-    for (i = 2; i <= last; i++) { if (i != evcol) { t = t "|" c[i] } }
+    for (i = 2; i <= last; i++) { t = t "|" (i == evcol ? CUTCHAR : c[i]) }
     return tolower(t)
   }
   return tolower(line)

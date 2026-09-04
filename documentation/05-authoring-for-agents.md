@@ -289,14 +289,14 @@ conventions:
   the **evidence cell** itself.
 
   Shape is necessary and not sufficient. Three further conditions apply, each decided from
-  state the analyser already holds and each failing closed — a citation that does not satisfy
-  them is not read, and its criterion is reported unanswered (`bean:0121`):
+  state the analyser already holds and each written to fail closed — a citation that does not
+  satisfy them is not read, and its criterion is reported unanswered (`bean:0121`):
 
   | condition | a citation is not read from |
   |---|---|
   | region | a sub-heading or a row standing outside an **evidence** section — `## Evidence`, or the combined `## Success criteria and evidence`. `### Criterion 3 was not attempted` under `## Not in scope` answers nothing, and neither does `### Criterion 2 cannot be met as written` under `## Success criteria`: a criteria section is not an evidence section, and evidence is what this condition is about. A `## ` heading is exempt, because `region` is what a `## ` heading sets: a top-level section devoted to one criterion is that criterion's evidence home. Four completed beans write that shape — `bean:0038`, `bean:0049`, `bean:0051` and `bean:0063` — and `bean:0038` is the one that loses a criterion if `## ` is bound too |
   | emptiness | a citing heading with nothing under it before the next heading at its own level or shallower. `### Criteria 1-5` as the whole of a five-criterion bean's `## Evidence` answers nothing. Content is any **non-blank line**, which is deliberately weaker than the *entry* defined above: an entry rule refuses `### Criterion 2 cannot be met as written` followed by the ruling and its reason, which this section accepts below and `bean:0038` writes |
-  | cell | the **evidence cell** of a row. The rest of the row is read, so `\| 3 \| criteria 1-5 \| … \|` still answers; the cell where output is pasted does not. The cost is a row that names, in its evidence cell, a span its own run genuinely covers — write that span in any **other** column of the row instead, since the cut is one column wide. Not necessarily the first: in a table whose rows are numbered, the first cell is the criterion number, and a span written there stops the row being numbered and so stops it answering its own criterion |
+  | cell | the **evidence cell** of a row. The rest of the row is read either side of a **barrier** standing where the cell was, so `\| 3 \| criteria 1-5 \| … \|` still answers; the cell where output is pasted does not. The cost is a row that names, in its evidence cell, a span its own run genuinely covers — write that span in any **other** column of the row instead, since the cut is one column wide. Not necessarily the first: in a table whose rows are numbered, the first cell is the criterion number, and a span written there stops the row being numbered and so stops it answering its own criterion |
 
   The cell condition applies to every row and not only to a numbered one. Masking only a
   numbered row's cell leaves the identical laundering one column over, in the evidence cell of
@@ -308,6 +308,19 @@ conventions:
   measured getting past the cut before `bean:0121`'s review — the first left the evidence cell
   as the last field and so outside the cut, the second shifted every field after it and moved
   the cut onto the wrong column. The condition is unconditional, so both are cells now.
+
+  The cut **replaces** the evidence cell; it does not delete it, and that distinction is a
+  rule rather than an implementation detail. Deleting the cell makes its two neighbours
+  adjacent, and the matcher — which skips any run of characters that are neither digit nor
+  letter between `criterion` and its number — reads straight across the seam. So a row whose
+  claim column ends `covers both criteria` and whose next-but-one column begins `3 runs`
+  answered **criterion 3** from a citation standing in no cell of the file, with the evidence
+  cell that separated them being the one thing the condition says not to read. The barrier that
+  replaces the cell is a lowercase letter for the same reason the seam existed: the matcher's
+  own gap class is what has to exclude it, and that class admits every character outside
+  `[0-9a-z]`. This condition is therefore the one place where the check writes a character of
+  its own into what it reads, and `bean:0121` records why the alternative — a separator no
+  author could type — is measurably not enough.
 
   Three edges of **emptiness**, stated because each is a rule and not an accident. A line of
   only spaces or tabs is **blank**, so it is not content and does not save a citing heading.
