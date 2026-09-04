@@ -194,6 +194,14 @@ scratch directory and run against the same fixture in the same command — the h
 `## Observed` section should be re-read at, since its own figures were taken at `aa4e64f` and
 `d914eb5`.
 
+**The review round has its own head, `2bcd9aa`,** and every figure it produced names it: the
+mutation table under criterion 2 and the whitespace pair beside it, the region measurement
+under criterion 6, the two row-shape bypasses and the `modus-0055` probe under criterion 8, the
+row-shape corpus differential under criterion 4, `PLANT 2`'s re-capture, and `qualityCheck`
+under criterion 9. The figures taken at `5a625fc` are left where they are and not restated at
+`2bcd9aa`: a figure is a record of a run, and re-labelling one is the failure this bean's own
+evidence rules exist to prevent.
+
 **All four residuals still reproduce at `3b02871`**, unchanged, over a corpus that has grown
 to 110 beans. Two details of the `## Observed` section did not survive re-measurement and are
 corrected under criterion 1 and criterion 8 below rather than quietly worked around.
@@ -292,7 +300,7 @@ tree after the revert: []
 
 ########## PLANT 2 — emptiness
 tree before the plant: []
-[... five FAIL lines, one per criterion, identical in form to the two above ...]
+[...]
 docs-lint: 5 failure(s).
 exit: 1
 tree after the revert: []
@@ -308,6 +316,28 @@ tree after the revert: []
 tree before the plant: []
 docs-lint: OK — 19 documents, 111 anchors, 1680 references, 112 beans, 43 graph edges, 47 selectable, 112 bean ids, 2 introduced, 110 on origin/main, 1 closing transitions, 6 criteria checked, 0 unnumbered.
 exit: 0
+tree after the revert: []
+```
+
+**PLANT 2's five lines, elided above, re-taken as a capture.** In the run above they were the
+one figure in this bean that was a characterised summary rather than the tool's bytes — "five
+FAIL lines, one per criterion, identical in form to the two above" — which is a claim about
+output and not output. Re-planted and re-captured at `2bcd9aa`, the head this bean's review
+round produced. The plant is the same untracked bean, reverted with `rm`:
+
+```
+$ bash <scratch>/plant2/plant.sh
+HEAD 2bcd9aa
+
+########## PLANT 2 — emptiness
+tree before the plant: []
+FAIL check 14 .beans/modus-9902--plant-2-the-emptiness-residual.md: criterion 1 is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+FAIL check 14 .beans/modus-9902--plant-2-the-emptiness-residual.md: criterion 2 is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+FAIL check 14 .beans/modus-9902--plant-2-the-emptiness-residual.md: criterion 3 is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+FAIL check 14 .beans/modus-9902--plant-2-the-emptiness-residual.md: criterion 4 is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+FAIL check 14 .beans/modus-9902--plant-2-the-emptiness-residual.md: criterion 5 is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+docs-lint: 5 failure(s).
+exit: 1
 tree after the revert: []
 ```
 
@@ -360,6 +390,24 @@ takes criterion 7 off `bean:0038`, which is `completed` on `main` and closed on 
 That is a legitimately closed bean, so the narrowing is wrong and not the bean. The shipped
 constraint exempts `## ` headings and binds everything else; the fixture this bean actually
 measured — `###` sub-headings under `## Not in scope` — is refused either way.
+
+**Four completed beans write that shape, not one**, and the difference matters because
+"`bean:0038` is the evidence for the exemption" is the shorter sentence and it is the one that
+gets repeated. At `2bcd9aa`, the completed beans carrying a `## ` heading that cites a criterion
+BY NUMBER are `bean:0038`, `bean:0049`, `bean:0051` and `bean:0063`. Binding `## ` changes
+exactly one verdict:
+
+```
+$ bash <scratch>/h2scan.sh    # the strict variant vs shipped, over every bean
+111 compared, 1 differing
+=== modus-0038--evidence-in-the-work-item.md (status: completed)
+  shipped: STATS	8	0
+  strict:  UNANSWERED	7; STATS	8	0
+```
+
+So `bean:0038` is the bean that DEMONSTRATES the cost — the only one whose answered set moves —
+and the other three are the corpus the exemption keeps working for. Naming one bean as "the
+evidence" understates the reach of the exemption and overstates what that bean alone proves.
 
 ### Criterion 2
 
@@ -424,7 +472,7 @@ ONE SPACE closed green:
 
 ```
 $ awk -v KINDS="…" -f tools/lib/docs-lint-fence.awk -f tools/lib/docs-lint-c14.awk ws.md
-# shipped
+# shipped, at 2bcd9aa
 UNANSWERED	1
 UNANSWERED	2
 UNANSWERED	3
@@ -544,7 +592,7 @@ figure of its own because it changes what a row's cells ARE and could in princip
 any table in `.beans/`:
 
 ```
-$ bash <scratch>/corpus.sh <58210d6 analyser> <HEAD analyser>
+$ bash <scratch>/corpus.sh <58210d6 analyser> <2bcd9aa analyser>
 111 compared, 0 differing
 ```
 
@@ -614,7 +662,7 @@ standing inside `## Success criteria`, with criterion 1 answered normally by an 
 ```
 # base 3b028713b4c887cd0f2647c7dc12969cf5a2c68a
 STATS	2	0
-# head 58210d65f658b0ba61157184ef0d5bdba56d9a67
+# head 58210d65f658b0ba61157184ef0d5bdba56d9a67, and unchanged at 2bcd9aa
 UNANSWERED	2
 STATS	2	0
 ```
@@ -684,14 +732,14 @@ same site, nothing written by hand. That is the case that decides it.
 unconditional; `split(line, c, "|")` made it conditional on a row shape. Both bypasses were
 found in review, both are the identical laundering string — this check's own stdout about
 criteria no row numbers — in the evidence cell of a row that GFM and this analyser both read as
-a row. Measured at `58210d6`, then again after the fix:
+a row. Measured at `58210d6`, then again at `2bcd9aa` after the fix:
 
 ```
 # | 3 | three | criterion 1 is not answered in the evidence; criterion 2 is not answered
 #   a row with NO TRAILING PIPE: split() returns the evidence cell as the last field, so
 #   `evcol < n` was false and the whole line was read
 at 58210d6:   STATS	3	0
-after:        UNANSWERED	1
+at 2bcd9aa:   UNANSWERED	1
               UNANSWERED	2
               STATS	3	0
 
@@ -699,7 +747,7 @@ after:        UNANSWERED	1
 #   an ESCAPED PIPE, the documented way to put a pipe in a cell: split() counted it as a
 #   delimiter, every field after it shifted, and the mask cut the column to its left
 at 58210d6:   STATS	3	0
-after:        UNANSWERED	1
+at 2bcd9aa:   UNANSWERED	1
               UNANSWERED	2
               STATS	3	0
 ```
@@ -739,8 +787,8 @@ because rows 4 and 5 of that table answer their own criteria. A later paragraph 
 that reading "right about the outcome and imprecise about the mechanism", and asserted that
 the surviving numbers on row 123 are in its **command** column, so the row keeps answering a
 span even with the cell cut out. Both halves of that assertion are false. Probing the row with
-the shipped `evcol`, mask and matcher — `citation_text()` and `scan()` loaded after the
-analyser, so `intable` and `evcol` are the values the real scan held on that line:
+the shipped `evcol`, mask and matcher, at `2bcd9aa` — `citation_text()` and `scan()` loaded
+after the analyser, so `intable` and `evcol` are the values the real scan held on that line:
 
 ```
 $ awk -v KINDS="…" -f tools/lib/docs-lint-fence.awk -f tools/lib/docs-lint-c14.awk \
@@ -773,17 +821,37 @@ a measurement whoever makes it and whichever direction it points.
 
 ### Criterion 9
 
+Re-taken at `2bcd9aa`. The figure that stood here was taken at `5a625fc`, five commits behind
+the head under review, which makes it a statement about a tree nobody would merge:
+
 ```
 $ ./gradlew qualityCheck
 [...]
-docs-lint: OK — 19 documents, 111 anchors, 1679 references, 111 beans, 43 graph edges, 47 selectable, 111 bean ids, 1 introduced, 110 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+bash-compat: OK — 4 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
 [...]
-docs-lint-test: 62 passed, 0 failed.
+docs-lint-test: 71 passed, 0 failed.
+[...]
+docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
+docs-lint-gate-test: analyser awk — awk version 20200816
+[...]
+docs-lint: OK — 19 documents, 111 anchors, 1690 references, 111 beans, 43 graph edges, 47 selectable, 111 bean ids, 1 introduced, 111 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
 [...]
 docs-lint-gate-test: 11 passed, 0 failed.
 [...]
 BUILD SUCCESSFUL in 29s
 170 actionable tasks: 57 executed, 113 from cache
+```
+
+The analyser is the same under all three awks a CI runner might supply, which is worth a figure
+of its own because `rowcells()` introduces this file's first `\\` inside a regex:
+
+```
+$ bash <scratch>/awkport.sh    # same analyser, three awks, every bean and document
+124 files compared across bsd awk / gawk / mawk, 0 differing
+$ bash <scratch>/suite-awks.sh # the whole assertion suite under each, via a PATH shim
+awk                          71 passed, 0 failed.
+gawk                         71 passed, 0 failed.
+mawk                         71 passed, 0 failed.
 ```
 
 `0 closing transitions` is expected and is not a gap: `doc:00-constitution#bean-lifecycle`

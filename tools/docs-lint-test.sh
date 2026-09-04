@@ -186,9 +186,10 @@
 #                                                    ->  65 passed,  6 failed
 #
 # At d914eb5 that form and the shipped form give byte-identical verdicts over all 103 beans
-# (103 compared, 0 differing), which is a fact about those inputs and not about the rule. The
-# figure is stamped because a bean count in a comment dates itself and this one already did:
-# it read 102 while its own head carried 103.
+# (103 compared, 0 differing), and again at 2bcd9aa over all 111 (111 compared, 0 differing),
+# which is a fact about those inputs and not about the rule. The figure is stamped because a
+# bean count in a comment dates itself and this one already did: it read 102 while its own head
+# carried 103.
 #
 # The six assertions it kills are the shape the corpus does not contain — a `|`-leading line
 # with no delimiter row over it, which is not a table row to any renderer either — plus the
@@ -1330,6 +1331,13 @@ reads "and the region is what refuses them, not their shape" \
 # deliberately`, with the ruling and the reason under it and no row 7 in its evidence table.
 # The stricter form that binds `## ` too was measured over the whole corpus at 3b02871 and
 # takes criterion 7 off that bean. It is therefore the narrowing that is wrong.
+#
+# FOUR completed beans write the shape, not one, and the difference is worth stating because
+# `modus-0038 is the evidence` is the version of this that gets repeated. At 2bcd9aa the
+# completed beans carrying a `## ` heading that cites a criterion BY NUMBER are modus-0038,
+# modus-0049, modus-0051 and modus-0063. Binding `## ` changes exactly one verdict — 111
+# compared, 1 differing, modus-0038 losing criterion 7 — so 0038 is the bean that DEMONSTRATES
+# the cost and the other three are the corpus the exemption keeps working for.
 cat > "$FIX" <<'EOF'
 # a bean
 
@@ -1567,9 +1575,10 @@ decides "accepted: an EMPTY fenced block under a citing heading is still content
 # THE CELL RULE'S COST, pinned rather than described. The rule is `do not read a citation out
 # of the evidence column of a row`, and it applies to every row, not only to one that numbers
 # itself. The narrower form — mask the cell only on a numbered row — was measured over the
-# corpus at 3b02871 and gives byte-identical verdicts over all 110 beans, so the corpus does
-# not choose between them; what chooses is that the narrow form leaves the identical
-# laundering open in the evidence cell of an UNNUMBERED row.
+# corpus at 3b02871 and gives byte-identical verdicts over all 110 beans, and again at 2bcd9aa
+# over all 111 (111 compared, 0 differing), so the corpus does not choose between them; what
+# chooses is that the narrow form leaves the identical laundering open in the evidence cell of
+# an UNNUMBERED row.
 #
 # The case sacrificed is below and it is a legitimate one: row 3 records a run, and that run
 # genuinely covers the two criteria its cell names. Those two criteria are now UNANSWERED,

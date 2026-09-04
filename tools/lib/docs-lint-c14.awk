@@ -79,9 +79,10 @@ function isevcol(h) {
 # names. The three resets are load-bearing for the same reason and are asserted separately:
 # without them the flag is sticky and a stray quoted row two paragraphs below a table that has
 # ended is read as a row of it. Asserted as verdicts, not left to the corpus: at d914eb5 the
-# two forms are byte-identical over all 103 beans — 103 compared, 0 differing — which is a fact
-# about those inputs and not a property of the rule. The figure carries a head because the
-# corpus grows under it, and this comment has already had the count go stale once.
+# two forms are byte-identical over all 103 beans — 103 compared, 0 differing — and again at
+# 2bcd9aa over all 111, 111 compared and 0 differing. That is a fact about those inputs and not
+# a property of the rule. The figure carries a head because the corpus grows under it, and this
+# comment has already had the count go stale once.
 function citation_site(line) {
   return (line ~ /^#+ / || (intable && line ~ /^\|/))
 }
@@ -124,7 +125,8 @@ function citation_site(line) {
 # where the row says what it is about only in the shape-B table, whose rows are unnumbered.
 # The evidence cell is where output is PASTED, and that asymmetry is the reason to cut here.
 # The corpus does not choose between the two forms: over all 110 beans at 3b02871 they give
-# byte-identical verdicts, 110 compared and 0 differing. The reasoning chooses.
+# byte-identical verdicts, 110 compared and 0 differing, and again at 2bcd9aa over all 111,
+# 111 compared and 0 differing. The reasoning chooses.
 #
 # WHICH FIELDS OF A ROW ARE ITS CELLS is its own question, and a naive `split(line, c, "|")`
 # answers it wrongly in two ways that were each measured to BYPASS the cut. The doc states
