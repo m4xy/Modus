@@ -340,8 +340,15 @@ The negative controls are the fourth plant above — one bean carrying every sha
 still close: a citing sub-heading inside the evidence region with prose under it, one with a
 fenced transcript under it, an unnumbered evidence row citing a range from its FIRST cell, a
 numbered evidence row, and a top-level section devoted to one criterion. It reports
-`1 closing transitions, 6 criteria checked` and exit 0. Five further controls are asserted in
-`tools/docs-lint-test.sh` and are named under criterion 2.
+`1 closing transitions, 6 criteria checked` and exit 0. The same shapes are asserted
+individually in `tools/docs-lint-test.sh` — `control: prose under a citing heading is
+content`, `control: a fenced block under a citing heading is content`, `control: a deeper
+heading under a citing heading is content`, `control: an evidence sub-heading naming the
+criterion answers it`, `control: an evidence row citing a range of criteria answers all of
+them`, `control: the identical line under a delimiter row IS a row, and answers`, and
+`accepted: a top-level section devoted to a criterion answers it`. Every one of them is in the
+`citation scanner deleted` failure set under criterion 2, which is what makes them controls
+rather than fixtures that merely look like controls.
 
 **What this bean's `## Observed` section got wrong, corrected rather than worked around.** Its
 region section writes the refused shape once as a `##` heading — `## Criterion 3 was not
