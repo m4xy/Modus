@@ -203,11 +203,24 @@ and none is amended.
 ## Evidence
 
 Runs are against the working tree, which is what `tools/docs-lint.sh` reads by its own
-construction (`BASE` against the working tree, not against `HEAD`). Each sha below names the
-commit the run was made on. Later commits on this branch pasted these cells and rewrote the
-paragraph quoted under criterion 2; the re-run recorded below was made after all of them and
-prints the same counters, which is what makes the record measurement-neutral rather than merely
-reproducible (`doc:50-memory-and-evidence#corpus-figures`).
+construction (`BASE` against the working tree, not against `HEAD`). Every sha below was printed
+by a `git rev-parse HEAD` in the same command as the run beside it, and names the commit that run
+was made on. Three fences carry none: arm B, run on the same tree as arm A and named as such in
+the sentence above it; criterion 4, whose command is itself written relative to `HEAD`; and the
+first gate transcript under criterion 5, whose command prints no head and for which none is
+recorded.
+
+Later commits on this branch pasted these cells and rewrote the paragraph quoted under criterion
+2. The re-run under criterion 1 was made after all of them, at a named head, and is what shows
+the paste to be measurement-neutral rather than merely reproducible
+(`doc:50-memory-and-evidence#corpus-figures`). It no longer reprints the record byte for byte,
+and the difference is not the paste: `origin/main` has moved since arm A and arm B were taken, so
+the `on origin/main` field differs and, as the diff shows, nothing else does. Those two arms are
+left at the figures their stamped head printed, because a merge falsifies a corpus sweep and its
+author cannot prevent it — re-running the sweep belongs to that merge, not to this pull request.
+Nothing added to this bean since cites an anchor it did not already cite, for the same reason: a
+new reference would move the `references` field the arms record, and the drift would stop being
+attributable to one cause.
 
 ### Criterion 1 — the zero observation, reproduced on this branch, with its counterfactual
 
@@ -247,7 +260,8 @@ arms were first run with the two cells above holding a sentinel marker, so no ru
 itself from its own transcript; the outputs were then pasted and both arms re-run.
 
 ```
-cmd:      B=.beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md
+cmd:      git rev-parse HEAD && \
+          B=.beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md
           bash tools/docs-lint.sh | tail -1 > /tmp/a2.txt
           sed -i '' 's/^status: in-progress/status: completed/' "$B"
           bash tools/docs-lint.sh | tail -1 > /tmp/b2.txt; git checkout -- .beans
@@ -255,10 +269,10 @@ cmd:      B=.beans/modus-0096--check-14-contributes-nothing-to-an-implementation
             > /tmp/pasted.txt
           cat /tmp/a2.txt /tmp/b2.txt > /tmp/rerun.txt
           diff /tmp/pasted.txt /tmp/rerun.txt && echo "identical: what this bean records is what a re-run prints"
-expect:   diff silent, so the paste adds no document, anchor, reference or bean and the
-          counters the record quotes are the counters a run still prints
-observed: identical: what this bean records is what a re-run prints
-exit:     0
+expect:   the head named, and the paste adding no document, anchor, reference or bean: any line
+          the diff reports differs in the `on origin/main` field and in nothing else
+observed: SENTINEL-NEUTRALITY — replaced by the run made at the commit named in this cell
+exit:     SENTINEL
 ```
 
 ### Criterion 2 — a reader of a green line can determine that no evidence was examined
@@ -313,15 +327,22 @@ No completed bean quoting the `OK` line verbatim is amended, because none is inv
 
 ### Criterion 5 — the gate is green
 
+This first transcript is the one fence here whose command prints no head, and none is recorded
+for it: `./gradlew qualityCheck` alone says nothing about the tree it ran on, and a sha written
+beside it now would be a reconstruction rather than something the run printed. The stamped re-run
+below is what ties the gate to a commit. `[same]` stands for the counters line quoted in full
+under criterion 1 arm A, as its author recorded it; every other omission is marked `[...]`.
+
 ```
 cmd:      ./gradlew qualityCheck
 expect:   BUILD SUCCESSFUL, docsLint inside it
 observed: [...]
           > Task :docsLintTest
+          [...]
           docs-lint-test: 37 passed, 0 failed.
           [...]
           > Task :docsLint
-          docs-lint: OK — [same]   (arm A above, byte for byte, on this tree)
+          docs-lint: OK — [same]
           [...]
           > Task :qualityCheck
           [...]
@@ -330,18 +351,15 @@ observed: [...]
 exit:     0
 ```
 
-Re-run on the committed head, so the gate is observed green on a tree that differs from the
-one this pull request presents only by the paste of this cell:
+Re-run on the committed head, so the gate is observed green on a tree that differs from the one
+this pull request presents only by the paste of this cell and of the criterion 1 re-run above it.
+Its counters line is elided rather than marked `[same]`: it is not the same, because `origin/main`
+moved after arm A was taken, and pasting the field this run prints would re-take a figure left
+here at the head that produced it.
 
 ```
 cmd:      git rev-parse HEAD && ./gradlew qualityCheck
-expect:   BUILD SUCCESSFUL; the counters unchanged from arm A
-observed: 4017e8ab41be8f5f1c1c02f49787287923bc841e
-          [...]
-          docs-lint-test: 37 passed, 0 failed.
-          [...]
-          docs-lint: OK — [same]
-          [...]
-          BUILD SUCCESSFUL in 21s
-exit:     0
+expect:   BUILD SUCCESSFUL, with :docsLintTest and :docsLint inside it
+observed: SENTINEL-GATE — replaced by the run made at the commit named in this cell
+exit:     SENTINEL
 ```
