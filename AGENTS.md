@@ -49,7 +49,8 @@ Write new files with the Write tool.
 Planting a violation and reverting it (`doc:00-constitution#observed-failing`) usually means a
 script ending in `git checkout -- .beans`, which reverts uncommitted edits to **tracked**
 files under that path as well as the plant — a new bean is untracked and survives, a bean you
-are closing, amending or correcting does not. Commit before you plant (`bean:0102`).
+are closing, amending or correcting does not. Commit before **every** run — the paste step of
+`doc:50-memory-and-evidence#corpus-figures` re-dirties the tree between them (`bean:0102`).
 
 Review what you changed with `git diff --name-only origin/main...HEAD` — three dots, or
 `@{u}`. The two-dot form compares endpoints, so once `main` moves ahead it lists what **main**

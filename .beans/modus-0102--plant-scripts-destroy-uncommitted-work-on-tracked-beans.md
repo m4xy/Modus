@@ -521,9 +521,10 @@ harness needs a mutation predicate. This bean does not build one and does not cl
 ### 2026-09-04 · bean:0096
 
 **Claimed:** the remedy this bean states, and the line it put into `AGENTS.md`, is *"Commit
-before you plant"* — `AGENTS.md:52`, located in F8 below rather than recalled. Read against the
-transcript in `## Observed`, that is a precaution taken **once**, before a plant: clean the
-tree, and the revert step has nothing of yours left in reach.
+before you plant"* — `AGENTS.md:52` on `f55de2a`, located in F8 below rather than recalled and
+quoted from the merge base because the change carrying this amendment replaces that line. Read
+against the transcript in `## Observed`, it is a precaution taken **once**, before a plant:
+clean the tree, and the revert step has nothing of yours left in reach.
 
 **Found:** it protects one run. The procedure this repository now recommends for a figure whose
 subject is its own corpus is run → paste → re-run (`doc:50-memory-and-evidence#corpus-figures`,
@@ -732,13 +733,21 @@ F7, so the sweep can reach the corpus it claims to have searched.
 Two pull requests are open as this is written, one under `tools/` and one touching
 `documentation/05` and `.beans/modus-0096`. Either merging falsifies A, B and C, which is what
 `doc:50-memory-and-evidence#corpus-figures` says a corpus sweep does to its author; the
-searches are stamped at `f55de2a` for that reason and not re-run here.
+searches are stamped at `f55de2a` for that reason and not re-run here. **This change falsifies
+D itself**, and not through the clause one would expect: the corrected `AGENTS.md` line it
+ships is returned by D's `re-dirt` alternative, while `before (each|every) (run|plant)` does
+**not** match it, because the emphasis markers in *before **every** run* sit between the words
+the pattern needs adjacent. D also returns this amendment's own prose, and the fenced copy of
+D's own pattern above. The stamp names the tree the searches ran on, and that is the merge
+base rather than this branch.
 
-**Provenance, and what this amendment does not do.** The finding is the work of the agent
+**Provenance, and what this amendment ships beside it.** The finding is the work of the agent
 implementing `bean:0096`, which met the trap twice inside one change and reported it; it is
 recorded under that id rather than under the id of the change that writes it down. That it had
 landed nowhere was first established by a reviewer of that report and is **reported here rather
 than verified from it**; F10 is this change's own re-check of the same question, on its own
-tree. What the finding implies for the wording at `AGENTS.md:52` is not attempted: an
-amendment to a frozen bean may not edit `AGENTS.md`, and a change to that line is its own work
-item with its own bean.
+tree. The same change corrects the `AGENTS.md` line to *commit before **every** run* rather
+than deferring it, because that line cites this bean: shipping the amendment alone would leave
+the repository pointing an agent at a remedy the bean it cites records as insufficient — one
+fact in two places, with the operative one wrong, which is worse than the incompleteness it
+replaces.
