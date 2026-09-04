@@ -87,6 +87,18 @@ observed: bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
           bash-compat: OK — 3 scripts parsed, 16 rules, 16 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
 ```
 
+The same task on the CI runner, which is where the pattern file's POSIX character classes
+stop being an assumption about the image's awk and start being an observation:
+
+```
+cmd:      gh run view --job 100875457512 --log   # qualityCheck on ubuntu-latest
+observed: bash-compat: interpreter /bin/bash (bash 5.2.21(1)-release)
+          bash-compat: OK — 3 scripts parsed, 16 rules, 16 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+```
+
+All sixteen samples are caught exactly once under CI's awk as well as under BSD awk locally,
+so the scan is not silently inert on the platform where it is the only half that applies.
+
 **The residual, stated rather than glossed:** on the CI image `/bin/bash` is bash 5, so the
 half of the gate that is a genuine 3.2 parse runs on macOS only. What CI gets is a *known*
 interpreter at a fixed path rather than a *3.2* one. That is the property the three changes

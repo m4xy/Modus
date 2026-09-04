@@ -7,10 +7,11 @@
 # which grep answered is not a gate. awk is already the analysis language of tools/lib/ and
 # its ERE behaves the same under BSD awk and gawk for the constructs used here — no
 # backslash escapes, no interval expressions, no word boundaries, all of which differ. The
-# patterns do use POSIX classes, which mawk gained in 1.3.4 and which CI's awk is therefore
-# assumed to have rather than observed to have; that assumption is not load-bearing, because
-# an awk that compiled them differently would fail the planted-sample assertions in
-# tools/bash-compat-lint.sh loudly instead of reporting every script clean.
+# patterns do use POSIX classes, which not every awk has had; CI's awk was OBSERVED to have
+# them rather than assumed to (bean:0049, evidence entry 1, the run under bash 5.2.21). That
+# observation is not even load-bearing: an awk that compiled the classes differently would
+# fail the planted-sample assertions in tools/bash-compat-lint.sh loudly rather than report
+# every script clean, which is why the samples are checked on every run and not once.
 #
 # FULL-LINE COMMENTS ARE SKIPPED, and that is a hole with a reason. A comment never runs, so
 # a bash 4 construct inside one cannot break bash 3.2; and the constraint is DOCUMENTED in
