@@ -25,6 +25,10 @@
 # file, and no verdict test could tell that apart from a correct reading. What it
 # perceives and what it decides are tested separately by tools/docs-lint-test.sh, which
 # qualityCheck runs.
+#
+# This script's own FAILURE PATH — that an analyser dying makes the gate go red rather than
+# print OK — is tested by tools/docs-lint-gate-test.sh, also from qualityCheck. It is a
+# separate file because it can only observe this one by running the whole gate (bean:0118).
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -36,6 +40,41 @@ trap 'rm -rf "$TMP"' EXIT
 
 fail() { printf 'FAIL check %-2s %s\n' "$1" "$2" | tee -a "$TMP/fails.txt"; }
 TAB="$(printf '\t')"
+
+# Every analyser in this file runs through this wrapper, which shadows the name rather
+# than guarding each call site. `set -u` is fail-closed only in the top-level shell: an
+# analyser that dies writes nothing, the loop that reads it finds nothing, no `fail`
+# fires, and this script printed its `OK` line at exit 0 through the failure. Destroying
+# check 12's cycle analyser produced byte-identical stdout to the clean run (bean:0118).
+#
+# Shadowing, not a per-site `rc=$?`: most call sites are inside `$( )` or are pipeline
+# elements, where there is no statement after the analyser to read `$?` at. Redirected to
+# stderr because a call site inside `$( )` has its stdout captured, and `fail`'s line would
+# otherwise become part of the value the caller parses. Dropping the `>&2` and forcing the
+# branch turns one run's stdout into 908 lines, 907 of them FAIL, as check 2 reads the
+# guard's own words back as front-matter keys (bean:0123). The record that changes the exit
+# status is the append to fails.txt, which is a real file and so survives the subshell.
+#
+# THE COST of that redirect: this is the only `fail` in the file that does not reach stdout,
+# so `./gradlew docsLint | tee log` leaves `docs-lint: 1 failure(s).` in the log with no
+# reason beside it. Gradle and CI capture both streams, so the runner's log is complete.
+# Replaying the guard's records to stdout after the count line would fix it and keep `$( )`
+# safe; it is not done here because an unasserted change to what the gate prints is the
+# shape this whole change exists to close (doc:00-constitution#observed-failing). bean:0123.
+#
+# `command awk` below is the one deliberate bypass. tools/docs-lint-gate-test.sh asserts it
+# is still the only one — but by enumerating spellings, which fails open on the nine that
+# comment names, so that assertion bounds nothing (doc:00-constitution#observed-failing).
+awk_wrap_arg=""
+awk() {
+  command awk "$@"
+  awk_wrap_rc=$?
+  if [ "$awk_wrap_rc" -ne 0 ]; then
+    for awk_wrap_arg in "$@"; do :; done
+    fail - "an analyser exited $awk_wrap_rc and examined nothing; its last argument was '$awk_wrap_arg'" >&2
+  fi
+  return "$awk_wrap_rc"
+}
 
 FM_FILES="$(ls documentation/*.md documentation/adr/*.md)"
 REF_FILES="$FM_FILES $(ls .beans/*.md 2>/dev/null) AGENTS.md CLAUDE.md .github/pull_request_template.md"
@@ -661,6 +700,12 @@ if [ -n "$BASE" ]; then
     # no `fail` fires, and the run reports `0 criteria checked` beside `1 closing
     # transitions` at exit 0. The counts line calls itself the vacuity assertion; these
     # two conditions are what make it assert rather than describe.
+    #
+    # This is the one site where the shadow guard and a per-site check both fire, so one
+    # dead analyser here is `docs-lint: 2 failure(s).` — observed, in bean:0123. The
+    # per-site `fail` stays: the guard's record names the bean it was reading and cannot
+    # name the two files that must be present and parse, and this one cannot name the bean.
+    # `n_fail` counts RECORDS, not defects, here as everywhere else in this file.
     awk -v KINDS="$KINDS" \
       -f "$ROOT/tools/lib/docs-lint-fence.awk" \
       -f "$ROOT/tools/lib/docs-lint-c14.awk" \

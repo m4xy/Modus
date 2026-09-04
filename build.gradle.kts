@@ -48,6 +48,20 @@ tasks.register<Exec>("docsLintTest") {
     commandLine(gateShell, "tools/docs-lint-test.sh")
 }
 
+// docs-lint's own FAILURE PATH, which is a different subject from the task above and so is
+// a different script: that one feeds fixtures to the awk libraries under tools/lib/, this
+// one can only observe the shell script by running the whole gate twice. It plants a syntax
+// error into check 12's analyser in a COPY and requires the gate to go red, and requires the
+// same copy unmutated to go green — the negative half, without which a guard that fires on
+// every input would score identically (doc:50-memory-and-evidence#evidence-kinds).
+// Before bean:0118 the mutated run printed `docs-lint: OK` at exit 0 with stdout
+// byte-identical to the clean one.
+tasks.register<Exec>("docsLintGateTest") {
+    group = "verification"
+    description = "Plants an analyser failure into a copy of docs-lint and requires the gate to go red."
+    commandLine(gateShell, "tools/docs-lint-gate-test.sh")
+}
+
 // The bash 3.2 claim in tools/docs-lint.sh's header, made falsifiable. Two halves: a parse
 // of every tools/*.sh under the pinned interpreter, and a scan for the constructs bash 3.2
 // lacks. The scan re-proves on every run that it discriminates — each rule's own sample
@@ -143,7 +157,8 @@ tasks.register("qualityCheck") {
     // The root project's own `check` carries the aggregate coverage report and
     // the baseline guard (modus.coverage), so they cannot be a second command.
     dependsOn(
-        subprojects.map { "${it.path}:check" } + listOf("check", "ktlintCheck", "docsLint", "docsLintTest", "bashCompatLint"),
+        subprojects.map { "${it.path}:check" } +
+            listOf("check", "ktlintCheck", "docsLint", "docsLintTest", "docsLintGateTest", "bashCompatLint"),
     )
     // The backoffice half. Before bean:0029 nothing reached these, so a TypeScript
     // error, an ESLint error or 77 drifted files all merged green.

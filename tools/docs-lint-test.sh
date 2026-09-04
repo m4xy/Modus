@@ -154,6 +154,14 @@
 # repository had no fixture location for docs-lint, and a fixture whose expected output
 # lives in another file is read twice and updated once.
 #
+# WHAT LIVES IN THE SIBLING FILE. This file's subject is the two awk libraries under
+# tools/lib/, fed fixtures. tools/docs-lint-gate-test.sh's subject is the SHELL script:
+# whether tools/docs-lint.sh goes red when one of its analysers dies, which can only be
+# observed by running the whole gate over the whole repository. Adding a gate-level
+# assertion here would restate every mutation figure above — EVERY FIGURE ABOVE IS
+# RE-MEASURED WHENEVER AN ASSERTION IS ADDED says so — and each re-measurement would then
+# carry two full gate runs it has no use for. That is why it is not here (bean:0118).
+#
 # bash 3.2 (macOS): what that forbids is enumerated in tools/lib/bash32-forbidden.tsv and
 # enforced by tools/bash-compat-lint.sh in qualityCheck, not restated here (bean:0049).
 set -uo pipefail
