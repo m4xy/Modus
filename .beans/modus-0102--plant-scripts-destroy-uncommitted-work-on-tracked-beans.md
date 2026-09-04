@@ -515,3 +515,230 @@ follow while writing it down"* is not a fact about that author. Both occurrences
 one door — a script that runs a bean's fences without asking which of them mutate — and that
 door is specific enough to build against, which the three earlier occurrences were not. A fence
 harness needs a mutation predicate. This bean does not build one and does not claim the fix.
+
+## Amendments
+
+### 2026-09-04 · bean:0096
+
+**Claimed:** the remedy this bean states, and the line it put into `AGENTS.md`, is *"Commit
+before you plant"* — `AGENTS.md:52`, located in F8 below rather than recalled. Read against the
+transcript in `## Observed`, that is a precaution taken **once**, before a plant: clean the
+tree, and the revert step has nothing of yours left in reach.
+
+**Found:** it protects one run. The procedure this repository now recommends for a figure whose
+subject is its own corpus is run → paste → re-run (`doc:50-memory-and-evidence#corpus-figures`,
+the sentence at `documentation/50-memory-and-evidence.md:227`, also located in F8): capture
+against a sentinel, **paste the result in**, re-run, diff. The paste writes the figure into a
+tracked bean, so it re-creates precisely the uncommitted modification the commit had just
+removed, and it does so *between* the two runs. The second run then reaches the plant's own
+`git checkout -- .beans` with the paste standing in the working tree, and discards it.
+Committing before the plant protects the first run and nothing after it, so **the hazard is
+structural to the workflow this repository recommends rather than a property of the first
+plant**, and the rule it wants is *commit before every run*. This adds no sixth occurrence to
+the five recorded above; it narrows what those sections concluded the remedy was.
+
+**Evidence:** F9 — one worktree, cut detached at `f55de2a` and destroyed afterwards, in which
+the commit is taken first, this bean's own rule followed, and the paste is lost anyway. The
+same run re-observes F7's asymmetry at the one moment it decides something: with the pasted
+figure uncommitted, `git checkout -b zz-sp3-branch f55de2a` refuses, names the bean at risk,
+prints *commit your changes or stash them* and exits 1, while `git checkout -- .beans` on that
+same tree one command later discards it, prints nothing and exits 0. F10 is the check that this
+was not already written down somewhere.
+
+#### F8 — the two lines cited above, located rather than remembered
+
+```
+=== tree the line numbers are taken on
+f55de2a834097430a3635fa4d299ebfdeedc06c3
+=== grep -n 'Commit before you plant' AGENTS.md
+52:are closing, amending or correcting does not. Commit before you plant (`bean:0102`).
+=== grep -n 'paste it, re-run and diff' documentation/50-memory-and-evidence.md
+227:  absent from the tree so the result cannot satisfy itself, paste it, re-run and diff. State which
+```
+
+#### F9 — the commit is taken, and the paste is destroyed anyway
+
+**This fence mutates the tree it runs in.** It commits, cuts a branch and reverts under
+`.beans/`, which is the shape F7 records a fence harness running blind, twice, inside an hour.
+Run it only in a disposable worktree — `git worktree add --detach <path> f55de2a` — which is
+what `$W` was, and it was removed afterwards. The script, verbatim as run:
+
+```
+#!/bin/bash
+# Disposable-worktree probe: does "commit before you plant" survive a
+# run -> paste -> re-run capture cycle (doc:50-memory-and-evidence#corpus-figures)?
+W=/Users/maxholman/IdeaProjects/Modus/.claude/worktrees/agent-sp3-0102-probe
+B=.beans/modus-0033--baseline-writer-erases-regression-provenance.md
+cd "$W" || exit 9
+
+echo "=== 0. head and cleanliness of the disposable worktree"
+git rev-parse HEAD
+git status --porcelain | grep -c .
+
+echo "=== 1. edit the tracked bean, then COMMIT BEFORE YOU PLANT (AGENTS.md:52)"
+printf '\nsentinel: @@sp3figure@@\n' >> "$B"
+git add "$B"
+git commit -q -m 'probe: sentinel in a tracked bean'
+git status --porcelain -- .beans | grep -c .
+
+echo "=== 2. run 1 of the capture: plant an untracked bean, revert with the plant step"
+printf 'plant\n' > .beans/zz-sp3-plant.md
+git checkout -- .beans
+echo "exit=$?"
+git status --porcelain -- .beans
+
+echo "=== 3. paste the captured figure over the sentinel (the paste step)"
+sed -i '' 's/@@sp3figure@@/98 beans, 37 graph edges/' "$B"
+git status --porcelain -- .beans
+
+echo "=== 4. at that moment: git checkout -b, the OTHER checkout form"
+git checkout -b zz-sp3-branch f55de2a
+echo "exit=$?"
+git status --porcelain -- .beans
+
+echo "=== 5. re-run: the same plant step the first run used"
+git checkout -- .beans
+echo "exit=$?"
+git status --porcelain -- .beans
+grep -c 'sp3figure\|98 beans, 37 graph edges' "$B"
+
+echo "=== 6. what the tracked bean now carries at the sentinel line"
+git log --oneline -1
+tail -n 2 "$B"
+```
+
+Its output, verbatim. The `=== n` lines are the script's own `echo`s and not layout, and
+nothing below was rewritten after it was captured.
+
+```
+=== 0. head and cleanliness of the disposable worktree
+f55de2a834097430a3635fa4d299ebfdeedc06c3
+0
+=== 1. edit the tracked bean, then COMMIT BEFORE YOU PLANT (AGENTS.md:52)
+0
+=== 2. run 1 of the capture: plant an untracked bean, revert with the plant step
+exit=0
+?? .beans/zz-sp3-plant.md
+=== 3. paste the captured figure over the sentinel (the paste step)
+ M .beans/modus-0033--baseline-writer-erases-regression-provenance.md
+?? .beans/zz-sp3-plant.md
+=== 4. at that moment: git checkout -b, the OTHER checkout form
+error: Your local changes to the following files would be overwritten by checkout:
+	.beans/modus-0033--baseline-writer-erases-regression-provenance.md
+Please commit your changes or stash them before you switch branches.
+Aborting
+exit=1
+ M .beans/modus-0033--baseline-writer-erases-regression-provenance.md
+?? .beans/zz-sp3-plant.md
+=== 5. re-run: the same plant step the first run used
+exit=0
+?? .beans/zz-sp3-plant.md
+1
+=== 6. what the tracked bean now carries at the sentinel line
+f2c2d14 probe: sentinel in a tracked bean
+
+sentinel: @@sp3figure@@
+```
+
+Step 1 leaves `.beans` clean: the commit is taken, which is the rule this bean wrote. Step 2's
+revert exits 0 and the tracked bean is untouched, because nothing of the author's was in
+reach — commit-before-plant working exactly as `## Observed` describes. Step 3 is the paste,
+and it puts the ` M` line back against the tracked bean. Step 5 runs step 2's revert command
+again, one paste later, and takes the figure with it: the ` M` line is gone, and step 6 shows the
+file back at `sentinel: @@sp3figure@@`, its pre-paste committed state. So the record silently
+reads its own sentinel, and the diff the procedure ends in would compare the sentinel against
+itself — the failure the sentinel exists to prevent, produced by the step that is meant to
+prevent it.
+
+Step 4 is the control, and it puts F7's asymmetry inside a single run: the same `git checkout`
+verb, the same dirty tree, one command apart. `-b` refuses, names `modus-0033` and prints this
+bean's own remedy; the pathspec form discards it and reports success.
+
+#### F10 — the refinement is not already stated on `f55de2a`
+
+Five searches in one capture, taken on the work worktree **before** this amendment was
+written: the amendment is itself a file under `.beans/`, so the same searches run afterwards
+would return it, which is `doc:50-memory-and-evidence#corpus-figures`'s third failure. A is the
+sentinel-and-paste procedure, B the plant's revert step, C their intersection, D the claim in
+different words, and E a control string known to be present, so a search that returns almost
+nothing is distinguishable from one that could not return anything. The script:
+
+```
+#!/bin/bash
+# Is the refinement already stated anywhere? Four independent searches plus a control.
+cd /Users/maxholman/IdeaProjects/Modus/.claude/worktrees/agent-sp3-0102 || exit 9
+echo "=== tree"
+git rev-parse HEAD
+git status --porcelain | grep -c .
+
+echo "=== A. files that name the sentinel/paste procedure at all"
+grep -rl 'sentinel\|paste it, re-run' --include='*.md' . | sort
+
+echo "=== B. files that name the plant revert step at all"
+grep -rl 'checkout -- \.beans' --include='*.md' . | sort
+
+echo "=== C. intersection: a file naming both"
+grep -rl 'sentinel\|paste it, re-run' --include='*.md' . | sort > /tmp/sp3a.txt
+grep -rl 'checkout -- \.beans' --include='*.md' . | sort > /tmp/sp3b.txt
+comm -12 /tmp/sp3a.txt /tmp/sp3b.txt
+
+echo "=== D. the claim by other words: does anything say the precaution repeats?"
+grep -rniE 'before (each|every) (run|plant)|re-dirt|dirties the (tree|worktree)|not a one-time|only the first (run|plant)|structural to' --include='*.md' . | sort
+
+echo "=== E. control: a string known to be in the corpus"
+grep -rn 'commit your changes or stash them' --include='*.md' . | sort
+```
+
+and its output, verbatim:
+
+```
+=== tree
+f55de2a834097430a3635fa4d299ebfdeedc06c3
+0
+=== A. files that name the sentinel/paste procedure at all
+./.beans/modus-0102--plant-scripts-destroy-uncommitted-work-on-tracked-beans.md
+./.beans/modus-0115--encode-sprint-2-findings-and-hand-off-to-sprint-3.md
+./documentation/50-memory-and-evidence.md
+=== B. files that name the plant revert step at all
+./.beans/modus-0035--beans-graph-check.md
+./.beans/modus-0051--parallel-bean-id-allocation.md
+./.beans/modus-0055--evidence-required-to-close-a-bean.md
+./.beans/modus-0061--check-14-is-gated-on-numbered-criteria.md
+./.beans/modus-0063--fence-state-inversion-in-the-check-14-analyser.md
+./.beans/modus-0086--check-6-resolves-references-through-a-naive-fence-toggle.md
+./.beans/modus-0087--check-14-verifies-the-shape-of-evidence-not-its-content.md
+./.beans/modus-0093--pasted-output-in-top-level-prose-answers-the-criterion-it-reports-unanswered.md
+./.beans/modus-0099--fence-parity-and-the-citation-matcher-compose-into-a-hole-neither-owns.md
+./.beans/modus-0102--plant-scripts-destroy-uncommitted-work-on-tracked-beans.md
+./.beans/modus-0104--a-scripted-edit-produces-no-reading-of-its-result.md
+./AGENTS.md
+=== C. intersection: a file naming both
+./.beans/modus-0102--plant-scripts-destroy-uncommitted-work-on-tracked-beans.md
+=== D. the claim by other words: does anything say the precaution repeats?
+./.beans/modus-0051--parallel-bean-id-allocation.md:108:plant, observe, revert. Tree clean before each plant.
+=== E. control: a string known to be in the corpus
+./.beans/modus-0102--plant-scripts-destroy-uncommitted-work-on-tracked-beans.md:483:          Please commit your changes or stash them before you switch branches.
+```
+
+C returns one file — this bean — and on the tree the searches were taken, which is this file
+before the amendment, its two halves live apart: the sentinel method is named in F6 and the
+revert step in `## Observed`, F3 and F7, and no sentence joins them. D's
+only hit is `.beans/modus-0051--parallel-bean-id-allocation.md:108`, *"plant, observe, revert.
+Tree clean before each plant"* — that bean's description of its own evidence procedure, not a
+statement that the recommended capture procedure re-dirties the tree between runs. It is the
+nearest wording on the tree and it is not this one. E returns the string it was chosen for, in
+F7, so the sweep can reach the corpus it claims to have searched.
+
+Two pull requests are open as this is written, one under `tools/` and one touching
+`documentation/05` and `.beans/modus-0096`. Either merging falsifies A, B and C, which is what
+`doc:50-memory-and-evidence#corpus-figures` says a corpus sweep does to its author; the
+searches are stamped at `f55de2a` for that reason and not re-run here.
+
+**Provenance, and what this amendment does not do.** The finding is the work of the agent
+implementing `bean:0096`, which met the trap twice inside one change and reported it; it is
+recorded under that id rather than under the id of the change that writes it down. That it had
+landed nowhere was first established by a reviewer of that report and is **reported here rather
+than verified from it**; F10 is this change's own re-check of the same question, on its own
+tree. What the finding implies for the wording at `AGENTS.md:52` is not attempted: an
+amendment to a frozen bean may not edit `AGENTS.md`, and a change to that line is its own work
+item with its own bean.
