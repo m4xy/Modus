@@ -1,10 +1,11 @@
 ---
 # modus-0115
 title: Encode sprint 2's findings, and hand off to sprint 3
-status: in-progress
+status: completed
 type: task
 priority: high
 created_at: 2026-09-03T00:00:00Z
+updated_at: 2026-09-04T00:00:00Z
 ---
 
 # Encode sprint 2's findings, and hand off to sprint 3
@@ -398,3 +399,106 @@ observed:   29 status: completed
             62 status: todo
 ```
 
+## Closed — merged as PR #67, squashed onto `main` as `9adb8af`
+
+A bean cannot close itself: its evidence includes its own merge, so the close is a separate
+change (`doc:00-constitution` §7.2.1). Criteria 1 to 7 are answered by E1 to E7 above. What
+this section adds is that the two documents and the three bean files those blocks describe are
+on `main`, and the gate run for the change that closes all five of this sprint's shipped-but-open
+beans.
+
+```
+cmd:      git log --oneline -1 9adb8af
+observed: 9adb8af docs(50,80,beans): encode sprint 2's findings and hand off to sprint 3 (#67)
+exit:     0
+```
+
+E1's two anchors and E2's five rules, read out of the merged blobs rather than out of the
+working tree, because a document is the artefact most likely to be edited by the next change:
+
+```
+cmd:      git grep -n 'id="capturing"' 9adb8af -- documentation/50-memory-and-evidence.md
+observed: 9adb8af:documentation/50-memory-and-evidence.md:189:### 2.6 Capturing a transcript <a id="capturing"></a>
+exit:     0
+
+cmd:      git grep -n 'id="corpus-figures"' 9adb8af -- documentation/50-memory-and-evidence.md
+observed: 9adb8af:documentation/50-memory-and-evidence.md:209:### 2.7 A figure whose subject is this repository <a id="corpus-figures"></a>
+exit:     0
+
+cmd:      git grep -c '^| 0\.[5-9] |' 9adb8af -- documentation/80-agent-operating-procedure.md
+observed: 9adb8af:documentation/80-agent-operating-procedure.md:5
+exit:     0
+```
+
+`189` and `209` are what E1 records, and this is the run E1's own note says the block should
+have been: a locator carrying the command that produced it, at the tree it describes
+(`doc:50-memory-and-evidence#capturing`).
+
+Criterion 4's three files:
+
+```
+cmd:      git ls-tree -r --name-only 9adb8af -- .beans/modus-0113--a-close-that-rewrites-its-criteria-is-indistinguishable.md .beans/modus-0114--nothing-checks-that-a-pull-requests-refs-are-complete.md .beans/modus-0115--encode-sprint-2-findings-and-hand-off-to-sprint-3.md
+observed: .beans/modus-0113--a-close-that-rewrites-its-criteria-is-indistinguishable.md
+          .beans/modus-0114--nothing-checks-that-a-pull-requests-refs-are-complete.md
+          .beans/modus-0115--encode-sprint-2-findings-and-hand-off-to-sprint-3.md
+exit:     0
+```
+
+`0115` was taken as the next id free on `origin/main` rather than centrally, and check 13c is
+what would have said so before the merge. It merged clean, so no sibling had taken it — the
+residual `bean:0051` accepts did not fire.
+
+### E7's sweep, re-run because this change edits the corpus it searches
+
+`bean:0105`'s sweep runs over `.beans` and `documentation`, and this close edits five files
+under `.beans`. Re-running it is this change's job, not that bean's, and not the job of the
+merge that last ran it (`doc:50-memory-and-evidence#corpus-figures`).
+
+```
+cmd:      grep -rl 'not firing\|does not fire\|fires on every\|never fires' .beans documentation | sort
+observed: .beans/modus-0068--encode-sprint-1-findings.md
+          .beans/modus-0069--per-request-usage-is-the-published-vocabulary.md
+          .beans/modus-0086--check-6-resolves-references-through-a-naive-fence-toggle.md
+          .beans/modus-0089--anchors-cited-by-completed-beans-pin-a-document.md
+          .beans/modus-0090--constants-that-must-match-an-authority.md
+          .beans/modus-0105--the-negative-half-of-observed-failing-is-normative-nowhere.md
+          .beans/modus-0110--dispatching-a-review-and-an-edit-against-one-head.md
+          .beans/modus-0112--a-sweep-for-a-wording-read-as-a-sweep-for-a-rule.md
+          .beans/modus-0114--nothing-checks-that-a-pull-requests-refs-are-complete.md
+          .beans/modus-0115--encode-sprint-2-findings-and-hand-off-to-sprint-3.md
+          documentation/80-agent-operating-procedure.md
+exit:     0
+```
+
+### The gate for this close
+
+`./gradlew qualityCheck` is the gate `rule:ci/build` runs, and `tools/docs-lint.sh` is inside
+it. The `docs-lint` counts describe the tree that carries them, so both captures are taken by
+the sentinel method (`doc:50-memory-and-evidence#corpus-figures`): the asserted strings were
+absent from the tree at capture time, standing as `@@sp3gate@@` and `@@sp3sweep@@`, and each
+was re-run after insertion and diffed against its first capture. The `docs-lint` counts line
+itself is `bean:0102`'s criterion 8 and lives there, not here — quoted once, and marked
+`[same]` here rather than repeated (`bean:0091`, `doc:05-authoring-for-agents#one-fact-one-place`).
+Nothing is elided: `:docsLint` is the last task before `:qualityCheck`, and the block below is
+every line from the first to the build result, with only the `docs-lint` counts line replaced
+by `[same]`. **The last two lines are the ones a re-runner will not match**, and that is a
+property of the lines and not a defect in the capture: the duration is a duration, and the
+executed-versus-up-to-date split depends on configuration-cache and build-cache state
+(`bean:0065` criterion 10 records the same thing and for the same reason — an earlier run of
+this same gate on this same branch reported `168 actionable tasks: 55 executed, 113 from
+cache`). `BUILD SUCCESSFUL` and the exit code are the reproducible half. The `docs-lint`
+line inside this run is reproducible, and its fixed point is established at `bean:0102` F6
+rather than here — where it is also the check that this gate run and that standalone run
+read the same tree.
+
+```
+cmd:      ./gradlew qualityCheck
+observed: > Task :docsLint
+          [same as bean:0102 F6]
+
+          > Task :qualityCheck
+
+          BUILD SUCCESSFUL in 21s
+          159 actionable tasks: 5 executed, 154 up-to-date
+exit:     0
+```
