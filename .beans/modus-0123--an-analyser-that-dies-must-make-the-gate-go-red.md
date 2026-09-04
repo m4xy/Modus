@@ -208,7 +208,7 @@ across the two trees would fail for a reason that has nothing to do with the gua
 ```
 head:     this branch's working tree
 cmd:      /bin/bash tools/docs-lint.sh
-observed: docs-lint: OK — 19 documents, 111 anchors, 1653 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+observed: docs-lint: OK — 19 documents, 111 anchors, 1654 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
 exit:     0
 cmd:      wc -c < v2-guarded.err      # everything the guarded run wrote to stderr
 observed:        0
@@ -257,7 +257,7 @@ observed: [same]
                  actual:   rc=0
           FAIL and the gate says it failed rather than printing OK
                  expected: docs-lint: 1 failure(s).
-                 actual:   docs-lint: OK — 19 documents, 111 anchors, 1653 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+                 actual:   docs-lint: OK — 19 documents, 111 anchors, 1654 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
           FAIL and attributes it to an analyser that examined nothing
                  expected: 1
                  actual:   0
@@ -276,7 +276,7 @@ observed: [same]
                  actual:   rc=0
           FAIL and the gate says it failed rather than printing OK
                  expected: docs-lint: 1 failure(s).
-                 actual:   docs-lint: OK — 19 documents, 111 anchors, 1653 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+                 actual:   docs-lint: OK — 19 documents, 111 anchors, 1654 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
           FAIL and attributes it to an analyser that examined nothing
                  expected: 1
                  actual:   0
@@ -336,11 +336,11 @@ observed: bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
           [...]
           docs-lint-test: 51 passed, 0 failed.
           [...]
-          docs-lint: OK — 19 documents, 111 anchors, 1653 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          docs-lint: OK — 19 documents, 111 anchors, 1654 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
           [...]
           docs-lint-gate-test: 11 passed, 0 failed.
           [...]
-          BUILD SUCCESSFUL in 48s
+          BUILD SUCCESSFUL in 37s
           161 actionable tasks: 7 executed, 154 up-to-date
 exit:     0
 ```
@@ -423,9 +423,45 @@ measurement and not a requirement. The mutated run's stderr is now printed in fu
 at twenty lines), so the next difference of this kind is visible in the log rather than
 only in an assertion's `actual:`.
 
-Not verified: what status the runner's `awk` actually exits with. The failing run predates
-the line that reports it, so the number is not in any log yet; the CI run of the fix will
-print it.
+The CI run of the fix prints the number, and it is **1**. The runner's `awk` is a mawk —
+its diagnostic is `awk: cmd. line:4:` rather than BSD awk's `awk: syntax error at source
+line 4` — and it exits 1 where the BSD awk this was written against exits 2:
+
+```
+head:     41ad94c, GitHub Actions run 33906282727, job 101131893027, ubuntu-latest
+cmd:      ./gradlew qualityCheck --stacktrace -x backofficeTypecheck -x backofficeLint -x backofficeFormatCheck
+observed: docs-lint-gate-test: interpreter /bin/bash (bash 5.2.21(1)-release)
+          [...]
+          ok   a destroyed analyser makes the gate exit non-zero
+          ok   and the gate says it failed rather than printing OK
+          ok   and attributes it to an analyser that examined nothing
+               (this awk exited 1 on the planted syntax error)
+          ok   the negative control: the same copy unmutated exits 0
+          ok   and prints the OK line
+          ok   and writes nothing at all to stderr
+
+          --- the mutated run's stderr: 3 line(s), at most 20 shown
+               awk: cmd. line:4:     removed = = 1
+               awk: cmd. line:4:               ^ syntax error
+               FAIL check -  an analyser exited 1 and examined nothing; its last argument was '/tmp/tmp.iACxzUYSvB/bean-edges.uniq'
+
+          --- the guard covers every call site, because no call site opts in
+          ok   the guard's own call is the only site that bypasses it
+
+          docs-lint-gate-test: 11 passed, 0 failed.
+exit:     0, and the `gate` job passed
+```
+
+The guard itself is not written against a status — it tests `-ne 0` — so it works under
+both, and the failed run was a defect in the test rather than in the fix.
+
+What this does not establish is that the two `awk`s agree on a program that **parses**.
+That question is not untouched: `bean:0049`'s amendment "The anchored regexes under CI's
+awk, which is not the awk they were written against" took exactly that measurement for
+`tools/lib/bash32-scan.awk`'s patterns, on the runner, and found its planted samples still
+caught exactly once. That is a measurement of one analyser's regexes, not of the analysers
+in `tools/docs-lint.sh`, and this work item adds nothing to it. Named so the next reader
+does not mistake a difference in exit status for a difference in parsing.
 
 ## Not verified here
 
