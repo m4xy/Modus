@@ -250,3 +250,271 @@ Nothing in `tools/lib/docs-lint-c14.awk` or `tools/lib/docs-lint-fence.awk` was 
 check 14's behaviour is unchanged. Three changes to that analyser are queued behind this one;
 pinning the interpreter is what gives them something to be validated against, and arriving
 early would defeat the ordering.
+
+## Amendments
+
+Four entries, all from the first review round on this bean's own pull request, #69, against
+head `13d8c27`. Every figure below was redirected to a file and pasted from it. The only
+edits to a capture are elisions of an absolute path, each marked `[...]`.
+
+### 2026-09-04 · bean:0049
+
+*A citation to a differential this bean does not contain.*
+
+**Claimed:** `tools/bash-compat-lint.sh:21-22` at `13d8c27` — "The full 23-construct
+differential against bash 5.3.9 is in bean:0049."
+
+**Found:** there is no 23-construct differential here and there never was; the figure 23
+occurs nowhere in this file. What entry 6 carries is a six-row table of families that diverge
+silently or behind a diagnostic, and one sentence recording that `/bin/bash -n` rejects five
+of the sixteen. The pattern file carried sixteen rules. 23 is a number no run in this
+repository produced, sitting inside the file whose stated thesis is that its list is measured
+rather than remembered (`doc:50-memory-and-evidence#unevidenced-assertions`). The sentence now
+names entry 6 and the third entry below by what each actually contains, and says in terms that
+the file is a denylist of what was measured rather than a differential of anything.
+
+**Evidence:**
+
+```
+cmd:      git show 13d8c27:.beans/modus-0049--bash-32-claim-is-unenforced.md | grep -n '23'
+observed: (no output)
+exit:     1        # ugrep 7.8.4, the harness shim on the interactive PATH. /usr/bin/grep -c
+                   # over the same content printed 0 and exited 1, so the two greps agree.
+cmd:      git show 13d8c27:tools/lib/bash32-forbidden.tsv | awk -F'\t' '/^[ \t]*#/{next} /^[ \t]*$/{next} NF>=3 && $1!="" && $3!="" {n++} END {print n}'
+observed: 16
+```
+
+### 2026-09-04 · bean:0049
+
+*The SCAN half rejected legal bash 3.2, and the negative control could not see it.*
+
+**Claimed:** entry 4 above — the scan "is silent on clean input", re-proved on every
+invocation by a fixture of "3.2-legal near-misses" that must produce zero hits.
+
+**Found:** the fixture was too small to be the control it claimed to be. Three of the sixteen
+rules matched correct bash 3.2, and no line that would have exposed any of them was in the
+fixture. `test-v` fired on `[[ -n "$(command -v jq)" ]]`, the standard portable
+command-existence idiom, and on `-v` compared as a value; `case-modification` fired on
+`${csv%,}` and `${list#,}`, which are suffix and prefix trimming and are not case modification
+at all — that is `${v^^}` and `${v,,}`; `printf-time-format` fired on a literal `%%` before a
+parenthesis. This is worse than the miss a denylist is admitted to have. A miss leaves the
+gate where it already was; a gate that rejects correct code stops the next person's
+legitimate work, and `bashCompatLint` runs inside `qualityCheck`. All three rules are now
+anchored to the syntax that makes the construct a bash 4 construct, and every line is in the
+negative control.
+
+**Evidence:** the scanner run directly, at `13d8c27`, over a file holding just those five
+lines. `[...]` is the scratchpad directory the fixture was written to:
+
+```
+cmd:      awk -v PAT=tools/lib/bash32-forbidden.tsv -f tools/lib/bash32-scan.awk [...]/fp.sh
+observed: [...]/fp.sh:1: test-v: if [[ -n "$(command -v jq)" ]]; then :; fi
+          [...]/fp.sh:2: test-v: if [[ "$flag" == -v ]]; then :; fi
+          [...]/fp.sh:3: case-modification: trimmed="${csv%,}"
+          [...]/fp.sh:4: case-modification: joined="${list#,}"
+          [...]/fp.sh:5: printf-time-format: printf 'coverage %d%%(min)\n' 90
+exit:     0
+```
+
+Then both halves of the fixture, through the gate. The extended negative control was
+committed first, and the three pre-fix regexes planted back into
+`tools/lib/bash32-forbidden.tsv` afterwards, so the two runs differ in the regex column and in
+nothing else (`bean:0102`):
+
+```
+cmd:      ./gradlew bashCompatLint        # extended fixture, pre-fix regexes planted back
+observed: > Task :bashCompatLint FAILED
+          bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+          [...]/clean.sh:12: test-v: if [[ -n "$(command -v jq)" ]]; then :; fi
+          [...]/clean.sh:13: test-v: if [[ "$flag" == -v ]]; then :; fi
+          [...]/clean.sh:15: case-modification: trimmed="${csv%,}"
+          [...]/clean.sh:16: case-modification: joined="${list#,}"
+          [...]/clean.sh:17: printf-time-format: printf 'coverage %d%%(min)\n' 90
+          FAIL bash-compat  the negative control is not clean: 5 hit(s) on bash 3.2-legal source
+          tools/bash-compat-lint.sh:180: test-v: if [[ -n "$(command -v jq)" ]]; then :; fi
+          tools/bash-compat-lint.sh:181: test-v: if [[ "$flag" == -v ]]; then :; fi
+          tools/bash-compat-lint.sh:183: case-modification: trimmed="${csv%,}"
+          tools/bash-compat-lint.sh:184: case-modification: joined="${list#,}"
+          tools/bash-compat-lint.sh:185: printf-time-format: printf 'coverage %d%%(min)\n' 90
+          FAIL bash-compat  5 bash 4 construct(s) in scripts that claim bash 3.2 compatibility
+          bash-compat: FAILED.
+exit:     1
+
+cmd:      ./gradlew bashCompatLint        # plant reverted with git checkout -- on that one file
+observed: bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+          bash-compat: OK — 3 scripts parsed, 21 rules, 21 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+exit:     0
+```
+
+The second block of five hits in the red run is the fixture found again as ordinary source:
+the heredoc lives in `tools/bash-compat-lint.sh`, which the scan covers because it is a
+`tools/*.sh`. The gate therefore fails twice over on the same defect, which is why the
+negative control is a heredoc in a scanned file rather than a separate fixture.
+
+### 2026-09-04 · bean:0049
+
+*Five constructs absent from rows that already enumerate their siblings.*
+
+**Claimed:** entry 6 — the list is measured, not remembered: every row was run under both
+interpreters and kept only where they disagreed.
+
+**Found:** that is true of every row present and says nothing about what is absent. `declare
+-g`, `declare -l` and `declare -u` fail in the same builtin, through the same option parser,
+as the marquee `declare -A`; `$BASHPID` sits in a row that lists three of its siblings and
+omits it. In rows that enumerate, an absence reads as a decision. Eleven constructs were run
+under both interpreters here and **all eleven diverge**, so five rows were added
+(`declare-global`, `declare-lowercase`, `declare-uppercase`, `printf-v-subscript`,
+`varfd-redirect`) and two rows gained alternatives (`shopt-bash4-option` gained `direxpand`,
+`autocd`, `dirspell`, `checkjobs` and `globasciiranges`; `bash4-variable` gained `BASHPID`).
+
+One correction to the finding as it reached this bean: it described `declare -g` as *silently*
+leaving the variable unset. It is not silent. Bash 3.2 writes `declare: -g: invalid option` to
+stderr and exits 0 — exactly the shape of `declare -A`. The word that fits is *swallowed*, and
+what swallows it is this script's missing `set -e`. `$BASHPID` is the genuinely silent one of
+the five.
+
+Not proved by the gate, stated so it is not mistaken for proved: the machinery plants one
+sample per row, so the five `shopt` options and `BASHPID` are covered by the differential
+below and by nothing that re-runs. That was already true of `SRANDOM`, `EPOCHREALTIME` and
+`BASH_ARGV0` before this change; it is the file's existing shape rather than a new concession,
+and it is now written in the file.
+
+**Evidence:** each snippet written to a file and run under both interpreters, comparing
+stdout, stderr and exit status. `[...]` is the scratchpad path the snippet was written to.
+`declare -A` is included last as a control: it is the construct entry 6 already measured, and
+it must come out `DIVERGES` for the harness to be believed.
+
+```
+cmd:      /opt/homebrew/bin/bash probe.sh
+observed: GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25)
+          GNU bash, version 5.3.9(1)-release (aarch64-apple-darwin25.1.0)
+          === declare -g [DIVERGES]
+              src : f() { declare -g g_var=set; }; f; echo "g_var=[${g_var-UNSET}]"
+              3.2 : rc=0 out=<g_var=[UNSET]> err=<[...]/snippet.sh: line 1: declare: -g: invalid option
+          declare: usage: declare [-afFirtx] [-p] [name[=value] ...]>
+              5.3 : rc=0 out=<g_var=[set]> err=<>
+          === declare -l [DIVERGES]
+              src : declare -l lower=ABC; echo "lower=[$lower]"
+              3.2 : rc=0 out=<lower=[]> err=<[...]/snippet.sh: line 1: declare: -l: invalid option
+          declare: usage: declare [-afFirtx] [-p] [name[=value] ...]>
+              5.3 : rc=0 out=<lower=[abc]> err=<>
+          === declare -u [DIVERGES]
+              src : declare -u upper=abc; echo "upper=[$upper]"
+              3.2 : rc=0 out=<upper=[]> err=<[...]/snippet.sh: line 1: declare: -u: invalid option
+          declare: usage: declare [-afFirtx] [-p] [name[=value] ...]>
+              5.3 : rc=0 out=<upper=[ABC]> err=<>
+          === BASHPID [DIVERGES]
+              src : echo "bashpid=[${BASHPID-UNSET}]"
+              3.2 : rc=0 out=<bashpid=[UNSET]> err=<>
+              5.3 : rc=0 out=<bashpid=[82846]> err=<>
+          === shopt direxpand [DIVERGES]
+              src : shopt -s direxpand; echo "rc=$?"
+              3.2 : rc=0 out=<rc=1> err=<[...]/snippet.sh: line 1: shopt: direxpand: invalid shell option name>
+              5.3 : rc=0 out=<rc=0> err=<>
+          === shopt autocd [DIVERGES]
+              src : shopt -s autocd; echo "rc=$?"
+              3.2 : rc=0 out=<rc=1> err=<[...]/snippet.sh: line 1: shopt: autocd: invalid shell option name>
+              5.3 : rc=0 out=<rc=0> err=<>
+          === shopt dirspell [DIVERGES]
+              src : shopt -s dirspell; echo "rc=$?"
+              3.2 : rc=0 out=<rc=1> err=<[...]/snippet.sh: line 1: shopt: dirspell: invalid shell option name>
+              5.3 : rc=0 out=<rc=0> err=<>
+          === shopt checkjobs [DIVERGES]
+              src : shopt -s checkjobs; echo "rc=$?"
+              3.2 : rc=0 out=<rc=1> err=<[...]/snippet.sh: line 1: shopt: checkjobs: invalid shell option name>
+              5.3 : rc=0 out=<rc=0> err=<>
+          === shopt globasciiranges [DIVERGES]
+              src : shopt -s globasciiranges; echo "rc=$?"
+              3.2 : rc=0 out=<rc=1> err=<[...]/snippet.sh: line 1: shopt: globasciiranges: invalid shell option name>
+              5.3 : rc=0 out=<rc=0> err=<>
+          === printf -v subscript [DIVERGES]
+              src : a=(x y); printf -v "a[0]" %s hi; echo "a0=[${a[0]}]"
+              3.2 : rc=0 out=<a0=[x]> err=<[...]/snippet.sh: line 1: printf: `a[0]': not a valid identifier>
+              5.3 : rc=0 out=<a0=[hi]> err=<>
+          === exec {fd}< [DIVERGES]
+              src : exec {fd}</dev/null; echo "fd=[${fd-UNSET}]"
+              3.2 : rc=127 out=<> err=<[...]/snippet.sh: line 1: exec: {fd}: not found>
+              5.3 : rc=0 out=<fd=[10]> err=<>
+          === declare -A (control) [DIVERGES]
+              src : declare -A m; m[k]=v; echo "m=[${m[k]}]"
+              3.2 : rc=0 out=<m=[v]> err=<[...]/snippet.sh: line 1: declare: -A: invalid option
+          declare: usage: declare [-afFirtx] [-p] [name[=value] ...]>
+              5.3 : rc=0 out=<m=[v]> err=<>
+exit:     0
+```
+
+`exec {fd}<` is the only one of the eleven that fails loudly — 3.2 exits 127. It is a row
+anyway, because 127 is a status `tools/docs-lint.sh` never inspects; the entry below is why.
+The `declare -A` control's stdout agrees under both shells and it diverges on stderr alone:
+under 3.2 `m` is an INDEXED array and `m[k]` subscripts element 0, which happens to hold `v`.
+That is the silent-wrong-answer shape entry 6 records, caught here by comparing all three
+streams rather than stdout.
+
+### 2026-09-04 · bean:0049
+
+*Criterion 2 is ruled unmeetable; its concern goes to `bean:0118`; this bean does not close here.*
+
+**Claimed:** the section above — "Whether that satisfies the intent of criterion 2 is a
+decision for whoever owns this bean; it is not a decision the implementing agent may take by
+amending the criterion."
+
+**Found:** the owner ruled, and the ruling is that **criterion 2 is NOT MET because the
+criterion was wrong, not because the work was.** It names *the interpreter* as the mechanism
+that must reject a planted associative array or `mapfile`. No interpreter can: bash 3.2
+diagnoses both on stderr and leaves the exit status at 0, and `tools/docs-lint.sh` has
+`set -uo pipefail` and no `set -e`, so the script runs on to its `OK` line. Entry 2 measured
+that; it was re-measured independently in review, pasted below, and the two agree. Criterion 1
+stands as entry 1 records it — met on macOS, and on CI only in the weaker form stated there.
+Criterion 3 does not apply: the claim was kept, not struck.
+
+The concern criterion 2 was reaching for is real and is bigger than this bean. It is not that
+bash 3.2 tolerates `declare -A`; it is that `tools/docs-lint.sh` reaches its `OK` line at exit
+0 through nearly every runtime failure, its own analysers included, and that an entirely inert
+check is invisible in its output. That is `bean:0118`, raised in this change with the boundary
+measured. It is not a bash 3.2 problem and it does not belong here.
+
+**This bean is NOT set `completed` in this change, and that is a considered departure from the
+instruction that produced this amendment.** `doc:00-constitution#bean-lifecycle` §7.2.1 is
+unconditional: a bean stays `in-progress` for the whole life of its own pull request,
+*including through review*, and moves to `completed` in a separate change after the merge.
+Both reasons it gives are live here. This bean's evidence includes the merge, which is the
+thing #69 is asking for; and this amendment is itself an author's review fix, which is exactly
+what a premature `completed` would have frozen the bean against — every entry above would have
+had to be written as an amendment to a closed record instead of as one to an open one. The
+precedence rule at the head of `doc:00-constitution` puts that file above anything an agent
+says in conversation, so the instruction does not override it. Closing is the next change
+after #69 merges, on criteria 1 and 3, with criterion 2 recorded NOT MET and this entry as its
+reason.
+
+**Evidence:** criterion 2's own two constructs, re-planted in review at
+`tools/docs-lint.sh:29` — immediately after `set -uo pipefail`, which is at line 28 — and run
+through the gate task whose interpreter criterion 2 is about:
+
+```
+cmd:      ./gradlew docsLint      # with `declare -A seen` at tools/docs-lint.sh:29
+observed: > Task :docsLint
+          tools/docs-lint.sh: line 29: declare: -A: invalid option
+          declare: usage: declare [-afFirtx] [-p] [name[=value] ...]
+          docs-lint: OK — 19 documents, 111 anchors, 1471 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 100 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          BUILD SUCCESSFUL in 17s
+exit:     0
+
+cmd:      ./gradlew docsLint      # with `mapfile -t docs < /dev/null` at tools/docs-lint.sh:29
+observed: > Task :docsLint
+          tools/docs-lint.sh: line 29: mapfile: command not found
+          docs-lint: OK — 19 documents, 111 anchors, 1471 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 100 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          BUILD SUCCESSFUL in 18s
+exit:     0
+```
+
+Both plants were made against a copy of `tools/docs-lint.sh` taken before the first one and
+restored from that copy after each, with no `git` operation involved, so no other uncommitted
+work in the tree could be discarded (`bean:0102`, `AGENTS.md`). `diff` against that copy after
+the last restore reported the files identical.
+
+Those counts are of a corpus this bean belongs to and are already stale: `100 on origin/main`
+is one higher than entry 5's `99`, because `origin/main` moved while these runs were in
+flight. Nothing here rests on them — the load-bearing observation is `exit: 0` beside the word
+`OK`, twice (`doc:50-memory-and-evidence#corpus-figures`). Entry 5's line is not re-taken
+here; re-running it belongs to the merge, and two further pull requests that move the same
+counts are in flight on this sprint.

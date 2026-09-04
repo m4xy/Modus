@@ -3,8 +3,10 @@
 # The list is MEASURED, not remembered. Every row was run under /bin/bash (3.2.57, what
 # macOS ships) and under Homebrew bash 5.3.9 and the two were compared on stdout, stderr
 # and exit status; only constructs that DIVERGED are here. The probe and its output are in
-# bean:0049 — evidence entry 6 for the first sixteen rows, amendment 2026-09-04 for the
-# five added after review, which lists every construct it ran and what each printed.
+# bean:0049 — evidence entry 6 for the sixteen rows this file was created with, and the
+# 2026-09-04 amendment for the five rows added after review and for the alternatives added
+# to `shopt-bash4-option` and `bash4-variable`. The amendment lists every construct it ran
+# and prints each one's stdout, stderr and exit status under both interpreters.
 #
 # Five of them diverge SILENTLY — 3.2 exits 0, writes nothing to stderr, and produces a
 # different answer. That is why this file exists at all and why running the script under a
@@ -34,8 +36,9 @@
 # `printf-time-format` on `printf 'coverage %d%%(min)\n' 90`. All three now require the
 # syntax that makes the construct a bash 4 construct — `-v` directly after `[[`, `&&` or
 # `||`; `,`/`^` directly after the parameter name or its subscript; `%(...)T` with its
-# terminating `T`. Those five lines are in the negative control in
-# tools/bash-compat-lint.sh, so the narrowing is re-proved on every run rather than trusted.
+# terminating `T`. Every line review demonstrated, and three more of the same shape, are in
+# the negative control in tools/bash-compat-lint.sh, which names them one by one — so the
+# narrowing is re-proved on every run rather than trusted.
 #
 # The sample column is not decoration. tools/bash-compat-lint.sh plants each sample into a
 # fixture on every run and asserts the scan finds it, finds it EXACTLY once, and finds
