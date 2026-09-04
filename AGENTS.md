@@ -47,10 +47,10 @@ multi-statement `for … do … done` loop that pipes. `cat file >> target` is a
 Write new files with the Write tool.
 
 Planting a violation and reverting it (`doc:00-constitution#observed-failing`) usually means a
-script ending in `git checkout -- .beans`, which reverts uncommitted edits to **tracked**
-files under that path as well as the plant — a new bean is untracked and survives, a bean you
-are closing, amending or correcting does not. Commit before **every** run — the paste step of
-`doc:50-memory-and-evidence#corpus-figures` re-dirties the tree between them (`bean:0102`).
+script ending in `git checkout -- .beans`, which silently discards uncommitted edits to
+**tracked** files under that path — a new bean is untracked and survives, a bean you are
+closing, amending or correcting does not. The `modus-evidence` skill's Preconditions own the
+rule and the reason: a clean tree before **every** run, not once before the first (`bean:0102`).
 
 Review what you changed with `git diff --name-only origin/main...HEAD` — three dots, or
 `@{u}`. The two-dot form compares endpoints, so once `main` moves ahead it lists what **main**

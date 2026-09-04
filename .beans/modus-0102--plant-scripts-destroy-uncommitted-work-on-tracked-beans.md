@@ -518,7 +518,7 @@ harness needs a mutation predicate. This bean does not build one and does not cl
 
 ## Amendments
 
-### 2026-09-04 · bean:0096
+### 2026-09-04 · bean:0116
 
 **Claimed:** the remedy this bean states, and the line it put into `AGENTS.md`, is *"Commit
 before you plant"* — `AGENTS.md:52` on `f55de2a`, located in F8 below rather than recalled and
@@ -526,25 +526,39 @@ quoted from the merge base because the change carrying this amendment replaces t
 against the transcript in `## Observed`, it is a precaution taken **once**, before a plant:
 clean the tree, and the revert step has nothing of yours left in reach.
 
-**Found:** it protects one run. The procedure this repository now recommends for a figure whose
-subject is its own corpus is run → paste → re-run (`doc:50-memory-and-evidence#corpus-figures`,
-the sentence at `documentation/50-memory-and-evidence.md:227`, also located in F8): capture
-against a sentinel, **paste the result in**, re-run, diff. The paste writes the figure into a
-tracked bean, so it re-creates precisely the uncommitted modification the commit had just
-removed, and it does so *between* the two runs. The second run then reaches the plant's own
-`git checkout -- .beans` with the paste standing in the working tree, and discards it.
-Committing before the plant protects the first run and nothing after it, so **the hazard is
-structural to the workflow this repository recommends rather than a property of the first
-plant**, and the rule it wants is *commit before every run*. This adds no sixth occurrence to
-the five recorded above; it narrows what those sections concluded the remedy was.
+**Found:** two halves, and only one of them is this amendment's. **The rule is already
+stated.** `.claude/skills/modus-evidence/SKILL.md:27`, tracked at `f55de2a` and quoted in F11,
+makes an empty `git status --porcelain` a **precondition** of the procedure this bean is
+entirely about — the skill's own title is *plant, observe, revert* — and a precondition binds
+every invocation of a procedure, not its first. So *commit before every run* is not found here;
+it is the skill's rule, and `doc:70-skills#required-sections` §3.3 makes preconditions normative
+in that file.
+
+What **is** new is the mechanism that defeats it. The procedure this repository recommends for
+a figure whose subject is its own corpus is run → paste → re-run
+(`doc:50-memory-and-evidence#corpus-figures`, the sentence at
+`documentation/50-memory-and-evidence.md:227`, located in F8): capture against a sentinel,
+**paste the result in**, re-run, diff. The paste writes the figure into a tracked bean, so it
+re-creates precisely the uncommitted modification the commit had just removed, and it does so
+*between* the two runs, where the second run's `git checkout -- .beans` discards it. Committing
+before the plant protects the first run and nothing after it, so **the hazard is structural to
+the workflow this repository recommends rather than a property of the first plant** — and the
+skill states the cost of it wrongly: a dirty tree does not make the revert *ambiguous*, it makes
+it destructive, silently and at exit 0. Its `validation` block cannot see the difference and
+prefers the destruction, since a tree emptied of the author's work passes `git status
+--porcelain` and a tree that still holds it fails.
+
+This adds no sixth occurrence to the five recorded above, and it does not discover the remedy.
+It names why the remedy fails on the second run, and where the remedy already lived.
 
 **Evidence:** F9 — one worktree, cut detached at `f55de2a` and destroyed afterwards, in which
 the commit is taken first, this bean's own rule followed, and the paste is lost anyway. The
 same run re-observes F7's asymmetry at the one moment it decides something: with the pasted
 figure uncommitted, `git checkout -b zz-sp3-branch f55de2a` refuses, names the bean at risk,
 prints *commit your changes or stash them* and exits 1, while `git checkout -- .beans` on that
-same tree one command later discards it, prints nothing and exits 0. F10 is the check that this
-was not already written down somewhere.
+same tree one command later discards it, prints nothing and exits 0. F10 is a five-pattern
+sweep that concluded the rule was stated nowhere; it is left standing because it is **wrong**,
+and F11 is the file it missed.
 
 #### F8 — the two lines cited above, located rather than remembered
 
@@ -646,7 +660,9 @@ revert exits 0 and the tracked bean is untouched, because nothing of the author'
 reach — commit-before-plant working exactly as `## Observed` describes. Step 3 is the paste,
 and it puts the ` M` line back against the tracked bean. Step 5 runs step 2's revert command
 again, one paste later, and takes the figure with it: the ` M` line is gone, and step 6 shows the
-file back at `sentinel: @@sp3figure@@`, its pre-paste committed state. So the record silently
+file back at `sentinel: @@sp3figure@@`, its pre-paste committed state. Step 6's commit hash is
+run-local — the script creates that commit, so a re-run produces a different one, and the claim
+rests on the two lines below it rather than on the hash. So the record silently
 reads its own sentinel, and the diff the procedure ends in would compare the sentinel against
 itself — the failure the sentinel exists to prevent, produced by the step that is meant to
 prevent it.
@@ -655,7 +671,7 @@ Step 4 is the control, and it puts F7's asymmetry inside a single run: the same 
 verb, the same dirty tree, one command apart. `-b` refuses, names `modus-0033` and prints this
 bean's own remedy; the pathspec form discards it and reports success.
 
-#### F10 — the refinement is not already stated on `f55de2a`
+#### F10 — a sweep that reproduces exactly and is wrong about the one file that decides it
 
 Five searches in one capture, taken on the work worktree **before** this amendment was
 written: the amendment is itself a file under `.beans/`, so the same searches run afterwards
@@ -723,31 +739,104 @@ f55de2a834097430a3635fa4d299ebfdeedc06c3
 
 C returns one file — this bean — and on the tree the searches were taken, which is this file
 before the amendment, its two halves live apart: the sentinel method is named in F6 and the
-revert step in `## Observed`, F3 and F7, and no sentence joins them. D's
-only hit is `.beans/modus-0051--parallel-bean-id-allocation.md:108`, *"plant, observe, revert.
-Tree clean before each plant"* — that bean's description of its own evidence procedure, not a
-statement that the recommended capture procedure re-dirties the tree between runs. It is the
-nearest wording on the tree and it is not this one. E returns the string it was chosen for, in
-F7, so the sweep can reach the corpus it claims to have searched.
+revert step in `## Observed`, F3 and F7, and no sentence joins them. E returns the string it was
+chosen for, in F7, so the sweep can reach the corpus it claims to have searched.
+
+**And the conclusion it was taken to support is false.** D's one hit,
+`.beans/modus-0051--parallel-bean-id-allocation.md:108`, was read as another bean describing its
+own evidence procedure and set aside. That sentence begins on the line above it, and what it
+says is *"Procedure: `modus-evidence` skill — plant, observe, revert"*. It is a **pointer to the
+file that decides the question**, and it was read as prose about a neighbour instead of
+followed. F11 is what following it finds.
+
+None of the five patterns can reach that file, and the reasons are ordinary. The skill says
+*revert the plant* and never `git checkout -- .beans`, so B cannot see it. It says *dirty tree*,
+not *dirties the tree*, so D cannot. It names no sentinel, so A cannot. The sweep is well
+formed, it reproduces exactly, its output is real, and every file it returned genuinely supports
+what it was cited for. **It is wrong anyway**, and in the one direction nothing catches:
+`bean:0112`'s table gives *a false negative — a file states the rule and does not match* the
+entry **caught by: nothing**. This is that row, produced by an author who had read that bean.
+
+The failed sweep is left standing above rather than replaced by a corrected one. A corrected
+sweep would record that the answer was found; this one records how it was nearly missed, which
+is the part `bean:0112` says nothing else preserves.
+
+There is a structural reason as well, and it is an open work item rather than an excuse:
+`tools/docs-lint.sh` contains **zero** references to `.claude` (F11), so no check reads any
+skill — not check 6 for the typed references in it, not check 8 for a budget. A normative
+precondition lives where the build cannot see it, which is `bean:0062`.
 
 Two pull requests are open as this is written, one under `tools/` and one touching
 `documentation/05` and `.beans/modus-0096`. Either merging falsifies A, B and C, which is what
 `doc:50-memory-and-evidence#corpus-figures` says a corpus sweep does to its author; the
 searches are stamped at `f55de2a` for that reason and not re-run here. **This change falsifies
-D itself**, and not through the clause one would expect: the corrected `AGENTS.md` line it
-ships is returned by D's `re-dirt` alternative, while `before (each|every) (run|plant)` does
-**not** match it, because the emphasis markers in *before **every** run* sit between the words
-the pattern needs adjacent. D also returns this amendment's own prose, and the fenced copy of
-D's own pattern above. The stamp names the tree the searches ran on, and that is the merge
-base rather than this branch.
+D itself, and not where it did before.** On the merge base D returned one file. On the tree
+that merges it returns four: `modus-0051` still, this amendment's own prose, `bean:0116`, and —
+the point — `.claude/skills/modus-evidence/SKILL.md`, which matches only because this change
+writes the mechanism into it. The corrected `AGENTS.md` sentence matches none of D's
+alternatives at all, which is the same lesson one level down: the line an agent actually reads
+is again invisible to the search that would go looking for it. The stamp names the tree the
+searches ran on, and that is the merge base rather than this branch.
+
+#### F11 — the file all five patterns miss, read at the merge base
+
+Read from `f55de2a` rather than from the working tree, because this change edits that file, and
+a capture of the version being replaced has to come from the version being replaced. The script
+ends in a `grep -c` that returns `0`, and `grep` exits 1 when it matches nothing, so the run's
+exit status is 1 by construction and not a failure.
+
+```
+=== is it tracked at f55de2a, and where is the rule
+f55de2a:.claude/skills/modus-evidence/SKILL.md:27:git status --porcelain          # must be empty; a dirty tree makes the revert ambiguous
+=== the heading it sits under
+f55de2a:.claude/skills/modus-evidence/SKILL.md:24:## Preconditions
+=== what the skill calls itself
+f55de2a:.claude/skills/modus-evidence/SKILL.md:6:# modus-evidence — plant, observe, revert
+=== why all five F10 patterns miss it: the strings it does NOT contain
+0
+0
+=== the string it does contain instead
+f55de2a:.claude/skills/modus-evidence/SKILL.md:27:git status --porcelain          # must be empty; a dirty tree makes the revert ambiguous
+=== D's single hit, and what it points at
+f55de2a:.beans/modus-0051--parallel-bean-id-allocation.md:107:Mechanism: `bash tools/docs-lint.sh`, check 13. Procedure: `modus-evidence` skill —
+=== references to .claude anywhere in the checker
+0
+=== does the bean being amended mention the skill at all
+0
+```
+
+Line 27 sits under `## Preconditions` at line 24, in a file titled
+`# modus-evidence — plant, observe, revert`. `doc:70-skills#required-sections` §3.3 makes that
+normative where it stands: a precondition is checkable by a command, and the skill "fails fast
+if a precondition is unmet; it never proceeds hopefully." The two zero counts are why F10's
+patterns cannot see it, and the last count is the sharpest thing in this amendment — **at the
+merge base, a bean written entirely about plant-and-revert mentions neither `modus-evidence`
+nor the word `skill` anywhere in it.**
+
+The skill's `status` is `draft`, which is an available defence for treating its precondition as
+not binding. **It is declined.** `doc:70-skills#skill-lifecycle` makes `draft` a statement about
+whether the validation command has been proven and the cost profile measured, not about whether
+the procedure's preconditions hold, and `bean:0051` records following the skill as *the*
+procedure. The defence is also not what happened: this amendment did not weigh the label, it
+never saw the file.
 
 **Provenance, and what this amendment ships beside it.** The finding is the work of the agent
-implementing `bean:0096`, which met the trap twice inside one change and reported it; it is
-recorded under that id rather than under the id of the change that writes it down. That it had
-landed nowhere was first established by a reviewer of that report and is **reported here rather
-than verified from it**; F10 is this change's own re-check of the same question, on its own
-tree. The same change corrects the `AGENTS.md` line to *commit before **every** run* rather
-than deferring it, because that line cites this bean: shipping the amendment alone would leave
-the repository pointing an agent at a remedy the bean it cites records as insufficient — one
-fact in two places, with the operative one wrong, which is worse than the incompleteness it
-replaces.
+implementing `bean:0096`, which met the trap twice inside one change and reported it; that
+provenance is recorded here, in prose, because it is true. The heading names `bean:0116`
+instead, which is the work item that made this change — `adr:0005-evidence-lives-in-the-work-item#amendments`
+asks an entry to name the bean that made it, and `bean:0096` did not. That `bean:0116` was
+raised after the branch rather than before it, which `doc:00-constitution` §7.2 step 1 forbids,
+is recorded in `bean:0116` itself rather than excused here.
+
+That the finding had landed nowhere was first established by a reviewer of that report and is
+**reported here rather than verified from it**. F10 was this change's own re-check, and F10 was
+wrong.
+
+The same change reconciles the three places the rule now lives, because leaving them unreconciled
+was the defect: `AGENTS.md` cited this bean for a remedy this amendment records as insufficient,
+and the rule's actual owner — the skill — was cited by neither. `.claude/skills/modus-evidence/SKILL.md`
+now states the rule, its real cost and the limit of its own validation command; `AGENTS.md` keeps
+only the trap a hand-written script walks into, since every occurrence recorded above was a
+scratch script and not a skill invocation, and hands the rule to the skill by name. The division
+is written down in `bean:0116` so a later reader can tell which sentence is the source and which
+is the pointer (`doc:05-authoring-for-agents#one-fact-one-place`).

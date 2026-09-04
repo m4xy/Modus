@@ -24,9 +24,17 @@ or marking a success criterion met.
 ## Preconditions
 
 ```
-git status --porcelain          # must be empty; a dirty tree makes the revert ambiguous
+git status --porcelain          # must be empty before EVERY run; the revert destroys what it finds
 ./gradlew qualityCheck          # must be green BEFORE planting, or you cannot attribute the failure
 ```
+
+**Empty before every invocation, not once before the first.** Step 5's revert is usually
+`git checkout -- .beans`, which discards uncommitted edits to *tracked* files under that path
+silently and at exit 0 — a new bean is untracked and survives, a bean you are closing,
+amending or correcting does not. `doc:50-memory-and-evidence#corpus-figures`'s capture
+procedure is run, paste, re-run, and the paste writes the figure back into a tracked bean, so
+it re-dirties the tree *between* the runs and the second one arrives here with the
+precondition unmet (`bean:0102`).
 
 ## Procedure
 
@@ -92,6 +100,11 @@ validation:
   timeoutSeconds: 30
   successExitCode: 0   # and empty output — an unreverted plant is a failed run
 ```
+
+Empty output proves the plant is gone. It does **not** prove your own work survived: the
+revert that removes the plant removes uncommitted tracked edits with it, and both outcomes
+read as the same empty output. The safe case — your edits still present — is the one this
+command fails. Commit before the run, so that the two are distinguishable (`bean:0102`).
 
 ## Context budget
 
