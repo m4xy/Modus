@@ -947,7 +947,37 @@ Block E is not on this list: PR #75's checks are GitHub's record of a head that 
 | 6 | met | `doc:05-authoring-for-agents#checks` carries the rule on `main`, with the container limit, the ATX-heading boundary and the evidence-cell qualifier stated beside it. Block D |
 | 7 | met | PR #75's `gate` is `SUCCESS` on the pull request whose merge commit is `9daff18`, and `./gradlew qualityCheck` is green on this closing branch. Block E and the gate section below |
 
-### Block A — criteria 1, 2 and 5, off the suite `main` carries
+### Block A — criterion 1, criterion 2 and criterion 5, off the suite `main` carries
+
+The word is repeated in that heading on purpose, and the purpose is this check. An evidence
+sub-heading is a structural site, so check 14 reads it; its matcher takes at most two numbers
+per `criteri(on|a)` token, separated by at most three non-alphanumeric characters. `criteria 1,
+2 and 5` therefore sets `A[1]` and `A[2]` and drops the ` and 5`, and `criteria 1 and 2` sets
+`A[1]` alone, because ` and ` is letters and cannot be the separator. Criterion 5 is answered
+here regardless — by `### Criterion 5` above and by the closing table's row — so no verdict
+moves either way. What the rewording buys is that the heading's claim and the analyser's
+reading of it are now the same claim, in the one bean whose subject is figures that say more
+than their capture supports.
+
+```
+cmd:      a five-criterion fixture whose ONLY citation site is the heading under test, run
+          through `awk -f tools/lib/docs-lint-fence.awk -f tools/lib/docs-lint-c14.awk` at
+          9e46fff; `answered` is the complement of the analyser's UNANSWERED lines
+observed: heading:  ### Block A — criteria 1, 2 and 5, off the suite `main` carries
+          answered: 1 2
+          heading:  ### Block A — criterion 1, criterion 2 and criterion 5, off the suite `main` carries
+          answered: 1 2 5
+          heading:  ### Block A — criteria 1 and 2, and criterion 5
+          answered: 1 5
+          heading:  ### Block A — criteria 1, 2, 5
+          answered: 1 2
+exit:     0
+```
+
+The fixture is written outside `.beans/`, which is the only directory check 14 reads, and the
+four headings are quoted above from inside a fence — never asked for a citation, which is what
+the run below asserts at its line 21. Neither the probe nor this record can answer a criterion
+of this bean by accident.
 
 The suite is the mechanism the two plants and the six flipped pins live in, so criteria 1, 2
 and 5 are read off one run rather than replanted. Both runs are at `9daff18` with `tools/`
@@ -990,16 +1020,113 @@ observed: [...]
 exit:     0
 ```
 
-Four elisions, each a run of whole lines from the same capture and never a partial one: the
-perception and citation-site sections with their headers before the first; the rest of the
-verdict section between the first and the second; the adversarial assertions standing above
-the planted-defect pair between the second and the third; and the `ACCEPTED`, `intable` and
-tilde assertions between the third and the total. Nothing between the `ok` and the name on
-any kept line was touched.
+Four elisions, each a run of whole lines from the same capture and never a partial one. What
+each one covers is derived below rather than recalled: the run is 60 lines, the twelve lines
+quoted above are 26–27, 36–38, 44–49 and 60, and the elided runs are therefore 1–25, 28–35,
+39–43 and 50–59.
 
-The two controls are what stop the six rejections above them meaning nothing: without a run
-asserting that something DOES answer, the same failure set is produced by deleting the
-citation scanner outright, which the suite header names as a measured mutation.
+```
+cmd:      /bin/bash tools/docs-lint-test.sh redirected to `suite.txt`, then
+          /usr/bin/grep -c '' suite.txt
+observed: 60
+exit:     0
+
+cmd:      the twelve kept lines of the fence above, dedented out of this bean into
+          `kept.txt`, matched back against the run:
+          /usr/bin/grep -n -F -f kept.txt suite.txt
+observed: 26:ok   verdict: a quoted fence marker is refused, not laundered into an answer
+          27:ok   verdict: quoted correctly, the pasted output stays inside the fence and answers nothing
+          36:ok   verdict: the planted defect: pasted output at top level cannot answer its criterion
+          37:ok   verdict: control: an evidence sub-heading naming the criterion answers it
+          38:ok   verdict: control: an evidence row citing a range of criteria answers all of them
+          44:ok   verdict: an EVEN number of quoted markers no longer answers the criterion
+          45:ok   verdict: a raw HTML <pre> block no longer answers its criteria
+          46:ok   verdict: an HTML comment renders as nothing and no longer answers
+          47:ok   verdict: <details> wrapping a <pre> does not answer either
+          48:ok   verdict: a line-initial inline code span leaves the next line unable to answer
+          49:ok   verdict: a backtick in the info string does the same
+          60:docs-lint-test: 51 passed, 0 failed.
+exit:     0
+
+cmd:      the complement, every line the fence above elides:
+          /usr/bin/grep -n -v -F -f kept.txt suite.txt
+observed: 1:--- perception: where the analyser believes the fences are
+          2:ok   perception: a balanced fence
+          3:ok   perception: a three-backtick marker inside a four-backtick fence is content
+          4:ok   perception: an odd number of markers leaves a block open, and says so
+          5:ok   perception: a tilde fence is a fence, and a backtick marker inside it is content
+          6:ok   perception: a tilde marker does not close a backtick fence
+          7:ok   perception: an info string opens a fence
+          8:ok   perception: a backtick in the info string is an inline code span, not a fence
+          9:ok   perception: a marker indented four columns is not a delimiter
+          10:ok   perception: a tab-indented marker is not a delimiter
+          11:ok   perception: three columns of indent still opens and closes
+          12:ok   perception: a marker in a table cell is not line-initial and cannot be a delimiter
+          13:ok   perception: a longer marker closes a shorter fence
+          14:ok   perception: a closing marker may carry nothing but whitespace
+          15:ok   perception: CRLF line endings still close a fence
+          16:
+          17:--- citation site: where the analyser will read a criterion citation
+          18:ok   citation site: a heading and a row of an entered table are sites; prose is not, in or out of raw HTML
+          19:ok   citation site: raw HTML is NOT modelled: a heading-shaped and a row-shaped line inside <pre> are sites
+          20:ok   citation site: no container is a site, and none of them had to be named to be refused
+          21:ok   citation site: a fence's inside and its delimiters are never asked, and the answer is not '.'
+          22:
+          23:--- verdict: what the analyser decides about a bean
+          24:ok   verdict: a filled evidence table answers its criteria
+          25:ok   verdict: a transcript that cites no criterion answers none
+          28:ok   verdict: a stray marker above a filled table is named, not reported as missing evidence
+          29:
+          30:--- adversarial: attempts to defeat the fence tracking
+          31:ok   verdict: a tilde-fenced transcript cannot answer its own criteria
+          32:ok   verdict: a nested fence does not release the outer block
+          33:ok   verdict: a fenced transcript indented into a list item cannot answer its criteria
+          34:ok   verdict: a block-quoted transcript cannot answer its criteria
+          35:ok   verdict: an indented chunk with no marker at all cannot answer its criterion
+          39:ok   verdict: accepted: a heading that denies its criterion still answers it
+          40:ok   verdict: a bean whose only evidence is inside a container has no entry
+          41:ok   verdict: control: the same transcript unquoted IS an entry
+          42:ok   perception: RESIDUAL: a fence inside a block quote is not seen
+          43:ok   perception: RESIDUAL: a fence indented into a list item is not seen
+          50:ok   verdict: ACCEPTED: a heading-shaped line inside <pre>, <details> or an HTML comment answers
+          51:ok   verdict: ACCEPTED: a Markdown table pasted inside <pre> is entered like any other
+          52:ok   verdict: ACCEPTED: pasted stdout in an evidence CELL answers a criterion no row numbers
+          53:ok   verdict: control: the same table without the pasted cell leaves criterion 3 unanswered
+          54:ok   verdict: a pipe-led line that is not a row of an entered table is not a site
+          55:ok   verdict: control: the identical line under a delimiter row IS a row, and answers
+          56:ok   verdict: a table the analyser has LEFT is not entered, so a later stray row is not a site
+          57:ok   perception: the length rule applies to tilde fences too
+          58:ok   perception: a shorter tilde marker does not close a longer tilde fence
+          59:
+exit:     0
+```
+
+**Neither listing elides anything.** The two are disjoint and exhaust the file — twelve kept
+plus forty-eight elided is the whole 60 — and both were taken at `9e46fff`, this branch's head
+before this correction, with `tools/` byte-identical to `9daff18`: `git diff --numstat 9daff18
+HEAD -- tools/` prints nothing, so the run mapped here is the run the fence quotes.
+
+- **1–25** is the perception section with its header, the citation-site section with its
+  header, the blank line between them — and then the `--- verdict:` header and that section's
+  first two assertions. It does not stop where the citation-site section stops; it reaches
+  three lines into the verdict section.
+- **28–35** is one further verdict assertion, then the `--- adversarial:` header and all five
+  adversarial assertions. It is not the remainder of the verdict section: the adversarial
+  section is elided here, entire.
+- **39–43** is the `accepted:` boundary assertion, the container-entry assertion with its
+  control, and the two `RESIDUAL` perception assertions. It holds no adversarial assertion at
+  all, and it sits below the planted defect and its two controls rather than above them.
+- **50–59** is the three `ACCEPTED` assertions and the control that closes them, the three
+  table-state assertions, the two tilde perception assertions, and the blank line before the
+  total.
+
+Nothing between the `ok` and the name on any kept line was touched, and the middle listing is
+what shows it: twelve patterns lifted out of this bean, twelve exact `-F` matches in the run,
+in the order the bean quotes them.
+
+The two controls at 37 and 38 are what stop the six rejections below them — 44–49 — meaning
+nothing: without a run asserting that something DOES answer, the same failure set is produced
+by deleting the citation scanner outright, which the suite header names as a measured mutation.
 
 ### Block B — criterion 3, the shape of what shipped
 
