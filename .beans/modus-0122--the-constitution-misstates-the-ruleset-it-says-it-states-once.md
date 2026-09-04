@@ -92,10 +92,41 @@ tree:     a live fetch, 2026-09-04, from the branch of PR #74. A ruleset is not 
 ```
 
 The `expect:` line is the one that failed. `required_review_thread_resolution` is not a rule at
-all — it is a parameter of `pull_request`, beside six others — and two of those six are absent
-from `documentation/` entirely.
+all — it is one of **eight** parameters of the `pull_request` rule — and `documentation/` names
+two of the eight (E2). Of the six it does not name, four are `false` or `[]` and impose nothing,
+so their absence is not a defect. The two that do impose something are
+`require_extra_approval_for_unattributed_changes: true` and
+`allowed_merge_methods: ["squash","merge"]`, and those are what §7.1's "and nothing else" hides.
 
-### E2 — the three sentences this contradicts, with their locators
+### E2 — which of the eight the documentation package mentions at all
+
+```
+cmd:      bash [...]/params.sh
+          # for each of the eight parameter names E1 printed:
+          #   /usr/bin/grep -rl "$k" documentation/ AGENTS.md
+expect:   §7.1 says it states what the ruleset carries once, so every parameter that carries a
+          rule appears somewhere under documentation/
+observed: allowed_merge_methods                          <absent from documentation/ and AGENTS.md>
+          dismiss_stale_reviews_on_push                  <absent from documentation/ and AGENTS.md>
+          require_code_owner_review                      <absent from documentation/ and AGENTS.md>
+          require_extra_approval_for_unattributed_changes <absent from documentation/ and AGENTS.md>
+          require_last_push_approval                     <absent from documentation/ and AGENTS.md>
+          required_approving_review_count                documentation/00-constitution.md
+          required_review_thread_resolution              documentation/00-constitution.md
+          required_reviewers                             <absent from documentation/ and AGENTS.md>
+exit:     0
+tree:     this branch. `git diff --name-only origin/main...HEAD -- documentation AGENTS.md`
+          prints nothing, so the searched files are `origin/main`'s at `1c19cf0`. The names
+          searched are the keys E1 printed, not a list written from memory, so the search
+          cannot miss a parameter by being asked for the wrong word. `/usr/bin/grep` is BSD
+          grep 2.6.0-FreeBSD.
+```
+
+The two rows with a file are the two §7.1 discusses. The column is deliberately "mentioned
+anywhere", not "stated correctly": `required_approving_review_count` is mentioned and is the
+subject of point 3 above.
+
+### E3 — the three sentences this contradicts, with their locators
 
 ```
 cmd:      awk 'NR >= 229 && NR <= 234 { printf "%d:%s\n", NR, $0 }' documentation/00-constitution.md
