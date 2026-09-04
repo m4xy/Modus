@@ -12,14 +12,18 @@ created_at: 2026-08-29T00:00:00Z
 `adr:0005-evidence-lives-in-the-work-item#evidence-home` requires the command, the
 expectation and the verbatim observed output beside each criterion. It says nothing about
 **how faithful the transcript has to be**, and the review of the four closures in PR #47
-found three ways a transcript can satisfy the rule as written while misleading a reader.
-None of the three changed a conclusion. All three were found by a human-shaped reviewer
-re-running commands, and none is visible to `docs-lint`.
+opened this bean with the first three shapes below. The set has grown twice since and is
+named rather than counted, here and in the table, for the reason
+`doc:50-memory-and-evidence#unverified-shapes` gives: a heading that numbers its own table is
+invalidated by the row the next change adds. Not one shape changed a conclusion. Every one was
+found by a human-shaped reviewer re-reading or re-running a command, and none is visible to
+`docs-lint`.
 
-## The four shapes, as observed
+## The shapes, as observed
 
-Each was found in a bean closing in PR #47 and fixed in that same pull request. They are
-recorded here as the general shape, not to re-litigate those four beans.
+Shapes 1 to 3 were each found in a bean closing in PR #47 and fixed in that same pull request;
+shape 4 and shape 5 arrived later, from elsewhere. They are recorded here as the general shape,
+not to re-litigate the beans they were found in.
 
 | # | shape | instance |
 |---|---|---|
@@ -27,6 +31,7 @@ recorded here as the general shape, not to re-litigate those four beans.
 | 2 | a command that cannot be run as written | `grep -n "…" GrantIssuedTest.kt` — a bare filename, exit 2 from the repository root — and paths elided to `core/core-domain/.../BoundedContexts.kt` |
 | 3 | a command that does not answer the criterion **as worded** | a criterion reading `./gradlew ktlintFormat && ./gradlew qualityCheck` answered by a cell showing `qualityCheck` alone |
 | 4 | a **line-number citation in prose**, which rots | `bean:0065` cited `ArchitectureRulesTest.kt:258` and `:334`; the same branch's own edits moved those symbols to `309` and `492`. It also cited `PermissionGrant.kt:70` for a line at `69` — an off-by-one introduced while correcting an off-by-one |
+| 5 | a real capture **post-processed after it was taken** — every line present, no line dropped, and the text still one no run produced | `bean:0096`, in review of PR #70: a `grep -n` over a single-file glob prints `4:status: completed`, and the cell recorded `modus-0096 line 4: status: completed`. Fixed on that branch before merge, in `4017e8a` |
 
 Shape 4 was found in the sharpest possible way: **not by a rebase, and not by another
 agent — by the citing branch's own edit to the file it was citing, inside one session.** The
@@ -47,6 +52,31 @@ Shape 1 is the one worth the bean. Shapes 2 and 3 make a reader do work; shape 1
 reader trust a quotation that is not the output. In every instance above the dropped lines
 supported the claim, which is exactly why it is worth a rule: **from the outside, an elision
 that helps and an elision that hides are the same edit.**
+
+**Shape 5 is shape 1's mirror, and it defeats the tell shape 1 has.** An elision is detectable
+in principle — something is missing, and a marker convention exists to declare it. A
+post-processed capture is complete: no line dropped, nothing to mark, and the edit is the kind
+an author makes *to be helpful*, replacing a terse locator with a readable one. It is also not
+fabrication: a real command really ran and really printed something close to what is recorded.
+So it sits in the gap between the two shapes a reader knows to look for, and the only thing
+that finds it is re-running the command and comparing character for character. The instance,
+from the commit that fixed it — the pull request's own history, which its squash merge will
+discard, so this quotation is the surviving copy:
+
+```
+cmd:      git show 4017e8a | grep -n 'line 4\|4:status'
+observed: 26:-observed: modus-0096 line 4: status: completed
+          29:+observed: 4:status: completed
+tree:     origin/docs/bean-0096-check-14-scope at 4017e8a, PR #70, unmerged as this is written
+exit:     0
+```
+
+`-` is the recorded text and `+` is what `grep -n '^status:' .beans/modus-0096--*.md` prints:
+a single-file glob yields no filename prefix, so the output begins `4:`. The rewrite invented
+the filename, the words `line` and the space after the colon. The rule this bean already
+states covers it — **a tidied transcript is no longer a transcript**, at the end of the
+prose/fence paragraph above — and the shape is recorded because that sentence was written about
+elision and nobody read it as reaching this.
 
 ## No mechanism is proposed, and that is the finding
 
@@ -105,7 +135,7 @@ bean in the normal form fails the build. Observed here, and again on the junk-ce
 
 | # | criterion | evidence kind |
 |---|---|---|
-| 1 | The rule is stated once, in the document that owns evidence records, and names all four shapes | citation |
+| 1 | The rule is stated once, in the document that owns evidence records, and reaches every shape in this bean's table. It is written so that a shape added later needs no edit to a count, here or there (`doc:50-memory-and-evidence#unverified-shapes`) | citation |
 | 2 | The elision-marker convention is stated as a rule rather than as a promise individual beans make to themselves | citation |
 | 3 | Either a mechanical check exists and is observed rejecting a planted violation, or the enforcement gap is stated with the reason it is not buildable | test-run, or a stated exemption |
 | 4 | If a check is built, its false-positive rate over the completed beans on `main` is measured before it is turned on | test-run over the corpus |
