@@ -595,3 +595,419 @@ merge of this branch with `origin/main` and `origin/main` has gained beans since
 was cut. It is the corpus moving under the figure, not two measurements disagreeing
 (`doc:50-memory-and-evidence#corpus-figures`). The `bash-compat` line is unaffected: it counts
 rules and scripts, neither of which the merge changes.
+
+### 2026-09-04 · bean:0049
+
+*Three more rows rejecting legal bash 3.2, and the residue that is left rejected on purpose.*
+
+**Claimed:** the entry *The SCAN half rejected legal bash 3.2, and the negative control could
+not see it* — "All three rules are now anchored to the syntax that makes the construct a bash 4
+construct, and every line is in the negative control."
+
+**Found:** that anchoring pass looked at the three rows review had demonstrated and at no
+others. Three further rows reject legal bash 3.2, and one of the three is
+`printf-time-format` — a row the pass had **already anchored once**, and beside the fix it
+shipped two fresh instances of the same defect:
+
+| row | rejected | what the pre-fix regex could not tell |
+|---|---|---|
+| `brace-expansion-step` | `cp {../src,../dst} .`, `for d in {../x,../y}; do :; done` | two `..` in one brace LIST from the `{1..9..2}` step form |
+| `printf-time-format` | `printf 'coverage %d%%(min)T\n' 90` | a `%` introducing a format from the second half of a `%%` |
+| `printf-time-format` | `printf 'see %s\n' "use %(%Y)T for time"` | the format string from a later ARGUMENT — `[^#]*` crossed the closing quote |
+| `varfd-redirect` | `echo "{div}<br>"`, `sed 's/{x}<//' f` | a `{name}` redirection from a brace-delimited placeholder inside a word |
+| `parameter-transform` | `echo "${email:-me@u}"` | `${v@Q}` from an `@` inside a DEFAULT value — the same shape as `${csv%,}`, which the previous round classed a defect worth blocking on |
+
+All of them are anchored now, and all seven lines are in the negative control, which was
+extended **first** and observed failing before any regex moved.
+
+**Two rows are deliberately NOT anchored, and that is now written down rather than left to be
+found.** `pipe-both-streams` rejects `printf '%s\n' 'a|&b'` and `case-fallthrough` rejects
+`url="http://x/?a=1;&b=2"`. Both lines are legal bash 3.2. Outside a string, `|&` and `;&` are
+unambiguously the operator, so there is no syntactic position to anchor to — only a lexical
+one, and a scanner that tracked quoting would be a shell lexer. Requiring trailing whitespace
+was considered and rejected: it would still reject `'a |& b'` and would miss `run |&tee out`,
+buying a real miss for no real coverage. `tools/lib/bash32-scan.awk` and
+`tools/lib/bash32-forbidden.tsv` both now state plainly that a legal construct inside a string
+literal or a trailing comment will be rejected, and that the way past it is to move the literal
+out of the line.
+
+**Evidence.** First the nine lines through the scanner at `91a3c23`, the head review read.
+`[...]` is the scratchpad directory the fixture was written to:
+
+```
+cmd:      awk -v PAT=tools/lib/bash32-forbidden.tsv -f tools/lib/bash32-scan.awk [...]/fp3.sh
+observed: [...]/fp3.sh:1: brace-expansion-step: cp {../src,../dst} .
+          [...]/fp3.sh:2: brace-expansion-step: for d in {../x,../y}; do :; done
+          [...]/fp3.sh:3: printf-time-format: printf 'coverage %d%%(min)T\n' 90
+          [...]/fp3.sh:4: printf-time-format: printf 'see %s\n' "use %(%Y)T for time"
+          [...]/fp3.sh:5: varfd-redirect: echo "{div}<br>"
+          [...]/fp3.sh:6: varfd-redirect: sed 's/{x}<//' f
+          [...]/fp3.sh:7: pipe-both-streams: printf '%s\n' 'a|&b'
+          [...]/fp3.sh:8: case-fallthrough: url="http://x/?a=1;&b=2"
+          [...]/fp3.sh:9: parameter-transform: echo "${email:-me@u}"
+exit:     0
+```
+
+Then the same nine under both interpreters, to establish they are legal 3.2 rather than
+assumed to be. Each snippet was written to a file and run under `/bin/bash` and
+`/opt/homebrew/bin/bash`, comparing stdout, stderr and exit status; the harness prints
+`IDENTICAL` only when all three agree, and a construct already known to diverge is included
+last so the harness itself is falsifiable. This capture does not depend on the tree:
+
+```
+cmd:      /opt/homebrew/bin/bash probe3.sh
+observed: GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25)
+          GNU bash, version 5.3.9(1)-release (aarch64-apple-darwin25.1.0)
+          === brace list with two .. [IDENTICAL]
+              src : echo {../src,../dst}
+              3.2 : rc=0 out=<../src ../dst> err=<>
+              5.3 : rc=0 out=<../src ../dst> err=<>
+          === for over brace list [IDENTICAL]
+              src : for d in {../x,../y}; do echo "d=$d"; done
+              3.2 : rc=0 out=<d=../x
+          d=../y> err=<>
+              5.3 : rc=0 out=<d=../x
+          d=../y> err=<>
+          === printf doubled %%(T [IDENTICAL]
+              src : printf "coverage %d%%(min)T\n" 90
+              3.2 : rc=0 out=<coverage 90%(min)T> err=<>
+              5.3 : rc=0 out=<coverage 90%(min)T> err=<>
+          === printf %(..)T in arg [IDENTICAL]
+              src : printf "see %s\n" "use %(%Y)T for time"
+              3.2 : rc=0 out=<see use %(%Y)T for time> err=<>
+              5.3 : rc=0 out=<see use %(%Y)T for time> err=<>
+          === brace placeholder str [IDENTICAL]
+              src : echo "{div}<br>"
+              3.2 : rc=0 out=<{div}<br>> err=<>
+              5.3 : rc=0 out=<{div}<br>> err=<>
+          === brace in sed script [IDENTICAL]
+              src : echo "{x}<y" | sed "s/{x}<//"
+              3.2 : rc=0 out=<y> err=<>
+              5.3 : rc=0 out=<y> err=<>
+          === pipe-amp inside string [IDENTICAL]
+              src : printf '%s\n' 'a|&b'
+              3.2 : rc=0 out=<a|&b> err=<>
+              5.3 : rc=0 out=<a|&b> err=<>
+          === semi-amp inside string [IDENTICAL]
+              src : url="http://x/?a=1;&b=2"; echo "$url"
+              3.2 : rc=0 out=<http://x/?a=1;&b=2> err=<>
+              5.3 : rc=0 out=<http://x/?a=1;&b=2> err=<>
+          === at-u inside default [IDENTICAL]
+              src : echo "${email:-me@u}"
+              3.2 : rc=0 out=<me@u> err=<>
+              5.3 : rc=0 out=<me@u> err=<>
+          [... the four `-v` rows, which are the next entry's evidence ...]
+          === declare -A (control) [DIVERGES]
+              src : declare -A m; m[k]=v; echo "m=[${m[k]}]"
+              3.2 : rc=0 out=<m=[v]> err=<[...]/snippet3.sh: line 1: declare: -A: invalid option
+          declare: usage: declare [-afFirtx] [-p] [name[=value] ...]>
+              5.3 : rc=0 out=<m=[v]> err=<>
+exit:     0
+```
+
+Then the gate, both halves, at `caf95db` — the head at which this round froze
+`tools/lib/bash32-forbidden.tsv` and `tools/bash-compat-lint.sh`, so the line numbers below are
+the ones a reader re-running the gate will see. The extended negative
+control and the anchored regexes were committed together, and the four pre-anchoring regexes
+were planted back afterwards against a pristine `cp` of the pattern file, so the two runs
+differ in the regex column and in nothing else, and the line numbers in the second block of
+hits are the committed file's (`bean:0102`, `AGENTS.md` — no `git checkout` was used):
+
+```
+cmd:      ./gradlew bashCompatLint        # pre-anchoring regexes planted back at caf95db
+observed: [...]
+          > Task :bashCompatLint FAILED
+          bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+          [...]/clean.sh:20: brace-expansion-step: cp {../src,../dst} .
+          [...]/clean.sh:21: brace-expansion-step: for d in {../x,../y}; do :; done
+          [...]/clean.sh:22: printf-time-format: printf 'coverage %d%%(min)T\n' 90
+          [...]/clean.sh:23: printf-time-format: printf 'see %s\n' "use %(%Y)T for time"
+          [...]/clean.sh:24: varfd-redirect: echo "{div}<br>"
+          [...]/clean.sh:25: varfd-redirect: sed 's/{x}<//' f
+          [...]/clean.sh:26: parameter-transform: echo "${email:-me@u}"
+          FAIL bash-compat  the negative control is not clean: 7 hit(s) on bash 3.2-legal source
+          tools/bash-compat-lint.sh:214: brace-expansion-step: cp {../src,../dst} .
+          tools/bash-compat-lint.sh:215: brace-expansion-step: for d in {../x,../y}; do :; done
+          tools/bash-compat-lint.sh:216: printf-time-format: printf 'coverage %d%%(min)T\n' 90
+          tools/bash-compat-lint.sh:217: printf-time-format: printf 'see %s\n' "use %(%Y)T for time"
+          tools/bash-compat-lint.sh:218: varfd-redirect: echo "{div}<br>"
+          tools/bash-compat-lint.sh:219: varfd-redirect: sed 's/{x}<//' f
+          tools/bash-compat-lint.sh:220: parameter-transform: echo "${email:-me@u}"
+          FAIL bash-compat  7 bash 4 construct(s) in scripts that claim bash 3.2 compatibility
+          bash-compat: FAILED.
+          [...]
+exit:     1
+
+cmd:      ./gradlew bashCompatLint        # pattern file restored from the pristine cp
+observed: [...]
+          > Task :bashCompatLint
+          bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+          bash-compat: OK — 3 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+          [...]
+exit:     0
+
+cmd:      diff [...]/tsv.pristine tools/lib/bash32-forbidden.tsv
+observed: (no output)
+exit:     0
+```
+
+The second block of hits in the red run is the fixture found again as ordinary source, for the
+reason the previous entry gives: the heredoc lives in a `tools/*.sh`, so the gate fails twice
+over on the same defect.
+
+And the residue, so the two rows left rejecting correct code are observed and not merely
+described. Same command, same file, at `caf95db`:
+
+```
+cmd:      awk -v PAT=tools/lib/bash32-forbidden.tsv -f tools/lib/bash32-scan.awk [...]/fp3.sh
+observed: [...]/fp3.sh:7: pipe-both-streams: printf '%s\n' 'a|&b'
+          [...]/fp3.sh:8: case-fallthrough: url="http://x/?a=1;&b=2"
+exit:     0
+```
+
+### 2026-09-04 · bean:0049
+
+*The `-v` positions are three, not one, and two of them were uncaught.*
+
+**Claimed:** `tools/lib/bash32-forbidden.tsv` — the three anchored rows "now require the syntax
+that makes the construct a bash 4 construct — `-v` directly after `[[`, `&&` or `||`".
+
+**Found:** that sentence claims a complete set of positions and is not one. `-v` is a bash 4.2
+test operator wherever a test operator can appear, and that is `[[ … ]]`, `[ … ]` and `test`.
+Neither `[ -v name ]` nor `test -v name` was caught, by the old regex or the anchored one —
+both required `[[`. Both diverge, and **neither is caught by the parse half either**:
+`/bin/bash -n` accepts both at rc 0, because `[` and `test` are builtins and the divergence is
+at run time. The scan is the only half that can reach them.
+
+They are two new rows, `test-v-bracket` and `test-v-command`, rather than two alternatives
+added to `test-v`. The machinery plants one sample per row, so two rows are two proofs and two
+alternatives would have been none — which is the concession the last entry of this section is
+about. The three regexes are mutually exclusive by construction, and the planted-sample
+assertion re-checks that on every run: `bash-compat: OK — … 23 planted violations each caught
+exactly once` is the observation, and it fails loudly if any two rules overlap.
+
+The reviewer's summary of the divergence was "3.2: `[: -v: unary operator expected`, rc 2; bash
+5: rc 0". The rc 2 is the test's status, not the script's — the script exits 0 either way,
+which is the whole reason this file exists — and bash 5 returns 0 only when the name is SET.
+Unset, it returns 1. Both differ from 3.2, so the row stands, but the figure is corrected here
+rather than carried.
+
+**Evidence.** The four `-v` rows of the same probe run as the previous entry, elided there and
+pasted here. `[...]` is the scratchpad path each snippet was written to:
+
+```
+cmd:      /opt/homebrew/bin/bash probe3.sh
+observed: [... the nine Group A rows, in the previous entry ...]
+          === single-bracket -v set [DIVERGES]
+              src : name=x; [ -v name ]; echo "rc=$?"
+              3.2 : rc=0 out=<rc=2> err=<[...]/snippet3.sh: line 1: [: -v: unary operator expected>
+              5.3 : rc=0 out=<rc=0> err=<>
+          === single-bracket -v unset [DIVERGES]
+              src : [ -v nope ]; echo "rc=$?"
+              3.2 : rc=0 out=<rc=2> err=<[...]/snippet3.sh: line 1: [: -v: unary operator expected>
+              5.3 : rc=0 out=<rc=1> err=<>
+          === test -v set [DIVERGES]
+              src : name=x; test -v name; echo "rc=$?"
+              3.2 : rc=0 out=<rc=2> err=<[...]/snippet3.sh: line 1: test: -v: unary operator expected>
+              5.3 : rc=0 out=<rc=0> err=<>
+          === test -v unset [DIVERGES]
+              src : test -v nope; echo "rc=$?"
+              3.2 : rc=0 out=<rc=2> err=<[...]/snippet3.sh: line 1: test: -v: unary operator expected>
+              5.3 : rc=0 out=<rc=1> err=<>
+          [... the `declare -A` control, in the previous entry ...]
+exit:     0
+```
+
+And the parse half declining both, which is why a row is the only way to catch them:
+
+```
+cmd:      /bin/bash -n vb.sh      # one line: [ -v name ]
+observed: (no output)
+exit:     0
+cmd:      /bin/bash -n vc.sh      # one line: test -v name
+observed: (no output)
+exit:     0
+cmd:      /bin/bash -n v.sh       # one line: if [[ -v opt ]]; then :; fi — the row that IS a parse error
+observed: v.sh: line 1: conditional binary operator expected
+          v.sh: line 1: syntax error near `opt'
+          v.sh: line 1: `if [[ -v opt ]]; then :; fi'
+exit:     2
+```
+
+`case-modification` and `parameter-transform` both admit a family they cannot reach:
+`${arr[${a[0]}]^^}` and `${arr[${a[0]}]@Q}` are not caught, because the `[^]]*` spanning the
+subscript cannot cross the inner `]`. That is a miss and not a false positive, so it is named
+in the pattern file beside the other named misses rather than fixed here.
+
+### 2026-09-04 · bean:0049
+
+*Three self-instances: this change fixed a defect and shipped the same defect beside it.*
+
+**Claimed:** three sentences of this bean's own record.
+
+1. Above, in *Criterion 2 is ruled unmeetable* — "`100 on origin/main` is one higher than entry
+   5's `99`".
+2. `bean:0118` — "It reaches beyond `tools/docs-lint.sh`, measured at `13d8c27`", above a
+   `grep -n 'set -e'` returning two hits, with prose reading "the two hits are prose about its
+   absence".
+3. This section's preamble — "The only edits to a capture are elisions of an absolute path,
+   each marked `[...]`."
+
+**Found:** each is an instance of the defect class the amendment beside it was raised to fix.
+
+1. Entry 5's figure is `98 on origin/main`, not `99`. `99` occurs nowhere in this file; it is
+   `bean:0118`'s figure, read across from the wrong record. And `100 - 98` is **two**. This is
+   the first entry of this section — a citation to a figure that occurs nowhere in the file it
+   cites — committed inside the fix for it.
+2. At `13d8c27` that command returns **one** hit. `tools/bash-compat-lint.sh:23` was introduced
+   by `07ace1c`, so the capture was taken at `07ace1c` or later and stamped at a head where it
+   cannot be reproduced — which is the entire function of a stamp. Nothing rests on it: the
+   conclusion holds at every head on this branch. `bean:0118` is re-stamped to `07ace1c`, with
+   the counter-evidence beside it.
+3. The captures do not show that discipline. Four Gradle captures in this section were trimmed
+   three different ways, and none of the trims was marked: the red `bashCompatLint` run kept
+   `> Task :bashCompatLint FAILED` and dropped Gradle's failure tail; the green one dropped
+   both the `> Task` line and `BUILD SUCCESSFUL`; the two `docsLint` runs kept both. A fifth,
+   a `gh run view --log`, elided an entire CI log around four quoted lines. Nothing
+   load-bearing was removed and `exit:` is stated separately in every block — but the preamble
+   asserted a discipline the captures did not show. Every trim is now marked `[...]` and the
+   preamble states what the marker stands for, rather than being softened to fit the gap.
+
+**And the rest of the sweep**, because fixing only the cross-reference that was handed over
+would repeat the defect a fourth time. Every cross-reference in both beans was re-derived from
+its source, not re-read from the prose. What moved:
+
+- `tools/docs-lint.sh:6`, the locator this bean opens with, is `:7-8` on `origin/main` — the
+  quoted sentence wraps across two lines. It was off by one when the bean was raised and stayed
+  off by one through four rounds, being a locator with no command beside it
+  (`doc:50-memory-and-evidence#unverified-shapes`). It now carries its command.
+- The two `./gradlew bashCompatLint` runs in the second entry of this section were stamped
+  `13d8c27` by the preamble. They cite `tools/bash-compat-lint.sh:180-185`, and at `13d8c27`
+  that file is 150 lines long. They were taken at `07ace1c`, and the entry now says so.
+- Entry 2's "Planted `declare -A seen` at `tools/docs-lint.sh:30`, immediately after
+  `set -uo pipefail`" — `set -uo pipefail` is at line 28 and line 29 is blank. Two lines after,
+  not immediately after; both that entry's `line 30` and the later entry's `line 29` are what
+  the runs printed.
+- `bean:0118`'s `tools/bash-compat-lint.sh:116-194` is `119-229` at `caf95db`, after this round extended the
+  fixture. It now carries its command, for the reason the first bullet gives.
+- The first entry of this section says "23 is a number no run in this repository produced".
+  This round took the pattern file to 23 rows, so `bashCompatLint` now prints `23 rules`. The
+  sentence is bound to `13d8c27`, where it is true and checkable; left unbound it would have
+  read as satisfied by the very figure it was raised about.
+
+What was re-derived and held: `tools/bash-compat-lint.sh:21-22` at `13d8c27`; `16 rules` at
+`13d8c27` and `21` at `07ace1c`; the scanner reproducing the round-1 false positives at
+`13d8c27`; `/bin/bash -n` rejecting `[[ -v ]]`; `bean:0118`'s `awk_invocations=22` at `13d8c27`
+and unchanged at this head, its `6 insertions(+), 3 deletions(-)`, and its citations of
+`tools/docs-lint.sh` at `:460-479`, `:463`, `:459`, `:668-670`, `:707-708` and line 660;
+`99 beans` on this tree; and `tools/lib/bash32-scan.awk:8-11`, which this round's edit to that
+file inserts below and therefore does not move.
+
+**Evidence:**
+
+```
+cmd:      git show 13d8c27:tools/bash-compat-lint.sh | /usr/bin/grep -n 'set -e'
+observed: 19:# `mapfile` writes `command not found` and exits 0 from the script, which has no `set -e`.
+cmd:      git show 07ace1c:tools/bash-compat-lint.sh | /usr/bin/grep -n 'set -e'
+observed: 19:# `mapfile` writes `command not found` and exits 0 from the script, which has no `set -e`.
+          23:# table is the six families that diverge silently or behind a diagnostic `set -e` would
+cmd:      git show 13d8c27:tools/bash-compat-lint.sh | awk 'END { print NR }'
+observed: 150
+cmd:      git show 07ace1c:tools/bash-compat-lint.sh | awk 'END { print NR }'
+observed: 210
+cmd:      git show origin/main:tools/docs-lint.sh | awk 'NR == 6 || NR == 7 || NR == 8'
+observed: # and locally, and a JavaExec task would need a source set, a toolchain and a test
+          # fixture to do the same string matching. No bash 4 feature is used (macOS ships
+          # 3.2), and every failure is appended to one file so a check that fires inside a
+cmd:      /usr/bin/grep -n 'set -uo pipefail' tools/docs-lint.sh
+observed: 28:set -uo pipefail
+cmd:      /usr/bin/grep -n 'n_planted=0' tools/bash-compat-lint.sh
+observed: 119:n_planted=0
+```
+
+`grep` above is `/usr/bin/grep`, BSD grep 2.6.0-FreeBSD, named because the harness's
+interactive `grep` is a `ugrep 7.8.4` shim and a figure that depends on which one answered is
+not a figure (`bean:0115`).
+
+### 2026-09-04 · bean:0049
+
+*What the one-sample-per-row concession costs, and why no mechanism was added in a third round.*
+
+**Claimed:** `tools/lib/bash32-forbidden.tsv` — "A row's ALTERNATIVES are not each planted —
+one sample per row is what the machinery checks. … That is the file's existing shape, not a new
+concession."
+
+**Found:** true, and it stops one sentence short of the consequence. The guarantee the file
+rests on is that "a row whose sample stops matching, or starts matching two rules, fails the
+gate here rather than quietly widening or narrowing it". That covers the arm the sample
+exercises and nothing else. The rows name substantially more constructs than there are samples:
+twenty-three samples, one per row, against alternations that between them name `typeset` and
+`local` five times over, `readarray`, `,`, eight `@` operators, `;&`, a character brace range,
+`{fd}>`, the `&&` and `||` `-v` positions, a bare `a[0]`, seven `shopt` options and four
+variables. A typo in any of those would stop enforcing that construct with the gate still
+green, which is the exact failure mode `doc:00-constitution#observed-failing` tabulates.
+
+The list is short enough to name, so it is named in the file rather than counted: which arm
+each row proves, and what it therefore does not. `typeset` is proved by no row at all.
+
+**The mechanism was declined, deliberately.** A fourth column of extra samples, or one row per
+construct, would close this; the two `-v` rows added this round are the second shape working.
+Doing it for every alternation means a machinery change to `tools/bash-compat-lint.sh` in a
+third review round on a change that is already large, and a mechanism added at that point is
+less trustworthy than a limitation stated at it — the reviewer offered exactly this trade and
+this is the side taken. The consequence is written in the file, beside the concession, where
+the next person to widen an alternation will read it.
+
+**Evidence:** the file itself, at `caf95db`, and the gate's own line, which is the figure the
+consequence is about:
+
+```
+cmd:      ./gradlew bashCompatLint
+observed: [...]
+          bash-compat: OK — 3 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+          [...]
+exit:     0
+```
+
+Twenty-three planted violations for twenty-three rows is the whole of what re-runs. Everything
+else the rows name was measured once and is recorded, and the difference between those two
+things is what this entry exists to state.
+
+### 2026-09-04 · bean:0049
+
+*The gate, green on the tree this round leaves behind.*
+
+**Claimed:** entry 5 — the whole gate green, at a head five entries ago, with counts it says
+are "stamped, not final" and that two further pull requests would move.
+
+**Found:** the counts have moved, as entry 5 predicted, and the gate is still green. This is
+the re-take at the head of the third review round, not a replacement for entry 5: entry 5's
+line stays where it is, and re-running *it* still belongs to the merge.
+
+The `bash-compat` line is the one this round is about and is corpus-independent — it counts
+rules and scripts. The `docs-lint` line is a figure about a corpus this bean belongs to
+(`doc:50-memory-and-evidence#corpus-figures`), and the measurement is neutral at this step: the
+line was captured, pasted here, and the gate re-run, and the counts were identical across the
+paste, because a `docs-lint` counts line carries no typed reference for check 6 to find.
+
+**Evidence:**
+
+```
+cmd:      ./gradlew qualityCheck
+observed: [...]
+          docs-lint-test: 37 passed, 0 failed.
+          [...]
+          bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+          bash-compat: OK — 3 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+          [...]
+          docs-lint: OK — 19 documents, 111 anchors, 1487 references, 99 beans, 37 graph edges, 45 selectable, 99 bean ids, 1 introduced, 100 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          [...]
+          BUILD SUCCESSFUL in 20s
+          [...]
+exit:     0
+```
+
+The three lines are in the order this run printed them, which is not the order the tasks are
+declared in: Gradle's scheduling put `docsLintTest` ahead of `bashCompatLint` here and behind it
+on the previous run. An `[...]` between two lines of a capture marks omitted output, not
+adjacency, and never a sequence chosen by the author.

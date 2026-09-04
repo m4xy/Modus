@@ -132,13 +132,14 @@ bash 5, and no run of these probes there exists. Nothing in the mechanism is ver
 reasoning, not a measurement, and it is the figure in this bean most likely to be wrong. Take
 the probes on the runner before relying on the boundary there.
 
-It reaches beyond `tools/docs-lint.sh`, measured at **`07ace1c`** — re-run and unchanged at
-`ea4185f` and at the third review round's head. This block was stamped `13d8c27` when it was
-written, and that stamp was wrong: at `13d8c27` the first command returns **one** hit, not two,
-because `tools/bash-compat-lint.sh:23` does not exist there. `07ace1c` introduced it, and is
-the earliest head at which this capture reproduces. The counter-evidence is below the block.
-`grep` throughout is `/usr/bin/grep`, BSD grep 2.6.0-FreeBSD — the same grep CI has, and not
-the harness's `ugrep` shim:
+It reaches beyond `tools/docs-lint.sh`, measured at **`07ace1c`**. This block was stamped
+`13d8c27` when it was written, and that stamp was wrong: at `13d8c27` the first command returns
+**one** hit, not two, because `tools/bash-compat-lint.sh:23` does not exist there. `07ace1c`
+introduced it, and is the earliest head at which this capture reproduces exactly as pasted. The
+counter-evidence is below the block. At `caf95db` the same command returns the same two hits
+with the second at line **24**, that round having rewritten the paragraph it sits in; the count
+and the conclusion are unchanged. `grep` throughout is `/usr/bin/grep`, BSD grep
+2.6.0-FreeBSD — the same grep CI has, and not the harness's `ugrep` shim:
 
 ```
 cmd:      /usr/bin/grep -n 'set -e' tools/docs-lint.sh tools/docs-lint-test.sh tools/bash-compat-lint.sh
@@ -190,15 +191,15 @@ where the failing command's status is the substitution's and is discarded by the
 goes red — the three observations `doc:50-memory-and-evidence#evidence-kinds` requires of a
 mechanism claiming to discriminate, applied per check rather than to the gate as a whole.
 **This mechanism already exists in this repository and is simply not pointed at `docs-lint`.**
-`tools/bash-compat-lint.sh:117-227` does exactly this for its own rules on every invocation:
+`tools/bash-compat-lint.sh:119-229` does exactly this for its own rules on every invocation:
 it plants each rule's sample violation, asserts the scan finds it exactly once and attributes
 it to that rule, and asserts a fixture of legal near-misses produces nothing. That range is
-`n_planted=0` through the `fi` closing the negative-control assertion, at the third review
-round's head; it was `116-194` before that round extended the fixture, and it is written with
-its command because a bare line range does not survive the next edit to the file it points into
+`n_planted=0` through the `fi` closing the negative-control assertion, at `caf95db`; it was
+`116-194` before that round extended the fixture, and it is written with its command because a
+bare line range does not survive the next edit to the file it points into, and this one did not
 (`doc:50-memory-and-evidence#unverified-shapes`):
-`/usr/bin/grep -n 'n_planted=0' tools/bash-compat-lint.sh` prints `117`, and
-`awk 'NR >= 224 && NR <= 227' tools/bash-compat-lint.sh` prints the closing `if`/`fi`.
+`/usr/bin/grep -n 'n_planted=0' tools/bash-compat-lint.sh` prints `119:n_planted=0`, and
+`awk 'NR >= 226 && NR <= 229' tools/bash-compat-lint.sh` prints the closing `if` and its `fi`.
 
 Every analyser in `docs-lint` reads a named file, so every one of them can be fed a fixture the
 same way —
