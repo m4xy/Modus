@@ -306,6 +306,17 @@ conventions:
   heading. What the rule does close is the shape it was written for: pasted check output at
   column zero is neither a heading nor a table row, wherever it is pasted.
 
+  **`At column zero` is a qualifier and it has a price.** A citation is read from the whole of
+  a site line, so the same output pasted into the evidence **cell** of a numbered row is read:
+  the cell is not at column zero, but the row around it is row-shaped. A row reading
+  `| 2 | two | FAIL check 14 …: criterion 3 is not answered in the evidence |` answers
+  criterion 3, and a three-criterion bean whose table numbers only rows 1 and 2 closes green.
+  Nothing there is written by hand — it is the tool's own stdout arriving through the site the
+  rule kept — so it is laundering of exactly the kind `bean:0093` closed, reached by a
+  different route. `bean:0121` owns it as a fourth residual and it is pinned as a verdict in
+  `tools/docs-lint-test.sh`. **Quote a transcript inside a fence, never inside a cell**: a
+  fence is an entry and is not a citation site, so the same paste under one answers nothing.
+
   A **heading** here is an ATX heading: `#` characters at the start of the line. A
   **bold line** is not one — `**Criterion 2** — …` is running prose to the analyser and to
   CommonMark alike — and neither is a **Setext** heading, a line underlined with `=` or `-`,

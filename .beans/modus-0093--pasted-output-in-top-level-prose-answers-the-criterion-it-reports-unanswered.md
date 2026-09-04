@@ -537,7 +537,9 @@ exit:     0
 Both are true and they are not in tension: the coupling is decorative **over today's corpus**,
 which contains no bare pipe-led line carrying a citation, and load-bearing over the shape
 above. The suite no longer relies on the corpus to say so. `citation-site-no-intable` is now a
-measured mutation in `tools/docs-lint-test.sh`'s header and scores `45 passed, 3 failed`.
+measured mutation in `tools/docs-lint-test.sh`'s header and scores `47 passed, 4 failed` at the
+head this change ships; `intable-sticky`, added in review, covers the other half of the
+coupling — that the flag is CLEARED — and scores `50 passed, 1 failed`.
 
 The rule as adopted is stated at `doc:05-authoring-for-agents#checks`; see criterion 6.
 
@@ -694,13 +696,49 @@ observed: none                       rc=0  docs-lint-test: 48 passed, 0 failed.
 ```
 
 `citation-site-no-intable` is a new mutation and it is the answer to the review finding that
-the coupling is decorative. It scores `45 passed, 3 failed`, so the coupling is now covered by
+the coupling is decorative. It scored `45 passed, 3 failed` when it was added, so the coupling is now covered by
 assertion rather than by the corpus happening not to contain the shape. `isevcol-false` moved
-from one failure to two: the `intable` control table carries an `evidence` header, so a
-mutation that stops recognising it is caught there too — incidental again, and recorded as
-incidental. The five that fail under `citation-scanner-deleted` are named in the suite header;
+from one failure to two, and the second is `ACCEPTED: a Markdown table pasted inside <pre> is
+entered like any other`: its row is NUMBERED and stands in an evidence section, so a mutation
+that stops recognising the `evidence` header makes `NOEVCOL Evidence` fire on it. The
+`intable` control table also carries an `evidence` header but its row is not numbered, so
+`NOEVCOL` cannot fire there and it gives `STATS 1 0` under both forms — it does not fail, and
+an earlier draft of this paragraph named it as the second failure. Incidental again, and
+recorded as incidental. The five that fail under `citation-scanner-deleted` are named in the suite header;
 `ACCEPTED: a Markdown table pasted inside <pre> is entered like any other` is deliberately not
 one of them, because its row is numbered and the evidence-row path answers it.
+
+**Re-measured a second time in review, and every figure moved again.** Three assertions were
+added at `d914eb5`: one pinning a FOURTH residual, which `bean:0121` now carries — this check's
+own stdout pasted into an evidence CELL of a numbered row, where the row around it is the site
+and nothing is written by hand — one control for it, and one covering the `intable` RESETS,
+which `citation-site-no-intable` does not reach. A fifth mutation, `intable-sticky`, was added
+with that last assertion; against the 48-assertion suite at `d914eb5` it scored
+`48 passed, 0 failed`, a real weakening nothing in the suite could see. The block below is
+measurement-neutral by construction: every figure in it is a function of `tools/` alone, and
+this block lives in `.beans/`, which no mutation reads.
+
+```
+cmd:      each mutation applied to a fresh copy of tools/ from the tree this change ships,
+          then /bin/bash <copy>/tools/docs-lint-test.sh
+observed: none                       rc=0  docs-lint-test: 51 passed, 0 failed.
+          classifier                 rc=1  docs-lint-test: 39 passed, 12 failed.
+          citation-site-off          rc=1  docs-lint-test: 35 passed, 16 failed.
+          citation-site-no-intable   rc=1  docs-lint-test: 47 passed, 4 failed.
+          intable-sticky             rc=1  docs-lint-test: 50 passed, 1 failed.
+          citation-scanner-deleted   rc=1  docs-lint-test: 45 passed, 6 failed.
+          isevcol-true               rc=1  docs-lint-test: 50 passed, 1 failed.
+          isevcol-false              rc=1  docs-lint-test: 46 passed, 5 failed.
+          allkinds-off               rc=0  docs-lint-test: 51 passed, 0 failed.
+```
+
+`intable-sticky` deletes the three `intable = 0` resets — the `## ` branch, the `#+ ` branch
+and the else branch — so the flag is sticky once any table has been seen, and a stray row
+quoted out of a transcript two paragraphs below a table that has ended is read as a row of it.
+`citation-site-no-intable` proves the flag is READ and proves nothing about its being CLEARED;
+the pair covers both halves. `isevcol-false` goes from two failures to five because all three
+new fixtures number their rows in an evidence section. `allkinds-off` is still the one green
+fail-open and is still `bean:0087`'s.
 
 **The accepted boundary, asserted rather than left to be discovered.** The matcher still reads
 the presence of a number and never the polarity of the claim around it — this change removed

@@ -62,13 +62,27 @@ function isevcol(h) {
 # narrowing still closes the shape bean:0093 was raised for — check 14's own stdout at column
 # zero is neither heading- nor row-shaped wherever it is pasted.
 #
-# `intable` is the analyser's own table state, set on the delimiter row below. It is NOT a
-# container model and the reason to keep it is not one: a `|`-leading line with no delimiter
-# row above it is not a table row to any renderer either, and `line ~ /^\|/` alone would make
-# one a citation site — a bean quoting a single table row out of a transcript would answer the
-# criterion that row names. Asserted below as a verdict, not left to the corpus: over the 102
-# beans at this head the two forms are byte-identical, which is a fact about today's inputs
-# and not a property of the rule.
+# READ THE QUALIFIER `AT COLUMN ZERO`, BECAUSE IT COSTS SOMETHING. The whole line is scanned
+# once it is a site, so the same stdout pasted into the evidence CELL of a numbered row is read
+# — the cell is not at column zero, but the row around it is row-shaped. `| 2 | two | FAIL
+# check 14 …: criterion 3 is not answered in the evidence |` answers criterion 3, which no row
+# of that table numbers, and a three-criterion bean closes green having recorded evidence for
+# two. That is laundering by the definition bean:0093 adopted — a machine-generated string out
+# of this tool's stdout and back into it, with nobody deciding anything — and unlike the
+# container shapes above it needs nothing written by hand and no new perception layer to
+# refuse. It is the fourth residual on bean:0121 and it is pinned below as a verdict.
+#
+# `intable` is the analyser's own table state, set on the delimiter row below and CLEARED on
+# every heading and every line that is not a table row. It is NOT a container model and the
+# reason to keep it is not one: a `|`-leading line with no delimiter row above it is not a
+# table row to any renderer either, and `line ~ /^\|/` alone would make one a citation site — a
+# bean quoting a single table row out of a transcript would answer the criterion that row
+# names. The three resets are load-bearing for the same reason and are asserted separately:
+# without them the flag is sticky and a stray quoted row two paragraphs below a table that has
+# ended is read as a row of it. Asserted as verdicts, not left to the corpus: at d914eb5 the
+# two forms are byte-identical over all 103 beans — 103 compared, 0 differing — which is a fact
+# about those inputs and not a property of the rule. The figure carries a head because the
+# corpus grows under it, and this comment has already had the count go stale once.
 function citation_site(line) {
   return (line ~ /^#+ / || (intable && line ~ /^\|/))
 }

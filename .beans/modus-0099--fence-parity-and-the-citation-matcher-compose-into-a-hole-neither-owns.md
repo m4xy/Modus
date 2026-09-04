@@ -170,6 +170,11 @@ observed: today, on main                          docs-lint: OK      exit 0   HO
 exit:     0, 1, 1, 0
 ```
 
+> **The fourth row no longer reproduces, and the capture above is left unedited because it is
+> a verbatim `observed:`.** Read *"The matcher half is closed by `bean:0093`"* below before
+> acting on it: `bean:0093` replaced the exclusion rule that row was measured against, and the
+> citation-site requirement alone now closes this hole rather than leaving it open.
+
 Two consequences, and the second is the reason this bean exists rather than a comment:
 
 1. `bean:0063`'s unterminated-fence refusal **already closes this**, and the work here is to
