@@ -270,16 +270,87 @@ cmd:      grep -l '^status: todo' .beans/modus-{0049,0057,0059,0060,0061,0062,00
 observed: 24
 ```
 
+**Both fences above were re-run on the tree that closes this bean, and both are unchanged —
+same twenty-four ids, same count of 24.** They are re-run rather than assumed because closing
+`0102` moves it out of `in-progress`, and `0102` **is** one of the twenty-seven ids these two
+commands enumerate. It does not move the count for a reason worth writing down rather than
+being lucky about: the predicate is `^status: todo`, and `0102` had already left `todo` before
+this change touched it, so it was absent from the twenty-four before and is absent after.
+
+The complement is the check, because it is the half that moves. `grep -L` is `grep -l`'s
+inverse over the same argument list, so the two partition it and neither can be read without
+falsifying the other:
+
+```
+cmd:      ls .beans/modus-{0049,0057,0059,0060,0061,0062,0063,0086,0087,0089,0091,0093,0094,0096,0098,0099,0100,0102,0103,0104,0105,0106,0107,0108,0109,0110,0112}--*.md | grep -c .
+observed: 27
+exit:     0
+
+cmd:      grep -L '^status: todo' .beans/modus-{0049,0057,0059,0060,0061,0062,0063,0086,0087,0089,0091,0093,0094,0096,0098,0099,0100,0102,0103,0104,0105,0106,0107,0108,0109,0110,0112}--*.md | sed 's|.beans/modus-||;s|--.*||' | sort | tr '\n' ' '
+observed: 0063 0102 0105 
+exit:     0
+```
+
+Twenty-seven in, twenty-four `todo` and three not: `0063` and `0105` were already `completed`
+on `main`, and `0102` is the one this change moves. It moves from `in-progress`, which the
+predicate never matched, which is why the twenty-four is the same twenty-four.
+
 Against that, the product line has moved three items in two sprints:
 
 ```
-cmd:      grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | tr '\n' ' '
-observed: 0009 completed 0011 todo 0012 todo 0013 todo 0014 todo 0015 todo 0016 todo 0017 todo 0018 todo 0019 todo 0020 todo 0021 todo 0022 todo 0030 completed 0065 in-progress 
+cmd:      grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | sort | tr '\n' ' '
+observed: 0009 completed 0011 todo 0012 todo 0013 todo 0014 todo 0015 todo 0016 todo 0017 todo 0018 todo 0019 todo 0020 todo 0021 todo 0022 todo 0030 completed 0065 completed 
 ```
 
-`bean:0009` and `bean:0030` are `completed` and `bean:0065` is in flight. The six bounded
-contexts, the store adapter, the REST layer, auth, the runner, SSE and the live backoffice are
-all still `todo`.
+**Re-run, not re-typed, and two things about it changed.** `bean:0065` merged as PR #55 and
+is `completed` as of the change that closes this bean, so the block above is no longer the one
+this bean shipped with; re-running a sweep belongs to the change that moves its corpus
+(`doc:50-memory-and-evidence#corpus-figures`), and that change is this close. The command also
+gained a `| sort`, which is the repair E3 above already makes to a fence of the same shape.
+Without it this one is a set rather than a byte stream: `grep` resolves either to
+`/usr/bin/grep`, which reads the files in argument order, or to the `ugrep` shim an agent's
+interactive shell installs, which parallelises across files and emits each as it finishes.
+E3 has the `| sort` and this fence did not, because E3 is where the race was noticed — which
+is the argument for that rule living in `doc:50` and not in one author's habit.
+
+The race is measured rather than asserted. All three runs below are on the tree this close
+produces, and each is five runs collapsed to the set of distinct outputs, so the answer is a
+count of orders and not an order. **Which `grep` is on `PATH` decides the first answer, and
+that dependence is the finding**: the first two are in an agent's interactive shell, where
+`grep` is a shell function the harness installs (`type grep` names the snapshot file it comes
+from), and the third names `/usr/bin/grep` by absolute path — which is also what a
+non-interactive `bash -c` gets, and what CI gets.
+
+```
+cmd:      for i in 1 2 3 4 5; do grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | tr '\n' ' '; echo; done | sort -u | grep -c .
+observed: 5
+exit:     0
+
+cmd:      for i in 1 2 3 4 5; do grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | sort | tr '\n' ' '; echo; done | sort -u | grep -c .
+observed: 1
+exit:     0
+
+cmd:      for i in 1 2 3 4 5; do /usr/bin/grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | tr '\n' ' '; echo; done | sort -u | grep -c .
+observed: 1
+exit:     0
+```
+
+Under the shim: five runs, five orders, none of them ascending. With `| sort`, or with
+`/usr/bin/grep`, one order — and it is the ascending one the fence above records. So the
+block this bean shipped was correct on the shell that captured it and irreproducible on the
+shell most agents read it from, and nothing distinguishes the two from the page. That is what
+the `| sort` buys: it makes the fence's answer independent of which `grep` the reader has,
+which is the only version of *reproducible* worth the word.
+
+**The figure stays three.** It was three with `0065` in flight and it is three with `0065`
+closed, because closing an item that had already left `todo` moves no item: of the fifteen ids
+this fence reads, `0009`, `0030` and `0065` are outside `todo` before the close and the same
+three are outside it after. What the close falsifies is the sentence that named one of the
+three as unfinished, and that sentence is corrected below rather than left to be read as
+current.
+
+`bean:0009`, `bean:0030` and `bean:0065` are `completed`. The six bounded contexts, the store
+adapter, the REST layer, auth, the runner, SSE and the live backoffice are all still `todo`.
 
 ### What sprint 3 is
 
@@ -326,3 +397,4 @@ observed:   29 status: completed
              4 status: in-progress
             62 status: todo
 ```
+
