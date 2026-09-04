@@ -7,11 +7,12 @@ priority: high
 order: AL
 created_at: 2026-09-04T00:00:00Z
 # order: `AGENTS.md` step 1 sorts a bean with no `order` after every bean that has one, and
-# check 12 does not flag the absence, because absence is a defined position rather than a
-# collision (`doc:05-authoring-for-agents#checks`). Without this line a high-priority fix
-# raised about an invisible backlog would itself sort behind every ordered high-priority
-# bean and tie untiebreakably with eight unordered ones. `AL` places it between `bean:0047`
-# (`AK`) and `bean:0053` (`AN`), the other two beans about an enforcement gap in §7.
+# check 12 does not flag the absence — absence is a defined position, not a collision
+# (`doc:05-authoring-for-agents#checks`). Without this line a high-priority fix raised about
+# an invisible backlog would itself sort behind every ordered high-priority bean and then
+# tie untiebreakably with every unordered one, which is the deferral shape it is about.
+# `AL` places it between `bean:0047` (`AK`) and `bean:0053` (`AN`), the two other beans
+# about an enforcement gap in §7.
 ---
 
 # The rule that holds a bean open through review has no counterpart that closes it after the merge, and the backlog it leaves is invisible in every run
