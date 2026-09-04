@@ -16,6 +16,17 @@ ktlint {
     }
 }
 
+// Every tools/*.sh task below invokes /bin/bash by absolute path, never `bash` through
+// PATH. `bash` resolved to Homebrew's 5.3.9 on the development machine and to bash 5 in CI,
+// so nothing these scripts do was ever validated against a known interpreter — and
+// tools/docs-lint.sh's header claims bash 3.2 compatibility that no run had exercised
+// (bean:0049). /bin/bash is 3.2.57 on macOS, which Apple cannot move, and bash 5 on the CI
+// image; either way it is the SAME interpreter for every agent and every run, which is the
+// property the three changes queued behind this one need. The bashCompatLint task reports
+// which one it got and gates the claim itself. Windows was already out of scope here: these
+// scripts use mktemp -d, glob expansion and awk.
+val gateShell = "/bin/bash"
+
 // The mechanical checks of doc:05-authoring-for-agents#checks — counted there and
 // nowhere else, because a count restated here drifts, and had. A shell script rather than a
 // JavaExec: the checks match lines and globs, so a source set and a toolchain would buy
@@ -23,7 +34,7 @@ ktlint {
 tasks.register<Exec>("docsLint") {
     group = "verification"
     description = "Runs the documentation front-matter, anchor and reference checks."
-    commandLine("bash", "tools/docs-lint.sh")
+    commandLine(gateShell, "tools/docs-lint.sh")
 }
 
 // docs-lint's own tests. What check 14's analyser PERCEIVES — which lines are inside a
@@ -34,7 +45,19 @@ tasks.register<Exec>("docsLint") {
 tasks.register<Exec>("docsLintTest") {
     group = "verification"
     description = "Runs the perception and verdict tests for the docs-lint check 14 analyser."
-    commandLine("bash", "tools/docs-lint-test.sh")
+    commandLine(gateShell, "tools/docs-lint-test.sh")
+}
+
+// The bash 3.2 claim in tools/docs-lint.sh's header, made falsifiable. Two halves: a parse
+// of every tools/*.sh under the pinned interpreter, and a scan for the constructs bash 3.2
+// lacks. The scan re-proves on every run that it discriminates — each rule's own sample
+// violation is planted and must be caught exactly once, and a fixture of legal bash 3.2
+// must be clean (doc:00-constitution#observed-failing and its negative half in
+// doc:50-memory-and-evidence#evidence-kinds).
+tasks.register<Exec>("bashCompatLint") {
+    group = "verification"
+    description = "Checks tools/*.sh against the constructs bash 3.2 does not have."
+    commandLine(gateShell, "tools/bash-compat-lint.sh")
 }
 
 // --- the backoffice half of the gate -----------------------------------------
@@ -120,7 +143,7 @@ tasks.register("qualityCheck") {
     // The root project's own `check` carries the aggregate coverage report and
     // the baseline guard (modus.coverage), so they cannot be a second command.
     dependsOn(
-        subprojects.map { "${it.path}:check" } + listOf("check", "ktlintCheck", "docsLint", "docsLintTest"),
+        subprojects.map { "${it.path}:check" } + listOf("check", "ktlintCheck", "docsLint", "docsLintTest", "bashCompatLint"),
     )
     // The backoffice half. Before bean:0029 nothing reached these, so a TypeScript
     // error, an ESLint error or 77 drifted files all merged green.

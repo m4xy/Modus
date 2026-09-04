@@ -86,7 +86,8 @@
 # repository had no fixture location for docs-lint, and a fixture whose expected output
 # lives in another file is read twice and updated once.
 #
-# bash 3.2 (macOS): no associative array, no ${var^^}, no mapfile.
+# bash 3.2 (macOS): what that forbids is enumerated in tools/lib/bash32-forbidden.tsv and
+# enforced by tools/bash-compat-lint.sh in qualityCheck, not restated here (bean:0049).
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

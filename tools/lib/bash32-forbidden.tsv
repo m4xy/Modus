@@ -1,0 +1,58 @@
+# Constructs bash 3.2 does not have, one per row: name<TAB>regex<TAB>sample violation.
+#
+# The list is MEASURED, not remembered. Every row was run under /bin/bash (3.2.57, what
+# macOS ships) and under Homebrew bash 5.3.9 and the two were compared on stdout, stderr
+# and exit status; only constructs that DIVERGED are here. The probe and its output are in
+# bean:0049.
+#
+# Four of them diverge SILENTLY — 3.2 exits 0, writes nothing to stderr, and produces a
+# different answer. That is why this file exists at all and why running the script under a
+# real 3.2 is not by itself a gate:
+#
+#   {1..9..2}      3.2 prints the literal `{1..9..2}`         5 prints `1 3 5 7 9`
+#   $SRANDOM       3.2: unset                                 5: set
+#   $EPOCHSECONDS  3.2: unset                                 5: set
+#   $EPOCHREALTIME 3.2: unset                                 5: set
+#
+# and two more exit 0 with only a line on stderr, which a script without `set -e` swallows:
+#
+#   declare -A m   3.2: `declare: -A: invalid option`, then m is an INDEXED array
+#   mapfile        3.2: `mapfile: command not found`
+#
+# The regex column is an awk ERE, matched per line against source with full-line comments
+# removed. It carries no backslashes: it is used as a dynamic regex, where a backslash
+# would have to be doubled and the doubling is the kind of thing that is got wrong once and
+# then never looked at again.
+#
+# The sample column is not decoration. tools/bash-compat-lint.sh plants each sample into a
+# fixture on every run and asserts the scan finds it, finds it EXACTLY once, and finds
+# nothing in a clean fixture — the three observations doc:50-memory-and-evidence#evidence-kinds
+# requires of a mechanism claiming to discriminate. A row whose sample stops matching, or
+# starts matching two rules, fails the gate here rather than quietly widening or narrowing it.
+#
+# This is a DENYLIST and therefore fails open: a bash 4 feature nobody has named passes.
+# doc:00-constitution#observed-failing says as much about enumerating shapes. It is here
+# because the alternative — the interpreter — fails open on the two constructs bean:0049
+# names by name, which is worse. The complementary half is the `-n` parse under the pinned
+# interpreter, which does fail closed and catches every SYNTAX-level bash 4 feature,
+# including ones absent from this file. Neither half subsumes the other.
+#
+# Adding a row: run it under both interpreters first, and put a row here only if they
+# disagree. A construct both accept is not a compatibility rule, it is a style preference.
+#
+associative-array	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*A	declare -A seen
+nameref	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*n	local -n out=$1
+mapfile	(^|[^[:alnum:]_./-])(mapfile|readarray)([[:space:]]|$)	mapfile -t lines < "$f"
+case-modification	[$][{][^}]*[,^][}]	printf '%s' "${name^^}"
+parameter-transform	[$][{][^}]*@[QEPAKLUua][}]	printf '%s' "${v@Q}"
+append-both-streams	&>>	run &>> "$log"
+pipe-both-streams	[|]&	run |& tee "$log"
+case-fallthrough	;[;]?&	case x in a) : ;;& esac
+coproc	(^|[^[:alnum:]_])coproc([[:space:]]|$)	coproc reader { cat; }
+shopt-bash4-option	shopt[[:space:]][^#]*(globstar|lastpipe|inherit_errexit)	shopt -s globstar
+brace-expansion-step	[{][^{}]*[.][.][^{}]*[.][.][^{}]*[}]	for i in {1..9..2}; do :; done
+negative-subscript	[$][{][A-Za-z_][A-Za-z_0-9]*[[]-[0-9]	echo "${arr[-1]}"
+test-v	[[][[][^]]*[[:space:]]-v[[:space:]]	if [[ -v opt ]]; then :; fi
+wait-n	(^|[^[:alnum:]_])wait[[:space:]]+-[[:alnum:]]*n	wait -n
+printf-time-format	printf[^#]*%[(]	printf '%(%Y)T' -1
+bash4-variable	[$][{]?(SRANDOM|EPOCHSECONDS|EPOCHREALTIME|BASH_ARGV0)	echo "$EPOCHSECONDS"
