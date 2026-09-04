@@ -19,13 +19,14 @@
 # `mapfile` writes `command not found` and exits 0 from the script, which has no `set -e`.
 # Five further constructs diverge in total silence — `{1..9..2}` expands to itself,
 # $SRANDOM / $EPOCHSECONDS / $EPOCHREALTIME / $BASHPID are simply unset. The differential
-# this file was distilled from is in bean:0049, in two places: evidence entry 6, whose
+# this file was distilled from is in bean:0049, in three places: evidence entry 6, whose
 # table is the six families that diverge silently or behind a diagnostic `set -e` would
-# have caught, beside the count of families `/bin/bash -n` rejects on its own; and the
+# have caught, beside the count of families `/bin/bash -n` rejects on its own; the third
 # 2026-09-04 amendment, which runs eleven further constructs under both interpreters and
-# prints each one's stdout, stderr and exit status. Neither is a "full" differential of
-# bash 5 against bash 3.2 and this file does not claim one: it is a denylist of what was
-# measured, and it says so below.
+# prints each one's stdout, stderr and exit status; and the fourth, which does the same for
+# `[ -v name ]` and `test -v name` and for the nine legal lines the second review round found
+# this gate rejecting. None is a "full" differential of bash 5 against bash 3.2 and this file
+# does not claim one: it is a denylist of what was measured, and it says so below.
 #
 # So the gate is two halves, neither of which subsumes the other:
 #
@@ -163,6 +164,29 @@ done < "$TMP/rules.tsv"
 #   echo "${x}<div>"                      `}` before `<` that is a parameter expansion,
 #                                         not a {varname} file descriptor
 #
+# and the lines the SECOND review round found rejected, in rules the first round's anchoring
+# pass never looked at. Each was run under /bin/bash 3.2.57 and /opt/homebrew/bin/bash 5.3.9
+# and came out byte-identical on stdout, stderr and exit status, so each is unambiguously
+# legal 3.2; the differential is in bean:0049's fourth 2026-09-04 amendment. `(review)` again
+# marks the ones review pasted verbatim:
+#
+#   cp {../src,../dst} .                  (review) two `..` in one brace list, which is not
+#                                         the `{1..9..2}` step form
+#   for d in {../x,../y}; do :; done      (review) the same, in the position that reads most
+#                                         like a range
+#   printf 'coverage %d%%(min)T\n' 90     (review) a doubled `%%` is not a format introducer,
+#                                         even when a `T` follows the parenthesis
+#   printf 'see %s\n' "use %(%Y)T…"       (review) a `%(…)T` in an ARGUMENT, after the format
+#                                         string has closed
+#   echo "{div}<br>"                      (review) a brace-delimited placeholder before `<`
+#   sed 's/{x}<//' f                      (review) the same, inside a sed script
+#   echo "${email:-me@u}"                 (review) an `@u` inside a DEFAULT value, not the
+#                                         `${v@u}` transformation
+#   [ -f "$f" ] && grep -v x "$f"         `-v` as another command's option after a single
+#                                         `[` test — the near-miss for `test-v-bracket`
+#   bash tools/docs-lint-test.sh -v       a command name ENDING in `test`, not the `test`
+#                                         builtin — the near-miss for `test-v-command`
+#
 # Adding a line to the fixture means adding it to the list above. The two are checked
 # against each other by nothing, which is why they are kept adjacent and short.
 cat > "$TMP/clean.sh" <<'CLEAN'
@@ -185,6 +209,15 @@ joined="${list#,}"
 printf 'coverage %d%%(min)\n' 90
 printf -v now %s hi
 echo "${x}<div>"
+cp {../src,../dst} .
+for d in {../x,../y}; do :; done
+printf 'coverage %d%%(min)T\n' 90
+printf 'see %s\n' "use %(%Y)T for time"
+echo "{div}<br>"
+sed 's/{x}<//' f
+echo "${email:-me@u}"
+[ -f "$f" ] && grep -v x "$f"
+bash tools/docs-lint-test.sh -v
 CLEAN
 scan "$TMP/clean.sh" > "$TMP/clean.out"
 n_clean="$(lines "$TMP/clean.out")"

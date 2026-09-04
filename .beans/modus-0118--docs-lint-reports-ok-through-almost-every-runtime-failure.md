@@ -132,19 +132,41 @@ bash 5, and no run of these probes there exists. Nothing in the mechanism is ver
 reasoning, not a measurement, and it is the figure in this bean most likely to be wrong. Take
 the probes on the runner before relying on the boundary there.
 
-It reaches beyond `tools/docs-lint.sh`, measured at `13d8c27`:
+It reaches beyond `tools/docs-lint.sh`, measured at **`07ace1c`** — re-run and unchanged at
+`ea4185f` and at the third review round's head. This block was stamped `13d8c27` when it was
+written, and that stamp was wrong: at `13d8c27` the first command returns **one** hit, not two,
+because `tools/bash-compat-lint.sh:23` does not exist there. `07ace1c` introduced it, and is
+the earliest head at which this capture reproduces. The counter-evidence is below the block.
+`grep` throughout is `/usr/bin/grep`, BSD grep 2.6.0-FreeBSD — the same grep CI has, and not
+the harness's `ugrep` shim:
 
 ```
-cmd:      grep -n 'set -e' tools/docs-lint.sh tools/docs-lint-test.sh tools/bash-compat-lint.sh
+cmd:      /usr/bin/grep -n 'set -e' tools/docs-lint.sh tools/docs-lint-test.sh tools/bash-compat-lint.sh
 observed: tools/bash-compat-lint.sh:19:# `mapfile` writes `command not found` and exits 0 from the script, which has no `set -e`.
           tools/bash-compat-lint.sh:23:# table is the six families that diverge silently or behind a diagnostic `set -e` would
-cmd:      grep -c '$?' tools/docs-lint-test.sh
+exit:     0
+cmd:      /usr/bin/grep -c '$?' tools/docs-lint-test.sh
 observed: 0
 exit:     1
-cmd:      grep -n '$?' tools/bash-compat-lint.sh
+cmd:      /usr/bin/grep -n '$?' tools/bash-compat-lint.sh
 observed: (no output)
 exit:     1
 ```
+
+And the counter-evidence for the stamp, which is why the head above is `07ace1c`:
+
+```
+cmd:      git show 13d8c27:tools/bash-compat-lint.sh | /usr/bin/grep -n 'set -e'
+observed: 19:# `mapfile` writes `command not found` and exits 0 from the script, which has no `set -e`.
+cmd:      git show 07ace1c:tools/bash-compat-lint.sh | /usr/bin/grep -n 'set -e'
+observed: 19:# `mapfile` writes `command not found` and exits 0 from the script, which has no `set -e`.
+          23:# table is the six families that diverge silently or behind a diagnostic `set -e` would
+```
+
+Nothing in this bean rests on the difference — the conclusion holds at every head on the
+branch — but a stamp exists so a reader can re-run at it, and one that cannot be re-run at is
+not a stamp. The general form is `bean:0102` and `doc:50-memory-and-evidence#capturing`: a
+capture takes the head it was taken at, not the head the surrounding prose is about.
 
 No script has `set -e` — the two hits are prose about its absence. `tools/docs-lint-test.sh`
 has the same shape as `docs-lint`: `set -uo pipefail` at line 91, and `$?` does not occur in
@@ -168,10 +190,18 @@ where the failing command's status is the substitution's and is discarded by the
 goes red — the three observations `doc:50-memory-and-evidence#evidence-kinds` requires of a
 mechanism claiming to discriminate, applied per check rather than to the gate as a whole.
 **This mechanism already exists in this repository and is simply not pointed at `docs-lint`.**
-`tools/bash-compat-lint.sh:116-194` does exactly this for its own rules on every invocation:
+`tools/bash-compat-lint.sh:117-227` does exactly this for its own rules on every invocation:
 it plants each rule's sample violation, asserts the scan finds it exactly once and attributes
-it to that rule, and asserts a fixture of legal near-misses produces nothing. Every analyser
-in `docs-lint` reads a named file, so every one of them can be fed a fixture the same way —
+it to that rule, and asserts a fixture of legal near-misses produces nothing. That range is
+`n_planted=0` through the `fi` closing the negative-control assertion, at the third review
+round's head; it was `116-194` before that round extended the fixture, and it is written with
+its command because a bare line range does not survive the next edit to the file it points into
+(`doc:50-memory-and-evidence#unverified-shapes`):
+`/usr/bin/grep -n 'n_planted=0' tools/bash-compat-lint.sh` prints `117`, and
+`awk 'NR >= 224 && NR <= 227' tools/bash-compat-lint.sh` prints the closing `if`/`fi`.
+
+Every analyser in `docs-lint` reads a named file, so every one of them can be fed a fixture the
+same way —
 check 12's cycle analyser at line 460 reads `$TMP/bean-edges.uniq`, check 14's at 664 reads
 the bean under test. Which of the twenty-two are worth a fixture and which are better served
 by the failure path alone has not been decided here; that is the first task of the work, not a

@@ -9,9 +9,12 @@ created_at: 2026-08-29T00:00:00Z
 
 # `docs-lint` claims bash 3.2 compatibility and nothing tests it
 
-`tools/docs-lint.sh:6` states, as a constraint on everyone who edits it:
+`tools/docs-lint.sh:7-8` on `origin/main` states, as a constraint on everyone who edits it —
+the locator carries its command, because it was written here as `:6` and is off by one
+(`git show origin/main:tools/docs-lint.sh | awk 'NR == 7 || NR == 8'`):
 
-> No bash 4 feature is used (macOS ships 3.2)
+> No bash 4 feature is used (macOS ships
+> 3.2)
 
 Nothing checks it. `build.gradle.kts`'s `docsLint` task runs `commandLine("bash", …)`, which
 resolves through `PATH` — on the development machine that is Homebrew's bash 5.3.9, and in CI
@@ -106,8 +109,10 @@ queued behind this bean actually need, and it is less than criterion 1's literal
 
 ### 2 — the interpreter rejecting a planted bash 4 construct (NOT MET)
 
-Planted `declare -A seen` at `tools/docs-lint.sh:30`, immediately after `set -uo pipefail`, and
-ran the gate task whose interpreter is the one criterion 2 is about:
+Planted `declare -A seen` at `tools/docs-lint.sh:30`, two lines after `set -uo pipefail` at
+line 28 — line 29 is blank — and ran the gate task whose interpreter is the one criterion 2 is
+about. The later amendment plants at line 29 instead and its diagnostics say `line 29`; both
+are what the run printed, and neither is "immediately after" the other:
 
 ```
 cmd:      ./gradlew docsLint
@@ -253,10 +258,23 @@ early would defeat the ordering.
 
 ## Amendments
 
-Five entries, all from the first review round on this bean's own pull request, #69, against
-head `13d8c27`; the last is taken on the head that round produced. Every figure below was
-redirected to a file and pasted from it. The only edits to a capture are elisions of an
-absolute path, each marked `[...]`.
+Entries from the review rounds on this bean's own pull request, #69. **Each entry names the
+head its own evidence was taken at, because the blanket stamp this preamble used to carry —
+"all from the first review round … against head `13d8c27`" — was not true of all of them.**
+The two `./gradlew bashCompatLint` runs in the second entry cite
+`tools/bash-compat-lint.sh:180-185`, and at `13d8c27` that file is 150 lines long
+(`git show 13d8c27:tools/bash-compat-lint.sh | awk 'END { print NR }'`); the lines they name
+are the extended fixture, which exists from `07ace1c`. That is the head those two runs were
+taken at, and the entry now says so.
+
+Every figure below was redirected to a file and pasted from it. **Two kinds of edit were made
+to a capture, and from the third review round on both are marked `[...]`:** an elision of an
+absolute path, and an elision of the scaffolding a tool prints around the lines under
+discussion — Gradle's task list, its `BUILD SUCCESSFUL`/`BUILD FAILED` verdict, its failure
+tail and its deprecation notice, and the body of a CI log around the four lines quoted from
+it. The `exit:` line is stated separately in every block, so a trimmed build verdict removes
+nothing a reader needs; the markers were added afterwards, in the third round, and no line
+inside a capture was changed to add them.
 
 ### 2026-09-04 · bean:0049
 
@@ -268,11 +286,17 @@ differential against bash 5.3.9 is in bean:0049."
 **Found:** there is no 23-construct differential here and there never was; the figure 23
 occurs nowhere in this file. What entry 6 carries is a six-row table of families that diverge
 silently or behind a diagnostic, and one sentence recording that `/bin/bash -n` rejects five
-of the sixteen. The pattern file carried sixteen rules. 23 is a number no run in this
-repository produced, sitting inside the file whose stated thesis is that its list is measured
-rather than remembered (`doc:50-memory-and-evidence#unevidenced-assertions`). The sentence now
-names entry 6 and the third entry below by what each actually contains, and says in terms that
+of the sixteen. The pattern file carried sixteen rules at that head. **At `13d8c27`, 23 was a
+number no run in this repository had produced**, sitting inside the file whose stated thesis is
+that its list is measured rather than remembered
+(`doc:50-memory-and-evidence#unevidenced-assertions`). The sentence now names entry 6 and the
+third and fourth entries of this section by what each actually contains, and says in terms that
 the file is a denylist of what was measured rather than a differential of anything.
+
+The head bound on that claim is not decoration. The third review round took the pattern file to
+23 rows, so `bashCompatLint` now prints `23 rules` on every run and 23 *is* a figure this
+repository produces — by coincidence, and not as a differential of anything. Left unbound, this
+finding would have read as satisfied by the very number it was raised about.
 
 **Evidence:**
 
@@ -317,14 +341,16 @@ observed: [...]/fp.sh:1: test-v: if [[ -n "$(command -v jq)" ]]; then :; fi
 exit:     0
 ```
 
-Then both halves of the fixture, through the gate. The extended negative control was
-committed first, and the three pre-fix regexes planted back into
+Then both halves of the fixture, through the gate — **at `07ace1c`, not `13d8c27`**: the
+extended negative control was committed first, and the three pre-fix regexes planted back into
 `tools/lib/bash32-forbidden.tsv` afterwards, so the two runs differ in the regex column and in
-nothing else (`bean:0102`):
+nothing else (`bean:0102`). The line numbers in the second block of hits are `07ace1c`'s, which
+is how the head was recovered in the third round:
 
 ```
 cmd:      ./gradlew bashCompatLint        # extended fixture, pre-fix regexes planted back
-observed: > Task :bashCompatLint FAILED
+observed: [...]
+          > Task :bashCompatLint FAILED
           bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
           [...]/clean.sh:12: test-v: if [[ -n "$(command -v jq)" ]]; then :; fi
           [...]/clean.sh:13: test-v: if [[ "$flag" == -v ]]; then :; fi
@@ -339,11 +365,14 @@ observed: > Task :bashCompatLint FAILED
           tools/bash-compat-lint.sh:185: printf-time-format: printf 'coverage %d%%(min)\n' 90
           FAIL bash-compat  5 bash 4 construct(s) in scripts that claim bash 3.2 compatibility
           bash-compat: FAILED.
+          [...]
 exit:     1
 
 cmd:      ./gradlew bashCompatLint        # plant reverted with git checkout -- on that one file
-observed: bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+observed: [...]
+          bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
           bash-compat: OK — 3 scripts parsed, 21 rules, 21 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+          [...]
 exit:     0
 ```
 
@@ -493,18 +522,22 @@ through the gate task whose interpreter criterion 2 is about:
 
 ```
 cmd:      ./gradlew docsLint      # with `declare -A seen` at tools/docs-lint.sh:29
-observed: > Task :docsLint
+observed: [...]
+          > Task :docsLint
           tools/docs-lint.sh: line 29: declare: -A: invalid option
           declare: usage: declare [-afFirtx] [-p] [name[=value] ...]
           docs-lint: OK — 19 documents, 111 anchors, 1471 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 100 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
           BUILD SUCCESSFUL in 17s
+          [...]
 exit:     0
 
 cmd:      ./gradlew docsLint      # with `mapfile -t docs < /dev/null` at tools/docs-lint.sh:29
-observed: > Task :docsLint
+observed: [...]
+          > Task :docsLint
           tools/docs-lint.sh: line 29: mapfile: command not found
           docs-lint: OK — 19 documents, 111 anchors, 1471 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 100 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
           BUILD SUCCESSFUL in 18s
+          [...]
 exit:     0
 ```
 
@@ -514,8 +547,10 @@ work in the tree could be discarded (`bean:0102`, `AGENTS.md`). `diff` against t
 the last restore reported the files identical.
 
 Those counts are of a corpus this bean belongs to and are already stale: `100 on origin/main`
-is one higher than entry 5's `99`, because `origin/main` moved while these runs were in
-flight. Nothing here rests on them — the load-bearing observation is `exit: 0` beside the word
+is **two** higher than entry 5's `98 on origin/main`, because `origin/main` moved while these
+runs were in flight. (This sentence read "one higher than entry 5's `99`" until the third
+review round. Entry 5's figure is `98`; `99` is `bean:0118`'s, and it occurs nowhere in this
+file.) Nothing here rests on them — the load-bearing observation is `exit: 0` beside the word
 `OK`, twice (`doc:50-memory-and-evidence#corpus-figures`). Entry 5's line is not re-taken
 here; re-running it belongs to the merge, and two further pull requests that move the same
 counts are in flight on this sprint.
@@ -548,7 +583,8 @@ exit:     1
 cmd:      awk --version 2>&1 | head -1
 observed: awk version 20200816            # BSD awk, what every local figure above was taken under
 cmd:      gh run view --job 100960561182 --log      # qualityCheck on ubuntu-latest, head ea4185f
-observed: bash-compat: interpreter /bin/bash (bash 5.2.21(1)-release)
+observed: [...]
+          bash-compat: interpreter /bin/bash (bash 5.2.21(1)-release)
           bash-compat: OK — 3 scripts parsed, 21 rules, 21 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
           docs-lint-test: 37 passed, 0 failed.
           docs-lint: OK — 19 documents, 111 anchors, 1520 references, 101 beans, 37 graph edges, 46 selectable, 101 bean ids, 1 introduced, 100 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.

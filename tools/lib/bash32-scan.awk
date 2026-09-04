@@ -19,6 +19,15 @@
 # stating its own rule. Trailing comments are NOT stripped: `#` inside a string or a regex is
 # ordinary, and a stripper that got that wrong would blind the scan to the code before it.
 #
+# NOTHING ELSE IS SKIPPED, AND STRINGS ARE NOT. This scanner has no lexer: it does not know
+# where a quoted word begins or ends. So a construct that is legal bash 3.2 BECAUSE it sits
+# inside a string literal or after a trailing `#` is still reported, and the gate rejects a
+# correct line. That is a real cost, not a theoretical one — `printf '%s\n' 'a|&b'` and
+# `url="http://x/?a=1;&b=2"` are both rejected today, and both were run under bash 3.2.57 and
+# bash 5.3.9 and came out byte-identical. tools/lib/bash32-forbidden.tsv carries the rest of
+# the trade under "WHAT IS LEFT REJECTED"; the short version is that the alternative is a
+# shell lexer, and the way past a false positive here is to move the literal out of the line.
+#
 # Output: one `file:line: rule: source` per hit, on stdout. Nothing else, so a caller can
 # count lines.
 
