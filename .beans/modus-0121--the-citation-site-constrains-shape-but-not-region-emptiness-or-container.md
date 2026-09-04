@@ -835,8 +835,11 @@ a measurement whoever makes it and whichever direction it points.
 
 ### Criterion 9
 
-Re-taken at `2bcd9aa`. The figure that stood here was taken at `5a625fc`, five commits behind
-the head under review, which makes it a statement about a tree nobody would merge:
+Taken at `112e201`, the last commit that changes any file this gate reads other than this
+paragraph. The figure that stood here was taken at `5a625fc`, five commits behind the head
+under review, which makes it a statement about a tree nobody would merge; it was re-taken once
+at `2bcd9aa` and again here, because the bean's own prose is an input to `docs-lint` and its
+reference count moved between the two.
 
 ```
 $ ./gradlew qualityCheck
@@ -848,12 +851,12 @@ docs-lint-test: 71 passed, 0 failed.
 docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
 docs-lint-gate-test: analyser awk — awk version 20200816
 [...]
-docs-lint: OK — 19 documents, 111 anchors, 1690 references, 111 beans, 43 graph edges, 47 selectable, 111 bean ids, 1 introduced, 111 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+docs-lint: OK — 19 documents, 111 anchors, 1692 references, 111 beans, 43 graph edges, 47 selectable, 111 bean ids, 1 introduced, 111 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
 [...]
 docs-lint-gate-test: 11 passed, 0 failed.
 [...]
-BUILD SUCCESSFUL in 29s
-170 actionable tasks: 57 executed, 113 from cache
+BUILD SUCCESSFUL in 26s
+161 actionable tasks: 7 executed, 154 up-to-date
 ```
 
 The analyser is the same under all three awks a CI runner might supply, which is worth a figure

@@ -122,8 +122,9 @@
 # Read the two figures together. Deleting the SCANNER kills seventeen and deleting the
 # NARROWING kills thirteen, and the shape of each set is the point rather than its size:
 # the first is dominated by CONTROLS — things that must still be answered — and the second by
-# REJECTIONS, things that must no longer be. Neither set is pure, and the two impurities are
-# named above and below rather than rounded away.
+# REJECTIONS, things that must no longer be. NEITHER SET IS PURE: the first splits 11/3/3
+# controls, rejections and probes, the second 0/10/3, and every member of both is enumerated
+# here rather than rounded to the dominant kind.
 #
 # The two sets MEET in five assertions, not in the probes alone:
 #
