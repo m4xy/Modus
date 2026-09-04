@@ -1,10 +1,11 @@
 ---
 # modus-0102
 title: A plant script's revert step destroys uncommitted edits to tracked beans, and the convention is written nowhere
-status: in-progress
+status: completed
 type: task
 priority: normal
 created_at: 2026-08-30T00:00:00Z
+updated_at: 2026-09-04T00:00:00Z
 ---
 
 # A plant script's revert step destroys uncommitted edits to tracked beans, and the convention is written nowhere
@@ -269,3 +270,233 @@ not decide; it is not reachable from a repository that cannot see a scratch scri
 - `bean:0058`, which is `completed` and frozen, and which this bean deliberately does not
   amend.
 - A mechanical check for the hazard. Nothing here can see a scratch script.
+
+## Evidence
+
+Merged in two parts. PR #60, squashed onto `main` as `157a57a`, carried the plant-script
+convention and the filename-citation convention; PR #65, squashed as `bd9da18`, carried the
+three-dot pre-push form. This bean was `status: in-progress` on `main` through both, so the
+close is a separate change (`doc:00-constitution` §7.2.1) and its evidence includes those two
+merges — which is why it could not have been written from either branch.
+
+Every `observed` below is taken against `9adb8af`, the commit `main` carries as this is
+written, rather than against either branch: a line that was on a branch and has since been
+edited by another change is not a line that merged
+(`doc:50-memory-and-evidence#corpus-figures`). Criteria 3 and 5 are the two the bean's body
+already observed during implementation; both are **re-observed here** on today's tree rather
+than cited from that body, because both are claims about how a command behaves and a
+recollection of a run is not a run.
+
+| # | criterion | evidence |
+|---|---|---|
+| 1 | the convention is in the Commands block, inside check 8's budget | F1 — the three paragraphs are lines 49 to 60, and F2's second command puts `## Commands` at 25 and the next heading, `## Workflow`, at 66, so all three fall inside the Commands section; each ends in a `bean:0102` citation. F2 — `AGENTS.md` is 95 lines against the `-le 120` ceiling at `tools/docs-lint.sh:278`, read out of the script rather than from memory of it, so 25 lines of headroom |
+| 2 | the wording distinguishes tracked from untracked | F1, first paragraph — `reverts uncommitted edits to **tracked** files under that path`, then `a new bean is untracked and survives, a bean you are closing, amending or correcting does not`. The distinction is stated in both directions, which is what makes it usable: a reader learns which of the two states their own work is in |
+| 3 | the boundary is observed, not asserted | F3 — one tracked bean modified and one untracked file created; `git checkout -- .beans` exits 0; afterwards `git status --porcelain -- .beans` reports only `?? .beans/zz-untracked-probe.md` and the ` M` line is gone, while `ls` still finds the untracked probe. The tracked edit was destroyed and the untracked file survived, in one run, on `9adb8af`. F7 records the same boundary meeting live work during this close, and what the other `git checkout` form does instead |
+| 4 | the three-dot form, or `@{u}`, is the pre-push review command | F1, second paragraph — the sentence opening *Review what you changed with* names the three-dot form and `@{u}` as the alternatives, and states the two-dot failure mode beside them: it *gives a plausible answer rather than an error*. The command itself is not re-quoted in this cell, because a backtick span cannot nest and the quoted text contains one |
+| 5 | the difference is observed on real refs | F4 — a branch cut at `6fbf0e0` with one commit on it, against `origin/main` at `9adb8af`, which `git merge-base --is-ancestor` confirms is ahead of that base. Two-dot lists **21** paths, three-dot lists **1**, and the one is the only file the branch touched. The 20 extra are `main`'s own merges since the base |
+| 6 | the provenance is stated, and that the form issued could not do its job | F5 — `bean:0036` still recommends the two-dot form on `main`, at `.beans/modus-0036--defensive-copy-rule.md:889`, line number derived by the `grep` in that fence and not quoted from a reading. Read against F4: against a base that has moved, the recommended form buries the branch's one file among 21, which is the noise the instruction was added to remove. The half that is **reported and not verified here** is that the instruction was issued in every brief this sprint; that is the orchestrator's report, is marked as such in the body above, and no artefact in this repository carries it |
+| 7 | the filename-citation convention is recorded, with the reason and the obligation to convert | F1, third paragraph — `check 6 resolves against your tree, so a typed reference to a bean you do not have fails the build. Convert it once the bean merges` |
+| 8 | `bash tools/docs-lint.sh` green, check 8 included | F6 — the closing run on this branch's tree. Check 8 is inside it: F2 reads the ceiling out of the same script |
+
+### F1 — the three paragraphs on `main`
+
+```
+cmd:      git show 9adb8af:AGENTS.md | sed -n '49,60p'
+observed: Planting a violation and reverting it (`doc:00-constitution#observed-failing`) usually means a
+          script ending in `git checkout -- .beans`, which reverts uncommitted edits to **tracked**
+          files under that path as well as the plant — a new bean is untracked and survives, a bean you
+          are closing, amending or correcting does not. Commit before you plant (`bean:0102`).
+
+          Review what you changed with `git diff --name-only origin/main...HEAD` — three dots, or
+          `@{u}`. The two-dot form compares endpoints, so once `main` moves ahead it lists what **main**
+          changed beside what you did, and gives a plausible answer rather than an error (`bean:0102`).
+
+          Cite a bean raised on a sibling's open pull request by filename (`modus-NNNN`), not as
+          `bean:NNNN`: check 6 resolves against your tree, so a typed reference to a bean you do not
+          have fails the build. Convert it once the bean merges (`bean:0102`).
+exit:     0
+```
+
+The block's two blank lines are output, not layout: they are the paragraph breaks in
+`AGENTS.md` itself, which is why the excerpt is three paragraphs and not one.
+
+`49,60` bounds the excerpt. It is **not** a claim about where the Commands section ends —
+that is the third command in F2, which derives the boundaries rather than leaving a range
+chosen for an excerpt to be reread as a section's extent (`doc:50-memory-and-evidence#capturing`,
+and `bean:0105` criterion 2, where exactly that reread shipped).
+
+### F2 — the budget, and the ceiling read out of the check that enforces it
+
+```
+cmd:      git show 9adb8af:AGENTS.md | grep -c ''
+observed: 95
+exit:     0
+
+cmd:      git grep -n 'agents_lines' 9adb8af -- tools/docs-lint.sh
+observed: 9adb8af:tools/docs-lint.sh:277:agents_lines="$(grep -c '' AGENTS.md)"
+          9adb8af:tools/docs-lint.sh:278:[ "$agents_lines" -le 120 ] || fail 8 "AGENTS.md: $agents_lines lines, over the 120 ceiling"
+exit:     0
+
+cmd:      git grep -n '^## ' 9adb8af -- AGENTS.md
+observed: 9adb8af:AGENTS.md:12:## Routing
+          9adb8af:AGENTS.md:25:## Commands
+          9adb8af:AGENTS.md:66:## Workflow
+          9adb8af:AGENTS.md:86:## Context budget
+exit:     0
+```
+
+### F3 — the tracked/untracked boundary, re-observed
+
+Run in a detached worktree cut at `9adb8af` and destroyed afterwards, so nothing this branch
+was carrying was in reach of the plant. That precaution is this bean's own rule applied to
+the run that evidences it.
+
+```
+cmd:      printf '\nzz probe line\n' >> .beans/modus-0033--baseline-writer-erases-regression-provenance.md
+          printf 'untracked probe\n' > .beans/zz-untracked-probe.md
+          git status --porcelain -- .beans
+observed:  M .beans/modus-0033--baseline-writer-erases-regression-provenance.md
+          ?? .beans/zz-untracked-probe.md
+exit:     0
+
+cmd:      git checkout -- .beans
+observed: (no output)
+exit:     0
+
+cmd:      git status --porcelain -- .beans
+observed: ?? .beans/zz-untracked-probe.md
+exit:     0
+
+cmd:      ls .beans/zz-untracked-probe.md
+observed: .beans/zz-untracked-probe.md
+exit:     0
+```
+
+The tracked modification is gone from `git status` and the untracked file is still on disk.
+Both halves are asserted: a run that only showed the loss would not show that the plant
+itself — the untracked file — survives, and it is that asymmetry, not the loss, that makes
+the hazard silent.
+
+### F4 — two-dot against a base that has moved, on real refs
+
+Same throwaway worktree. `zz-probe-branch` is cut at `6fbf0e0` — PR #54's squash, which
+`git rev-list --count 6fbf0e0..origin/main` puts **2** commits below `main` — and carries one
+commit adding one file. The setup is in the fence so
+the whole thing is re-runnable; the worktree and the branch were destroyed afterwards, so
+nothing here survives to be read instead of re-run.
+
+```
+cmd:      git checkout -b zz-probe-branch 6fbf0e0
+          printf 'probe\n' > zz-probe-file.txt
+          git add zz-probe-file.txt
+          git commit -m 'probe: one file'
+observed: (setup; the three commands below are the measurement)
+exit:     0
+
+cmd:      git merge-base --is-ancestor 6fbf0e0 origin/main; echo $?
+observed: 0
+exit:     0
+
+cmd:      git diff --name-only origin/main zz-probe-branch
+observed: .beans/modus-0014--execution-bounded-context.md
+          .beans/modus-0020--claude-code-runner.md
+          .beans/modus-0047--require-the-gate-check.md
+          .beans/modus-0069--per-request-usage-is-the-published-vocabulary.md
+          .beans/modus-0090--constants-that-must-match-an-authority.md
+          .beans/modus-0105--the-negative-half-of-observed-failing-is-normative-nowhere.md
+          .beans/modus-0106--the-evidence-extractor-reads-only-table-cells.md
+          .beans/modus-0107--bean-0103-states-a-count-where-its-own-paragraph-argues-for-a-quantifier.md
+          .beans/modus-0112--a-sweep-for-a-wording-read-as-a-sweep-for-a-rule.md
+          .beans/modus-0113--a-close-that-rewrites-its-criteria-is-indistinguishable.md
+          .beans/modus-0114--nothing-checks-that-a-pull-requests-refs-are-complete.md
+          .beans/modus-0115--encode-sprint-2-findings-and-hand-off-to-sprint-3.md
+          backoffice/src/agent/mockTransport.ts
+          backoffice/src/agent/transport.ts
+          backoffice/src/agent/useAgentSession.ts
+          backoffice/src/api/types.ts
+          backoffice/src/routes/AgentConsole.tsx
+          documentation/50-memory-and-evidence.md
+          documentation/80-agent-operating-procedure.md
+          e2e/tests/agent-console.spec.ts
+          zz-probe-file.txt
+exit:     0
+
+cmd:      git diff --name-only origin/main...zz-probe-branch
+observed: zz-probe-file.txt
+exit:     0
+```
+
+Nothing is elided. The two-dot list is quoted whole because its length **is** the finding:
+an agent scanning it for paths its bean does not own has twenty to acquit before reaching
+the one that is theirs, and every one of the twenty is a real path with a plausible reason to
+be in a diff. The output is not wrong, which is what makes it dangerous.
+
+### F5 — the recommendation still on `main`, in a bean that may not be edited
+
+```
+cmd:      git grep -n 'The safe form is' 9adb8af -- .beans/modus-0036--defensive-copy-rule.md
+observed: 9adb8af:.beans/modus-0036--defensive-copy-rule.md:889:  never looked at. The safe form is `git rebase -i origin/main`, or reading
+exit:     0
+```
+
+The sentence continues onto line 890 with `git diff --name-only origin/main` — the two-dot
+form — and `bean:0036` is `completed`, so `adr:0005-evidence-lives-in-the-work-item#finalisation`
+makes it append-only. This close does not amend it. It is recorded above as this bean's
+outstanding consequence and it stays one.
+
+### F6 — the gate
+
+Captured by the sentinel method (`doc:50-memory-and-evidence#corpus-figures`): the counts
+below describe the tree that carries them, so the first run was taken with `@@sp3lint@@`
+standing where the line now is, making the asserted string absent from the corpus it
+measures; the result was inserted, the command re-run and the two diffed. The substitution is
+measurement-neutral by inspection of what the twelve counts read — it lives inside a fenced
+block, which check 6 does not scan for references, and it adds no document, anchor, bean,
+graph edge or bean id. **The two runs are byte-identical**, which is the step that would
+have caught a figure agreeing with itself, so the line below describes the tree that
+carries it and not the one before it.
+
+```
+cmd:      bash tools/docs-lint.sh
+observed: docs-lint: OK — 19 documents, 111 anchors, 1467 references, 98 beans, 37 graph edges, 45 selectable, 98 bean ids, 0 introduced, 98 on origin/main, 5 closing transitions, 50 criteria checked, 4 unnumbered.
+exit:     0
+```
+
+### F7 — a fourth occurrence, during this close, and what stopped it
+
+The bean above records three occurrences by the author who documented the hazard. This close
+produced a fourth, and it is recorded because it is the first one that did **not** cost
+anything, and the reason is not that anyone remembered the rule.
+
+A script was written to re-run every `cmd` fence this close adds and diff the output against
+the recorded `observed`, which is `doc:50-memory-and-evidence#capturing` applied mechanically.
+F4's fence carries its setup, so the script ran the setup too — against the live worktree,
+which at that moment held four beans' worth of uncommitted evidence:
+
+```
+cmd:      git checkout -b zz-probe-branch 6fbf0e0
+observed: error: Your local changes to the following files would be overwritten by checkout:
+          	.beans/modus-0068--encode-sprint-1-findings.md
+          	.beans/modus-0069--per-request-usage-is-the-published-vocabulary.md
+          	.beans/modus-0102--plant-scripts-destroy-uncommitted-work-on-tracked-beans.md
+          	.beans/modus-0115--encode-sprint-2-findings-and-hand-off-to-sprint-3.md
+          Please commit your changes or stash them before you switch branches.
+          Aborting
+exit:     1
+```
+
+**`git checkout -b` fails closed and `git checkout -- <path>` fails open, and that asymmetry
+is the whole finding.** Both are `git checkout`. One refuses when uncommitted work is in
+reach, names every file at risk, and prints this bean's own rule — *commit your changes or
+stash them* — as its remedy. The other silently discards exactly the same files and exits 0,
+which is the transcript in `## Observed` at the top of this bean.
+
+So the hazard is narrower and more fixable than "reverting is dangerous": git already has the
+guard, and the pathspec form is where it does not run. Nothing here proposes the fix — a
+mechanism at the keystroke is what the section above says is needed and what this bean cannot
+reach — but it names where such a mechanism would have to sit, which the earlier three
+occurrences did not.
+
+The four files this refusal names are the four this close was carrying. Had the script's first
+command been the pathspec form instead, this section would be a report of the loss rather than
+of the refusal, written after redoing the work for the fourth time in this bean's history.

@@ -1,10 +1,11 @@
 ---
 # modus-0069
 title: Correct the agent-run usage vocabulary before bean:0014 publishes it
-status: in-progress
+status: completed
 type: fix
 priority: high
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-09-04T00:00:00Z
 ---
 
 # Correct the agent-run usage vocabulary before `bean:0014` publishes it
@@ -606,3 +607,68 @@ implementation of `bean:0014` must not treat it as guaranteed by tooling.
   owned by another agent this sprint; that agent fixed it.
 - **`bean:0016`** will consume this vocabulary when it attributes spend, and
   **`bean:0021`** carries it over the wire. Neither is edited here.
+
+## Closed — merged as PR #45, squashed onto `main` as `05939b8`
+
+A bean cannot close itself: its evidence includes its own merge, so the close is a separate
+change (`doc:00-constitution` §7.2.1). Criteria 1 to 8 are answered above, and that table
+makes an unusual promise — that every `cmd` in it runs and reproduces. The promise is about a
+corpus, and neither `05939b8` nor the branch is the tree a reader will run them on:
+
+```
+cmd:      git log --oneline 05939b8..9adb8af
+observed: 9adb8af docs(50,80,beans): encode sprint 2's findings and hand off to sprint 3 (#67)
+exit:     0
+```
+
+One merge, and it edits `.beans` and `documentation` — both corpora that table greps. So the
+eight rows are **not** re-asserted here, and the close does not borrow their promise. What is
+checked is the narrower thing a close needs: that the artefacts those rows read are on `main`.
+
+```
+cmd:      git log --oneline -1 05939b8
+observed: 05939b8 fix(agent): publish per-request, cache-aware usage instead of a cumulative total (#45)
+exit:     0
+```
+
+```
+cmd:      git ls-tree -r --name-only 9adb8af -- backoffice/src/agent e2e/tests/agent-console.spec.ts
+observed: backoffice/src/agent/mockTransport.ts
+          backoffice/src/agent/transport.ts
+          backoffice/src/agent/useAgentSession.ts
+          e2e/tests/agent-console.spec.ts
+exit:     0
+```
+
+Three of the eight criteria rest on a *named thing inside* one of those files rather than on
+the file, and a squash-and-rebase can lose a named thing while keeping the path. Each is
+therefore read out of the merged blob:
+
+```
+cmd:      git grep -n 'provenance, not' 9adb8af -- backoffice/src/agent/transport.ts
+observed: 9adb8af:backoffice/src/agent/transport.ts:41: * documents that used to state this. Bean references below are provenance, not
+exit:     0
+
+cmd:      git grep -c 'keepLargerFrame' 9adb8af -- backoffice/src/agent/useAgentSession.ts
+observed: 9adb8af:backoffice/src/agent/useAgentSession.ts:2
+exit:     0
+
+cmd:      git grep -n 'usage frame that disagrees' 9adb8af -- e2e/tests/agent-console.spec.ts
+observed: 9adb8af:e2e/tests/agent-console.spec.ts:144:test('a usage frame that disagrees on cache tokens is reported, not discarded', async ({
+exit:     0
+```
+
+These are criterion 1's authority sentence, criterion 5's fold, and the first of criterion 6's
+four detector tests. They are a **sample**, chosen because each is the smallest string its
+criterion cannot survive losing, and this paragraph says so rather than letting three green
+lines read as eight (`doc:50-memory-and-evidence#unverified-shapes`). A close establishes that
+the change merged and is still there; it is not a re-run of the change's own acceptance.
+
+Criterion 7 is the one a reader should not take as still true, and this bean already says why:
+the `claude-sonnet-5` constant it pins is the introductory $2/$10 rate, which lapsed on
+2026-09-01. The criterion as worded — that both halves of the seam carry the *same* figure —
+is what merged and is what closes. The figure being the rate in force is a different claim,
+which the table explicitly declines to make, and `bean:0090` owns it.
+
+The gate run for this closure is `bean:0115`'s, not restated here
+(`doc:05-authoring-for-agents#one-fact-one-place`).
