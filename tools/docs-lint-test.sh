@@ -92,12 +92,15 @@
 #   the same span in the FIRST cell costs the row its own criterion
 #   control: the identical line under a delimiter row IS a row, and answers
 #
-# Two of those seventeen are REJECTIONS and not controls, and they are here because each
-# carries an answered criterion as its own non-triviality guard: `a citing sub-heading outside
-# the evidence region` answers criterion 1 normally, and `of two adjacent citing headings`
-# answers the second one. Delete the scanner and the guard stops holding, so the fixture fails
-# on the half that was never the point. That is worth knowing about them and it does not make
-# them controls.
+# The seventeen split 11 controls, 3 REJECTIONS and 3 probes, and the three rejections are here
+# because each carries an answered criterion as its own non-triviality guard:
+#
+#   a citing sub-heading outside the evidence region answers nothing   guard: criterion 1
+#   of two adjacent citing headings, only the second is answered       guard: criterion 2
+#   the same span in the FIRST cell costs the row its own criterion    guard: criteria 1-2
+#
+# Delete the scanner and the guard stops holding, so each fixture fails on the half that was
+# never its point. That is worth knowing about them and it does not make them controls.
 #
 # Before bean:0093 there was one such control — a line of top-level PROSE — and bean:0093
 # turned that line into a rejection, because prose is exactly what the narrowed rule refuses.
