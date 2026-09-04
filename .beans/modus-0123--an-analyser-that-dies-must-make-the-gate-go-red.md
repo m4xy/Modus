@@ -164,9 +164,10 @@ cmd:      grep -v '^[[:space:]]*#' tools/docs-lint.sh | grep -E '(^|[^A-Za-z_.-]
 observed:   command awk "$@"
 ```
 
-`grep` there is the harness's `ugrep 7.8.4`; the same two commands under `/usr/bin/grep`,
-BSD grep 2.6.0-FreeBSD, return the same single line, which is what `tools/docs-lint-gate-test.sh`
-runs on every invocation with whatever `grep` the machine has.
+`grep` there is the harness's `ugrep 7.8.4`. The same pipeline under `/usr/bin/grep`
+(`grep (BSD grep, GNU compatible) 2.6.0-FreeBSD`) returns the same single line, which
+matters because `tools/docs-lint-gate-test.sh` runs it with whatever `grep` the machine
+has and CI's is neither of these two.
 
 The bypass list is an **enumeration** of spellings — `command awk`, `env awk`, `\awk`, and
 any path-qualified form — and therefore fails open on a spelling nobody has named, exactly
@@ -231,7 +232,7 @@ involved (`bean:0102`). The suite is 11 assertions and green on the fix as shipp
 |---|---|---|
 | the fix is absent / deleted | the wrapper and its comment removed | 7 passed, 4 failed |
 | the guard is neutered | `-ne 0` → `-lt 0`, so it never records | 8 passed, 3 failed |
-| the guard fires on every input | `-ne 0` → `-ge 0` | 7 passed, 4 failed |
+| the guard fires on every input | `-ne 0` → `-ge 0` | 6 passed, 5 failed |
 | one call site bypasses the guard | the front-matter parser's `awk` → `command awk` | 10 passed, 1 failed |
 
 The four are not redundant. Deletion and neutering are told apart by the bypass assertion,
@@ -288,7 +289,10 @@ observed: [same]
           FAIL and the gate says it failed rather than printing OK
                  expected: docs-lint: 1 failure(s).
                  actual:   docs-lint: 2134 failure(s).
-          [same]
+          FAIL and attributes it to an analyser that examined nothing
+                 expected: 1
+                 actual:   2134
+               (this awk exited 0 on the planted syntax error)
           FAIL the negative control: the same copy unmutated exits 0
                  expected: rc=0
                  actual:   rc=1
@@ -299,7 +303,12 @@ observed: [same]
                  expected: 0
                  actual:   2134
           [same]
-          docs-lint-gate-test: 7 passed, 4 failed.
+          --- the mutated run's stderr: 2139 line(s), at most 20 shown
+               FAIL check -  an analyser exited 0 and examined nothing; its last argument was 'documentation/00-constitution.md'
+               [...] eighteen more of the same shape
+               FAIL check -  an analyser exited 0 and examined nothing; its last argument was '/var/folders/mg/c8xtgk197f74w3r78q7_9sfc0000gn/T/tmp.0TzmnUUVld/fm.tsv'
+          [same]
+          docs-lint-gate-test: 6 passed, 5 failed.
 exit:     1
 
 mutation: the front-matter parser's `awk` rewritten as `command awk`
@@ -331,7 +340,7 @@ observed: bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
           [...]
           docs-lint-gate-test: 11 passed, 0 failed.
           [...]
-          BUILD SUCCESSFUL in 33s
+          BUILD SUCCESSFUL in 48s
           161 actionable tasks: 7 executed, 154 up-to-date
 exit:     0
 ```
@@ -358,9 +367,18 @@ observed: docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
           ok   a destroyed analyser makes the gate exit non-zero
           ok   and the gate says it failed rather than printing OK
           ok   and attributes it to an analyser that examined nothing
+               (this awk exited 2 on the planted syntax error)
           ok   the negative control: the same copy unmutated exits 0
           ok   and prints the OK line
           ok   and writes nothing at all to stderr
+
+          --- the mutated run's stderr: 6 line(s), at most 20 shown
+               awk: syntax error at source line 4
+                context is
+               	    removed = >>>  = <<<  1
+               awk: illegal statement at source line 4
+               awk: illegal statement at source line 4
+               FAIL check -  an analyser exited 2 and examined nothing; its last argument was '/var/folders/mg/c8xtgk197f74w3r78q7_9sfc0000gn/T/tmp.e7k149j7Lj/bean-edges.uniq'
 
           --- the guard covers every call site, because no call site opts in
           ok   the guard's own call is the only site that bypasses it
@@ -369,13 +387,51 @@ observed: docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
 exit:     0
 ```
 
+### The CI observation, and what it changed
+
+`bean:0118` recorded "could not verify: the boundary on the CI image" and marked it the
+figure most likely to be wrong. The first CI run of this branch is that measurement, and it
+found something: on the runner the gate went red **correctly** and one assertion in this
+file failed, because the assertion had the analyser's exit **status** written into it and
+that status is the interpreter's, not the gate's.
+
+```
+head:     7d3892c, GitHub Actions run 33905404724, job 101129080076, ubuntu-latest
+cmd:      ./gradlew qualityCheck --stacktrace -x backofficeTypecheck -x backofficeLint -x backofficeFormatCheck
+observed: docs-lint-gate-test: interpreter /bin/bash (bash 5.2.21(1)-release)
+          [...]
+          ok   a destroyed analyser makes the gate exit non-zero
+          ok   and the gate says it failed rather than printing OK
+          FAIL and attributes it to an analyser that examined nothing
+                 expected: 1
+                 actual:   0
+          ok   the negative control: the same copy unmutated exits 0
+          ok   and prints the OK line
+          ok   and writes nothing at all to stderr
+          [...]
+          docs-lint-gate-test: 10 passed, 1 failed.
+exit:     1 (Execution failed for task ':docsLintGateTest')
+```
+
+The load-bearing half held on the runner: `a destroyed analyser makes the gate exit
+non-zero` and `the gate says it failed rather than printing OK` both passed under bash
+5.2.21, so the fix works there and the defect is closed there. What did not hold was
+`exited 2`, which was written from the BSD awk macOS ships. The assertion now requires the
+attribution — one failure, named as an analyser that examined nothing — and **reports** the
+status beside it instead of fixing it, because a number that differs per image is a
+measurement and not a requirement. The mutated run's stderr is now printed in full (capped
+at twenty lines), so the next difference of this kind is visible in the log rather than
+only in an assertion's `actual:`.
+
+Not verified: what status the runner's `awk` actually exits with. The failing run predates
+the line that reports it, so the number is not in any log yet; the CI run of the fix will
+print it.
+
 ## Not verified here
 
-**The boundary on the CI image.** Every capture above ran under `/bin/bash` 3.2.57 on
-macOS. `tools/docs-lint-gate-test.sh` runs the probes under `$BASH`, which is bash 5 on the
-Linux runner, so the CI run of this pull request is the first observation of this plant
-under that interpreter — but it is an observation of one row, not of `bean:0118`'s table,
-and the rest of that table is `bean:0124`.
+**The rest of `bean:0118`'s boundary on the CI image.** The plant above is now observed on
+the runner, under bash 5.2.21 — one row of that table, and the row this work item is about.
+The other twelve rows have still never been run there. `bean:0124`.
 
 **That every one of the twenty-two analysers reaches the guard.** One is observed doing so.
 The other twenty-one rest on the guard's shape and on the bypass assertion, neither of which

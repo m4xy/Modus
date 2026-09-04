@@ -110,8 +110,16 @@ check "a destroyed analyser makes the gate exit non-zero" \
   "rc=1" "rc=$mutant_rc"
 check "and the gate says it failed rather than printing OK" \
   "docs-lint: 1 failure(s)." "$(head -1 "$TMP/mutant.out")"
+
+# The STATUS the analyser exits with is the interpreter's, not this gate's: it was 2 under
+# the BSD awk macOS ships and this assertion was written against that number, which made it
+# the only assertion in this file that failed on the CI runner while the gate itself went
+# red correctly (bean:0123). What is asserted is the attribution — one failure, named as an
+# analyser that examined nothing — and the status is reported beside it rather than fixed,
+# because a number that differs per image is a measurement and not a requirement.
 check "and attributes it to an analyser that examined nothing" \
-  "1" "$(grep -c 'an analyser exited 2 and examined nothing' "$TMP/mutant.err")"
+  "1" "$(grep -c 'an analyser exited [0-9][0-9]* and examined nothing' "$TMP/mutant.err")"
+echo "     (this awk exited $(sed -n 's/.*an analyser exited \([0-9][0-9]*\) .*/\1/p' "$TMP/mutant.err" | head -1) on the planted syntax error)"
 
 check "the negative control: the same copy unmutated exits 0" \
   "rc=0" "rc=$control_rc"
@@ -119,6 +127,13 @@ check "and prints the OK line" \
   "docs-lint: OK" "$(head -1 "$TMP/control.out" | cut -c1-13)"
 check "and writes nothing at all to stderr" \
   "0" "$(grep -c . "$TMP/control.err")"
+
+# Printed, not only asserted on. An assertion says whether a line matched; this says what
+# the plant actually produced, which is what a reader needs when the same plant behaves
+# differently under a different awk — and it did (bean:0049, bean:0123).
+echo
+echo "--- the mutated run's stderr: $(grep -c . "$TMP/mutant.err") line(s), at most 20 shown"
+head -20 "$TMP/mutant.err" | sed 's/^/     /'
 
 echo
 echo "--- the guard covers every call site, because no call site opts in"
