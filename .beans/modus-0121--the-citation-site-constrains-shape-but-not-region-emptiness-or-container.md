@@ -202,6 +202,15 @@ under criterion 9. The figures taken at `5a625fc` are left where they are and no
 `2bcd9aa`: a figure is a record of a run, and re-labelling one is the failure this bean's own
 evidence rules exist to prevent.
 
+**The SECOND review round has its own head, `eabd009`,** and every figure it produced names it:
+the seam measurement and the `SUBSEP` measurement under criterion 8, the whole mutation table
+re-taken under criterion 2, the corpus differential under criterion 4, the portability figures
+under criterion 8, and `qualityCheck` under criterion 9. It found one defect, in the evidence
+cell mask this bean added — **the mask deleted the cell instead of replacing it**, which spliced
+the cut cell's two neighbours together and made the mask ANSWER a criterion cited from no cell
+of the file. The round is recorded under criterion 8 with the constraint it belongs to; the
+figures the first round took are left where they are and not restated.
+
 **All four residuals still reproduce at `3b02871`**, unchanged, over a corpus that has grown
 to 110 beans. Two details of the `## Observed` section did not survive re-measurement and are
 corrected under criterion 1 and criterion 8 below rather than quietly worked around.
@@ -512,6 +521,46 @@ three probes and five members in the meet, and each set was said to be purely co
 purely rejections when neither is. A count of a set is the claim that goes stale without
 anyone noticing.
 
+**The whole table above expired at `eabd009`, and is re-taken rather than adjusted.** The
+second review round added five assertions, so every figure this bean recorded is a reading of a
+71-assertion suite and the suite has 76. The re-measurement is the same named edits applied to
+the same mirror, run at `eabd009`:
+
+```
+none                   rc=0  docs-lint-test: 76 passed, 0 failed.
+classifier-only        rc=1  docs-lint-test: 64 passed, 12 failed.
+citation-site-only     rc=1  docs-lint-test: 55 passed, 21 failed.
+scanner-deleted        rc=1  docs-lint-test: 57 passed, 19 failed.
+b0121-deleted-whole    rc=1  docs-lint-test: 62 passed, 14 failed.
+region-off             rc=1  docs-lint-test: 70 passed,  6 failed.
+emptiness-off          rc=1  docs-lint-test: 72 passed,  4 failed.
+cell-off               rc=1  docs-lint-test: 69 passed,  7 failed.
+whitespace-blind       rc=1  docs-lint-test: 75 passed,  1 failed.
+no-intable             rc=1  docs-lint-test: 69 passed,  7 failed.
+intable-sticky         rc=1  docs-lint-test: 75 passed,  1 failed.
+allkinds-off           rc=1  docs-lint-test: 75 passed,  1 failed.
+isevcol-true           rc=1  docs-lint-test: 74 passed,  2 failed.
+isevcol-false          rc=1  docs-lint-test: 59 passed, 17 failed.
+noevcol-forced         rc=1  docs-lint-test: 43 passed, 33 failed.
+cut-deletes            rc=1  docs-lint-test: 72 passed,  4 failed.
+```
+
+Three things in that table are not arithmetic. **`allkinds-off` has moved off `rc=0`** — it was
+the last mutation that could disable a mechanism outright behind a completely green suite, and
+the row pin added this round kills it; `bean:0087` still owns the mechanism and the gap is
+narrowed rather than closed, which is stated on those terms in `tools/docs-lint-test.sh`.
+**`cut-deletes` is new** and is the defect this round found, described under criterion 8.
+**`classifier-only` moved for a second reason**: the mutation as this bean described it has two
+readings, and a toggle that maintains `FENCE_IN`/`FENCE_LINE` — so the kept
+`fence_unterminated()` still reports — scores one failure fewer than one that does not. The
+reading is now written down beside the figure instead of being re-derived each time.
+
+The three constraint sets are re-enumerated in `tools/docs-lint-test.sh` at `eabd009`. What
+changed in their SHAPE, which is what this criterion asks about rather than the counts: `region`
+and `cell` now meet in THREE `texts` probes rather than two, because the round's probe is a
+third one; `emptiness` still touches no probe; `region` and `emptiness` are still disjoint and
+so are `emptiness` and `cell`. No pair is held up by a single shared assertion.
+
 ### Criterion 3
 
 What counts as content under a citing heading is **a non-blank line**, and the alternative
@@ -544,7 +593,13 @@ evidence-kind name passes. Cell strength is `bean:0087` and this bean does not r
 ### Criterion 4
 
 Every bean in `.beans/` measured before and after, named and not counted. At `5a625fc` the
-corpus is 111 beans, including the one this change raises:
+corpus is 111 beans, including the one this change raises.
+
+**Re-taken at `eabd009`**, because the second review round changed what the mask writes and a
+corpus figure is expired by default: `111 compared, 1 differing` against `494f174`, the same
+single bean and no other, and `111 compared, 0 differing` against `5cf9c58` — the round moves
+nothing in the corpus at all. Both runs are under criterion 8 with the change they measure. The
+`5a625fc` figure below is left as it was taken:
 
 ```
 $ bash <scratch>/corpus.sh <3b02871 analyser> <HEAD analyser>
@@ -660,7 +715,24 @@ $ git diff --stat origin/main...HEAD -- documentation/
  1 file changed, 67 insertions(+), 28 deletions(-)
 ```
 
-Four paragraphs changed, not one appended. The "converse is not checked" paragraph now reads
+Re-taken at `eabd009`, after the second review round rewrote two of the document's claims:
+
+```
+$ git diff --stat origin/main...HEAD -- documentation/
+ documentation/05-authoring-for-agents.md | 108 +++++++++++++++++++++++--------
+ 1 file changed, 80 insertions(+), 28 deletions(-)
+```
+
+**Two of the document's sentences were false and are corrected rather than softened.** *Each
+failing closed* now reads *each written to fail closed*, because `cell` did not: the mask
+manufactured an answer, which is under criterion 8. And *the rest of the row is read* now says
+what is actually read — the rest of the row either side of a **barrier** standing where the cell
+was — because the rest, spliced, is a different thing from the rest, and the difference was the
+defect. A new paragraph states the replace-don't-delete rule and why the barrier has to be a
+letter. The identical correction is made in `tools/lib/docs-lint-c14.awk`, which carried the
+same flat `all three fail CLOSED` claim.
+
+Four paragraphs changed on the first round, not one appended. The "converse is not checked" paragraph now reads
 "is now checked" and says what the analogue is. The "at column zero is a qualifier and it has
 a price" paragraph is rewritten in the past tense with the cell condition named as what closed
 it. The "what the rule is not" paragraph hands the container residual to `bean:0129`. Check 14's
@@ -773,7 +845,125 @@ unconditionally and a residual would make it conditional in prose too. `rowcells
 place a row's cells are decided, and the header scan and the `EMPTYCELL`/`HOLLOW` path use it
 as well, so the two halves cannot drift apart. What survives the cut is asserted directly, not
 inferred from an absence: `citation text: the escape is counted as cell content, not as a cell
-boundary` reads `| 3 | three ` and nothing else.
+boundary` reads `| 3 | three |z` and nothing else — at `2bcd9aa` it read `| 3 | three `, and the
+`|z` is the barrier described in the next section, which did not exist then.
+
+**`rowcells()` has three call sites and only one of them was pinned.** The cut is one caller;
+the other two are the HEADER, where `evcol` is chosen, and the `EMPTYCELL`/`HOLLOW` bound below
+it. Both moved from `split()` with the bound `i < n` to `rowcells()` with `i <= last` in this
+bean, and no assertion saw either. Two fixtures pin them at `eabd009`, each stated as a verdict
+DIFFERENCE against `494f174` because that is what a pin on a changed path is for:
+
+```
+# | # | criterion | evidence      <- header with NO TRAILING PIPE, then `| 3 | three |  |`
+at 494f174:   NOEVCOL	Evidence
+              STATS	3	0
+at eabd009:   EMPTYCELL	3
+              UNANSWERED	1
+              UNANSWERED	2
+              STATS	3	0
+
+# | 3 | three | command           <- row with NO TRAILING PIPE, cell holding only a kind name
+at 494f174:   UNANSWERED	1
+              UNANSWERED	2
+              STATS	3	0
+at eabd009:   HOLLOW	3	command
+              UNANSWERED	1
+              UNANSWERED	2
+              STATS	3	0
+```
+
+Both are pins on the CELL SELECTION and neither is a test of what `allkinds()` decides or of
+what `isevcol()` recognises; `bean:0087` still owns those. The second one has a consequence
+worth naming on its own: `allkinds-off` — HOLLOW detection disabled outright — scored `rc=0`,
+`71 passed, 0 failed` against every earlier state of this suite and now scores `rc=1`,
+`75 passed, 1 failed`. That was the last mutation in `tools/docs-lint-test.sh`'s table that
+could delete a mechanism behind a completely green run, and it is `bean:0087`'s to hear about.
+
+**THE MASK MANUFACTURED A CITATION, which is the defect the second review round found.** The
+mask DELETED the evidence cell from the reconstructed row. Deleting it makes the cut cell's two
+neighbours adjacent, and the matcher spans the seam:
+`criteri(on|a)[^0-9a-z]*[0-9]+` skips any run of characters that are neither digit nor letter,
+and the `|` the mask writes between surviving cells is one of them. The fixture is a
+three-criterion bean whose evidence column is in the MIDDLE:
+
+```
+| # | claim | evidence | runs |
+|---|---|---|---|
+| 1 | covers both criteria | ran the suite | 3 runs |
+```
+
+```
+########## awk
+### 494f174 (base)
+UNANSWERED	2
+UNANSWERED	3
+STATS	3	0
+### 5cf9c58 (the branch as reviewed)
+UNANSWERED	2
+STATS	3	0
+### 5cf9c58 with the cell replaced by SUBSEP
+UNANSWERED	2
+STATS	3	0
+### eabd009 (CUTCHAR)
+UNANSWERED	2
+UNANSWERED	3
+STATS	3	0
+[... gawk and mawk agree line for line with awk on all four states ...]
+```
+
+The deleting form read `| 1 | covers both criteria | 3 runs `, matched `criteria | 3`, and
+answered **the third criterion from a citation standing in no cell of the file**: the word is in
+the claim column, the digit is in the runs column, and the evidence cell that separated them is
+the one thing this condition says not to read. Fail-OPEN, in the mechanism whose stated property
+is the opposite. Row 1 is numbered, so the first criterion is answered through the evidence-row
+path in every run above — that is what stops the rejection being produced by a mask that reads
+nothing.
+
+**The barrier is a lowercase letter, and `SUBSEP` was measured not to do.** `SUBSEP` is what
+`rowcells()` already uses for an escaped pipe and is the obvious choice for a character no
+author wrote; the run above is why it is the wrong one. `\034` is neither a digit nor a
+lowercase letter, so `[^0-9a-z]*` swallows it exactly as it swallows the `|` and the seam stays
+open. The barrier has to be a character the matcher's own gap class EXCLUDES, and that class is
+`[^0-9a-z]`, so it must come from `[0-9a-z]`; and it must not be a digit, or the cut would
+supply the criterion NUMBER itself. That leaves the lowercase letters, and `CUTCHAR` is one. It
+cannot cite on its own account — it holds no digit, and `criteri(on|a)` is a contiguous literal,
+so a letter standing behind a `|` cannot complete one.
+
+**Why 71 assertions could not see it.** Every table in `tools/docs-lint-test.sh` — seventeen
+delimiter rows — put its evidence-ish column LAST, so no cut in the file had a right-hand
+neighbour and a mask that deletes and one that replaces were indistinguishable to all of them.
+That file already named this blind spot one mechanism over, for `isevcol-TRUE`: *the probe
+fixture's `evidence` column is the LAST column*. It was not carried across. The rejection added
+this round puts the column in the middle, with a control that the rest of a middle-cut row is
+still read and a probe that prints the barrier standing between the neighbours; the same fixture
+incidentally makes `isevcol-TRUE` move the mask for the first time, which is recorded as
+incidental in that file rather than claimed as coverage.
+
+**The fix moves no bean.** The whole corpus, `5cf9c58` against `eabd009`, same command:
+
+```
+111 compared, 0 differing  (5cf9c58 vs CUTCHAR)
+```
+
+So the defect was latent and not live, and the barrier is not a behaviour change to anything in
+`.beans/` — which is the reason it needed a fixture rather than a corpus run to find. Against
+`494f174` the branch still moves exactly the one bean named under criterion 4 and no other:
+
+```
+DIFFERS modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md
+111 compared, 1 differing  (494f174 vs CUTCHAR)
+```
+
+Portability, at `eabd009`, because the barrier is a new character in a string every awk builds:
+
+```
+awk                          docs-lint-test: 76 passed, 0 failed.
+gawk                         docs-lint-test: 76 passed, 0 failed.
+mawk                         docs-lint-test: 76 passed, 0 failed.
+
+111 beans, 0 differing across awk/gawk/mawk
+```
 
 **The case sacrificed, and it is a real one.** A row that records a run and names, in its
 evidence cell, a span of criteria that run genuinely covers no longer answers that span. It is
