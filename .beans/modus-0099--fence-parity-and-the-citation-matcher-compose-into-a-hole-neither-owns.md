@@ -235,6 +235,76 @@ only that it decides correctly once reached.** A verdict assertion proves what a
 decides. It cannot distinguish "decided correctly" from "never ran and the expected output
 happened to match", and in this chain those two are one `NOEVCOL` away from each other.
 
+## The matcher half is closed by `bean:0093`, and the row that says otherwise is stale
+
+`bean:0093` narrows `citation_site()` to a structural site — a heading, or a row of a table
+the analyser has entered — so running prose is not read for citations at all. **That closes
+the matcher half of this composition outright, including the range form this bean singles out
+as the one that does the most damage per line.** The laundering shape with balanced markers,
+so that no unterminated fence exists and the classifier is not what decides:
+
+```
+cmd:      the check 14 analyser over a five-criterion bean whose `## Evidence` holds a
+          transcript at column zero reading
+            FAIL check 14 .beans/modus-0033: criteria 1-5 are not answered in the evidence
+          run against the merge base 1c19cf0 analyser, then against aa4e64f
+observed: 1c19cf0:  STATS	5	0
+          aa4e64f:  UNANSWERED	1
+                    UNANSWERED	2
+                    UNANSWERED	3
+                    UNANSWERED	4
+                    UNANSWERED	5
+                    STATS	5	0
+exit:     0
+```
+
+One phrase naming a span of five closed five before and closes none after.
+
+**The fourth row of the table under *"Which fix closes it"* no longer reproduces, and it is
+the row a later agent is most likely to act on.** It reads *"its citation-site requirement
+alone — `docs-lint: OK`, exit 0, HOLE OPEN"*, and that measurement was taken against
+`bean:0063`'s citation-site requirement, which was an EXCLUSION rule: every line is a site
+except one indented four columns or led by `>`. `bean:0093` replaced it with a positive rule,
+and the answer inverts. The composed plant — one stray line-initial marker, odd parity — with
+the classifier's unterminated-fence refusal suppressed and nothing else changed:
+
+```
+cmd:      the composed plant, `fence_unterminated()` forced to 0 so the refusal cannot be
+          what closes it, against each citation rule in turn
+observed: the 1c19cf0 citation rule:  STATS	5	0                     HOLE OPEN
+          the aa4e64f citation rule:  UNANSWERED	1 .. UNANSWERED	5  closed
+                                      STATS	5	0
+exit:     0
+```
+
+**The refusal is still not redundant, and the reason has changed.** What it now protects is
+the other direction — `bean:0063`'s fails-CLOSED plant, where one stray marker hides a filled
+evidence table and the bean is reported as having no evidence rather than as having pasted
+some. That is pinned in `tools/docs-lint-test.sh` as *"a stray marker above a filled table is
+named, not reported as missing evidence"*. So the warning two paragraphs above this one —
+*"a later agent reading that a citation must stand in top-level prose could reasonably
+conclude the refusal is belt-and-braces and drop it"* — survives, but the measurement backing
+it does not, and re-running that row as written would measure a rule this repository no longer
+contains. Re-measure against `aa4e64f`, or drop the row.
+
+Two success criteria below are affected and neither is reworded here, because this bean is
+`todo` and the agent that closes it owns that decision:
+
+- The second, which asks for that measurement to be reproduced and recorded where a later
+  agent removing the refusal would read it. The measurement now says the opposite; the
+  obligation it carries — record why the refusal stays — is discharged by the paragraph above
+  and needs re-recording rather than re-deriving.
+- The fourth, which asks that the accidental instance — a criterion pre-answered by prose
+  about it, no marker involved — is either closed or handed to `bean:0061`. It is **closed**:
+  prose is no longer read. `bean:0087`'s fourth criterion, the instance this bean names — it
+  was unmerged when that section was written and is on `main` now — is prose about a criterion
+  number and answers nothing after `bean:0093`.
+
+What this bean still owns is untouched: the composed fixture in `tools/docs-lint-test.sh`, the
+upstream `NOEVCOL` masking direction, and the reached-not-only-correct property for chains.
+`bean:0121` is adjacent and is not this bean — it owns three residuals of the citation rule
+itself, not a composition between two mechanisms.
+
 ## Success criteria
 
 | # | criterion | evidence kind |

@@ -342,6 +342,31 @@ edited:
   Every planted run.
 - **the branch head** — everything, including this section. The re-measurement at the end.
 
+**`45 selectable` in the criterion 1 and 2 captures is the PLANT, not a difference between the
+two heads.** The plant flips `.beans/modus-0033` `todo → completed`, and that bean is
+selectable, so every planted run reports one fewer than an unplanted one. Both heads report
+46, and anyone diffing the number across this bean would otherwise read a change that is not
+there:
+
+```
+cmd:      /bin/bash tools/docs-lint.sh, over the merge base 1c19cf0 extracted to a
+          scratch tree — no `.git`, so the diff-shaped checks report `-`
+observed: docs-lint: OK — 19 documents, 111 anchors, 1552 references, 102 beans, 37 graph edges, 46 selectable, 102 bean ids, - introduced, - on origin/main, - closing transitions, - criteria checked, - unnumbered.
+exit:     0
+
+cmd:      the same tree with modus-0033 flipped to `completed`, which is the plant
+observed: docs-lint: OK — 19 documents, 111 anchors, 1552 references, 102 beans, 37 graph edges, 45 selectable, 102 bean ids, - introduced, - on origin/main, - closing transitions, - criteria checked, - unnumbered.
+exit:     0
+
+cmd:      /bin/bash tools/docs-lint.sh at aa4e64f, in the worktree
+observed: docs-lint: OK — 19 documents, 111 anchors, 1557 references, 102 beans, 36 graph edges, 46 selectable, 102 bean ids, 0 introduced, 102 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+exit:     0
+```
+
+One flag moves and it is the one the plant sets. The scratch tree is a `git archive` extract
+precisely so that no `git checkout -- .beans` runs anywhere near a worktree holding
+uncommitted edits (`bean:0102`, `bean:0116`).
+
 ### Criterion 1 — the plant is observed rejected
 
 Planted on `.beans/modus-0033`, a `status: todo` bean, by flipping its status to `completed`
@@ -425,13 +450,94 @@ function citation_site(line) {
 ```
 
 The before accepts every line and subtracts two containers by name. The after accepts two
-sites and names no container at all, so the escapes are refused without being enumerated: the
-raw `<pre>`, the HTML comment, the `<details>` wrapper, the lazy block-quote continuation, the
-list item, the front matter and the pasted transcript at column zero are all simply not
-headings and not table rows. `intable` is the analyser's own table state, which is why a
-`|`-leading line inside a raw HTML block is not a table row either — the plain
-`line ~ /^\|/` form was measured too and gives byte-identical verdicts over all 102 beans, so
-the stricter form was taken at no cost.
+sites and names no container at all, so the escapes are refused without being enumerated: a
+pasted transcript at column zero is not a heading and not a table row, in a raw `<pre>`, in an
+HTML comment, in a `<details>` wrapper, in a lazy block-quote continuation, in a list item, in
+the front matter, or in no container at all.
+
+**This criterion is NOT met as worded, and the wording is left alone rather than adjusted to
+fit what shipped** (`bean:0113`). It asks that the adopted rule reject *"the container class
+by construction"*. It does not. `citation_site()` receives the line and one flag of the
+analyser's own state; it holds no raw-HTML-block state and cannot refuse a container. What it
+rejects is a SHAPE — running prose — and a container is refused only insofar as its contents
+have that shape. Reproduced at `aa4e64f` on a four-criterion bean whose criterion 1 alone is
+genuinely answered:
+
+```
+cmd:      awk -v KINDS=… -f tools/lib/docs-lint-fence.awk -f tools/lib/docs-lint-c14.awk
+          <a bean carrying `# criterion 2 is not answered in the evidence` inside <pre>,
+          `# criterion 3 …` inside <details><pre>, and `# criterion 4 …` inside an HTML
+          comment>
+observed: STATS	4	0
+exit:     0
+```
+
+No `UNANSWERED`. The same bean with a Markdown table pasted inside a `<pre>` is entered too:
+the delimiter row sets `intable` wherever it stands. The `citation_site()` probe says which
+lines were read, and it is the direct measurement rather than an inference from the verdict:
+
+```
+cmd:      the citation-site probe over the same file, one decision per line
+observed: sites=Y.Y......Y.Y...Y..Y....Y....Y....YY.
+                        ^19    ^24    ^29      ^34^35
+          19  # criterion 2 …   inside <pre>
+          24  # criterion 3 …   inside <details><pre>
+          29  # criterion 4 …   inside an HTML comment
+          34  |---|---|---|     the delimiter row of a table inside <pre>
+          35  | 4 | four | …    the row it admits
+exit:     0
+```
+
+Two halves of the criterion ARE met and are worth separating from the half that is not. The
+rule is a property and not a list: no container is named anywhere in `citation_site()`, and
+adding one would not change any verdict. And every wild instance and the plant are rejected,
+because all of them are prose. What is not met is the claim that the container class as such
+falls out of it.
+
+**Two resolutions were available and the claim was corrected rather than the mechanism
+narrowed.** Refusing those lines needs a model of which HTML blocks hold literal content —
+CommonMark §4.6's type 1, whose four tag names are the whole rule, and type 2's comment. That
+is an enumeration of containers, which is the allowlist this bean's own argument rejects, and
+it would be wrong in the other direction as well: a `#` heading inside `<details>` with blank
+lines around it renders as a heading to CommonMark and to GitHub, so "inside a container" and
+"not rendered as a heading" are different sets. A mechanism added under review pressure to
+make a sentence true is the worse of the two trades. The limit is now stated in
+`doc:05-authoring-for-agents#checks`, pinned as two `ACCEPTED` verdict assertions in
+`tools/docs-lint-test.sh`, written into the analyser's own comment, and owned by `bean:0121`.
+
+`intable` is kept, and the reason previously written here was false. It said the coupling is
+why *"a `|`-leading line inside a raw HTML block is not a table row"*; the run above shows a
+table inside a `<pre>` is entered exactly like any other. The true reason is narrower and
+holds: a `|`-leading line with **no delimiter row above it** is not a table row to any
+renderer either, and `line ~ /^\|/` alone would make one a citation site — a bean quoting a
+single row out of a transcript would answer the criterion that row names.
+
+```
+cmd:      the analyser over a one-criterion bean whose evidence is the single line
+          `| criterion 1 is not answered in the evidence`, shipped form then
+          `line ~ /^#+ / || line ~ /^\|/`
+observed: shipped:      UNANSWERED	1
+                        STATS	1	0
+          no intable:   STATS	1	0
+exit:     0
+```
+
+The reviewer measured the coupling to be decorative — `citation_site()` reduced to
+`line ~ /^#+ / || line ~ /^\|/` gives byte-identical verdicts over all 102 beans — and that
+measurement reproduces here at `aa4e64f`:
+
+```
+cmd:      the check 14 analyser over every bean file, shipped citation_site() against the
+          same function with the `intable` clause dropped, verdict sets diffed per file
+observed: beans compared: 102
+          files differing: 0
+exit:     0
+```
+
+Both are true and they are not in tension: the coupling is decorative **over today's corpus**,
+which contains no bare pipe-led line carrying a citation, and load-bearing over the shape
+above. The suite no longer relies on the corpus to say so. `citation-site-no-intable` is now a
+measured mutation in `tools/docs-lint-test.sh`'s header and scores `45 passed, 3 failed`.
 
 The rule as adopted is stated at `doc:05-authoring-for-agents#checks`; see criterion 6.
 
@@ -563,7 +669,38 @@ observed: none                       rc=0  docs-lint-test: 43 passed, 0 failed.
 `citation-scanner-deleted` now fails, which it could not before. `isevcol-true` was one of two
 mutations that made check 14 accept beans it should reject with the suite completely green;
 it is now caught, incidentally rather than by design, and the file says so. `allkinds-off`
-remains a green fail-open and is untouched by this bean.
+remains a green fail-open; it is untouched by this bean and the suite header now names
+`bean:0087` as the work item that closes it, which `doc:00-constitution#observed-failing`
+requires of a demoted gap and which the header had omitted.
+
+**Re-measured in review, because five assertions were added.** Two pin the container limit
+under criterion 3, two pin the `intable` coupling, and one is the second half of the raw-HTML
+citation-site fixture, whose name claimed a property its `<pre>` did not contain: it held one
+line of plain prose, so the `.` in its map was the prose rule answering and the fixture read
+identically with the `<pre>` tags deleted. Taken at `aa4e64f` plus this change's `tools/` and
+`documentation/` edits, with this block absent; the run at the head that carries it is on the
+pull request body.
+
+```
+cmd:      each mutation applied to a copy of tools/, then /bin/bash tools/docs-lint-test.sh
+observed: none                       rc=0  docs-lint-test: 48 passed, 0 failed.
+          classifier                 rc=1  docs-lint-test: 36 passed, 12 failed.
+          citation-site-off          rc=1  docs-lint-test: 33 passed, 15 failed.
+          citation-site-no-intable   rc=1  docs-lint-test: 45 passed, 3 failed.
+          citation-scanner-deleted   rc=1  docs-lint-test: 43 passed, 5 failed.
+          isevcol-true               rc=1  docs-lint-test: 47 passed, 1 failed.
+          isevcol-false              rc=1  docs-lint-test: 46 passed, 2 failed.
+          allkinds-off               rc=0  docs-lint-test: 48 passed, 0 failed.
+```
+
+`citation-site-no-intable` is a new mutation and it is the answer to the review finding that
+the coupling is decorative. It scores `45 passed, 3 failed`, so the coupling is now covered by
+assertion rather than by the corpus happening not to contain the shape. `isevcol-false` moved
+from one failure to two: the `intable` control table carries an `evidence` header, so a
+mutation that stops recognising it is caught there too — incidental again, and recorded as
+incidental. The five that fail under `citation-scanner-deleted` are named in the suite header;
+`ACCEPTED: a Markdown table pasted inside <pre> is entered like any other` is deliberately not
+one of them, because its row is numbered and the evidence-row path answers it.
 
 **The accepted boundary, asserted rather than left to be discovered.** The matcher still reads
 the presence of a number and never the polarity of the claim around it — this change removed
@@ -576,6 +713,55 @@ assertion — "accepted: a heading that denies its criterion still answers it" �
 `doc:05-authoring-for-agents#checks`, so the day it stops being acceptable it is visible.
 
 ### Criterion 6 — the rule is stated
+
+**Corrected in review, because the first version stated enforcement the check does not have.**
+It said the excluded containers *"are deliberately not enumerated"* and that a raw HTML block,
+an HTML comment and a `<details>` wrapper *"all fail it by construction"*. They do not; see
+criterion 3. What stands now says the rule tests a line's SHAPE and models no container,
+names the three residuals, and points at `bean:0121`. The `Enforced by:` paragraph is
+qualified in the same edit: every plant it lists put the citation on a line of PROSE inside a
+container, and prose is what was rejected. Two further corrections in the same pass, neither
+of them about this rule: a heading here means an ATX heading, so a **bold line** and a
+**Setext** heading are not sites; and the recommendation to file the citation as a sub-heading
+now carries the emptiness and region residuals beside it, since recommending the shape is what
+promotes them from accident to convention.
+
+Bold is named because it is what authors actually write, and that is measured rather than
+supposed. Over `.beans/` at `1c19cf0` — the merge base, so the narrowing's live cost and not
+this branch's:
+
+```
+cmd:      every line of every bean file that was a citation site under the 1c19cf0 rule, is
+          not one under this change's rule, and carries a check 14 matcher hit, classified
+          by shape
+observed: lost citation sites carrying a matcher hit: 143
+            prose    131
+            bold      10
+            ordered    2
+            bullet     0
+            setext     0
+          bold     .beans/modus-0030--domainmgmt-domain-aggregate.md:223
+          bold     .beans/modus-0049--bash-32-claim-is-unenforced.md:487
+          bold     .beans/modus-0049--bash-32-claim-is-unenforced.md:491
+          bold     .beans/modus-0049--bash-32-claim-is-unenforced.md:519
+          bold     .beans/modus-0055--evidence-required-to-close-a-bean.md:310
+          bold     .beans/modus-0063--fence-state-inversion-in-the-check-14-analyser.md:311
+          bold     .beans/modus-0065--ambient-capability-ports.md:122
+          bold     .beans/modus-0068--encode-sprint-1-findings.md:351
+          bold     .beans/modus-0069--per-request-usage-is-the-published-vocabulary.md:169
+          bold     .beans/modus-0116--the-plant-hazard-recurs-through-the-capture-procedure.md:136
+          ordered  .beans/modus-0049--bash-32-claim-is-unenforced.md:848
+          ordered  .beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md:214
+exit:     0
+```
+
+131 of 143 are running prose, which is the narrowing working. **Ten are bold pseudo-headings**,
+named rather than counted above, and they are the cost an author pays without being told —
+which is why `doc:05` now says so. Setext is a latent regression only: the analyser never
+tracked it and no bean in the corpus uses it, so nothing is lost today and the day one is
+written it is unanswered silently. The same run over `documentation/**` as well adds one
+bullet, `documentation/70-skills.md:357`, which check 14 never reads; the figure above is
+`.beans/` alone because that is the corpus the check examines.
 
 `documentation/05-authoring-for-agents.md`. The `Enforcement gap:` paragraph is deleted rather
 than reworded: it existed because the rule was a property and the check was a list, and that
@@ -657,3 +843,22 @@ structural sites, so the change does not move its own verdict.
 - Whether an evidence cell's *contents* are evidence at all (`bean:0087`). This bean is about
   where a citation may stand, not what a cell must hold.
 - The numbering gate itself (`bean:0061`), and the three escape routes it records.
+- The composition of fence parity with the citation matcher (`bean:0099`). That bean's
+  **matcher half is closed outright** by this change — a range citation in a prose transcript
+  no longer answers anything, and the row in its options table reading *"its citation-site
+  requirement alone … HOLE OPEN"* was measured against `bean:0063`'s exclusion rule and
+  inverts under this one. Both are recorded there with the runs, in the section it gained
+  here, beside the note `bean:0061` gained. What that bean still owns — the composed fixture,
+  the upstream `NOEVCOL` masking, the reached-not-only-correct property — is untouched.
+- The three residuals of the rule this bean adopts, all of them raised as `bean:0121` and none
+  of them closed here: a heading- or row-shaped line inside a raw HTML block is a citation
+  site, a citing heading is not required to stand inside the evidence region, and it is not
+  required to have anything under it. The third criterion above is not met as worded because
+  of the first; the section under it says so and does not reword the criterion.
+- The matcher's polarity blindness, which is unchanged and is **kept deliberately**. The
+  defect this bean closed was *laundering* — a machine-generated string flowing out of the
+  tool's stdout and back into the tool with nobody deciding anything. A heading an author
+  types is *asserting*, under `doc:00-constitution` §7.4's mandatory independent review.
+  Reading polarity would be a blocklist of output patterns, which is the second option in the
+  table above and the shape `doc:00-constitution#mechanical-enforcement` records as failing
+  open on the first string nobody thought of.

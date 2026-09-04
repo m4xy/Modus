@@ -41,37 +41,61 @@
 # — and a single mutation leaves the second one unexercised while the suite still reports
 # green. Both are mutated here, separately:
 #
-#   classifier only      fence_classify replaced by the pre-bean:0063 toggle, the real
-#                        measurement helpers kept    ->  31 passed, 12 failed
+#   classifier only      fence_classify replaced by the pre-bean:0063 toggle: a single
+#                        in/out flag flipped by every line matching /^[ \t]*```/, returning
+#                        OPEN on the flip to in, CLOSE on the flip to out, IN between and
+#                        OUT elsewhere. READ tools/lib/docs-lint-fence.awk's header comment
+#                        for that shape — it is the only place the replaced toggle is
+#                        written down. The real measurement helpers are kept.
+#                                                    ->  36 passed, 12 failed
 #   citation site only   citation_site() returns 1 for every line, which is the
 #                        pre-bean:0093 rule with its two exclusions also removed
-#                                                    ->  30 passed, 13 failed
+#                                                    ->  33 passed, 15 failed
 #
 # Neither mutation reaches the other's assertions, which is the whole point: the second
 # mutation was added after the first was found to say nothing about the citation scanner.
 #
-# A third mutation is the complement of the second, and it is why the two negative controls
-# below exist. Narrowing the citation scanner and DELETING it are different faults, and
-# every rejection in this file passes under both:
+# A third mutation is the complement of the second, and it is why the negative controls below
+# exist. Narrowing the citation scanner and DELETING it are different faults, and every
+# rejection in this file passes under both:
 #
 #   citation scanner deleted   `s = ""`, so nothing is ever cited
-#                                                    ->  40 passed,  3 failed
+#                                                    ->  43 passed,  5 failed
 #
-# The three that fail are the only three assertions in this file that require something to BE
-# answered by the citation scan: the `### Criterion 1` sub-heading control, the evidence-row
-# control, and the accepted boundary below them. Before bean:0093 there was one such control
-# — a line of top-level PROSE — and bean:0093 turned that line into a rejection, because
-# prose is exactly what the narrowed rule refuses. Had it not been replaced, this mutation
-# would have scored the same as the real narrowing and the suite could not have told the two
-# apart.
+# The five that fail are the only five assertions in this file that require something to BE
+# answered by the CITATION SCAN: the `### Criterion 1` sub-heading control, the evidence-row
+# control, the accepted heading-that-denies boundary, the accepted heading-inside-a-container
+# limit, and the delimiter-row control under the `intable` pair. Before bean:0093 there was
+# one such control — a line of top-level PROSE — and bean:0093 turned that line into a
+# rejection, because prose is exactly what the narrowed rule refuses. Had it not been
+# replaced, this mutation would have scored the same as the real narrowing and the suite
+# could not have told the two apart.
+#
+# `ACCEPTED: a Markdown table pasted inside <pre> is entered like any other` deliberately
+# does NOT fail here: its row is numbered, so the evidence-row path answers it and the
+# citation scan is not what closes it. Recorded because it is the difference between a
+# control and a fixture that merely looks like one.
+#
+# A fourth mutation narrows the citation site by ONE clause, and it exists because a reviewer
+# measured that clause to be decorative over the corpus and it is not decorative here:
+#
+#   citation site, no intable  `line ~ /^#+ / || line ~ /^\|/`, the coupling to the
+#                              analyser's own table state dropped
+#                                                    ->  45 passed,  3 failed
+#
+# Over all 102 beans that form and the shipped form give byte-identical verdicts, which is a
+# fact about today's inputs. The three assertions above are the shape the corpus does not
+# contain: a `|`-leading line with no delimiter row over it, which is not a table row to any
+# renderer either.
 #
 # EVERY FIGURE ABOVE IS RE-MEASURED WHENEVER AN ASSERTION IS ADDED. They were recorded at
 # a 31-assertion suite, four assertions were added, and all four went stale at once — in a
 # comment block whose whole purpose is to say what the suite can detect. They went stale a
-# second time at bean:0093, which is why the mutations are now stated as edits anyone can
-# reapply rather than as a reference to `scratch/mutate.sh`, a script this repository does
-# not contain. Re-measure by making the edit named beside each figure and re-running this
-# file; do not edit a number.
+# second time at bean:0093, and a third time in that bean's review, when five assertions were
+# added for the container limit and the `intable` coupling; every figure moved. That is why
+# the mutations are stated as edits anyone can reapply rather than as a reference to
+# `scratch/mutate.sh`, a script this repository does not contain. Re-measure by making the
+# edit named beside each figure and re-running this file; do not edit a number.
 #
 # WHAT THIS SUITE DOES NOT COVER, stated because the sentence above would otherwise imply
 # it does. docs-lint-c14.awk owns five further mechanisms that no assertion here targets:
@@ -83,9 +107,9 @@
 # One of the five still fails OPEN with this suite completely GREEN, which is the sharp form
 # and is measured, not argued. It used to be two:
 #
-#   allkinds-off   HOLLOW detection disabled                   rc=0   43 passed, 0 failed
-#   isevcol-true   every column counts as an evidence column   rc=1   42 passed, 1 failed
-#   isevcol-false  no column ever counts                       rc=1   42 passed, 1 failed
+#   allkinds-off   HOLLOW detection disabled                   rc=0   48 passed, 0 failed
+#   isevcol-true   every column counts as an evidence column   rc=1   47 passed, 1 failed
+#   isevcol-false  no column ever counts                       rc=1   46 passed, 2 failed
 #
 # `isevcol-true` was the second green fail-open until bean:0093, and nothing was done to
 # cover it: the evidence-row control added for the citation scan carries an `evidence kind`
@@ -99,6 +123,12 @@
 # without failing any; that does NOT reproduce — forcing `noevcol = 1` on every line gives
 # rc=1, 27 passed, 16 failed, so the suite does detect it. The corpus differential does catch
 # the fail-open, but that is a one-off run by hand and is not in the gate.
+#
+# ENFORCEMENT GAP, and it names its bean because doc:00-constitution#observed-failing requires
+# a demoted gap to name the work item that closes it: `allkinds()`/HOLLOW is what decides
+# whether an evidence cell holds evidence or only the NAME of an evidence kind, and that is
+# `bean:0087` (todo, high) — evidence-cell strength. Until it lands, the green line above is
+# a claim about the citation and fence mechanisms and not about the cell conditions.
 #
 # Fixtures are heredocs beside their assertions rather than a fixture directory: the
 # repository had no fixture location for docs-lint, and a fixture whose expected output
@@ -318,8 +348,30 @@ criterion 1 in running prose
 criterion 1 in a raw HTML block
 </pre>
 EOF
-sites "a heading and a row of an entered table are sites; prose and raw HTML are not" \
+sites "a heading and a row of an entered table are sites; prose is not, in or out of raw HTML" \
   "Y.Y..YY......"
+
+# THE FIXTURE ABOVE NAMES A PROPERTY IT DOES NOT TEST UNLESS THIS ONE STANDS BESIDE IT. Its
+# <pre> holds one line of plain prose — no `#`, no pipe — so `.` there is the PROSE rule
+# answering, not a container rule, and the fixture would read identically with the <pre> tags
+# deleted. citation_site() takes the line and one flag of the analyser's own state; it has no
+# raw-HTML-block state and cannot refuse a container. So both shapes are put inside a <pre>
+# here and both are SITES. This is the limitation asserted, not a defect newly introduced:
+# bean:0121 owns it, and the assertion is what makes the day it changes visible.
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Evidence
+
+<pre>
+# criterion 1 is not answered in the evidence
+| # | criterion | evidence |
+|---|---|---|
+| 2 | two | criterion 2 is not answered in the evidence |
+</pre>
+EOF
+sites "raw HTML is NOT modelled: a heading-shaped and a row-shaped line inside <pre> are sites" \
+  "Y.Y..Y.YY."
 
 cat > "$FIX" <<'EOF'
 ### Criterion 1
@@ -861,6 +913,127 @@ FAIL check 14: criterion 1 is not answered in the evidence
 EOF
 decides "a backtick in the info string does the same" \
   "$(printf 'UNANSWERED\t1\nSTATS\t1\t0')"
+
+# --- ACCEPTED, and pinned as a verdict: containers are refused by SHAPE, not modelled -----
+#
+# The six rejections above are all PROSE inside a container, and every one of them would read
+# the same with the container deleted. citation_site() receives the line and one flag of the
+# analyser's own state; it holds no raw-HTML-block state, so it cannot refuse a container. Put
+# a heading-shaped or row-shaped line inside the same containers and it is a site.
+#
+# This is the LIMIT of what bean:0093 narrowed, asserted here rather than left for a reviewer
+# to find. By this file's own rule it is a DEFECT and not a residual — a residual claims the
+# divergence does not change the outcome, and this one DOES change it: the verdict below is a
+# green close on three criteria nothing answers. So it owes a bean, and the bean is bean:0121.
+# ACCEPTED, not DEFECT (open), records the second half: the decision not to close it in the
+# change that found it. Closing it needs a model of which HTML blocks hold literal
+# content, which is an enumeration of tag names — the allowlist the positive rule replaced —
+# and would be wrong in the other direction too: a `#` heading inside <details> with blank
+# lines around it renders as a heading to CommonMark and to GitHub alike.
+#
+# What the narrowing DOES still close is the shape it was raised for. Check 14's own stdout
+# is `FAIL check 14 …: criterion N is not answered in the evidence`, which is neither
+# heading- nor row-shaped, so pasting it into any of these containers answers nothing; the
+# `#` prefixes below had to be written by hand.
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+2. two
+3. three
+4. four
+
+## Evidence
+
+### Criterion 1
+
+the run, genuinely recorded here
+
+### The run
+
+<pre>
+# criterion 2 is not answered in the evidence
+</pre>
+
+<details><summary>run</summary>
+<pre>
+# criterion 3 is not answered in the evidence
+</pre>
+</details>
+
+<!--
+# criterion 4 is not answered in the evidence
+-->
+EOF
+decides "ACCEPTED: a heading-shaped line inside <pre>, <details> or an HTML comment answers" \
+  "$(printf 'STATS\t4\t0')"
+
+# The same, one layer out: a whole Markdown table pasted inside a <pre>. The delimiter row
+# sets `intable` wherever it stands, so the analyser enters the table and the row answers.
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+
+## Evidence
+
+### The run
+
+<pre>
+| # | criterion | evidence |
+|---|---|---|
+| 1 | one | criterion 1 is not answered in the evidence |
+</pre>
+EOF
+decides "ACCEPTED: a Markdown table pasted inside <pre> is entered like any other" \
+  "$(printf 'STATS\t1\t0')"
+
+# --- the `intable` coupling, which is load-bearing and was measured to be decorative -------
+#
+# Reduce citation_site() to `line ~ /^#+ / || line ~ /^\|/` and every one of the 102 beans in
+# the corpus gives a byte-identical verdict. That measurement is true and it is evidence about
+# TODAY'S INPUTS, not about the rule. The pair below is the shape the corpus does not happen
+# to contain: a `|`-leading line with no delimiter row above it, which is not a table row to
+# any renderer either. Without the coupling it is a citation site and closes the criterion it
+# reports unanswered; with it, it does not. The rejection is the assertion; the control below
+# is what stops the rejection being produced by a citation scanner that reads nothing.
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+
+## Evidence
+
+### The run
+
+| criterion 1 is not answered in the evidence
+EOF
+decides "a pipe-led line that is not a row of an entered table is not a site" \
+  "$(printf 'UNANSWERED\t1\nSTATS\t1\t0')"
+
+cat > "$FIX" <<'EOF'
+# a bean
+
+## Success criteria
+
+1. one
+
+## Evidence
+
+### The run
+
+| what | evidence |
+|---|---|
+| the run | criterion 1: `docs-lint: OK` |
+EOF
+decides "control: the identical line under a delimiter row IS a row, and answers" \
+  "$(printf 'STATS\t1\t0')"
 
 cat > "$FIX" <<'EOF'
 ~~~

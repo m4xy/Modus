@@ -224,7 +224,9 @@ check 14's six, its negative control and its observed CI failure in `bean:0055` 
 The citation rule below was observed rejecting a criterion cited from top-level prose, from a
 raw `<pre>`, from an HTML comment, from a `<details>` wrapper, from a line-initial inline code
 span and from a backtick info string, against negative controls for each of its two structural
-sites, in `bean:0093`.
+sites, in `bean:0093`. In every one of those the citation stood on a line of PROSE, which is
+what was rejected; the container was not, and the same containers holding a heading-shaped or
+row-shaped line are accepted. That is stated in full below and owned by `bean:0121`.
 
 Check 11 classifies by the `status:` on the **merge base**, not on the branch, and diffs the
 base against the **working tree**. A bean moving `in-progress` → `completed` in the change
@@ -283,17 +285,34 @@ conventions:
   Running prose is not a citation site, whatever it renders as. Write the citation as an
   evidence sub-heading — `### Criterion 3` — or in a cell of the evidence table.
 
-  The rule names where a citation may stand, and the containers it excludes are deliberately
-  **not** enumerated: a fence, a block quote, an indented chunk, a raw HTML block, an HTML
-  comment, a `<details>` wrapper, a link-reference or footnote definition, a list item and
-  anything else that renders as code, as a container or as nothing all fail it by
-  construction rather than by being listed. An enumeration would be an allowlist and would
-  fail on the first container nobody named, which is how this rule was got past twice. The
-  reason the rule exists at all: in this repository a bean's pasted output quotes this
-  check's own `criterion N is not answered` message, and the matcher reads the presence of a
-  number and never the polarity of the claim around it, so any rule that reads running prose
-  lets pasted output answer the criterion it reports as unanswered (`bean:0061`, `bean:0063`,
-  `bean:0093`). A fence is an entry but is not a citation site; no other container is either.
+  The rule names where a citation may stand and enumerates no container, because an
+  enumeration would be an allowlist and would fail on the first container nobody named,
+  which is how this rule was got past twice. The reason it exists at all: in this repository
+  a bean's pasted output quotes this check's own `criterion N is not answered` message, and
+  the matcher reads the presence of a number and never the polarity of the claim around it,
+  so any rule that reads running prose lets pasted output answer the criterion it reports as
+  unanswered (`bean:0061`, `bean:0063`, `bean:0093`).
+
+  **What the rule is not.** It is a test of a line's SHAPE, not a model of containers, and
+  the difference is load-bearing. The analyser recognises a fence and its own table state and
+  nothing else; it holds no raw-HTML-block state. So a container is refused only insofar as
+  its contents are neither heading- nor row-shaped, and a heading-shaped line inside `<pre>`,
+  inside `<details><pre>`, or inside an HTML comment IS read as a citation, as is a Markdown
+  table pasted inside `<pre>`, whose delimiter row enters the table like any other. A fence
+  is the one container the analyser does model: it is an entry, and it is not a citation
+  site. `bean:0121` owns the residual and states why closing it needs an enumeration of HTML
+  tag names — and why "inside a container" is not the same set as "not rendered as a
+  heading", since a `#` heading inside `<details>` with blank lines around it renders as a
+  heading. What the rule does close is the shape it was written for: pasted check output at
+  column zero is neither a heading nor a table row, wherever it is pasted.
+
+  A **heading** here is an ATX heading: `#` characters at the start of the line. A
+  **bold line** is not one — `**Criterion 2** — …` is running prose to the analyser and to
+  CommonMark alike — and neither is a **Setext** heading, a line underlined with `=` or `-`,
+  which this analyser has never tracked. Both are named because authors write the first: of
+  the 143 lines in `.beans/` that lost citation-site status at `bean:0093` while carrying a
+  matcher hit, 131 are running prose (the intent), **10 are bold pseudo-headings**, 2 are
+  ordered-list items, and none is a bullet or a Setext heading. Write `### Criterion 3`.
 
   The same rule refuses a **mention** — a sentence about a criterion number that was never
   meant to answer it — for the same reason and without a second mechanism: it too is running
@@ -305,6 +324,12 @@ conventions:
   A criterion whose evidence is a section that never names it is unanswered however long that
   section is, because `adr:0005-evidence-lives-in-the-work-item#evidence-home` puts the
   evidence beside the criterion it satisfies and a reader must be able to find the pairing.
+  **The converse is not checked, and recommending the sub-heading above makes that worth
+  saying out loud.** The citing heading is required to be neither inside the evidence region
+  nor followed by anything: `### Criteria 1-5` as the whole of a five-criterion bean's
+  `## Evidence` closes it, and `### Criterion 3 was not attempted` under `## Not in scope`
+  answers criterion 3. The evidence-table path has `EMPTYCELL` and `HOLLOW`; the heading path
+  has no analogue. `bean:0121` owns both, with the runs.
 
   The check reads the number, never the polarity of the claim around it, and the rule does
   not change that — it puts the number somewhere polarity does not arise. So a heading

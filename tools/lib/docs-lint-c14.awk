@@ -39,13 +39,36 @@ function isevcol(h) {
 # subtraction, and the next container nobody had named was free again.
 #
 # A positive property does not have that failure mode. Running prose is not a citation site
-# whatever it renders as, so pasted output, a container's contents, and a sentence merely
-# ABOUT a criterion number are all rejected BY CONSTRUCTION rather than by extension — the
-# matcher never has to read polarity, because it never reads running prose at all. A
-# criterion cited only from prose is unanswered, which is the direction that fails closed.
+# whatever it renders as, so pasted output and a sentence merely ABOUT a criterion number
+# are rejected BY CONSTRUCTION rather than by extension — the matcher never has to read
+# polarity, because it never reads running prose at all. A criterion cited only from prose
+# is unanswered, which is the direction that fails closed.
 #
-# `intable` is the analyser's own table state, set on the delimiter row below, so a
-# `|`-leading line inside a raw HTML block is not a table row here either.
+# WHAT THIS FUNCTION DOES NOT DO, stated because the paragraph above would otherwise be read
+# as saying it. It receives the line text and reads one flag of the analyser's own state. It
+# has NO model of raw HTML blocks and cannot refuse a container. A container is refused only
+# insofar as its CONTENTS are neither heading-shaped nor row-shaped; a `#`-leading line
+# inside <pre>, inside <details><pre>, or inside an HTML comment is a site here, and a
+# Markdown table pasted inside <pre> is entered, because its delimiter row sets `intable`
+# like any other. Every one of those shapes is pinned in tools/docs-lint-test.sh, as a
+# verdict and not only as a classification, under the heading `ACCEPTED`.
+#
+# That residual is ACCEPTED here rather than closed, and bean:0121 owns it. Refusing those
+# lines needs a model of which HTML blocks hold literal content — CommonMark §4.6's type 1,
+# whose four tag names are the whole rule, and type 2's comment — which is an enumeration of
+# containers, the allowlist this replaced. It would also be wrong in the other direction: a
+# `# heading` inside <details> with blank lines around it IS a heading to CommonMark and to
+# GitHub, so "inside a container" and "not rendered as a heading" are not the same set. The
+# narrowing still closes the shape bean:0093 was raised for — check 14's own stdout at column
+# zero is neither heading- nor row-shaped wherever it is pasted.
+#
+# `intable` is the analyser's own table state, set on the delimiter row below. It is NOT a
+# container model and the reason to keep it is not one: a `|`-leading line with no delimiter
+# row above it is not a table row to any renderer either, and `line ~ /^\|/` alone would make
+# one a citation site — a bean quoting a single table row out of a transcript would answer the
+# criterion that row names. Asserted below as a verdict, not left to the corpus: over the 102
+# beans at this head the two forms are byte-identical, which is a fact about today's inputs
+# and not a property of the rule.
 function citation_site(line) {
   return (line ~ /^#+ / || (intable && line ~ /^\|/))
 }
