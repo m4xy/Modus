@@ -1,0 +1,63 @@
+# The bash 3.2 compatibility scan. One pass over a shell script, reporting every line
+# that matches a row of tools/lib/bash32-forbidden.tsv (passed as -v PAT=…).
+#
+# awk rather than grep, deliberately. `grep` on an agent's interactive PATH here has been a
+# ugrep shim while /usr/bin/grep, `bash -c` and CI were BSD grep, and a pattern captured
+# under one was irreproducible under the other (bean:0115). A gate whose verdict depends on
+# which grep answered is not a gate. awk is already the analysis language of tools/lib/ and
+# its ERE behaves the same under BSD awk and gawk for the constructs used here — no
+# backslash escapes, no interval expressions, no word boundaries, all of which differ. The
+# patterns do use POSIX classes, which not every awk has had; CI's awk was OBSERVED to have
+# them rather than assumed to (bean:0049, evidence entry 1, the run under bash 5.2.21). That
+# observation is not even load-bearing: an awk that compiled the classes differently would
+# fail the planted-sample assertions in tools/bash-compat-lint.sh loudly rather than report
+# every script clean, which is why the samples are checked on every run and not once.
+#
+# FULL-LINE COMMENTS ARE SKIPPED, and that is a hole with a reason. A comment never runs, so
+# a bash 4 construct inside one cannot break bash 3.2; and the constraint is DOCUMENTED in
+# the very scripts this scans, so a scanner that read comments would fire on the prose
+# stating its own rule. Trailing comments are NOT stripped: `#` inside a string or a regex is
+# ordinary, and a stripper that got that wrong would blind the scan to the code before it.
+#
+# NOTHING ELSE IS SKIPPED, AND STRINGS ARE NOT. This scanner has no lexer: it does not know
+# where a quoted word begins or ends. So a construct that is legal bash 3.2 BECAUSE it sits
+# inside a string literal or after a trailing `#` is still reported, and the gate rejects a
+# correct line. That is a real cost, not a theoretical one — `printf '%s\n' 'a|&b'` and
+# `url="http://x/?a=1;&b=2"` are both rejected today, and both were run under bash 3.2.57 and
+# bash 5.3.9 and came out byte-identical. tools/lib/bash32-forbidden.tsv carries the rest of
+# the trade under "WHAT IS LEFT REJECTED"; the short version is that the alternative is a
+# shell lexer, and the way past a false positive here is to move the literal out of the line.
+#
+# Output: one `file:line: rule: source` per hit, on stdout. Nothing else, so a caller can
+# count lines.
+
+BEGIN {
+    n = 0
+    while ((getline line < PAT) > 0) {
+        if (line ~ /^[ \t]*#/) { continue }
+        if (line ~ /^[ \t]*$/) { continue }
+        split(line, f, "\t")
+        if (f[1] == "" || f[2] == "") { continue }
+        n++
+        name[n] = f[1]
+        re[n] = f[2]
+    }
+    close(PAT)
+    if (n == 0) {
+        # A scan with no patterns matches nothing and would report every file clean.
+        # doc:00-constitution#observed-failing: a run that examined nothing may not
+        # report success.
+        print "bash32-scan: no patterns loaded from " PAT > "/dev/stderr"
+        exit 2
+    }
+}
+
+/^[ \t]*#/ { next }
+
+{
+    for (i = 1; i <= n; i++) {
+        if ($0 ~ re[i]) {
+            printf "%s:%d: %s: %s\n", FILENAME, FNR, name[i], $0
+        }
+    }
+}

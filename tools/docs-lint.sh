@@ -4,9 +4,12 @@
 #
 # Bash, not Kotlin: the checks are line- and glob-shaped, bash already runs in CI
 # and locally, and a JavaExec task would need a source set, a toolchain and a test
-# fixture to do the same string matching. No bash 4 feature is used (macOS ships
-# 3.2), and every failure is appended to one file so a check that fires inside a
-# pipeline subshell still changes the exit status.
+# fixture to do the same string matching. No bash 4 feature is used: macOS ships 3.2 and
+# /bin/bash there is still 3.2.57, which build.gradle.kts now pins the gate to. That is a
+# gate rather than a comment — tools/bash-compat-lint.sh parses this file under the pinned
+# interpreter and scans it for the constructs 3.2 lacks, from qualityCheck (bean:0049).
+# Every failure is appended to one file so a check that fires inside a pipeline subshell
+# still changes the exit status.
 #
 # Front-matter is parsed against the exact serialisation doc:05 shows: one
 # `key: value` per top-level key, list items as `  - item`, `depends_on` as a flow

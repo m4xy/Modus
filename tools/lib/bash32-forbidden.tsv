@@ -1,0 +1,172 @@
+# Constructs bash 3.2 does not have, one per row: name<TAB>regex<TAB>sample violation.
+#
+# The list is MEASURED, not remembered. Every row was run under /bin/bash (3.2.57, what
+# macOS ships) and under Homebrew bash 5.3.9 and the two were compared on stdout, stderr
+# and exit status; only constructs that DIVERGED are here. What bean:0049 holds is not one
+# probe transcript covering this file. It is three records, and none of them covers all of
+# it: evidence entry 6, a DISTILLED table of the six families that diverge silently or behind
+# a diagnostic, beside one sentence recording how many of the sixteen original families
+# `/bin/bash -n` rejects on its own — a table, not probe output, and not per row; the amendment
+# titled "Five constructs absent from rows that already enumerate their siblings", which runs
+# the eleven constructs behind the five rows added in the first review round and the
+# alternatives then added to `shopt-bash4-option` and `bash4-variable`, printing each one's
+# stdout, stderr and exit status under both interpreters; and the two amendments from the
+# second round, "Three more rows rejecting legal bash 3.2" and "The `-v` positions are three,
+# not one", which do the same for the nine lines this gate was rejecting and for
+# `[ -v name ]` and `test -v name`. Amendments are named, not numbered: the ordinals move.
+# The rows this file was created with therefore have no per-construct transcript anywhere:
+# they were measured, and the measurement was distilled to entry 6's table rather than pasted.
+#
+# Five of them diverge SILENTLY — 3.2 exits 0, writes nothing to stderr, and produces a
+# different answer. That is why this file exists at all and why running the script under a
+# real 3.2 is not by itself a gate:
+#
+#   {1..9..2}      3.2 prints the literal `{1..9..2}`         5 prints `1 3 5 7 9`
+#   $SRANDOM       3.2: unset                                 5: set
+#   $EPOCHSECONDS  3.2: unset                                 5: set
+#   $EPOCHREALTIME 3.2: unset                                 5: set
+#   $BASHPID       3.2: unset                                 5: set
+#
+# and the rest exit 0 with only a line on stderr, which a script without `set -e` swallows
+# — `declare: -A: invalid option` and its -g/-l/-u siblings, `mapfile: command not found`,
+# `shopt: direxpand: invalid shell option name`, `printf: `a[0]': not a valid identifier`.
+# `exec {fd}<f` is the one construct whose failure is loud: 3.2 exits 127. It is still here
+# because 127 is a status this script never inspects either.
+#
+# The regex column is an awk ERE, matched per line against source with full-line comments
+# removed. It carries no backslashes: it is used as a dynamic regex, where a backslash
+# would have to be doubled and the doubling is the kind of thing that is got wrong once and
+# then never looked at again.
+#
+# ANCHOR THE OPERATOR TO WHERE IT CAN OCCUR. A regex that finds the operator's characters
+# anywhere on the line rejects legal bash 3.2, and a gate that rejects correct code blocks
+# the next person's legitimate work. The rows that did exactly that, and a line each was
+# caught rejecting. Note the second `printf-time-format` entry: the first review round
+# anchored that row and shipped two fresh instances of the same defect beside the fix, which
+# is why anchoring is checked against a fixture and not against the author's confidence.
+#
+#   test-v                `[[ -n "$(command -v jq)" ]]`               round 1
+#   case-modification     `trimmed="${csv%,}"`                        round 1
+#   printf-time-format    `printf 'coverage %d%%(min)\n' 90`          round 1
+#   printf-time-format    `printf 'coverage %d%%(min)T\n' 90` and     round 2, after the
+#                         `printf 'see %s\n' "use %(%Y)T for time"`   round-1 anchoring
+#   brace-expansion-step  `cp {../src,../dst} .`                      round 2
+#   varfd-redirect        `echo "{div}<br>"`, `sed 's/{x}<//' f`      round 2
+#   parameter-transform   `echo "${email:-me@u}"`                     round 2
+#
+# Each row now requires the syntax that makes the construct a bash 4 construct: `-v` in a
+# test position (see below); `,`/`^` and `@X` directly after the parameter name or its
+# subscript, so a `,` or an `@` inside a DEFAULT value is not one; `%(...)T` with its
+# terminating `T`, introduced by a single `%` rather than the second half of a `%%`, and
+# reached without crossing out of the format string; a `{n..m..s}` whose parts are integers
+# or a character range, so a brace LIST holding two `..` is not one; a `{name}` redirect at a
+# word boundary, so a brace-delimited placeholder inside a word is not one. Every line review
+# demonstrated, and more of the same shape from the sides review did not exercise, are in the
+# negative control in tools/bash-compat-lint.sh, which names them one by one — so the
+# narrowing is re-proved on every run rather than trusted.
+#
+# THE `-v` POSITIONS ARE THREE ROWS, NOT ONE. `-v` is a bash 4.2 test operator wherever a
+# test operator can appear: `[[ … ]]`, `[ … ]` and `test`. `test-v` covers the `[[` form and
+# the `&&`/`||` that can precede it; `test-v-bracket` and `test-v-command` cover the other
+# two, which nothing caught before. They are three rows rather than three alternatives of one
+# because the machinery plants ONE sample per row, so three rows are three proofs and one row
+# would have been one. The three regexes are mutually exclusive by construction —
+# `test-v-bracket` refuses a `[` preceded by `[`, and `test-v-command` refuses a `test`
+# preceded by an identifier, path or task-path character — and the planted-sample assertion
+# re-checks that on every run. Measured: on `[ -v name ]` and `test -v name`, bash 3.2 writes
+# `-v: unary operator expected` and the test exits 2; bash 5 exits 0 when the name is set and
+# 1 when it is not, silently. Both differ from 3.2 on stderr and on status. `/bin/bash -n`
+# accepts both at rc 0, so the parse half cannot reach them and this scan is the only half that
+# can. The transcript is in bean:0049's amendment "The `-v` positions are three, not one".
+#
+# The sample column is not decoration. tools/bash-compat-lint.sh plants each sample into a
+# fixture on every run and asserts the scan finds it, finds it EXACTLY once, and finds
+# nothing in a clean fixture — the three observations doc:50-memory-and-evidence#evidence-kinds
+# requires of a mechanism claiming to discriminate. A row whose sample stops matching, or
+# starts matching two rules, fails the gate here rather than quietly widening or narrowing it.
+#
+# A row's ALTERNATIVES are not each planted — one sample per row is what the machinery
+# checks, and these rows name substantially more constructs than there are samples. Which
+# arm each row proves, and what it therefore does not, named rather than counted:
+#
+#   associative-array, declare-global, declare-lowercase, declare-uppercase
+#                          prove `declare`; `nameref` proves `local`; NO row proves `typeset`
+#   mapfile                proves `mapfile`, not `readarray`
+#   case-modification      proves `^`, not `,`
+#   parameter-transform    proves `@Q`, not `@E @P @A @K @L @U @u @a`
+#   case-fallthrough       proves `;;&`, not `;&`
+#   brace-expansion-step   proves the integer form, not the `{a..z..2}` character form
+#   varfd-redirect         proves `{fd}<`, not `{fd}>`
+#   test-v                 proves the `[[` position, not the `&&` or `||` one
+#   printf-v-subscript     proves the quoted `"a[0]"`, not the bare `a[0]`
+#   shopt-bash4-option     proves `globstar`, not `lastpipe inherit_errexit direxpand autocd
+#                          dirspell checkjobs globasciiranges`
+#   bash4-variable         proves `EPOCHSECONDS`, not `SRANDOM EPOCHREALTIME BASH_ARGV0
+#                          BASHPID`
+#
+# THE CONSEQUENCE, stated because the guarantee above does not carry it: "a row whose sample
+# stops matching fails the gate here rather than quietly narrowing it" holds only for the arm
+# the sample exercises. A typo in any alternative named above would stop enforcing that
+# construct, and the gate would stay green, because nothing plants it. Each alternative was
+# run under both interpreters before being added and the transcripts are in bean:0049 — but a
+# transcript records one moment, and the planted samples are what re-runs. Closing this needs
+# a fourth column of extra samples, or one row per construct as the three `-v` rows now do.
+# That was judged out of scope for the pull request that found it, on the ground that a
+# mechanism added in a third review round is less trustworthy than a limitation stated in it.
+#
+# This is a DENYLIST and therefore fails open: a bash 4 feature nobody has named passes.
+# doc:00-constitution#observed-failing says as much about enumerating shapes. It is here
+# because the alternative — the interpreter — fails open on the two constructs bean:0049
+# names by name, which is worse. The complementary half is the `-n` parse under the pinned
+# interpreter, which does fail closed and catches every SYNTAX-level bash 4 feature,
+# including ones absent from this file. Neither half subsumes the other.
+#
+# Anchoring narrows a denylist, so it trades a false positive for a miss, deliberately:
+# `[[ -n "$a" ]] && [[ -v opt ]]` is caught, `[[ -v ${x} ]]` written across two lines is
+# not. A miss leaves the gate where it already is on every unnamed bash 4 feature; a false
+# positive stops correct work. Misses of that shape, named so they are not mistaken for
+# coverage: `${arr[${a[0]}]^^}` and `${arr[${a[0]}]@Q}` are not caught, because the `[^]]*`
+# spanning the subscript cannot cross the inner `]`; a `%(...)T` in a format string assembled
+# from variables is not caught, because the scan sees one source line and not the value.
+#
+# WHAT IS LEFT REJECTED, AND WHY IT IS NOT ANCHORED. tools/lib/bash32-scan.awk skips
+# FULL-LINE comments and nothing else, so a rule whose operator is legal inside a STRING
+# LITERAL or a TRAILING comment fires on it. Two rows sit in that position and are
+# deliberately left there: `pipe-both-streams` rejects `printf '%s\n' 'a|&b'` and
+# `case-fallthrough` rejects `url="http://x/?a=1;&b=2"`. Both lines are legal bash 3.2 — run
+# under both interpreters, byte-identical on stdout, stderr and exit status — so this gate
+# WILL reject correct code of that shape, and the way past it is to move the literal out of
+# the line, not to widen the scanner. They are not anchored because `|&` and `;&` outside a
+# string are unambiguously the operator: there is no syntactic position to anchor to, only a
+# lexical one, and a scanner that tracked quoting would be a shell lexer. Requiring trailing
+# whitespace was considered and rejected — it would still reject `'a |& b'` while missing
+# `run |&tee out`, buying a real miss for no real coverage. The same residue exists wherever
+# an anchored rule's operator can appear inside a string: `echo "run {fd}<f"` is still
+# rejected by `varfd-redirect`, because a word boundary is all there is to anchor to.
+#
+# Adding a row: run it under both interpreters first, and put a row here only if they
+# disagree. A construct both accept is not a compatibility rule, it is a style preference.
+#
+associative-array	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*A	declare -A seen
+nameref	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*n	local -n out=$1
+declare-global	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*g	declare -g cache=1
+declare-lowercase	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*l	declare -l lower=ABC
+declare-uppercase	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*u	declare -u upper=abc
+mapfile	(^|[^[:alnum:]_./-])(mapfile|readarray)([[:space:]]|$)	mapfile -t lines < "$f"
+case-modification	[$][{][A-Za-z_0-9]+([[][^]]*[]])?[,^]	printf '%s' "${name^^}"
+parameter-transform	[$][{][!]?[A-Za-z_0-9]+([[][^]]*[]])?@[QEPAKLUua][}]	printf '%s' "${v@Q}"
+append-both-streams	&>>	run &>> "$log"
+pipe-both-streams	[|]&	run |& tee "$log"
+case-fallthrough	;[;]?&	case x in a) : ;;& esac
+coproc	(^|[^[:alnum:]_])coproc([[:space:]]|$)	coproc reader { cat; }
+shopt-bash4-option	shopt[[:space:]][^#]*(globstar|lastpipe|inherit_errexit|direxpand|autocd|dirspell|checkjobs|globasciiranges)	shopt -s globstar
+brace-expansion-step	[{](([-+]?[0-9]+[.][.][-+]?[0-9]+)|([A-Za-z][.][.][A-Za-z]))[.][.][-+]?[0-9]+[}]	for i in {1..9..2}; do :; done
+negative-subscript	[$][{][A-Za-z_][A-Za-z_0-9]*[[]-[0-9]	echo "${arr[-1]}"
+test-v	([[][[]|&&|[|][|])[[:space:]]*[!]?[[:space:]]*-v[[:space:]]	if [[ -v opt ]]; then :; fi
+test-v-bracket	(^|[^-[:alnum:]_./[])[[][[:space:]]+[!]?[[:space:]]*-v[[:space:]]	[ -v name ]
+test-v-command	(^|[^[:alnum:]_./:-])test[[:space:]]+[!]?[[:space:]]*-v[[:space:]]	test -v name
+wait-n	(^|[^[:alnum:]_])wait[[:space:]]+-[[:alnum:]]*n	wait -n
+printf-time-format	printf[^#'"]*["']?([^"']*[^"'%])?%[(][^)]*[)]T	printf '%(%Y)T' -1
+printf-v-subscript	printf[[:space:]]+-[[:alnum:]]*v[[:space:]]+["']?[A-Za-z_][A-Za-z_0-9]*[[]	printf -v "a[0]" %s hi
+varfd-redirect	(^|[[:space:]])[{][A-Za-z_][A-Za-z_0-9]*[}][<>]	exec {fd}<"$f"
+bash4-variable	[$][{]?(SRANDOM|EPOCHSECONDS|EPOCHREALTIME|BASH_ARGV0|BASHPID)	echo "$EPOCHSECONDS"
