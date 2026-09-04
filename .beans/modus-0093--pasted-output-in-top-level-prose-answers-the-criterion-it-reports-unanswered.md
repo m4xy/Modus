@@ -586,7 +586,68 @@ rejections beside `bean:0055`'s and `bean:0063`'s.
 
 ### Criterion 7 — `./gradlew qualityCheck` green
 
-Recorded below, at the branch head.
+Taken at `47e032a`, which is this branch with everything above it and this block absent:
+
+```
+cmd:      ./gradlew qualityCheck
+observed: bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+          bash-compat: OK — 3 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+          [... gradle task lines ...]
+          docs-lint-test: 43 passed, 0 failed.
+          [... gradle task lines ...]
+          docs-lint: OK — 19 documents, 111 anchors, 1555 references, 102 beans, 36 graph edges, 46 selectable, 102 bean ids, 0 introduced, 102 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          BUILD SUCCESSFUL in 21s
+exit:     0
+```
+
+The `1555 references` figure moves the moment this block is added to the bean, which is why
+the head it was taken at is named rather than assumed; the run at the head that carries this
+block is recorded on the pull request body. The two elisions are Gradle task lines and
+deprecation notices, and neither carries a count this criterion rests on.
+
+### The graph edge, verified rather than assumed
+
+`docs-lint` check 12 is the acyclicity analyser over `blocked_by`, and `bean:0118` records
+that its `awk` exit status is one of twenty-one this gate never inspects — so a broken check
+12 prints the same `OK` line as a passing one. Dropping an edge is therefore not something to
+land on a green line alone. Two observations, both at `47e032a`:
+
+The count moved with the edit, which says the parse read it: the run before the edge was
+dropped reports `37 graph edges` (see the plants under criterion 1) and every run after it
+reports `36`.
+
+And the analyser is alive, planted and reverted:
+
+```
+cmd:      restore `blocked_by: [modus-0061, modus-0063]` on this bean, add
+          `blocked_by: [modus-0093]` to .beans/modus-0061, then /bin/bash tools/docs-lint.sh
+observed: FAIL check 12 blocked_by graph has a cycle: modus-0061 -> modus-0093, modus-0093 -> modus-0061
+          docs-lint: 1 failure(s).
+exit:     1
+cmd:      git checkout -- .beans && git status --porcelain
+observed: (no output)
+exit:     0
+```
+
+That is also the direct measurement of the inverted edge: inverting rather than dropping
+would have required removing this bean from `.beans/modus-0061`'s blockers at the same time,
+and the cycle above is what the half-done inversion looks like.
+
+### The record is measurement-neutral, checked rather than assumed
+
+`doc:50-memory-and-evidence#corpus-figures` warns that a record measuring a corpus it belongs
+to changes that corpus, and this bean's evidence is 250-odd lines added to a bean the
+differential reads. Re-run at `47e032a`, after every section above was written:
+
+```
+cmd:      the all-beans differential, re-run at the branch head
+observed: the same eleven files, with the same criterion numbers on each
+exit:     0
+```
+
+Unchanged from the run at `1c19cf0`. This bean does not appear in the differential in either
+run: its citations are filed under the `### Criterion N` sub-headings above, which are
+structural sites, so the change does not move its own verdict.
 
 ## Not in scope
 
