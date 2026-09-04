@@ -1,11 +1,12 @@
 ---
 # modus-0065
 title: The ambient-capability ports — ClockPort, IdGeneratorPort, RandomPort
-status: in-progress
+status: completed
 type: feature
 priority: high
 order: AP
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-09-04T00:00:00Z
 ---
 
 # The ambient-capability ports — ClockPort, IdGeneratorPort, RandomPort
@@ -638,3 +639,59 @@ because it was the one whose prose said "measured".
 **Sweep before repairing, not after.** The sweep that found the other two was one script over
 every bean, looking for identical rows appearing in more than one table. It took less time than
 the first repair pass did, and it is the step that pass skipped.
+
+## Closed — merged as PR #55, squashed onto `main` as `cf6063b`
+
+A bean cannot close itself: its evidence includes its own merge, so the close is a separate
+change (`doc:00-constitution` §7.2.1, and the precedent PR #47 set for four beans in the same
+state). Criteria 1 to 10 are answered above against the runs that produced them. What this
+section adds is the half a branch run cannot carry — that the artefacts those runs describe
+are on `main`, and not only on a branch that was reviewed.
+
+Every command below names `9adb8af`, the commit `main` carries as this is written, so a
+reader gets these outputs from any checkout rather than from this one
+(`doc:50-memory-and-evidence#corpus-figures`).
+
+```
+cmd:      git log --oneline -1 cf6063b
+observed: cf6063b feat(core-domain): the ambient-capability ports and their leaf gate (#55)
+exit:     0
+```
+
+The three ports and their doubles are on `main`:
+
+```
+cmd:      git ls-tree -r --name-only 9adb8af -- core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/port core/core-domain/src/test/kotlin/uk/m4xy/modus/core/domain/port
+observed: core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/port/ClockPort.kt
+          core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/port/IdGeneratorPort.kt
+          core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/port/RandomPort.kt
+          core/core-domain/src/test/kotlin/uk/m4xy/modus/core/domain/port/AmbientCapabilityDoubles.kt
+          core/core-domain/src/test/kotlin/uk/m4xy/modus/core/domain/port/AmbientCapabilityDoublesTest.kt
+exit:     0
+```
+
+A path list says the files exist. Criterion 1 asks for **interfaces**, which a path does not
+carry, so it is read out of the merged blobs rather than inferred from their names:
+
+```
+cmd:      git grep -n '^public interface' 9adb8af -- core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/port
+observed: 9adb8af:core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/port/ClockPort.kt:33:public interface ClockPort {
+          9adb8af:core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/port/IdGeneratorPort.kt:35:public interface IdGeneratorPort {
+          9adb8af:core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/port/RandomPort.kt:24:public interface RandomPort {
+exit:     0
+```
+
+The leaf gate criteria 3, 4 and 8 rest on — the source-reading rule, its own perception test,
+and the test that asserts the verdict — merged with them:
+
+```
+cmd:      git ls-tree -r --name-only 9adb8af -- architecture-tests/src/test/kotlin/uk/m4xy/modus/architecture/AmbientCapabilityPortSource.kt architecture-tests/src/test/kotlin/uk/m4xy/modus/architecture/AmbientCapabilityPortSourcePerceptionTest.kt architecture-tests/src/test/kotlin/uk/m4xy/modus/architecture/AmbientCapabilityPortSourceTest.kt
+observed: architecture-tests/src/test/kotlin/uk/m4xy/modus/architecture/AmbientCapabilityPortSource.kt
+          architecture-tests/src/test/kotlin/uk/m4xy/modus/architecture/AmbientCapabilityPortSourcePerceptionTest.kt
+          architecture-tests/src/test/kotlin/uk/m4xy/modus/architecture/AmbientCapabilityPortSourceTest.kt
+exit:     0
+```
+
+The gate run for this closure is `bean:0115`'s, not restated here
+(`doc:05-authoring-for-agents#one-fact-one-place`): one branch closes all five beans, so one
+run of `./gradlew qualityCheck` covers them and belongs in one file.

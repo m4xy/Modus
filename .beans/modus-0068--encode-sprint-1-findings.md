@@ -1,10 +1,11 @@
 ---
 # modus-0068
 title: Encode sprint 1's findings into the documentation package
-status: in-progress
+status: completed
 type: task
 priority: high
 created_at: 2026-08-29T00:00:00Z
+updated_at: 2026-09-04T00:00:00Z
 ---
 
 # Encode sprint 1's findings into the documentation package
@@ -920,3 +921,76 @@ and sends the reader to the `claude-api` skill, which is exactly what `tools/cos
 did. The real gap was narrower and structural — the price-book entry shape had two rates
 where the record has five kinds — and that is what §2.1 now states.
 
+
+## Closed — the stack merged; the last of it as PR #54, squashed onto `main` as `6fbf0e0`
+
+A bean cannot close itself: its evidence includes its own merge, so the close is a separate
+change (`doc:00-constitution` §7.2.1). Criteria 1 to 17 are answered above, each against the
+branch that discharged it. What this section adds is that all five branches of the stack are
+on `main` — a stack is where a criterion is most likely to be evidenced against a branch that
+never landed, because the rebases hide it.
+
+Every command names `9adb8af`, the commit `main` carries as this is written, so a reader gets
+these outputs from any checkout (`doc:50-memory-and-evidence#corpus-figures`).
+
+Every commit on `main` that touches this bean, in the order `main` records them:
+
+```
+cmd:      git log --oneline 8181726..9adb8af --reverse -- .beans/modus-0068--encode-sprint-1-findings.md
+observed: 97f13b0 docs(20,10): correct §5.1's packages and settle the ambient port names (#51)
+          52e6f49 docs(20): state the check in §5.1's note, not a snapshot of the answer (#58)
+          161a7c3 docs(80): encode sprint 1's agent-loop findings (#48)
+          905a5f9 docs(50,05): encode the four shapes a claim takes when it is not verified (#52)
+          9c9940d docs(00,35): encode what makes a gate believable, and correct one that is not (#53)
+          6fbf0e0 docs(60): name the token kinds the recorder writes, and price them (#54)
+exit:     0
+```
+
+**Six commits, and the stack is five branches — the discrepancy is named rather than trimmed
+to fit.** This bean's own `## Evidence` section is organised by branch, and there are five of
+them:
+
+```
+cmd:      grep -n '^### `docs/' .beans/modus-0068--encode-sprint-1-findings.md
+observed: 103:### `docs/one-owner-for-ambient-port-names` — the base of the stack
+          484:### `docs/encode-sprint-1-agent-loop` — the agent loop
+          523:### `docs/encode-sprint-1-claims` — claims
+          562:### `docs/encode-sprint-1-gate-design` — gates
+          787:### `docs/spend-record-behind-its-recorder` — the spend record was behind its own recorder
+exit:     0
+```
+
+The sixth commit is `52e6f49`, PR #58, which `bean:0065`'s criterion 5 records as the change
+that deleted two falsified sentences from `doc:20-ddd-practices` §5.1 — the section criteria
+15 and 16 here own. It touched this bean because the two changes share that section, not
+because a sixth branch of the stack exists. The `--reverse` order is `git log`'s
+topological-then-date order over `main`, which is why #58 appears second and the pull-request
+numbers are not in sequence.
+
+Criterion 14 is the one PR #54 discharged, and it is the criterion whose subject a later
+change could most easily have taken back out, because §3.2 is a table anyone editing the
+cost model touches:
+
+```
+cmd:      git grep -c 'cacheWrite5mTokens' 9adb8af -- documentation/60-cost-model.md
+observed: 9adb8af:documentation/60-cost-model.md:1
+exit:     0
+```
+
+```
+cmd:      git show 9adb8af:documentation/60-cost-model.md | sed -n '165,167p'
+observed: | `inputTokens`, `outputTokens` | From `response.usage` |
+          | `cacheReadTokens` | From `response.usage`; billed at a multiple of the base input rate |
+          | `cacheWrite5mTokens`, `cacheWrite1hTokens` | The two halves of `cache_creation_input_tokens`. They are separate fields because they bill at **different** multiples of the base input rate, so a folded total cannot be priced at all. `cacheWriteTokens` is their sum and is carried for readers of the older four-kind shape; it is not a fifth measurement |
+exit:     0
+```
+
+The `sed` range is the excerpt's bounds and is **not** a claim about where §3.2 begins or
+ends (`doc:50-memory-and-evidence#capturing`); the `git grep -c` above it is the claim, and
+it needs no line number to be true. The three rows name `inputTokens`, `outputTokens`,
+`cacheReadTokens`, `cacheWrite5mTokens` and `cacheWrite1hTokens`, and the third says
+`cacheWriteTokens` is their sum and *not a fifth measurement* — which is criterion 14's
+*price them* half, since a folded total has no rate.
+
+The gate run for this closure is `bean:0115`'s, not restated here
+(`doc:05-authoring-for-agents#one-fact-one-place`).

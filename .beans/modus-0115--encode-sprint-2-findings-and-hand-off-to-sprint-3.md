@@ -1,10 +1,11 @@
 ---
 # modus-0115
 title: Encode sprint 2's findings, and hand off to sprint 3
-status: in-progress
+status: completed
 type: task
 priority: high
 created_at: 2026-09-03T00:00:00Z
+updated_at: 2026-09-04T00:00:00Z
 ---
 
 # Encode sprint 2's findings, and hand off to sprint 3
@@ -270,16 +271,98 @@ cmd:      grep -l '^status: todo' .beans/modus-{0049,0057,0059,0060,0061,0062,00
 observed: 24
 ```
 
+**Both fences above were re-run on the tree that closes this bean, and both are unchanged —
+same twenty-four ids, same count of 24.** They are re-run rather than assumed because closing
+`0102` moves it out of `in-progress`, and `0102` **is** one of the twenty-seven ids these two
+commands enumerate. It does not move the count for a reason worth writing down rather than
+being lucky about: the predicate is `^status: todo`, and `0102` had already left `todo` before
+this change touched it, so it was absent from the twenty-four before and is absent after.
+
+The complement is the check, because it is the half that moves. `grep -L` is `grep -l`'s
+inverse over the same argument list, so the two partition it and neither can be read without
+falsifying the other:
+
+```
+cmd:      ls .beans/modus-{0049,0057,0059,0060,0061,0062,0063,0086,0087,0089,0091,0093,0094,0096,0098,0099,0100,0102,0103,0104,0105,0106,0107,0108,0109,0110,0112}--*.md | grep -c .
+observed: 27
+exit:     0
+
+cmd:      grep -L '^status: todo' .beans/modus-{0049,0057,0059,0060,0061,0062,0063,0086,0087,0089,0091,0093,0094,0096,0098,0099,0100,0102,0103,0104,0105,0106,0107,0108,0109,0110,0112}--*.md | sed 's|.beans/modus-||;s|--.*||' | sort | tr '\n' ' '
+observed: 0063 0102 0105 
+exit:     0
+```
+
+Twenty-seven in, twenty-four `todo` and three not: `0063` and `0105` were already `completed`
+on `main`, and `0102` is the one this change moves. It moves from `in-progress`, which the
+predicate never matched, which is why the twenty-four is the same twenty-four.
+
 Against that, the product line has moved three items in two sprints:
 
 ```
-cmd:      grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | tr '\n' ' '
-observed: 0009 completed 0011 todo 0012 todo 0013 todo 0014 todo 0015 todo 0016 todo 0017 todo 0018 todo 0019 todo 0020 todo 0021 todo 0022 todo 0030 completed 0065 in-progress 
+cmd:      grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | sort | tr '\n' ' '
+observed: 0009 completed 0011 todo 0012 todo 0013 todo 0014 todo 0015 todo 0016 todo 0017 todo 0018 todo 0019 todo 0020 todo 0021 todo 0022 todo 0030 completed 0065 completed 
 ```
 
-`bean:0009` and `bean:0030` are `completed` and `bean:0065` is in flight. The six bounded
-contexts, the store adapter, the REST layer, auth, the runner, SSE and the live backoffice are
-all still `todo`.
+**Re-run, not re-typed, and two things about it changed.** `bean:0065` merged as PR #55 and
+is `completed` as of the change that closes this bean, so the block above is no longer the one
+this bean shipped with; re-running a sweep belongs to the change that moves its corpus
+(`doc:50-memory-and-evidence#corpus-figures`), and that change is this close. The command also
+gained a `| sort`, which is the repair E3 above already makes to a fence of the same shape.
+Without it this one is a set rather than a byte stream: `grep` resolves either to
+`/usr/bin/grep`, which reads the files in argument order, or to the `ugrep` shim an agent's
+interactive shell installs, which parallelises across files and emits each as it finishes.
+E3 has the `| sort` and this fence did not, because E3 is where the race was noticed — which
+is the argument for that rule living in `doc:50` and not in one author's habit.
+
+The race is measured rather than asserted. All three runs are on the tree this close produces,
+and each collapses five runs to the set of distinct outputs, so the answer is a count of
+orders and not an order. **Each fence carries the shell it depends on**, on a `shell:` line
+beside its `cmd:`, and the lines are not decoration: every one was run under both an
+interactive shell and `bash -c` before it was written. Only the first fence differs between
+them, and it differs by the whole claim — 5 under the shim, 1 under `bash -c`. Stating that
+on the fence is the point rather than a courtesy: the finding is that which `grep` you have
+decides the answer and nothing on the page tells you, so a fence that left its own condition
+to the prose two lines up would be reproducing the hazard in its own presentation.
+
+```
+cmd:      for i in 1 2 3 4 5; do grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | tr '\n' ' '; echo; done | sort -u | grep -c .
+shell:    an agent's interactive zsh, where `grep` is the shell function the harness
+          installs; `type grep` names the snapshot file it comes from. **Under `bash -c`,
+          `/bin/sh` or CI this returns 1**, because `grep` resolves to `/usr/bin/grep`
+          there. That difference is the finding, not a defect in the capture, and it is
+          stated on the fence because the finding is that nothing on the page states it
+observed: 5
+exit:     0
+
+cmd:      for i in 1 2 3 4 5; do grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | sort | tr '\n' ' '; echo; done | sort -u | grep -c .
+shell:    any — `| sort` makes the answer independent of which `grep` is on `PATH`, which
+          is the whole point of adding it; 1 under the shim and 1 under `/usr/bin/grep`
+observed: 1
+exit:     0
+
+cmd:      for i in 1 2 3 4 5; do /usr/bin/grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | tr '\n' ' '; echo; done | sort -u | grep -c .
+shell:    any — the binary is named by absolute path, so the shim is bypassed whatever
+          the shell; the control for the first fence, and 1 under both
+observed: 1
+exit:     0
+```
+
+Under the shim: five runs, five orders, none of them ascending. With `| sort`, or with
+`/usr/bin/grep`, one order — and it is the ascending one the fence above records. So the
+block this bean shipped was correct on the shell that captured it and irreproducible on the
+shell most agents read it from, and nothing distinguishes the two from the page. That is what
+the `| sort` buys: it makes the fence's answer independent of which `grep` the reader has,
+which is the only version of *reproducible* worth the word.
+
+**The figure stays three.** It was three with `0065` in flight and it is three with `0065`
+closed, because closing an item that had already left `todo` moves no item: of the fifteen ids
+this fence reads, `0009`, `0030` and `0065` are outside `todo` before the close and the same
+three are outside it after. What the close falsifies is the sentence that named one of the
+three as unfinished, and that sentence is corrected below rather than left to be read as
+current.
+
+`bean:0009`, `bean:0030` and `bean:0065` are `completed`. The six bounded contexts, the store
+adapter, the REST layer, auth, the runner, SSE and the live backoffice are all still `todo`.
 
 ### What sprint 3 is
 
@@ -325,4 +408,108 @@ cmd:      git grep -h '^status:' 05939b8 -- .beans | sort | uniq -c
 observed:   29 status: completed
              4 status: in-progress
             62 status: todo
+```
+
+## Closed — merged as PR #67, squashed onto `main` as `9adb8af`
+
+A bean cannot close itself: its evidence includes its own merge, so the close is a separate
+change (`doc:00-constitution` §7.2.1). Criteria 1 to 7 are answered by E1 to E7 above. What
+this section adds is that the two documents and the three bean files those blocks describe are
+on `main`, and the gate run for the change that closes all five of this sprint's shipped-but-open
+beans.
+
+```
+cmd:      git log --oneline -1 9adb8af
+observed: 9adb8af docs(50,80,beans): encode sprint 2's findings and hand off to sprint 3 (#67)
+exit:     0
+```
+
+E1's two anchors and E2's five rules, read out of the merged blobs rather than out of the
+working tree, because a document is the artefact most likely to be edited by the next change:
+
+```
+cmd:      git grep -n 'id="capturing"' 9adb8af -- documentation/50-memory-and-evidence.md
+observed: 9adb8af:documentation/50-memory-and-evidence.md:189:### 2.6 Capturing a transcript <a id="capturing"></a>
+exit:     0
+
+cmd:      git grep -n 'id="corpus-figures"' 9adb8af -- documentation/50-memory-and-evidence.md
+observed: 9adb8af:documentation/50-memory-and-evidence.md:209:### 2.7 A figure whose subject is this repository <a id="corpus-figures"></a>
+exit:     0
+
+cmd:      git grep -c '^| 0\.[5-9] |' 9adb8af -- documentation/80-agent-operating-procedure.md
+observed: 9adb8af:documentation/80-agent-operating-procedure.md:5
+exit:     0
+```
+
+`189` and `209` are what E1 records, and this is the run E1's own note says the block should
+have been: a locator carrying the command that produced it, at the tree it describes
+(`doc:50-memory-and-evidence#capturing`).
+
+Criterion 4's three files:
+
+```
+cmd:      git ls-tree -r --name-only 9adb8af -- .beans/modus-0113--a-close-that-rewrites-its-criteria-is-indistinguishable.md .beans/modus-0114--nothing-checks-that-a-pull-requests-refs-are-complete.md .beans/modus-0115--encode-sprint-2-findings-and-hand-off-to-sprint-3.md
+observed: .beans/modus-0113--a-close-that-rewrites-its-criteria-is-indistinguishable.md
+          .beans/modus-0114--nothing-checks-that-a-pull-requests-refs-are-complete.md
+          .beans/modus-0115--encode-sprint-2-findings-and-hand-off-to-sprint-3.md
+exit:     0
+```
+
+`0115` was taken as the next id free on `origin/main` rather than centrally, and check 13c is
+what would have said so before the merge. It merged clean, so no sibling had taken it — the
+residual `bean:0051` accepts did not fire.
+
+### E7's sweep, re-run because this change edits the corpus it searches
+
+`bean:0105`'s sweep runs over `.beans` and `documentation`, and this close edits five files
+under `.beans`. Re-running it is this change's job, not that bean's, and not the job of the
+merge that last ran it (`doc:50-memory-and-evidence#corpus-figures`).
+
+```
+cmd:      grep -rl 'not firing\|does not fire\|fires on every\|never fires' .beans documentation | sort
+observed: .beans/modus-0068--encode-sprint-1-findings.md
+          .beans/modus-0069--per-request-usage-is-the-published-vocabulary.md
+          .beans/modus-0086--check-6-resolves-references-through-a-naive-fence-toggle.md
+          .beans/modus-0089--anchors-cited-by-completed-beans-pin-a-document.md
+          .beans/modus-0090--constants-that-must-match-an-authority.md
+          .beans/modus-0105--the-negative-half-of-observed-failing-is-normative-nowhere.md
+          .beans/modus-0110--dispatching-a-review-and-an-edit-against-one-head.md
+          .beans/modus-0112--a-sweep-for-a-wording-read-as-a-sweep-for-a-rule.md
+          .beans/modus-0114--nothing-checks-that-a-pull-requests-refs-are-complete.md
+          .beans/modus-0115--encode-sprint-2-findings-and-hand-off-to-sprint-3.md
+          documentation/80-agent-operating-procedure.md
+exit:     0
+```
+
+### The gate for this close
+
+`./gradlew qualityCheck` is the gate `rule:ci/build` runs, and `tools/docs-lint.sh` is inside
+it. The `docs-lint` counts describe the tree that carries them, so both captures are taken by
+the sentinel method (`doc:50-memory-and-evidence#corpus-figures`): the asserted strings were
+absent from the tree at capture time, standing as `@@sp3gate@@` and `@@sp3sweep@@`, and each
+was re-run after insertion and diffed against its first capture. The `docs-lint` counts line
+itself is `bean:0102`'s criterion 8 and lives there, not here — quoted once, and marked
+`[same]` here rather than repeated (`bean:0091`, `doc:05-authoring-for-agents#one-fact-one-place`).
+Nothing is elided: `:docsLint` is the last task before `:qualityCheck`, and the block below is
+every line from the first to the build result, with only the `docs-lint` counts line replaced
+by `[same]`. **The last two lines are the ones a re-runner will not match**, and that is a
+property of the lines and not a defect in the capture: the duration is a duration, and the
+executed-versus-up-to-date split depends on configuration-cache and build-cache state
+(`bean:0065` criterion 10 records the same thing and for the same reason — an earlier run of
+this same gate on this same branch reported `168 actionable tasks: 55 executed, 113 from
+cache`). `BUILD SUCCESSFUL` and the exit code are the reproducible half. The `docs-lint`
+line inside this run is reproducible, and its fixed point is established at `bean:0102` F6
+rather than here — where it is also the check that this gate run and that standalone run
+read the same tree.
+
+```
+cmd:      ./gradlew qualityCheck
+observed: > Task :docsLint
+          [same as bean:0102 F6]
+
+          > Task :qualityCheck
+
+          BUILD SUCCESSFUL in 21s
+          159 actionable tasks: 5 executed, 154 up-to-date
+exit:     0
 ```
