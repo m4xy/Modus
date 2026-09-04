@@ -243,10 +243,16 @@ arms were first run with the two cells above holding a sentinel marker, so no ru
 itself from its own transcript; the outputs were then pasted and both arms re-run.
 
 ```
-cmd:      bash tools/docs-lint.sh > /tmp/sp3-0096-rerun-a.txt; diff of the counters line
-          against the pasted arm-A cell, and the same for arm B
-expect:   identical; the paste adds no document, anchor, reference or bean
-observed: <<SENTINEL-RERUN>>
+cmd:      B=.beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md
+          bash tools/docs-lint.sh | tail -1 > /tmp/a2.txt
+          sed -i '' 's/^status: in-progress/status: completed/' "$B"
+          bash tools/docs-lint.sh | tail -1 > /tmp/b2.txt; git checkout -- .beans
+          awk '/^ +docs-lint: OK/ { sub(/^ +/, ""); print }' "$B" > /tmp/pasted.txt
+          cat /tmp/a2.txt /tmp/b2.txt > /tmp/rerun.txt; diff /tmp/pasted.txt /tmp/rerun.txt
+expect:   no difference; the paste adds no document, anchor, reference or bean, so the
+          counters the record quotes are the counters a run still prints
+observed: identical: the two cells this bean records are what a re-run prints
+exit:     0
 ```
 
 ### Criterion 2 — a reader of a green line can determine that no evidence was examined
@@ -306,5 +312,16 @@ No completed bean quoting the `OK` line verbatim is amended, because none is inv
 ```
 cmd:      ./gradlew qualityCheck
 expect:   BUILD SUCCESSFUL, docsLint inside it
-observed: <<SENTINEL-GRADLE>>
+observed: [...]
+          > Task :docsLintTest
+          docs-lint-test: 37 passed, 0 failed.
+          [...]
+          > Task :docsLint
+          docs-lint: OK — [same]   (arm A above, byte for byte, on this tree)
+          [...]
+          > Task :qualityCheck
+          [...]
+          BUILD SUCCESSFUL in 5m 11s
+          168 actionable tasks: 55 executed, 113 from cache
+exit:     0
 ```
