@@ -118,7 +118,8 @@ function citation_site(line) {
 # evidence cell, a span of criteria the run recorded in that cell genuinely covers. That
 # author writes the span in the row's first cell instead, which is where a row says what it
 # is about; the evidence cell is where output is PASTED, and that asymmetry is the reason to
-# cut here. Measured cost over the corpus at 3b02871: no bean's answered set changes.
+# cut here. The corpus does not choose between the two forms: over all 110 beans at 3b02871
+# they give byte-identical verdicts, 110 compared and 0 differing. The reasoning chooses.
 function citation_text(line,   n, c, i, t) {
   if (!citation_site(line)) { return "" }
   if (line !~ /^## / && region != "EV" && region != "BOTH") { return "" }
@@ -153,12 +154,15 @@ function scan(s, dest,   t, nn, ar, i, lo, hi, k2, hit) {
 # What counts as standing under it is `a non-blank line`, and the alternative was
 # doc:05-authoring-for-agents#checks's ENTRY — a table row, a sub-heading or a fenced block,
 # prose explicitly not one. Entry is the stricter reading of the same document and it is
-# rejected on measured cost: it refuses `### Criterion 2 cannot be met as written` followed
-# by the ruling and its reason, which that same document accepts in as many words and which
-# .beans/modus-0049 writes. A ruling in prose IS the evidence for a criterion that cannot be
-# met; a run's transcript is not. The entry rule also costs the corpus real beans where the
-# non-blank rule costs it none, and both figures are in bean:0121. So the constraint here is
-# EMPTYCELL's analogue — nothing at all under the heading — and not HOLLOW's.
+# rejected on measured cost: it refuses a heading naming a criterion followed by the ruling
+# and its reason, which that same document accepts in as many words. Two beans on main write
+# that shape — .beans/modus-0038 and .beans/modus-0049 — and under the entry rule
+# .beans/modus-0038 loses its seventh criterion, which nothing else in it answers. It is
+# `completed` and frozen, so it would not fail; a narrowing that would have failed it if it
+# closed again is still the wrong narrowing. A ruling in prose IS the evidence for a
+# criterion that cannot be met; a run's transcript is not. Both corpus figures are in
+# bean:0121. So the constraint here is EMPTYCELL's analogue — nothing at all under the
+# heading — and not HOLLOW's.
 function pend_commit(   n) { for (n in P) { A[n] = 1; delete P[n] }; pendlvl = 0 }
 function pend_drop(   n)   { for (n in P) { delete P[n] };           pendlvl = 0 }
 function allkinds(c,   t, i, n, a) {
