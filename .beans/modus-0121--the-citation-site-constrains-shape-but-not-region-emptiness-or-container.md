@@ -1,7 +1,7 @@
 ---
 # modus-0121
 title: A citing heading answers a criterion from anywhere in the file, with nothing under it, and from inside a raw HTML block; and an evidence row answers from its own cell
-status: todo
+status: in-progress
 type: fix
 priority: high
 created_at: 2026-09-04T00:00:00Z

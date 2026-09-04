@@ -24,10 +24,11 @@ function isevcol(h) {
   return (h == "evidence" || h == "observed" || h == "observed output" ||
           h == "output" || h == "result")
 }
-# Where a `criterion N` citation counts: a STRUCTURAL SITE, and nowhere else. A structural
-# site is a heading this analyser tracks, or a row of a table it has entered — the two
-# places a bean names a criterion in order to file evidence under it, rather than in order
-# to talk about it.
+# The SHAPE half of where a `criterion N` citation counts: a STRUCTURAL SITE, and nowhere
+# else. A structural site is a heading this analyser tracks, or a row of a table it has
+# entered — the two places a bean names a criterion in order to file evidence under it,
+# rather than in order to talk about it. Shape is necessary and, since bean:0121, not
+# sufficient: read the block under this function for the other three conditions.
 #
 # This replaces an exclusion rule, and the replacement is the point. The exclusion rule
 # accepted every line and then subtracted containers it could name — four or more columns
@@ -45,7 +46,9 @@ function isevcol(h) {
 # is unanswered, which is the direction that fails closed.
 #
 # WHAT THIS FUNCTION DOES NOT DO, stated because the paragraph above would otherwise be read
-# as saying it. It receives the line text and reads one flag of the analyser's own state. It
+# as saying it. Two of the three things it does not do are done BELOW IT, by citation_text()
+# and by the pending buffer, and this paragraph is about the one that is still not done at
+# all. It receives the line text and reads one flag of the analyser's own state. It
 # has NO model of raw HTML blocks and cannot refuse a container. A container is refused only
 # insofar as its CONTENTS are neither heading-shaped nor row-shaped; a `#`-leading line
 # inside <pre>, inside <details><pre>, or inside an HTML comment is a site here, and a
@@ -53,7 +56,7 @@ function isevcol(h) {
 # like any other. Every one of those shapes is pinned in tools/docs-lint-test.sh, as a
 # verdict and not only as a classification, under the heading `ACCEPTED`.
 #
-# That residual is ACCEPTED here rather than closed, and bean:0121 owns it. Refusing those
+# That residual is ACCEPTED here rather than closed, and `bean:0128` owns it. Refusing those
 # lines needs a model of which HTML blocks hold literal content — CommonMark §4.6's type 1,
 # whose four tag names are the whole rule, and type 2's comment — which is an enumeration of
 # containers, the allowlist this replaced. It would also be wrong in the other direction: a
@@ -62,15 +65,11 @@ function isevcol(h) {
 # narrowing still closes the shape bean:0093 was raised for — check 14's own stdout at column
 # zero is neither heading- nor row-shaped wherever it is pasted.
 #
-# READ THE QUALIFIER `AT COLUMN ZERO`, BECAUSE IT COSTS SOMETHING. The whole line is scanned
-# once it is a site, so the same stdout pasted into the evidence CELL of a numbered row is read
-# — the cell is not at column zero, but the row around it is row-shaped. `| 2 | two | FAIL
-# check 14 …: criterion 3 is not answered in the evidence |` answers criterion 3, which no row
-# of that table numbers, and a three-criterion bean closes green having recorded evidence for
-# two. That is laundering by the definition bean:0093 adopted — a machine-generated string out
-# of this tool's stdout and back into it, with nobody deciding anything — and unlike the
-# container shapes above it needs nothing written by hand and no new perception layer to
-# refuse. It is the fourth residual on bean:0121 and it is pinned below as a verdict.
+# `AT COLUMN ZERO` USED TO BE A QUALIFIER THAT COST SOMETHING, and bean:0121 is what stopped
+# it costing. The whole line was scanned once it was a site, so the same stdout pasted into
+# the evidence CELL of a row was read — the cell is not at column zero, but the row around it
+# is row-shaped, and it answered a criterion no row of that table numbered. citation_text()
+# below cuts the evidence cell out of the row, so it no longer does.
 #
 # `intable` is the analyser's own table state, set on the delimiter row below and CLEARED on
 # every heading and every line that is not a table row. It is NOT a container model and the
@@ -86,6 +85,82 @@ function isevcol(h) {
 function citation_site(line) {
   return (line ~ /^#+ / || (intable && line ~ /^\|/))
 }
+# THE SHAPE TEST ABOVE IS ONE OF FOUR CONSTRAINTS, AND THE OTHER THREE LIVE BELOW. A site's
+# shape says the line is the kind of thing a citation may stand on; it does not say the
+# citation counts. bean:0121 measured three ways it did not:
+#
+#   region     a `### Criterion 3 was not attempted` heading under `## Not in scope`
+#              answered criterion 3, because citation_site() never read `region`
+#   emptiness  `### Criteria 1-5` as the WHOLE of a five-criterion bean's `## Evidence`
+#              closed it, because nothing required the heading to head anything
+#   cell       the whole row is scanned, so this check's own stdout pasted into the
+#              EVIDENCE CELL of a row answered the criterion that stdout reports unanswered
+#
+# All three are decided from state this analyser already holds — `region`, the heading
+# level, `evcol` — so none of them needs a new perception layer, and all three fail CLOSED:
+# a citation that does not satisfy them is not read, and its criterion is reported
+# UNANSWERED. None of them reads polarity. `### Criterion 2 cannot be met as written` is
+# refused where it stands outside the evidence region or heads nothing, and answers where it
+# does not, exactly as before (doc:05-authoring-for-agents#checks).
+#
+# citation_text() owns region and cell. It returns the TEXT of the line a citation may be
+# read from, or the empty string for none, and it is the whole of the answer for a row.
+# `region` gates both site kinds, which aligns the citation path with the numbered-row path
+# beside it: `A[first]` has always required region EV or BOTH, and only the citation scan
+# did not.
+#
+# The cell rule is `do not read a citation out of the evidence column of a row`, and it
+# applies to EVERY row, not only to a row that numbers itself. The narrower form — mask the
+# cell only on a numbered row — closes the shape bean:0121 measured and leaves the same
+# laundering open one column over, in the evidence cell of an UNNUMBERED row, which is the
+# same machine-generated string arriving through the same site. What the broad form
+# sacrifices is stated rather than left implicit: a row that legitimately names, in its
+# evidence cell, a span of criteria the run recorded in that cell genuinely covers. That
+# author writes the span in the row's first cell instead, which is where a row says what it
+# is about; the evidence cell is where output is PASTED, and that asymmetry is the reason to
+# cut here. Measured cost over the corpus at 3b02871: no bean's answered set changes.
+function citation_text(line,   n, c, i, t) {
+  if (!citation_site(line)) { return "" }
+  if (line !~ /^## / && region != "EV" && region != "BOTH") { return "" }
+  if (line ~ /^#+ /) { return tolower(line) }
+  n = split(line, c, "|")
+  if (evcol > 1 && evcol < n) {
+    t = ""
+    for (i = 2; i < n; i++) { if (i != evcol) { t = t "|" c[i] } }
+    return tolower(t)
+  }
+  return tolower(line)
+}
+# The matcher, unchanged in what it reads and moved only so that a heading's hits can be
+# held rather than committed. `criteria 1, 2 and 5` is read as 1-2, because ` and ` is not
+# a separator here; that is the matcher bean:0093 shipped and this bean does not touch it.
+function scan(s, dest,   t, nn, ar, i, lo, hi, k2, hit) {
+  hit = 0
+  while (match(s, /criteri(on|a)[^0-9a-z]*[0-9]+([^0-9a-z]{1,3}[0-9]+)?/)) {
+    t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+    gsub(/[^0-9]+/, " ", t); nn = split(t, ar, /[ \t]+/)
+    lo = 0; hi = 0
+    for (i = 1; i <= nn; i++) { if (ar[i] != "") { if (lo == 0) lo = ar[i] + 0; else hi = ar[i] + 0 } }
+    if (hi > lo && hi - lo < 20) { for (k2 = lo; k2 <= hi; k2++) { dest[k2] = 1; hit = 1 } }
+    else if (lo > 0) { dest[lo] = 1; hit = 1 }
+  }
+  return hit
+}
+# EMPTINESS, held in P[] because it is not decidable from the citing line. A heading's
+# citations are PENDING until something stands under the heading; then they are committed,
+# and if the section ends first they are dropped and the criteria come back UNANSWERED.
+#
+# What counts as standing under it is `a non-blank line`, and the alternative was
+# doc:05-authoring-for-agents#checks's ENTRY — a table row, a sub-heading or a fenced block,
+# prose explicitly not one. Entry is the stricter reading of the same document and it is
+# rejected on measured cost: it refuses `### Criterion 2 cannot be met as written` followed
+# by the ruling and its reason, which that same document accepts in as many words and which
+# .beans/modus-0049 writes. A ruling in prose IS the evidence for a criterion that cannot be
+# met; a run's transcript is not. The entry rule also costs the corpus real beans where the
+# non-blank rule costs it none, and both figures are in bean:0121. So the constraint here is
+# EMPTYCELL's analogue — nothing at all under the heading — and not HOLLOW's.
+function pend_commit(   n) { for (n in P) { A[n] = 1; delete P[n] }; pendlvl = 0 }
+function pend_drop(   n)   { for (n in P) { delete P[n] };           pendlvl = 0 }
 function allkinds(c,   t, i, n, a) {
   t = norm(c)
   if (t == "") { return 0 }
@@ -106,6 +181,9 @@ function allkinds(c,   t, i, n, a) {
   # `criterion N is not answered` message (bean:0061).
   if (k == "OPEN") {
     if (region == "EV" || region == "BOTH") { entries++ }
+    # A fence stands UNDER the heading above it, so it commits that heading's pending
+    # citations even though it is not itself a citation site.
+    pend_commit()
     prev = ""; next
   }
   if (k == "CLOSE") { prev = ""; next }
@@ -170,16 +248,21 @@ function allkinds(c,   t, i, n, a) {
   }
 
   # A criterion is answered by an evidence row bearing its number, or by being cited by
-  # number from a structural site: `### Criterion 3` as an evidence sub-heading, or a
-  # table row reading `| 3 | … | criteria 1–5 | …`. Not from running prose.
-  s = citation_site(line) ? tolower(line) : ""
-  while (match(s, /criteri(on|a)[^0-9a-z]*[0-9]+([^0-9a-z]{1,3}[0-9]+)?/)) {
-    t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
-    gsub(/[^0-9]+/, " ", t); nn = split(t, ar, /[ \t]+/)
-    lo = 0; hi = 0
-    for (i = 1; i <= nn; i++) { if (ar[i] != "") { if (lo == 0) lo = ar[i] + 0; else hi = ar[i] + 0 } }
-    if (hi > lo && hi - lo < 20) { for (k2 = lo; k2 <= hi; k2++) { A[k2] = 1 } }
-    else if (lo > 0) { A[lo] = 1 }
+  # number from a structural site INSIDE THE EVIDENCE REGION: `### Criterion 3` as an
+  # evidence sub-heading with something under it, or a table row reading
+  # `| 3 | criteria 1–5 | … |` outside its evidence cell. Not from running prose, not from
+  # another section, not from a heading that heads nothing, not from a pasted cell.
+  if (line ~ /^#+ /) {
+    # A heading ENDS the section of every heading at its own level or shallower, so a
+    # pending citation there was never followed by anything and is dropped. A DEEPER
+    # heading stands under it and is an entry, so it commits instead — the citing heading
+    # heads a sub-section, which is content by either definition.
+    lvl = index(line, " ") - 1
+    if (lvl <= pendlvl) { pend_drop() } else { pend_commit() }
+    if (scan(citation_text(line), P)) { pendlvl = lvl }
+  } else {
+    scan(citation_text(line), A)
+    if (line !~ /^[ \t\r]*$/) { pend_commit() }
   }
   prev = line
 }
