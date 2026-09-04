@@ -1,13 +1,13 @@
 ---
 # modus-0117
-title: The spend ledger is tracked and has never been committed since it was created, so the audit log holds 2 of 274 records and the primary checkout is permanently dirty
+title: The spend ledger is tracked and has never been committed since it was created, so git holds two spend records and the primary checkout is permanently dirty
 status: todo
 type: fix
 priority: normal
 created_at: 2026-09-04T00:00:00Z
 ---
 
-# The spend ledger is tracked and has never been committed since it was created, so the audit log holds 2 of 274 records and the primary checkout is permanently dirty
+# The spend ledger is tracked and has never been committed since it was created, so git holds two spend records and the primary checkout is permanently dirty
 
 `domains/modus/cost/0001.ndjson` is tracked. One commit reachable from `2b67b23` has ever
 touched it, `8155b2a`, and it put two records there. The working tree of the primary checkout
