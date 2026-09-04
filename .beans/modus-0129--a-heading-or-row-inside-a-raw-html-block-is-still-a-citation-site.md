@@ -23,7 +23,7 @@ container is refused only insofar as its contents are neither heading-shaped nor
 
 ## Observed
 
-At `3b02871`, and again unchanged at the head that closes `bean:0121`. Every run is
+At `3b02871`, and again unchanged at `5a625fc`, the head that implements `bean:0121`. Every run is
 `awk -v KINDS="…" -f tools/lib/docs-lint-fence.awk -f tools/lib/docs-lint-c14.awk <fixture>`
 on a fixture and not on a bean file, so no plant, no revert and no `git checkout -- .beans`
 is involved (`bean:0102`, `bean:0116`). `KINDS` is the value `tools/docs-lint.sh` passes.
