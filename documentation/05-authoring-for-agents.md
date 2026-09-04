@@ -242,19 +242,17 @@ has already frozen. Two evidence shapes are accepted because the corpus writes b
 `## Success criteria and evidence` table with an `evidence` column, and a separate
 `## Evidence` section beside a criteria section.
 
-Check 14's conditions are structural. It decides that an evidence home exists, that every
-numbered criterion is answered by a row bearing its number, and that no evidence cell is empty
-or composed of evidence-kind names. Whether the output in a cell was ever produced, whether the
-command beside it reproduces that output, and whether either bears on the criterion the row is
-filed under are outside what the check can decide. Scope compounds it:
-`doc:00-constitution#bean-lifecycle` holds a bean `in-progress` for the whole life of its own
-pull request, so on the pull request that implements a bean, that bean is never a candidate.
-`0 closing transitions` on the `OK` line is that statement — no bean's evidence was examined,
-and the zero beside it under `criteria checked` follows from the empty candidate set, not from
-a bean inspected and found bare. A non-zero pair comes from a bean the change *closes*, whose
-implementation merged earlier and was reviewed elsewhere. A green check 14 therefore
-establishes the shape of the evidence in the beans a change closes, and nothing at all about
-the implementation under review (`bean:0096`).
+Every condition in check 14's row above is structural. Whether the output in an evidence cell
+was ever produced, whether the command beside it reproduces that output, and whether either
+bears on the criterion the cell is filed under are outside what the check can decide. Scope
+compounds it: `doc:00-constitution#bean-lifecycle` holds a bean `in-progress` for the whole
+life of its own pull request, so on the pull request that implements a bean, that bean is
+never a candidate. `0 closing transitions` on the `OK` line is that statement — no bean's
+evidence was examined, and the zero beside it under `criteria checked` follows from the empty
+candidate set, not from a bean inspected and found bare. A non-zero pair comes from a bean the
+change *closes*, whose implementation merged earlier and was reviewed elsewhere. A green check
+14 therefore establishes the shape of the evidence in the beans a change closes, and nothing
+at all about the implementation under review (`bean:0096`).
 
 The definitions the check depends on, stated here because they are rules and not
 conventions:
