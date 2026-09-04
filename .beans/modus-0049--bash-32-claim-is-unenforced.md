@@ -1,7 +1,7 @@
 ---
 # modus-0049
 title: docs-lint claims bash 3.2 compatibility and nothing tests it
-status: in-progress
+status: completed
 type: fix
 priority: normal
 created_at: 2026-08-29T00:00:00Z
@@ -255,6 +255,314 @@ Nothing in `tools/lib/docs-lint-c14.awk` or `tools/lib/docs-lint-fence.awk` was 
 check 14's behaviour is unchanged. Three changes to that analyser are queued behind this one;
 pinning the interpreter is what gives them something to be validated against, and arriving
 early would defeat the ordering.
+
+## Closing evidence — merged as PR #69, squashed onto `main` as `1c19cf0`
+
+A bean cannot close itself, so this is the next change (`doc:00-constitution#bean-lifecycle`).
+What it adds is the half a branch run cannot carry: that the artefacts the criteria name are on
+`main`, and that one criterion is not among them. Every command below reads `1c19cf0`
+explicitly, so its output comes from any checkout rather than from this one
+(`doc:50-memory-and-evidence#corpus-figures`).
+
+The merge subject is `feat(tools): enforce the bash 3.2 claim the gate only asserted`, with no
+`(#69)` suffix, because the squash was taken with an explicit `--subject` and that replaces the
+pull-request title rather than appending to it. The pull request's own title was
+`feat(tools): pin the gate's shell and make the bash 3.2 claim falsifiable`. Neither string
+identifies the commit; the sha does, and every block below uses it.
+
+**Criterion 1 is met, with the residual entry 1 already states. Criterion 2 is NOT MET, and
+closing does not make it met. Criterion 3 does not apply.** The ruling on criterion 2 is the
+amendment *Criterion 2 is ruled unmeetable* below, made by the owner in review; this section
+carries it forward rather than restating it as satisfied.
+
+| # | criterion | observed |
+|---|---|---|
+| 1 | the gate runs the script under a 3.2-compatible interpreter, or the constraint is struck | **Met**, in the form entry 1 records. At `1c19cf0`, `build.gradle.kts:28` is `val gateShell = "/bin/bash"`, and lines 37, 48 and 60 route `docsLint`, `docsLintTest` and `bashCompatLint` through it instead of resolving `bash` on `PATH`; line 146 puts `bashCompatLint` inside `qualityCheck`. The task names the interpreter it got on every run: `interpreter /bin/bash (bash 3.2.57(1)-release)`. **Residual, carried from entry 1 rather than dropped:** the CI image's `/bin/bash` is bash 5, so the half of the gate that is a genuine 3.2 parse runs on macOS only. What CI gets is a known interpreter at a fixed path plus the construct scan, which does run on both. That is less than this criterion's literal words and more than the nothing that preceded it. **And the half CI does get fails open, which the residual has to carry rather than leave to the amendment that established it:** the scan is `tools/lib/bash32-forbidden.tsv`, twenty-three rows, and the amendment *A citation to a differential this bean does not contain* below settles that the file is a denylist of what was measured rather than a differential of anything (`awk -F'\t' '/^[ \t]*#/{next} /^[ \t]*$/{next} NF>=3 && $1!="" && $3!="" {n++} END {print n}' tools/lib/bash32-forbidden.tsv` prints `23` at `5ce4b80`). A denylist enumerates; a bash 4 construct nobody has named passes it, exactly as the allowlist `doc:00-constitution#observed-failing` calls fail-open passes an expression nobody has named. The direction differs — that section enumerates what a gate accepts, this enumerates what it rejects — and the failure mode is the same one, and is the reason a genuine 3.2 parse and not the scan is what criterion 1 asked for. Blocks A and C |
+| 2 | **NOT MET** — the interpreter observed rejecting a planted associative array or `mapfile` | **Not met, and nothing that merged meets it.** Under a real bash 3.2 both constructs produce a diagnostic and leave the exit status at 0; `tools/docs-lint.sh` has `set -uo pipefail` and no `set -e`, so the run continues to its `OK` line. Measured in entry 2, re-measured independently in review in the amendment named above, and the two agree. `tools/bash-compat-lint.sh` does reject both (entry 3) and is a substitute, not the mechanism this criterion names. The owner ruled the criterion wrong rather than the work. The concern it was reaching for — that `tools/docs-lint.sh` reaches `OK` at exit 0 through nearly every runtime failure, an inert check included — is `bean:0118`, which is on `origin/main` at `status: todo`. Block B |
+| 3 | if struck: the header states which interpreter the script targets, and `bean:0035`'s awk-portability notes are re-read | **Does not apply.** Its antecedent is false: the claim was kept, not struck. At `1c19cf0` `tools/docs-lint.sh:7-8` still asserts it and lines 9-10 name the gate that now backs the assertion, which is the change criterion 1 asked for. Its second clause sits inside the same conditional, and whether those notes were re-read **could not be verified**: at `1c19cf0` — the content this section closes — `bean:0035` occurs exactly twice in this bean, at lines 21 and 43, its opening paragraph and criterion 3 itself, and nowhere in the evidence entries or the amendments. **That count is taken against the git object and not against this file, because this row is part of what it counts** (`doc:50-memory-and-evidence#corpus-figures`): the row restates the criterion and then reports on it, which is two further occurrences, so a count over the working tree answers a different question from the one asked. The run is the third fence of Block A. The wording this replaces asserted "cited twice … and nowhere in the evidence" from inside an evidence table, and so was false of the tree it was written on. Awk portability was re-observed rather than inherited, on the CI runner, in the amendment *The anchored regexes under CI's awk* — which is not the same act. Block A |
+
+A green `docs-lint` check 14 on this change asserts the **shape** of the three rows above and
+nothing about whether they are true, and criterion 2 is the case that makes the distinction
+concrete: the check counts a criterion answered when an entry bears its number, not when the
+entry says the criterion was met (`doc:05-authoring-for-agents#checks`, `bean:0096`).
+
+### Block A — criteria 1 and 3, read off `1c19cf0`
+
+```
+cmd:      git grep -n 'val gateShell' 1c19cf0 -- build.gradle.kts
+          git grep -n 'commandLine(gateShell' 1c19cf0 -- build.gradle.kts
+          git grep -n '"docsLint", "docsLintTest", "bashCompatLint"' 1c19cf0 -- build.gradle.kts
+observed: 1c19cf0:build.gradle.kts:28:val gateShell = "/bin/bash"
+          1c19cf0:build.gradle.kts:37:    commandLine(gateShell, "tools/docs-lint.sh")
+          1c19cf0:build.gradle.kts:48:    commandLine(gateShell, "tools/docs-lint-test.sh")
+          1c19cf0:build.gradle.kts:60:    commandLine(gateShell, "tools/bash-compat-lint.sh")
+          1c19cf0:build.gradle.kts:146:        subprojects.map { "${it.path}:check" } + listOf("check", "ktlintCheck", "docsLint", "docsLintTest", "bashCompatLint"),
+
+cmd:      git show 1c19cf0:tools/docs-lint.sh | awk 'NR >= 5 && NR <= 12 { printf "%d:%s\n", NR, $0 }'
+observed: 5:# Bash, not Kotlin: the checks are line- and glob-shaped, bash already runs in CI
+          6:# and locally, and a JavaExec task would need a source set, a toolchain and a test
+          7:# fixture to do the same string matching. No bash 4 feature is used: macOS ships 3.2 and
+          8:# /bin/bash there is still 3.2.57, which build.gradle.kts now pins the gate to. That is a
+          9:# gate rather than a comment — tools/bash-compat-lint.sh parses this file under the pinned
+          10:# interpreter and scans it for the constructs 3.2 lacks, from qualityCheck (bean:0049).
+          11:# Every failure is appended to one file so a check that fires inside a pipeline subshell
+          12:# still changes the exit status.
+exit:     0
+
+cmd:      git show 1c19cf0:.beans/modus-0049--bash-32-claim-is-unenforced.md | /usr/bin/grep -n 'bean:0035'
+          git show 1c19cf0:.beans/modus-0049--bash-32-claim-is-unenforced.md | /usr/bin/grep -o 'bean:0035' | /usr/bin/grep -c .
+expect:   criterion 3's second clause names notes whose re-reading the record can only show
+          by citing them somewhere it was done; two occurrences, both outside the evidence
+observed: 21:it is Linux bash 5. Found by `bean:0035`'s implementation, which had to verify by hand:
+          43:3. If struck: the header says which interpreter the script targets, and `bean:0035`'s
+          2
+exit:     0
+```
+
+The `awk` numbers the lines rather than a `sed -n` range, so the locator and the text it names
+come out of the same command — the correction the last review round made to this bean's opening
+locator, applied here at the start rather than after a reviewer finds it.
+
+The third fence reads the git object rather than the working tree on purpose. Criterion 3's row
+above reports its result, and the row is inside this bean, so a working-tree count would include
+the sentence making the claim — the shape `doc:50-memory-and-evidence#corpus-figures` calls a
+record that measures a corpus it belongs to. `1c19cf0` is the content this section closes and is
+the tree the question is about; it is also fixed, so the figure cannot drift as this section is
+reviewed. `/usr/bin/grep` is BSD grep 2.6.0-FreeBSD, named because the interactive shell's
+`grep` here is a harness-installed `ugrep 7.8.4` and the two are not the same program.
+
+### Block B — criterion 2's concern has a home on `main`, and it is not this bean
+
+```
+cmd:      git grep -n '^status:' origin/main -- '.beans/modus-0118--*.md'
+          git grep -c 'docs-lint' origin/main -- '.beans/modus-0118--*.md'
+observed: origin/main:.beans/modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md:4:status: todo
+          origin/main:.beans/modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md:32
+exit:     0
+```
+
+`origin/main` is `1c19cf0` at the time of this run, so the bean the concern was handed to
+merged with the change that raised it. The second figure is a `git grep -c` and its line
+therefore ends in a count rather than in file text: 32 lines of that bean mention `docs-lint`,
+which is a size, not a verdict.
+
+### Block C — criterion 1's live half, on this tree
+
+```
+cmd:      ./gradlew bashCompatLint docsLint docsLintTest
+observed: [... the build-logic task list ...]
+          > Task :docsLintTest
+          [... 37 named test lines ...]
+          docs-lint-test: 37 passed, 0 failed.
+
+          > Task :bashCompatLint
+          bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+          bash-compat: OK — 3 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+
+          > Task :docsLint
+          docs-lint: OK — 19 documents, 111 anchors, 1552 references, 102 beans, 37 graph edges, 46 selectable, 102 bean ids, 0 introduced, 102 on origin/main, 2 closing transitions, 8 criteria checked, 0 unnumbered.
+          [... Gradle's incubating problems-report line and its Gradle 10 deprecation notice ...]
+          BUILD SUCCESSFUL in 19s
+          12 actionable tasks: 6 executed, 6 from cache
+exit:     0
+tree:     `chore/close-0049-and-0096`, both beans at their `1c19cf0` content with only their
+          two `status:` lines flipped to `completed`, uncommitted. This section is absent,
+          `bean:0096`'s counterpart is absent and `bean:0120` is absent — the pair was taken
+          before any of the three existed, which is what `bean:0096`'s Block D says of the
+          same figures. `git merge-base origin/main HEAD` is `1c19cf0`, and checks 11, 13c
+          and 14 read that base against the working tree, so the base is what the counters
+          are relative to.
+```
+
+`2 closing transitions, 8 criteria checked` is check 14 examining this bean's three criteria and
+`bean:0096`'s five. The same command on the unmodified tree at the same head reports
+`0 closing transitions, 0 criteria checked` and is identical in every other field; that pair is
+in `bean:0096`'s closing section, where it is also that bean's own subject matter. That
+pair says the check ran; the two plants in the same section say it would have rejected this
+close, and the second of them is a plant against criterion 2 of this bean.
+
+**The `tree:` line above is a correction, and the correction is the point.** It read
+"`chore/close-0049-and-0096` at `1c19cf0`, with this section and `bean:0096`'s counterpart
+present and both `status:` fields set to `completed`" — a tree that cannot produce the output
+beside it, refuted twice over: with `bean:0049`'s closing section present the reference count is
+`1556`, not `1552`, and with `bean:0096`'s present too the run does not reach an `OK` line at
+all, because that section cites `bean:0120` and check 6 fails on it. The output is genuine and is
+not retaken; what was wrong is the tree it was attributed to. Five trees, built from git objects
+in one run, say which one it is — the second.
+
+```
+cmd:      bash [...]/fivetrees.sh
+          # `[...]` is a scratchpad directory. The script, in full: copy the three bean
+          # files aside; write each tree's inputs from git objects —
+          #   git show 1c19cf0:<bean>                                     (trees 1, 2 base)
+          #   sed '4s/^status: in-progress$/status: completed/'           (tree 2's flip)
+          #   git show 5ce4b80:<bean>                                     (trees 3, 4, 5)
+          # — running `bash tools/docs-lint.sh` after each, then restore from the copies and
+          # `diff` them. No `git` operation touches the working tree, so nothing uncommitted
+          # can be discarded (bean:0102).
+expect:   exactly one tree reproduces `1552 references [...] 2 closing transitions, 8 criteria
+          checked`, and it is not the one the `tree:` line named
+observed: merge base: 1c19cf0fc911f10992181a494a4f74a5703644dc
+          --- 1  clean 1c19cf0
+          docs-lint: OK — 19 documents, 111 anchors, 1552 references, 102 beans, 37 graph edges, 46 selectable, 102 bean ids, 0 introduced, 102 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          exit: 0
+          --- 2  1c19cf0 with only the two status: lines flipped to completed
+          docs-lint: OK — 19 documents, 111 anchors, 1552 references, 102 beans, 37 graph edges, 46 selectable, 102 bean ids, 0 introduced, 102 on origin/main, 2 closing transitions, 8 criteria checked, 0 unnumbered.
+          exit: 0
+          --- 3  plus bean:0049's closing section, as committed at 5ce4b80
+          docs-lint: OK — 19 documents, 111 anchors, 1556 references, 102 beans, 37 graph edges, 46 selectable, 102 bean ids, 0 introduced, 102 on origin/main, 2 closing transitions, 8 criteria checked, 0 unnumbered.
+          exit: 0
+          --- 4  plus bean:0096's closing section, as committed at 5ce4b80, no bean:0120
+          FAIL check 6  .beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md: 'bean:0120' resolves to 0 files, expected exactly 1
+          docs-lint: 1 failure(s).
+          exit: 1
+          --- 5  plus bean:0120, as committed at 5ce4b80
+          docs-lint: OK — 19 documents, 111 anchors, 1575 references, 103 beans, 37 graph edges, 47 selectable, 103 bean ids, 1 introduced, 102 on origin/main, 2 closing transitions, 8 criteria checked, 0 unnumbered.
+          exit: 0
+          restored: identical
+exit:     0
+tree:     each arm names its own. Trees 1 and 2 are `1c19cf0` content and are reproducible
+          for ever; trees 3, 4 and 5 take the bean files from `5ce4b80`, the head this run
+          was made at, and are stamped there because this very block changes what a
+          re-run of trees 3 to 5 prints (`doc:50-memory-and-evidence#corpus-figures`).
+```
+
+Tree 5 is this pull request as `5ce4b80` presents it. `bean:0096`'s Block D reports the same
+`1575 references, 103 beans, 1 introduced`, and that is **not** claimed here as an identity of
+trees: Block D's `tree:` names `aad2eee` with this bean's Block E uncommitted on top, and
+`5ce4b80` additionally rewrote Block D itself, so the two trees differ in `bean:0096`. The
+figures agree; the trees are near neighbours, and this note exists so the next reader does not
+infer from equal counters that the content was equal — which is the inference that produced the
+`tree:` line being corrected above. Trees 1 and 2 differ in nothing but the two `status:` lines
+and the two closing counters, which is `bean:0096`'s whole subject.
+
+### Block D — PR #69's checks, and that they are this commit's
+
+```
+cmd:      GITHUB_TOKEN= gh pr view 69 --json mergeCommit,mergedAt,title -q '.mergeCommit.oid, .mergedAt, .title'
+observed: 1c19cf0fc911f10992181a494a4f74a5703644dc
+          2026-09-04T09:41:02Z
+          feat(tools): pin the gate's shell and make the bash 3.2 claim falsifiable
+exit:     0
+
+cmd:      GITHUB_TOKEN= gh pr view 69 --json statusCheckRollup -q '.statusCheckRollup[] | "\(.name)\t\(.conclusion)"' | sort -u
+observed: backoffice + e2e	SKIPPED
+          build + mechanical gates	SUCCESS
+          gate	SUCCESS
+          which halves	SUCCESS
+exit:     0
+```
+
+The first command is what ties the second to this close: the checks are green on the pull
+request whose merge commit is the tree blocks A and B read. `backoffice + e2e SKIPPED` is the
+per-path subset behaving as `doc:00-constitution#workflow` §7.2.4 describes.
+
+
+### Block E — criteria 1 and 3 under the narrowing `bean:0093` carries, checked rather than assumed
+
+A parallel branch narrows check 14's `citation_site()` so that a criterion counts as answered
+only from a heading or a table row, never from running prose at column zero. On the tree this
+bean merged into, that would leave criteria 1 and 3 unanswered: this bean's evidence
+sub-headings are entry numbers — `### 1 —`, `### 2 —`, `### 3 —` — and only criterion 2 sits
+under a heading naming it, `## Criterion 2 cannot be met as written`. That was checked here
+rather than taken on report, by running the analyser twice over the same input with only
+`citation_site()` replaced, on a copy; `tools/` was not edited.
+
+```
+cmd:      git show 1c19cf0:.beans/modus-0049--bash-32-claim-is-unenforced.md > <copy>
+          awk -v KINDS="$KINDS" -f <copy of fence.awk> -f <copy of docs-lint-c14.awk> <copy>
+          awk -v KINDS="$KINDS" -f <copy of fence.awk> -f <narrowed copy> <copy>
+expect:   the analyser as it stands answers all three; the narrowed one does not
+observed: --- analyser as it stands
+          STATS	3	0
+          --- narrowed to heading-or-table-row
+          UNANSWERED	1
+          UNANSWERED	3
+          STATS	3	0
+exit:     0
+
+```
+
+**That first fence is a reconstruction, and this review round replaced the argument it carried
+rather than repeating it.** The entry that used to stand here recorded its command as the prose
+sentence "the same two analysers, and a third narrowed to HEADING ONLY, over this branch's
+version of this bean and of `.beans/modus-0096--*.md`". That is not argv, so nothing in the
+record could be re-run (`doc:00-constitution#evidence-rule`, `doc:50-memory-and-evidence#capturing`),
+and the function it modelled had not been read — `doc:50-memory-and-evidence#primary-sources`
+asks for the artefact that decides the claim, which is the function on the parallel branch. It
+is superseded by the run below, which uses that function itself.
+
+```
+cmd:      git show d914eb5:tools/lib/docs-lint-c14.awk   > [...]/c14-pr75.awk
+          git show d914eb5:tools/lib/docs-lint-fence.awk > [...]/fence-pr75.awk
+          diff [...]/fence-pr75.awk tools/lib/docs-lint-fence.awk
+          git show 1c19cf0:.beans/modus-0049--bash-32-claim-is-unenforced.md > [...]/0049.base.md
+          awk -v KINDS=" command test-run diff citation fetch observation " -f [...]/fence-pr75.awk -f [...]/c14-pr75.awk [...]/0049.base.md
+          awk -v KINDS=" command test-run diff citation fetch observation " -f [...]/fence-pr75.awk -f [...]/c14-pr75.awk .beans/modus-0049--bash-32-claim-is-unenforced.md
+          awk -v KINDS=" command test-run diff citation fetch observation " -f [...]/fence-pr75.awk -f [...]/c14-pr75.awk .beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md
+expect:   the narrowed analyser leaves criteria 1 and 3 unanswered on the merged content, and
+          answers every criterion on both beans as this pull request presents them
+observed: (diff of the two fence.awk files printed nothing: they are the same file)
+          --- 1c19cf0 content of bean:0049
+          UNANSWERED	1
+          UNANSWERED	3
+          STATS	3	0
+          --- bean:0049 on this branch
+          STATS	3	0
+          --- bean:0096 on this branch
+          STATS	5	0
+exit:     0
+tree:     the analyser is `d914eb5`, PR #75's head at the time of this run; the two bean files
+          are this branch's working tree with every change of this review round applied. The
+          `--- ` labels are this record's, marking which invocation each block came from; every
+          other line is the analyser's own output. `KINDS` is the literal value
+          `tools/docs-lint.sh:632` passes.
+```
+
+Measurement-neutrality (`doc:50-memory-and-evidence#corpus-figures`): two of the three inputs are
+files this block is inside. The three outputs were pasted and the three commands then re-run over
+the files carrying the paste, and each printed the same line — which it can, because the analyser
+skips fenced content whole, so nothing written inside this fence can change what it reports. That
+is the step the record is neutral at, stated rather than assumed; the first input,
+`git show 1c19cf0:…`, is fixed and neutral by construction.
+
+`<copy>` and the `[...]` paths are scratchpad files. **The real function, read rather than
+modelled:**
+
+```
+function citation_site(line) {
+  return (line ~ /^#+ / || (intable && line ~ /^\|/))
+}
+```
+
+The reconstruction in the first fence differs from it in one way, and in the direction that
+matters: it had no `intable` guard, so it counted **any** `|`-leading line as a citation site,
+including one outside a table. It is therefore **looser** than what it claimed to model, and the
+record overstated what had been read. The conclusion survives because the real function is
+stricter and still answers everything — which is now observed rather than argued. PR #75's head
+moved from `aa4e64f` to `d914eb5` during this round; `citation_site()` is byte-identical at both
+(`git show aa4e64f:tools/lib/docs-lint-c14.awk`, `/usr/bin/grep -A2 '^function citation_site'`),
+only its comment block differs, so nothing here turns on which head is read.
+
+The three-line description this paragraph replaces — "return 1 on `^#+ ` and, in the
+heading-or-table-row arm only, on `^\|`; return 0 otherwise" — was a fair account of what was
+run and a wrong account of what exists.
+
+**The closing section above already answers all three from headings and table rows**, so this
+close needs no repair, under PR #75's real `citation_site()` and under the analyser as it
+stands on this branch. What carries
+criteria 1 and 3 is the table at the head of this section, plus the headings of Block A —
+*criteria 1 and 3* — Block B — *criterion 2* — and Block C — *criterion 1*.
+
+**The proposed repair would have been wrong, and is not made.** It was to rename the evidence
+sub-headings `### 1 — …` and `### 3 — …` to `### Criterion 1 — …` and `### Criterion 3 — …`.
+Those are **entry** numbers, not criterion numbers, and the mapping breaks at three: entry 3 is
+*the mechanism that was built, observed rejecting both (a substitute, not criterion 2)*, and its
+own title says so. Criterion 3 has no evidence entry, because criterion 3 does not apply — its
+antecedent is false. Renaming entry 3 would have filed a substitute for criterion 2 under the
+criterion this bean records as inapplicable, and it would have done so in the one change in which
+this bean's body can still be edited at all: after this merge, `docs-lint` check 11 makes it
+append-only.
 
 ## Amendments
 
