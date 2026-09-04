@@ -230,9 +230,11 @@ immediately after the run; the plant is uncommitted and the bean was committed f
 
 ```
 cmd:      sed -i '' 's/^status: in-progress/status: completed/' .beans/modus-0096--*.md
+          grep -n '^status:' .beans/modus-0096--*.md
           bash tools/docs-lint.sh; git checkout -- .beans
-expect:   exit 0; one closing transition and this bean's five criteria examined and sound
-observed: modus-0096 line 4: status: completed
+expect:   exit 0; the plant in place, one closing transition, and this bean's five criteria
+          examined and sound
+observed: 4:status: completed
           docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 98 on origin/main, 1 closing transitions, 5 criteria checked, 0 unnumbered.
 exit:     0
 ```
@@ -251,10 +253,11 @@ cmd:      B=.beans/modus-0096--check-14-contributes-nothing-to-an-implementation
           bash tools/docs-lint.sh | tail -1 > /tmp/b2.txt; git checkout -- .beans
           awk '/^ +docs-lint: OK — [0-9]+ documents/ { sub(/^ +/, ""); print }' "$B" \
             > /tmp/pasted.txt
-          cat /tmp/a2.txt /tmp/b2.txt > /tmp/rerun.txt; diff /tmp/pasted.txt /tmp/rerun.txt
-expect:   no difference; the paste adds no document, anchor, reference or bean, so the
+          cat /tmp/a2.txt /tmp/b2.txt > /tmp/rerun.txt
+          diff /tmp/pasted.txt /tmp/rerun.txt && echo "identical: what this bean records is what a re-run prints"
+expect:   diff silent, so the paste adds no document, anchor, reference or bean and the
           counters the record quotes are the counters a run still prints
-observed: identical: the two cells this bean records are what a re-run prints
+observed: identical: what this bean records is what a re-run prints
 exit:     0
 ```
 
