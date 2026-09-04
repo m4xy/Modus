@@ -1401,9 +1401,11 @@ exit:     0
 ```
 
 `…` elides the rest of this bean's filename in the pathspec, which was given in full. So
-`origin/main` has held this bean `in-progress` in exactly one tree, `9daff18`, its own head —
-a shorter run than any `bean:0120` E1 records. Two observations follow and only the first is
-about this bean.
+`origin/main` has held this bean `in-progress` in exactly one tree, `9daff18`, its own head.
+That is not shorter than anything `bean:0120`'s E1 records; it **equals** the shortest run
+there. `bean:0116`'s row in that capture reads `1` in the tree that shipped it, `2b67b23`, and
+`0` in the very next, `8c3fd82`. What it is nothing like is the twenty-three consecutive trees
+E1 records for `bean:0068`. Two observations follow and only the first is about this bean.
 
 `status: in-progress` reached `main` in the same commit that shipped the work, not when the
 branch was cut: §7.2.1's first arrow is a rule about a branch, and `main` never sees it.
@@ -1431,18 +1433,15 @@ result of having checked afterwards.
 
 Block F's `1619 references` and `105 beans` are not neutral over it, and are stamped
 `9daff18`+`status:` for that reason: both arms were captured before a line of this section
-existed. Block G's `1627 references` is the run that restored its two plants, taken with
-the closing section present and Block G itself not yet written. The gate below reports
-`1628` — the one further reference this section adds after that run, its first citation of
-`doc:05-authoring-for-agents#one-fact-one-place`, in the paragraph above about the line
-count. `refs.uniq` is a set of file-and-reference pairs, so a second mention of `bean:0102`
-in this file adds nothing to it and a first mention of anything adds one. Every figure moves
-only in the direction its own text accounts for.
-
-The gate run below is taken with everything above it present, and appending it is the last
-edit to the tree that run measured. That is unavoidable for a final capture and is stated
-rather than papered over; CI runs the same gate over the committed tree and its result is on
-the pull request.
+existed. Block G's `1627 references` is the run that restored its two plants, taken with the
+closing section present and Block G itself not yet written. The gate below reports `1629`, and
+the two it gained after Block G's run are both this section's own first citations of an anchor
+no other line of this bean names: `doc:05-authoring-for-agents#one-fact-one-place`, in the
+paragraph above about the line count, and `bean:0068`, in the paragraph about E1's longest
+run. `refs.uniq` is a set of file-and-reference pairs, so a second mention of `bean:0102` in
+this file adds nothing to it and a first mention of anything adds one. Every figure moves only
+in the direction its own text accounts for, and each was re-read after the edit that moved it
+rather than assumed to have held.
 
 ### The gate on this branch
 
@@ -1457,11 +1456,11 @@ observed: 9daff18c55ac1fa727da7906652b3bce337fbef9
           docs-lint-test: 51 passed, 0 failed.
           [...]
           > Task :docsLint
-          docs-lint: OK — 19 documents, 111 anchors, 1628 references, 105 beans, 37 graph edges, 49 selectable, 105 bean ids, 0 introduced, 105 on origin/main, 1 closing transitions, 7 criteria checked, 0 unnumbered.
+          docs-lint: OK — 19 documents, 111 anchors, 1629 references, 105 beans, 37 graph edges, 49 selectable, 105 bean ids, 0 introduced, 105 on origin/main, 1 closing transitions, 7 criteria checked, 0 unnumbered.
 
           > Task :qualityCheck
 
-          BUILD SUCCESSFUL in 24s
+          BUILD SUCCESSFUL in 21s
           160 actionable tasks: 6 executed, 154 up-to-date
           Configuration cache entry reused.
 exit:     0
@@ -1470,15 +1469,6 @@ tree:     `chore/close-0093`, uncommitted, at `9daff18` with this change's singl
           because nothing was committed yet, not because the tree is `main`.
 ```
 
-**Re-run once more after this block was appended**, because a final capture that cannot cover
-its own transcript is the one place this record is not self-checking. Every line pasted
-above that carries a verdict or a count reproduced: `51 passed, 0 failed`, the `bash-compat`
-line, the `docsLint` line with every count on it, and `160 actionable tasks: 6 executed, 154
-up-to-date`. One line did not, and it is Gradle's wall clock: `BUILD SUCCESSFUL in 24s` became
-`in 27s`. So the transcript stands at the head this change ships, not only at the head it was
-taken on. The re-run is not pasted, because it would be the block above with a timing line
-changed, and `doc:50-memory-and-evidence#capturing` is against a fence that is a composition.
-
 Three elisions, all Gradle task lines and the tool output between them: the Kotlin, ktlint,
 Detekt, ArchUnit and test tasks before the first, the `docs-lint-test` assertion lines and
 their section headers before the second — the total they sum to is the line kept — and the
@@ -1486,7 +1476,16 @@ backoffice typecheck, lint and format-check output before the third. Nothing thi
 rests on was trimmed: `exit:` is stated separately, every line carrying a count is kept, and
 `BUILD SUCCESSFUL` is present.
 
-`1628 references` differs from Block F's `1619` and Block G's `1627` for the reason the
+**This block cannot cover its own transcript**, which is the one place this record is not
+self-checking, and the gap is narrowed rather than argued away: the run above was taken on the
+tree that carries everything up to this heading, and the gate was then run again after the
+block was appended. `docs-lint` inside it reports the same twelve counts, because a fence adds
+no reference and this block cites nothing new. That second run is not pasted — it would be the
+block above with Gradle's wall clock changed, and `doc:50-memory-and-evidence#capturing` is
+against a fence that is a composition. CI runs the same gate over the committed tree, and its
+result is on the pull request.
+
+`1629 references` differs from Block F's `1619` and Block G's `1627` for the reason the
 section above gives, and the three fields this close moves — `49 selectable`,
 `1 closing transitions`, `7 criteria checked` — are identical across all of them. The gate
 reaches `docsLint` through Gradle rather than through `/bin/bash`, so this is the same verdict
