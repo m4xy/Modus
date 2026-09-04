@@ -117,7 +117,11 @@ needs the audit of every command in the file that this measurement is the first 
 
 **One bypass exists, deliberately**: the wrapper's own `command awk`. A second one would be
 a call site the guard silently stops covering, which is this defect one level up, so
-`tools/docs-lint-gate-test.sh` names the bypasses on every run rather than trusting them.
+`tools/docs-lint-gate-test.sh` names it on every run rather than trusting it. That assertion
+catches a second `command awk` and nothing else worth relying on: it is a lexical
+enumeration, nine spellings walk past it, and two mutations that leave the guard covering
+one call site out of twenty-two score a clean sheet against the whole suite. Criterion 1
+carries both measurements, and `bean:0126` carries the fail-closed replacement.
 
 ## The proof runs in `qualityCheck`
 
@@ -137,44 +141,248 @@ about the gate has no use for.
 
 | # | criterion | evidence |
 |---|---|---|
-| 1 | Every `awk` invocation in `tools/docs-lint.sh` is covered, and the covering mechanism cannot be bypassed unnoticed | see "criterion 1" below |
+| 1 | Every `awk` invocation in `tools/docs-lint.sh` is covered, and the covering mechanism cannot be bypassed unnoticed | **met in part** — see "criterion 1" below |
 | 2 | An analyser destroyed by a syntax error makes the gate exit non-zero, observed for check 12 specifically | see "criterion 2" below |
 | 3 | The guard is silent on the unmodified tree: `docs-lint` stays green and its stdout is unchanged | see "criterion 3" below |
 | 4 | The proof is in `qualityCheck` and discriminates the fix's absence, its deletion, its neutering and its firing on every input | see "criterion 4" below |
 | 5 | `./gradlew qualityCheck` is green | see "criterion 5" below |
 
 Every capture below was taken on this branch's working tree with all five bean files
-already present, so the corpus figures on the `OK` line do not move between them. Pasting
-these transcripts adds no reference the file did not already carry, and no bean, so the
-record is measurement-neutral from this point (`doc:50-memory-and-evidence#corpus-figures`).
+already present, so the corpus figures on the `OK` line do not move between them. The
+figures were re-taken once, in full, when the review corrections to this bean and to
+`bean:0125`, `bean:0126` and `bean:0127` added references the corpus did not carry:
+`1654 references` became `1659` and the guard's invocation count `2134` became `2140`, both
+in every transcript here. From this point the record is measurement-neutral — the sentences
+added since add no reference to a file that did not already carry it, and no bean
+(`doc:50-memory-and-evidence#corpus-figures`).
 
-### Criterion 1 · every call site is covered, and bypasses are named
+### Criterion 1 · every call site is covered; bypasses are named, not bounded
+
+**Met in part, and the half that is not met is named here rather than reworded.** "Every
+`awk` invocation is covered" holds: twenty-two bare calls, every one resolving to the shell
+function, seventeen of them observed taking the guard's fail branch. "The covering mechanism
+cannot be bypassed unnoticed" does **not** hold, and the measurements below are what says so:
+the assertion that was supposed to carry it is a lexical enumeration, nine spellings walk
+past it, and two mutations that leave twenty-one of the twenty-two call sites unguarded score
+a clean sheet against the whole suite.
+
+**Enforcement gap:** a second bypass of the `awk` shadow is not caught by anything in
+`qualityCheck`. `bean:0126` closes it, with a behavioural assertion in place of the lexical
+one (`doc:00-constitution#observed-failing`).
 
 The counting command from `bean:0118`, re-run. It now returns **23**: the twenty-two call
-sites, unchanged, plus the wrapper's own `command awk` at line 61. Every one of the
-twenty-two is a bare `awk`, so every one resolves to the shell function.
+sites, unchanged, plus the wrapper's own `command awk`, first in the list below. Every one
+of the twenty-two is a bare `awk`, so every one resolves to the shell function.
 
 ```
 head:     this branch's working tree
 cmd:      awk '/^[ \t]*#/ { next } { n += gsub(/(^|[^A-Za-z_.-])awk[ \t]/, "&") } END { print "awk_invocations=" n }' tools/docs-lint.sh
 observed: awk_invocations=23
 cmd:      awk '/^[ \t]*#/ { next } /(^|[^A-Za-z_.-])awk[ \t]/ { printf "%d ", FNR } END { print "" }' tools/docs-lint.sh
-observed: 61 83 119 121 124 220 228 245 247 251 291 425 473 474 490 514 517 551 554 574 596 613 694
-cmd:      grep -v '^[[:space:]]*#' tools/docs-lint.sh | grep -E '(^|[^A-Za-z_.-])(command[[:space:]]+awk|env[[:space:]]+awk|\\awk|[^[:space:]]*/awk)[[:space:]]'
+observed: 70 92 128 130 133 229 237 254 256 260 300 434 482 483 499 523 526 560 563 583 605 622 709
+cmd:      grep -v '^[[:space:]]*#' tools/docs-lint.sh | grep -E '(^|[^A-Za-z_.-])(command[[:space:]]+awk|env[[:space:]]+awk|[^[:space:]]*/awk)[[:space:]]'
 observed:   command awk "$@"
+exit:     0
 ```
 
-`grep` there is the harness's `ugrep 7.8.4`. The same pipeline under `/usr/bin/grep`
-(`grep (BSD grep, GNU compatible) 2.6.0-FreeBSD`) returns the same single line, which
-matters because `tools/docs-lint-gate-test.sh` runs it with whatever `grep` the machine
-has and CI's is neither of these two.
+`grep` there is `/usr/bin/grep`, `grep (BSD grep, GNU compatible) 2.6.0-FreeBSD`; the
+`awk` is `/usr/bin/awk`, `awk version 20200816`. The harness's interactive `grep` is a
+shell function running `ugrep 7.8.4` and returns the same single line, which matters
+because `tools/docs-lint-gate-test.sh` runs the pipeline with whatever `grep` the machine
+has and CI's is a third one.
 
-The bypass list is an **enumeration** of spellings — `command awk`, `env awk`, `\awk`, and
-any path-qualified form — and therefore fails open on a spelling nobody has named, exactly
-as `tools/lib/bash32-forbidden.tsv` does and for the reason
-`doc:00-constitution#mechanical-enforcement` gives. It was checked against a fixture
-carrying all four spellings plus a bare call and a comment, and returned the four and not
-the other two.
+**The bypass assertion bounds nothing, and this criterion no longer claims it does.** It is
+an enumeration of spellings, which `doc:00-constitution#observed-failing` says at MUST
+strength fails open. Measured against a fixture of one call per line, and separately against
+a live shell function named `awk`, at this working tree:
+
+The regex under test is the one **as it stood at `9fe411c`**, `\awk` included, because half
+of what this measures is that that alternative was wrong to be there. Half (a) runs each
+fixture line through the assertion's own pipeline; half (b) runs the spelling for real,
+against `awk() { echo "SHADOW"; }`, and prints what answered.
+
+```
+head:     9fe411c's regex, this branch's working tree, under /bin/bash 3.2.57(1)-release
+cmd:      /bin/bash spellings.sh, the fixture one call per line
+observed: === (a) grep: grep (BSD grep, GNU compatible) 2.6.0-FreeBSD
+          fails open    awk -v x=1 'BEGIN{}' /dev/null
+          CAUGHT        command awk -v x=1 'BEGIN{}' /dev/null
+          CAUGHT        env awk -v x=1 'BEGIN{}' /dev/null
+          CAUGHT        /usr/bin/awk -v x=1 'BEGIN{}' /dev/null
+          CAUGHT        \awk -v x=1 'BEGIN{}' /dev/null
+          fails open    exec awk -v x=1 'BEGIN{}' /dev/null
+          fails open    command -p awk -v x=1 'BEGIN{}' /dev/null
+          fails open    printf '%s\n' /dev/null | xargs awk 'BEGIN{}'
+          fails open    (unset -f awk; awk -v x=1 'BEGIN{}' /dev/null)
+          fails open    find . -name x -exec awk 'BEGIN{}' {} +
+          fails open    $AWK -v x=1 'BEGIN{}' /dev/null
+          fails open    gawk -v x=1 'BEGIN{}' /dev/null
+          fails open    nawk -v x=1 'BEGIN{}' /dev/null
+          fails open    builtin :; awk -v x=1 'BEGIN{}' /dev/null
+
+          === (b) does the spelling reach the binary, past a function named awk?
+          awk            -> SHADOW
+          command awk    -> BINARY
+          env awk        -> BINARY
+          /usr/bin/awk   -> BINARY
+          \awk           -> SHADOW
+          exec awk       -> BINARY
+          command -p awk -> BINARY
+          xargs awk      -> BINARY
+          unset -f awk   -> BINARY
+          find -exec awk -> BINARY
+          $AWK           -> BINARY
+          builtin :; awk -> SHADOW
+exit:     0
+```
+
+The bare `awk` at the top of (a) is the control: the regex must not match it, and does not.
+Nine spellings past that one are unmatched. Seven of the nine reach the binary;
+`builtin :; awk` does **not** — it still runs the function, so it is a hole in the regex and
+not a bypass of the guard — and `$AWK` reaches it only when it expands to something other
+than `awk`, which is how it was run here, with `AWK=/usr/bin/awk`. `gawk` and `nawk` are
+absent from (b) because they are different names, which is precisely why a function named
+`awk` cannot shadow them.
+
+**`\awk` has been removed from the regex.** It was matched, as (a) shows — but (b) shows it
+is not a bypass: backslash-quoting suppresses **alias** expansion, not function lookup, so
+`\awk` runs the shadow function like any bare call. Matching it inflated the apparent reach
+of a list that fails open on nine spellings, so it is gone rather than relabelled. Nothing
+in `tools/docs-lint.sh` spells `awk` that way, so removing the alternative changes no
+assertion result on this tree.
+
+**And the suite cannot tell twenty-two covered sites from one.** Two mutations of the guard,
+each run against `tools/docs-lint-gate-test.sh` unaltered, both scored a clean sheet, where
+the author's own `command awk` at a second call site scores 10 passed, 1 failed:
+
+```
+head:     this branch's working tree
+method:   the mutant is a copy at tools/.docs-lint-<tag>.sh and the harness is a copy of
+          tools/docs-lint-gate-test.sh with its one `GATE=` line repointed at it, so no
+          tracked file is written and there is no restore step to skip (bean:0102). The
+          unmutated copy through the same harness scores 11 passed, 0 failed.
+cmd:      diff tools/docs-lint.sh tools/.docs-lint-m1.sh
+observed: 133c133
+          < awk -F'\t' '$2 == "E" { print $1 "\t" $3 "\t" $4 }' "$TMP/fm.tsv" > "$TMP/parse.tsv"
+          ---
+          > (unset -f awk; awk -F'\t' '$2 == "E" { print $1 "\t" $3 "\t" $4 }' "$TMP/fm.tsv") > "$TMP/parse.tsv"
+observed: docs-lint-gate-test: 11 passed, 0 failed.
+exit:     0
+cmd:      diff tools/docs-lint.sh tools/.docs-lint-m2.sh
+observed: 71a72
+          >   case "$*" in *bean-edges*) : ;; *) return "$awk_wrap_rc" ;; esac
+observed: docs-lint-gate-test: 11 passed, 0 failed.
+exit:     0
+cmd:      diff tools/docs-lint.sh tools/.docs-lint-m3.sh
+observed: 92c92
+          <   awk -v file="$f" '
+          ---
+          >   command awk -v file="$f" '
+observed: FAIL the guard's own call is the only site that bypasses it
+          docs-lint-gate-test: 10 passed, 1 failed.
+exit:     1
+```
+
+The three sites are 133, 92 and the wrapper itself, all in the listing at the top of this
+criterion. The second mutation is the sharp one: it narrows the guard to the single call
+site the plant reaches, leaving twenty-one of the twenty-two unguarded, and the suite reports
+a clean sheet. `bean:0126` carries the fail-closed replacement.
+
+**Seventeen of the twenty-two sites are observed reaching the guard**, which is more than
+this bean first claimed and less than all of them. The wrapper's `-ne 0` was forced to
+`-ge 0` in a copy, one line for one line so the numbering still holds, with
+`${BASH_LINENO[0]}` recorded on every firing:
+
+```
+head:     this branch's working tree
+cmd:      diff tools/docs-lint.sh tools/.docs-lint-sites.sh
+observed: 72c72
+          <   if [ "$awk_wrap_rc" -ne 0 ]; then
+          ---
+          >   if [ "$awk_wrap_rc" -ge 0 ]; then echo "${BASH_LINENO[0]}" >> [...]/sites.txt
+cmd:      /bin/bash tools/.docs-lint-sites.sh, then sort -n sites.txt | uniq -c
+observed: --- forced run STDOUT, in full:
+          docs-lint: 2140 failure(s).
+          --- forced run stdout line count: 1
+          --- guard firings recorded: 2140
+          --- call sites observed taking the fail branch (count, line):
+            19 92
+           760 128
+           152 130
+             1 133
+            19 237
+           132 254
+           132 256
+             9 264
+           608 300
+           110 434
+            42 482
+            42 483
+             1 517
+             1 523
+             1 560
+           110 587
+             1 605
+          --- distinct sites: 17
+exit:     1
+```
+
+The per-site counts and the 2140 total are figures of this corpus and move with it
+(`doc:50-memory-and-evidence#corpus-figures`); the seventeen line numbers and the five
+absentees do not.
+
+`${BASH_LINENO[0]}` reports the **last** line of a multi-line command, so 264, 517 and 587
+are the sites listed above as 260, 499 and 583; the other fourteen are listed unchanged. The
+five never reached are **229, 526, 563, 622 and 709**, and none of them is reached because
+each sits inside a `while read` loop over a list that is empty on a clean corpus — duplicate
+anchors, duplicate `order` values, duplicate bean ids, ids introduced twice — except 709,
+which is check 14's analyser and needs a closing transition, of which this branch has none.
+
+**And the guard's fail branch corrupts none of the seventeen.** The forced run's stdout is
+one line. Every one of the 2140 records went to stderr, so no `$( )` capture took the
+guard's words into its value and no check reported a spurious failure. Removing the `>&2` is
+the control, and it is not subtle:
+
+```
+head:     this branch's working tree
+cmd:      diff tools/docs-lint.sh tools/.docs-lint-corrupt.sh
+observed: 72c72
+          <   if [ "$awk_wrap_rc" -ne 0 ]; then
+          ---
+          >   if [ "$awk_wrap_rc" -ge 0 ]; then
+          74c74
+          <     fail - "an analyser exited $awk_wrap_rc and examined nothing; its last argument was '$awk_wrap_arg'" >&2
+          ---
+          >     fail - "an analyser exited $awk_wrap_rc and examined nothing; its last argument was '$awk_wrap_arg'"
+cmd:      /bin/bash tools/.docs-lint-corrupt.sh
+observed: --- stdout lines: 908
+          --- stdout FAIL lines: 907
+          --- first 6 stdout lines:
+          FAIL check    FAIL check -  an analyser exited 0 and examined nothing; its last argument was '/var/folders/mg/c8xtgk197f74w3r78q7_9sfc0000gn/T/tmp.TmQyb1yhE9/fm.tsv': 
+          FAIL check 2  documentation/00-constitution.md: unknown key 'FAIL'
+          FAIL check 2  documentation/00-constitution.md: unknown key 'check'
+          FAIL check 2  documentation/00-constitution.md: unknown key '-'
+          FAIL check 2  documentation/00-constitution.md: unknown key 'an'
+          FAIL check 2  documentation/00-constitution.md: unknown key 'analyser'
+          --- last line:
+          docs-lint: 3047 failure(s).
+exit:     1
+```
+
+The first stdout line is the shape of the damage: check 1's front-matter analyser had the
+guard's own sentence appended to its output, and check 2 then read the words of that
+sentence back as front-matter keys, one `unknown key` per word per document. Both edits in
+that mutant are matched by text rather than by line number, so the two `72`s and `74`s are
+the file's, not the script's.
+
+**The redirect has a cost, and it is not fixed here.** The guard is the only `fail` in the
+file that does not reach stdout, so `./gradlew docsLint | tee log` leaves
+`docs-lint: 1 failure(s).` in the log with no reason beside it. Gradle captures both
+streams, so CI's log is complete and the `gate` job is unaffected. Replaying the guard's
+records to stdout after the count line would close it and keep `$( )` safe — it is declined
+here, not overlooked, because a change to what the gate prints that no assertion covers is
+the shape this whole work item exists to close, and adding the assertion moves all four
+mutation figures under criterion 4 and both transcripts that quote the `OK` line.
 
 ### Criterion 2 · a destroyed analyser makes the gate exit non-zero
 
@@ -199,6 +407,51 @@ stderr:   awk: syntax error at source line 4
 exit:     1
 ```
 
+**At one site, and only one, a dead analyser makes two records.** Check 14 already had a
+per-site `awk_rc` guard before this change, so when its analyser dies the shadow guard and
+that check both fire and the run says `docs-lint: 2 failure(s).` for one defect. Observed —
+the mutation points one of check 14's two `-f` files at a path that does not exist, in a
+copy, and an untracked probe bean supplies the one closing transition the check needs (this
+branch has none of its own). The same tree with the analyser alive is green, so both records
+are the dead analyser's:
+
+```
+head:     this branch's working tree, plus one untracked probe bean, deleted on exit
+cmd:      diff tools/docs-lint.sh tools/.docs-lint-c14.sh
+observed: 711c711
+          <       -f "$ROOT/tools/lib/docs-lint-c14.awk" \
+          ---
+          >       -f "$ROOT/tools/lib/docs-lint-c14-ABSENT.awk" \
+cmd:      /bin/bash tools/docs-lint.sh            # the analyser alive, probe bean present
+observed: docs-lint: OK — 19 documents, 111 anchors, 1659 references, 111 beans, 42 graph edges, 47 selectable, 111 bean ids, 6 introduced, 105 on origin/main, 1 closing transitions, 1 criteria checked, 0 unnumbered.
+exit:     0
+cmd:      /bin/bash tools/.docs-lint-c14.sh       # the same tree, the analyser dead
+observed: docs-lint: 2 failure(s).
+          stdout records mentioning the probe bean:
+          FAIL check 14 .beans/modus-0199--a-throwaway-closing-candidate.md: the check 14 analyser exited 2 and examined nothing; tools/lib/docs-lint-fence.awk and tools/lib/docs-lint-c14.awk must both be present and parse
+          stderr, in full:
+          awk: can't open file [...]/tools/lib/docs-lint-c14-ABSENT.awk
+           source line number 99 source file [...]/tools/lib/docs-lint-c14-ABSENT.awk
+           context is
+          	} >>> 
+           <<< awk: can't open file [...]/tools/lib/docs-lint-c14-ABSENT.awk
+           source line number 99 source file [...]/tools/lib/docs-lint-c14-ABSENT.awk
+          FAIL check -  an analyser exited 2 and examined nothing; its last argument was '.beans/modus-0199--a-throwaway-closing-candidate.md'
+exit:     1
+```
+
+Each `[...]` in that stderr elides the same absolute path to this worktree and nothing else.
+
+The gate is red and both messages are true, so this is presentation. **The per-site `fail 14`
+stays.** The two records are not duplicates: the guard's names the bean the analyser was
+reading and cannot name the two files that must be present and parse, and check 14's names
+those two files and cannot name the bean. Dropping either loses half the diagnosis of the
+exact failure the comment above that call site was written for. What was wrong was the
+reading, not the code — `docs-lint: N failure(s).` counts **records**, not defects, at every
+check in the file, and one malformed document has always been able to produce several. The
+line the `diff` rewrites, 711, is one of the two `-f` arguments; the call site criterion 1
+lists is the 709 two lines above it.
+
 ### Criterion 3 · the guard is silent on the unmodified tree
 
 The control is the guarded gate against the **unguarded** gate on the **same** tree, not
@@ -208,7 +461,7 @@ across the two trees would fail for a reason that has nothing to do with the gua
 ```
 head:     this branch's working tree
 cmd:      /bin/bash tools/docs-lint.sh
-observed: docs-lint: OK — 19 documents, 111 anchors, 1654 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+observed: docs-lint: OK — 19 documents, 111 anchors, 1659 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
 exit:     0
 cmd:      wc -c < v2-guarded.err      # everything the guarded run wrote to stderr
 observed:        0
@@ -218,15 +471,19 @@ exit:     0
 ```
 
 Twenty-two call sites, and the guard fired zero times. The over-firing mutation below puts
-a figure on how many invocations those twenty-two sites make over one run: **2134**, a
+a figure on how many invocations those twenty-two sites make over one run: **2140**, a
 figure of this corpus and one that moves with it
 (`doc:50-memory-and-evidence#corpus-figures`).
 
 ### Criterion 4 · the proof discriminates its own absence, deletion, neutering and over-firing
 
-Four mutations of the fix, each run against `tools/docs-lint-gate-test.sh` unchanged, each
-made in a copy and restored from a pristine copy taken beforehand with no `git` operation
-involved (`bean:0102`). The suite is 11 assertions and green on the fix as shipped.
+Four mutations of the fix, each run against `tools/docs-lint-gate-test.sh` unchanged. Each
+mutant is a copy at `tools/.docs-lint-<tag>.sh` and each is run by a copy of the gate test
+with its one `GATE=` line repointed at that copy, so nothing tracked is written, there is no
+restore step to skip, and no `git` operation runs near `.beans` or `tools` (`bean:0102`). The
+unmutated copy through the same harness scores 11 passed, 0 failed, which is what says the
+copying is not what any of the four rows below is measuring. The suite is 11 assertions and
+green on the fix as shipped.
 
 | mutation | edit | result |
 |---|---|---|
@@ -237,31 +494,52 @@ involved (`bean:0102`). The suite is 11 assertions and green on the fix as shipp
 
 The four are not redundant. Deletion and neutering are told apart by the bypass assertion,
 which fails on the first and passes on the second — a structural check catching what the
-single behavioural probe cannot. Over-firing is caught only by the negative-control half,
-which is `doc:50-memory-and-evidence#evidence-kinds`'s point exactly: without the green run
-beside the red one, a guard that reports every analyser as dead scores identically to the
-fix. And the bypass mutation is caught only by the structural check, because it moves a
-call site the mutated run never reaches — which is the honest statement of this file's
-limit, and is why `bean:0126` exists.
+single behavioural probe cannot. And the bypass mutation is caught only by the structural
+check, because it moves a call site the mutated run never reaches — which is the honest
+statement of this file's limit, and is why `bean:0126` exists.
 
-The four failure transcripts, elided to the lines that differ from the green run pasted
-under criterion 5; every `ok` line and the header are identical in all four and are marked
-`[same]`:
+**The negative control is not what catches over-firing**, and an earlier revision of this
+paragraph said it was. Read the over-firing transcript below: five assertions fail, and two
+of them are positive-half rows — `expected: docs-lint: 1 failure(s).` against
+`actual: docs-lint: 2140 failure(s).`, and `expected: 1` against `actual: 2140`. Against
+these four mutations the three negative-control rows are therefore **strictly redundant**:
+no mutation here is caught by them alone. What is true is the converse — over-firing is the
+only one of the four the control catches at all — and the control stays for the reason
+`doc:50-memory-and-evidence#evidence-kinds` gives rather than because a mutation forces it:
+a mechanism observed firing and never observed silent is not discrimination, and no mutation
+in a set of four can supply that.
+
+The four failure transcripts. Each is elided to what differs from the green run pasted under
+criterion 5. `[same]` marks a run of lines byte-identical to that green run, which is quoted
+in full there (`doc:50-memory-and-evidence#capturing`); `[...]` marks an elision that is
+**not** identical, and says what it drops. The `[same]` opening each block always covers at
+least the two-line header, the plant section's banner and its four `ok` rows, and the
+`--- the runs` banner; in the fourth it runs on to the last banner, since that mutation
+changes only one line of the output:
 
 ```
 head:     this branch's working tree
-mutation: the wrapper and its comment deleted (lines 43-68)
+mutation: the wrapper and its comment deleted, lines 44-77, 34 lines removed
 observed: [same]
           FAIL a destroyed analyser makes the gate exit non-zero
                  expected: rc=1
                  actual:   rc=0
           FAIL and the gate says it failed rather than printing OK
                  expected: docs-lint: 1 failure(s).
-                 actual:   docs-lint: OK — 19 documents, 111 anchors, 1654 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+                 actual:   docs-lint: OK — 19 documents, 111 anchors, 1659 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
           FAIL and attributes it to an analyser that examined nothing
                  expected: 1
                  actual:   0
-          [same]
+               (this awk exited  on the planted syntax error)
+          ok   the negative control: the same copy unmutated exits 0
+          ok   and prints the OK line
+          ok   and writes nothing at all to stderr
+
+          --- the mutated run's stderr: 5 line(s), at most 20 shown
+          [...] awk's own five-line diagnostic, the same five the green run shows, WITHOUT
+                the sixth line the green run has — the guard's `FAIL check -` record
+
+          --- the guard covers every call site, because no call site opts in
           FAIL the guard's own call is the only site that bypasses it
                  expected:   command awk "$@"
                  actual:   
@@ -276,22 +554,33 @@ observed: [same]
                  actual:   rc=0
           FAIL and the gate says it failed rather than printing OK
                  expected: docs-lint: 1 failure(s).
-                 actual:   docs-lint: OK — 19 documents, 111 anchors, 1654 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+                 actual:   docs-lint: OK — 19 documents, 111 anchors, 1659 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
           FAIL and attributes it to an analyser that examined nothing
                  expected: 1
                  actual:   0
-          [same]
+               (this awk exited  on the planted syntax error)
+          ok   the negative control: the same copy unmutated exits 0
+          ok   and prints the OK line
+          ok   and writes nothing at all to stderr
+
+          --- the mutated run's stderr: 5 line(s), at most 20 shown
+          [...] the same five lines as the deleted run above
+
+          --- the guard covers every call site, because no call site opts in
+          ok   the guard's own call is the only site that bypasses it
+
           docs-lint-gate-test: 8 passed, 3 failed.
 exit:     1
 
-mutation: `-ge 0`, the guard recording every invocation
+mutation: `-ne 0` → `-ge 0`, the guard recording every invocation
 observed: [same]
+          ok   a destroyed analyser makes the gate exit non-zero
           FAIL and the gate says it failed rather than printing OK
                  expected: docs-lint: 1 failure(s).
-                 actual:   docs-lint: 2134 failure(s).
+                 actual:   docs-lint: 2140 failure(s).
           FAIL and attributes it to an analyser that examined nothing
                  expected: 1
-                 actual:   2134
+                 actual:   2140
                (this awk exited 0 on the planted syntax error)
           FAIL the negative control: the same copy unmutated exits 0
                  expected: rc=0
@@ -301,17 +590,21 @@ observed: [same]
                  actual:   docs-lint: 21
           FAIL and writes nothing at all to stderr
                  expected: 0
-                 actual:   2134
-          [same]
-          --- the mutated run's stderr: 2139 line(s), at most 20 shown
+                 actual:   2140
+
+          --- the mutated run's stderr: 2145 line(s), at most 20 shown
                FAIL check -  an analyser exited 0 and examined nothing; its last argument was 'documentation/00-constitution.md'
-               [...] eighteen more of the same shape
-               FAIL check -  an analyser exited 0 and examined nothing; its last argument was '/var/folders/mg/c8xtgk197f74w3r78q7_9sfc0000gn/T/tmp.0TzmnUUVld/fm.tsv'
-          [same]
+          [...] eighteen more records of exactly that shape, one per document, in the
+                order docs-lint reads them
+               FAIL check -  an analyser exited 0 and examined nothing; its last argument was '/var/folders/mg/c8xtgk197f74w3r78q7_9sfc0000gn/T/tmp.qA29dq4owg/fm.tsv'
+
+          --- the guard covers every call site, because no call site opts in
+          ok   the guard's own call is the only site that bypasses it
+
           docs-lint-gate-test: 6 passed, 5 failed.
 exit:     1
 
-mutation: the front-matter parser's `awk` rewritten as `command awk`
+mutation: the front-matter parser's `awk`, line 92, rewritten as `command awk`
 observed: [same]
           FAIL the guard's own call is the only site that bypasses it
                  expected:   command awk "$@"
@@ -322,9 +615,15 @@ observed: [same]
 exit:     1
 ```
 
-`docs-lint: 21` in the third block is not a truncation of this record: the assertion
-compares the first thirteen characters of the first stdout line, and the failing run's is
-`docs-lint: 2134 failure(s).`
+Two lines in there are not truncations of this record. `docs-lint: 21` in the third block is
+what the assertion prints: it compares the first thirteen characters of the first stdout
+line, and the failing run's is `docs-lint: 2140 failure(s).`. And
+`(this awk exited  on the planted syntax error)` in the first two blocks has an empty status
+because those runs write no guard record for the reporting `sed` to take one from — that
+line reports and is not asserted on, which is the point of `bean:0123`'s CI fix.
+
+`2140` and `2145` are figures of this corpus and move with it
+(`doc:50-memory-and-evidence#corpus-figures`); the four pass/fail pairs do not.
 
 ### Criterion 5 · `./gradlew qualityCheck`
 
@@ -336,19 +635,49 @@ observed: bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
           [...]
           docs-lint-test: 51 passed, 0 failed.
           [...]
-          docs-lint: OK — 19 documents, 111 anchors, 1654 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          docs-lint: OK — 19 documents, 111 anchors, 1659 references, 110 beans, 42 graph edges, 47 selectable, 110 bean ids, 5 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
           [...]
           docs-lint-gate-test: 11 passed, 0 failed.
           [...]
-          BUILD SUCCESSFUL in 37s
+          BUILD SUCCESSFUL in 44s
           161 actionable tasks: 7 executed, 154 up-to-date
 exit:     0
 ```
+
+Each `[...]` there elides Gradle's own task lines and the output of the tasks between the
+four this criterion is about; the five quoted lines are lines 347, 348, 410, 461 and 483 of
+the captured run, in that order, and the last two are its final two lines.
 
 `docs-lint-test: 51 passed, 0 failed` is the same figure as at `9daff18`: no assertion was
 added to that file, so none of its mutation figures is restated by this change. The
 `4 scripts parsed` on the `bash-compat` line was 3 before — `tools/docs-lint-gate-test.sh`
 is covered by that glob the day it lands.
+
+**What the second gate run costs.** Both `Exec` tasks declare no inputs, so neither is ever
+up to date and every figure here is a real run. `org.gradle.parallel=true` and the
+configuration cache overlap them, and the gate test's own two gate runs are backgrounded
+against each other, so two full runs of the gate cost about one:
+
+```
+head:     this branch's working tree
+cmd:      ./gradlew <shape>, each shape twice, wall clock around the whole invocation
+observed: pass 1  rc=0  docsLint                   19.00 s
+          pass 1  rc=0  docsLintGateTest           21.21 s
+          pass 1  rc=0  docsLint docsLintGateTest  21.72 s
+          pass 2  rc=0  docsLint                   17.67 s
+          pass 2  rc=0  docsLintGateTest           20.93 s
+          pass 2  rc=0  docsLint docsLintGateTest  21.72 s
+cmd:      /bin/bash tools/docs-lint.sh and /bin/bash tools/docs-lint-gate-test.sh, timed
+observed: rc=0  tools/docs-lint.sh               16.77 s
+          rc=0  tools/docs-lint-gate-test.sh     19.24 s
+```
+
+So `docsLintGateTest` adds **2.7 to 4.1 seconds** to a build that already runs `docsLint`,
+against the ~17 seconds a single gate run takes, and the two full gate runs inside it cost
+2.5 seconds more than one. On the runner it is smaller still. In CI run 33906992159 Gradle
+emitted `> Task :docsLintGateTest`'s first line at `18:39:52.5743941Z` and its last at
+`18:40:02.4423572Z`, a 9.87 s span, with `> Task :docsLint` and its `OK` line at
+`18:40:02.1414422Z` — inside that window, and **0.30 s** before the gate test's last line.
 
 The whole green run, in full:
 
@@ -356,6 +685,7 @@ The whole green run, in full:
 head:     this branch's working tree
 cmd:      /bin/bash tools/docs-lint-gate-test.sh
 observed: docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
+          docs-lint-gate-test: analyser awk — awk version 20200816
 
           --- the plant: check 12's acyclicity analyser, destroyed
           ok   the mutation site occurs exactly once in the gate
@@ -378,7 +708,7 @@ observed: docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
                	    removed = >>>  = <<<  1
                awk: illegal statement at source line 4
                awk: illegal statement at source line 4
-               FAIL check -  an analyser exited 2 and examined nothing; its last argument was '/var/folders/mg/c8xtgk197f74w3r78q7_9sfc0000gn/T/tmp.e7k149j7Lj/bean-edges.uniq'
+               FAIL check -  an analyser exited 2 and examined nothing; its last argument was '/var/folders/mg/c8xtgk197f74w3r78q7_9sfc0000gn/T/tmp.diN2issxTo/bean-edges.uniq'
 
           --- the guard covers every call site, because no call site opts in
           ok   the guard's own call is the only site that bypasses it
@@ -423,15 +753,51 @@ measurement and not a requirement. The mutated run's stderr is now printed in fu
 at twenty lines), so the next difference of this kind is visible in the log rather than
 only in an assertion's `actual:`.
 
-The CI run of the fix prints the number, and it is **1**. The runner's `awk` is a mawk —
-its diagnostic is `awk: cmd. line:4:` rather than BSD awk's `awk: syntax error at source
-line 4` — and it exits 1 where the BSD awk this was written against exits 2:
+The CI run of the fix prints the number, and it is **1**. The runner's `awk` is a **gawk**,
+not the mawk an earlier revision of this bean named. Both the diagnostic and the status say
+so, and they were compared against real builds of all three rather than recalled:
 
 ```
-head:     41ad94c, GitHub Actions run 33906282727, job 101131893027, ubuntu-latest
+head:     9fe411c, working tree clean
+plant:    the check 12 program of tools/docs-lint.sh, lines 490-507 at this head, with
+          `    removed = 1` replaced by `    removed = = 1`, passed as an ARGUMENT (which
+          is what makes gawk say `cmd. line` rather than a filename), over /dev/null
+cmd:      gawk -F'\t' "$P" /dev/null
+observed: === /opt/homebrew/bin/gawk   [GNU Awk 5.4.1, API 4.1, PMA Avon 8-g1, (GNU MPFR 4.2.2, GNU MP 6.3.0)]
+          gawk: cmd. line:4:     removed = = 1
+          gawk: cmd. line:4:               ^ syntax error
+          exit=1
+cmd:      mawk -F'\t' "$P" /dev/null
+observed: === /opt/homebrew/bin/mawk   [mawk 1.3.4 20260302]
+          mawk: line 4: syntax error at or near =
+          exit=2
+cmd:      /usr/bin/awk -F'\t' "$P" /dev/null
+observed: === /usr/bin/awk   [awk version 20200816]
+          /usr/bin/awk: syntax error at source line 4
+           context is
+          	    removed = >>>  = <<<  1
+          /usr/bin/awk: illegal statement at source line 4
+          /usr/bin/awk: illegal statement at source line 4
+          exit=2
+```
+
+Two lines with a caret, and exit **1**, is gawk and only gawk of the three: mawk prints one
+line, names the offending token, and exits 2. The prefix on each line is the name the binary
+was invoked by, which on the runner is `awk` — Ubuntu's `update-alternatives` points `awk`
+at gawk when both are installed. The runner's own two lines, at the head this bean closes:
+
+```
+head:     9fe411c, GitHub Actions run 33906992159, job 101134169366, ubuntu-latest
 cmd:      ./gradlew qualityCheck --stacktrace -x backofficeTypecheck -x backofficeLint -x backofficeFormatCheck
 observed: docs-lint-gate-test: interpreter /bin/bash (bash 5.2.21(1)-release)
-          [...]
+
+          --- the plant: check 12's acyclicity analyser, destroyed
+          [...] the plant's four `ok` rows, identical to the local run under criterion 5
+
+          --- the runs: both halves, over the whole corpus
+          [...] Gradle's output for the other tasks of the run, interleaved by the
+                parallel executor, and `> Task :docsLint` with its OK line
+          > Task :docsLintGateTest
           ok   a destroyed analyser makes the gate exit non-zero
           ok   and the gate says it failed rather than printing OK
           ok   and attributes it to an analyser that examined nothing
@@ -443,7 +809,7 @@ observed: docs-lint-gate-test: interpreter /bin/bash (bash 5.2.21(1)-release)
           --- the mutated run's stderr: 3 line(s), at most 20 shown
                awk: cmd. line:4:     removed = = 1
                awk: cmd. line:4:               ^ syntax error
-               FAIL check -  an analyser exited 1 and examined nothing; its last argument was '/tmp/tmp.iACxzUYSvB/bean-edges.uniq'
+               FAIL check -  an analyser exited 1 and examined nothing; its last argument was '/tmp/tmp.7DwW3g6QsQ/bean-edges.uniq'
 
           --- the guard covers every call site, because no call site opts in
           ok   the guard's own call is the only site that bypasses it
@@ -451,6 +817,11 @@ observed: docs-lint-gate-test: interpreter /bin/bash (bash 5.2.21(1)-release)
           docs-lint-gate-test: 11 passed, 0 failed.
 exit:     0, and the `gate` job passed
 ```
+
+Inference, not observation, is what the three fences above settle it by: nothing on the
+runner was asked what it was. `tools/docs-lint-gate-test.sh` now prints the awk's own
+version line beside the interpreter's, so the run after this one answers the question
+directly instead — the fence is under "the runner names its own awk" below.
 
 The guard itself is not written against a status — it tests `-ne 0` — so it works under
 both, and the failed run was a defect in the test rather than in the fix.
@@ -469,9 +840,13 @@ does not mistake a difference in exit status for a difference in parsing.
 the runner, under bash 5.2.21 — one row of that table, and the row this work item is about.
 The other twelve rows have still never been run there. `bean:0124`.
 
-**That every one of the twenty-two analysers reaches the guard.** One is observed doing so.
-The other twenty-one rest on the guard's shape and on the bypass assertion, neither of which
-is a run. `bean:0126`.
+**That every one of the twenty-two analysers reaches the guard.** Seventeen are observed
+doing so, under criterion 1, and the five that are not are named there with the reason each
+is unreachable on a clean corpus. What no run here establishes is that those five reach the
+guard when their loops do iterate; that rests on the guard's shape. `bean:0126`.
+
+**That `qualityCheck` would catch a second bypass.** Its assertion is a lexical enumeration
+and two mutations walk past it with a clean sheet, both under criterion 1. `bean:0126`.
 
 ## References
 

@@ -50,12 +50,21 @@ TAB="$(printf '\t')"
 # Shadowing, not a per-site `rc=$?`: most call sites are inside `$( )` or are pipeline
 # elements, where there is no statement after the analyser to read `$?` at. Redirected to
 # stderr because a call site inside `$( )` has its stdout captured, and `fail`'s line would
-# otherwise become part of the value the caller parses. The record that changes the exit
+# otherwise become part of the value the caller parses. Dropping the `>&2` and forcing the
+# branch turns one run's stdout into 908 lines, 907 of them FAIL, as check 2 reads the
+# guard's own words back as front-matter keys (bean:0123). The record that changes the exit
 # status is the append to fails.txt, which is a real file and so survives the subshell.
 #
-# `command awk` below is the one deliberate bypass. tools/docs-lint-gate-test.sh names the
-# bypasses on every run, because a second one is a call site this guard silently stops
-# covering — the failure mode of the thing it is replacing (doc:00-constitution#observed-failing).
+# THE COST of that redirect: this is the only `fail` in the file that does not reach stdout,
+# so `./gradlew docsLint | tee log` leaves `docs-lint: 1 failure(s).` in the log with no
+# reason beside it. Gradle and CI capture both streams, so the runner's log is complete.
+# Replaying the guard's records to stdout after the count line would fix it and keep `$( )`
+# safe; it is not done here because an unasserted change to what the gate prints is the
+# shape this whole change exists to close (doc:00-constitution#observed-failing). bean:0123.
+#
+# `command awk` below is the one deliberate bypass. tools/docs-lint-gate-test.sh asserts it
+# is still the only one — but by enumerating spellings, which fails open on the nine that
+# comment names, so that assertion bounds nothing (doc:00-constitution#observed-failing).
 awk_wrap_arg=""
 awk() {
   command awk "$@"
@@ -691,6 +700,12 @@ if [ -n "$BASE" ]; then
     # no `fail` fires, and the run reports `0 criteria checked` beside `1 closing
     # transitions` at exit 0. The counts line calls itself the vacuity assertion; these
     # two conditions are what make it assert rather than describe.
+    #
+    # This is the one site where the shadow guard and a per-site check both fire, so one
+    # dead analyser here is `docs-lint: 2 failure(s).` — observed, in bean:0123. The
+    # per-site `fail` stays: the guard's record names the bean it was reading and cannot
+    # name the two files that must be present and parse, and this one cannot name the bean.
+    # `n_fail` counts RECORDS, not defects, here as everywhere else in this file.
     awk -v KINDS="$KINDS" \
       -f "$ROOT/tools/lib/docs-lint-fence.awk" \
       -f "$ROOT/tools/lib/docs-lint-c14.awk" \

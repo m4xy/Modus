@@ -30,11 +30,12 @@
 # planting would report every row passing.
 #
 # WHAT THIS FILE DOES NOT COVER, stated because the assertions below would otherwise imply
-# it. One analyser is mutated, check 12's, which is the instance bean:0118 measured. The
-# other twenty-one are covered by the guard's SHAPE — a shell function shadowing the name
-# `awk`, so no call site opts in — and by the bypass assertion below, not by a run. Turning
-# that into a per-check observation is bean:0126, and until it lands this file proves the
-# failure path exists rather than that every check reaches it.
+# it. One analyser is mutated, check 12's, which is the instance bean:0118 measured. Out of
+# band, 17 of the 22 call sites were observed taking the guard's fail branch with the gate's
+# stdout uncorrupted, and 5 are not reached at all on a clean corpus — bean:0123 carries the
+# transcript and names the five. NONE of that is asserted here: this file proves the failure
+# path exists, not that every check reaches it, and its bypass assertion is an enumeration
+# that fails open (see the comment on that assertion). bean:0126 is the fail-closed harness.
 #
 # bash 3.2 (macOS): what that forbids is enumerated in tools/lib/bash32-forbidden.tsv and
 # enforced by tools/bash-compat-lint.sh in qualityCheck, not restated here (bean:0049).
@@ -71,6 +72,11 @@ check() { # check <name> <expected> <actual>
 }
 
 echo "docs-lint-gate-test: interpreter $SHELL_BIN (bash ${BASH_VERSION:-unknown})"
+# The awk build, printed for the same reason the interpreter is: bean:0123 first inferred
+# which awk the runner has from the SHAPE of a syntax-error diagnostic, and got it wrong.
+# An implementation that has no --version says so in the line it prints instead, which
+# still names it. Reported, never asserted on — it differs per image (bean:0049).
+echo "docs-lint-gate-test: analyser awk — $(awk --version 2>&1 | head -1)"
 echo
 echo "--- the plant: check 12's acyclicity analyser, destroyed"
 
@@ -141,18 +147,33 @@ echo "--- the guard covers every call site, because no call site opts in"
 # The guard is a shell function that SHADOWS the name `awk`. That is what reaches the call
 # sites inside `$( )` and the ones that are pipeline elements, where there is no statement
 # after the analyser for a per-site `rc=$?` to be written at. The one way past it is to name
-# the binary some other way, and a second bypass would be a call site the guard silently
-# stops covering — which is the defect this file exists to close, one level up.
+# the binary some other way.
 #
-# This is an ENUMERATION of bypass spellings and therefore fails open on one nobody has
-# named, exactly as tools/lib/bash32-forbidden.tsv does and for the same reason
-# (doc:00-constitution#mechanical-enforcement). Full-line comments are excluded, so prose
-# about `command awk` is not a finding. The instance is NAMED rather than counted, so a
-# second bypass fails this with both lines in the message.
+# THIS ASSERTION DOES NOT CLOSE THAT, and an earlier revision of this comment said it did.
+# It is an ENUMERATION of bypass spellings, and doc:00-constitution#observed-failing says at
+# MUST strength that enumerating the shapes a gate accepts fails open — the same property as
+# tools/lib/bash32-forbidden.tsv. Run against a fixture of one call per line, this regex
+# CATCHES `command awk`, `env awk` and `/usr/bin/awk`, and does not match `exec awk`,
+# `command -p awk`, `xargs awk`, `unset -f awk; awk`, `find -exec awk`, `$AWK`, `gawk`,
+# `nawk` or `builtin :; awk`. Seven of those nine reach the binary past a function named
+# `awk`; `builtin :; awk` does not, and `$AWK` does only when it expands to something other
+# than `awk`. Two were then run against this suite whole and both scored 11 passed, 0 failed:
+# `unset -f awk` around one call site, and the guard narrowed to the single site the plant
+# reaches, which leaves 21 of the 22 unguarded. So this suite cannot tell 22 sites covered
+# from 1 site covered. The fail-closed replacement is behavioural rather than lexical — a
+# count of guard invocations, asserted — and is bean:0126. Figures in bean:0123.
+#
+# `\awk` is deliberately NOT in the regex. Backslash-quoting suppresses ALIAS expansion, not
+# function lookup, so `\awk` still runs the shadow function; listing it inflated the reach of
+# a list that already fails open on nine spellings (bean:0123).
+#
+# What the assertion does buy: the one deliberate bypass is NAMED rather than counted, so a
+# second `command awk` fails this with both lines in the message — measured at 10 passed,
+# 1 failed. Full-line comments are excluded, so prose about `command awk` is not a finding.
 check "the guard's own call is the only site that bypasses it" \
   '  command awk "$@"' \
   "$(grep -v '^[[:space:]]*#' "$GATE" |
-     grep -E '(^|[^A-Za-z_.-])(command[[:space:]]+awk|env[[:space:]]+awk|\\awk|[^[:space:]]*/awk)[[:space:]]')"
+     grep -E '(^|[^A-Za-z_.-])(command[[:space:]]+awk|env[[:space:]]+awk|[^[:space:]]*/awk)[[:space:]]')"
 
 echo
 # A run that asserted nothing may not report success — the failure this whole file is about

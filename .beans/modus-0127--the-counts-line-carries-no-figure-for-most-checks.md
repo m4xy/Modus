@@ -15,9 +15,12 @@ blocked_by: [modus-0126]
 vacuity assertion — "a check that silently examined nothing reports zero here, where
 check 11 shipping inert went unnoticed for four plants". `bean:0118` measured what the
 twelve figures are actually derived from and found no figure derived from the cycle
-check: `37 graph edges` comes from `$TMP/bean-edges.uniq`, which `sort -u` writes one
-line before the analyser runs, so an entirely inert check 12 leaves every figure on the
-line unchanged.
+check: the `graph edges` figure comes from `$TMP/bean-edges.uniq`, which `sort -u` writes
+one line before the analyser runs, so an entirely inert check 12 leaves every figure on
+the line unchanged. The numeral is deliberately not written here. It is a figure of a
+corpus this repository is still growing — `bean:0118` read 37 and the same field read 42
+at `9fe411c` — and what this work item is about is which check each field is derived from,
+which does not move (`doc:50-memory-and-evidence#corpus-figures`).
 
 That is the general case, not check 12's peculiarity. The line carries figures for
 documents, anchors, references, beans, edges, selectable beans, bean ids, introduced ids,
@@ -48,8 +51,8 @@ first would mean guessing the answer and then building the thing that could have
 
 ## References
 
-`bean:0118` — the parent; the measurement that `37 graph edges` predates the cycle
-analyser is there.
+`bean:0118` — the parent; the measurement that the `graph edges` figure predates the cycle
+analyser is there, stamped at the head it was taken on.
 `bean:0126` — the harness this uses, and the reason this is blocked on it.
 `bean:0051` — check 11's inert CI runs differed from real ones by exactly one character,
 `- introduced` rather than `0 introduced`, which is the whole argument for the line.
