@@ -1,7 +1,7 @@
 ---
 # modus-0096
 title: Check 14 contributes nothing to any implementation pull request, by rule, and a green docs-lint line there says nothing about evidence
-status: in-progress
+status: completed
 type: task
 priority: high
 created_at: 2026-08-30T00:00:00Z
@@ -382,3 +382,197 @@ observed: c9b0194c91ad7b12e918f7ac2ca019d758e51916
           Configuration cache entry reused.
 exit:     0
 ```
+
+## Closing evidence — merged as PR #70, squashed onto `main` as `0e4324d`
+
+A bean cannot close itself, so this is the next change (`doc:00-constitution#bean-lifecycle`).
+Every command below names `0e4324d` explicitly, except the paired run under criterion 1, which is
+about this tree and says which one it is.
+
+**All five criteria are met.** Criterion 4 is conditional and its condition does not hold, which
+is recorded as such rather than as a pass. Criterion 2 carries the residual its own section
+already states.
+
+| # | criterion | observed |
+|---|---|---|
+| 1 | the zero-contribution observation reproduced on a real implementation branch, with its non-zero counterfactual beside it | Met on the branch, in the two arms above. The counterfactual is no longer a plant: this change closes two beans, so `docs-lint` on this tree prints `2 closing transitions, 8 criteria checked` where the same command on the unmodified tree at the same head prints `0 closing transitions, 0 criteria checked` and differs in no other field. Block B |
+| 2 | a reader of a green line can determine, from the run or from one referenced anchor, that no bean evidence was examined | Met, on `main`. `documentation/05-authoring-for-agents.md:245-255` at `0e4324d` carries the paragraph, one hop from the check that prints the line. The residual its own section states is unchanged and is not claimed away: a reader who consults no anchor still sees only the counters. Block A |
+| 3 | the chosen option is recorded with its reason, and the rejected ones with theirs | Met, on `main`. `## Decision` at line 182 of this bean at `0e4324d`, opening `Adopted: option 1`, with a four-row table of rejected options each carrying its reason. Block A |
+| 4 | if the `OK` line's text changes, every completed bean quoting it verbatim is identified and the decision not to amend them is stated | Condition does not hold, which is the answer rather than a pass. `0e4324d` changed two files and neither is under `tools/`, so the `printf` that emits the `OK` line is byte-identical to the one before it and no frozen transcript is invalidated. Block A |
+| 5 | `./gradlew qualityCheck` green | Met. PR #70's checks are green on the pull request whose merge commit is `0e4324d`, and `qualityCheck` is green on this closing branch. Blocks C and D |
+
+### Block A — criteria 2, 3 and 4, read off `0e4324d`
+
+```
+cmd:      git show 0e4324d:documentation/05-authoring-for-agents.md \
+            | awk '/^Every condition in check 14/,/^$/ { printf "%d:%s\n", NR, $0 }'
+observed: 245:Every condition in check 14's row above is structural. Whether the output in an evidence cell
+          246:was ever produced, whether the command beside it reproduces that output, and whether either
+          247:bears on the criterion the cell is filed under are outside what the check can decide. Scope
+          248:compounds it: `doc:00-constitution#bean-lifecycle` holds a bean `in-progress` for the whole
+          249:life of its own pull request, so on the pull request that implements a bean, that bean is
+          250:never a candidate. `0 closing transitions` on the `OK` line is that statement — no bean's
+          251:evidence was examined, and the zero beside it under `criteria checked` follows from the empty
+          252:candidate set, not from a bean inspected and found bare. A non-zero pair comes from a bean the
+          253:change *closes*, whose implementation merged earlier and was reviewed elsewhere. A green check
+          254:14 therefore establishes the shape of the evidence in the beans a change closes, and nothing
+          255:at all about the implementation under review (`bean:0096`).
+          256:
+
+cmd:      git grep -n '^## Decision$' 0e4324d -- '.beans/modus-0096--*.md'
+          git grep -n '^\*\*Adopted: option 1' 0e4324d -- '.beans/modus-0096--*.md'
+observed: 0e4324d:.beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md:182:## Decision
+          0e4324d:.beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md:184:**Adopted: option 1 — state it in `doc:05-authoring-for-agents#checks`.** The `OK` line already
+
+cmd:      git show 0e4324d --name-only --format=''
+observed: .beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md
+          documentation/05-authoring-for-agents.md
+exit:     0
+```
+
+The `awk` range prints the paragraph's own line numbers, so the locator in criterion 2's row and
+the text it names come out of one command rather than two. Its last line is the blank the range
+terminated on, printed because the range is inclusive of its end.
+
+### Block B — criterion 1's counterfactual, no longer planted
+
+The two arms above were a plant and a revert, because
+`doc:00-constitution#bean-lifecycle` forbade this bean's author from producing the non-zero arm
+honestly. On this change it is produced honestly: the change closes two beans, so the check runs.
+Both runs are at head `1c19cf0`, in the same worktree, and the only difference between the trees
+is the `status:` line of two beans.
+
+```
+cmd:      git status --porcelain && git rev-parse HEAD && bash tools/docs-lint.sh
+expect:   nothing modified; the counters at zero, as on `main`
+observed: 1c19cf0fc911f10992181a494a4f74a5703644dc
+          docs-lint: OK — 19 documents, 111 anchors, 1552 references, 102 beans, 37 graph edges, 46 selectable, 102 bean ids, 0 introduced, 102 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+exit:     0
+
+cmd:      git rev-parse HEAD && bash tools/docs-lint.sh
+tree:     the same tree, with `status: in-progress` replaced by `status: completed` in
+          `.beans/modus-0049--*.md` and `.beans/modus-0096--*.md` and nothing else changed —
+          `git diff --stat` reports `2 files changed, 2 insertions(+), 2 deletions(-)`
+observed: 1c19cf0fc911f10992181a494a4f74a5703644dc
+          docs-lint: OK — 19 documents, 111 anchors, 1552 references, 102 beans, 37 graph edges, 46 selectable, 102 bean ids, 0 introduced, 102 on origin/main, 2 closing transitions, 8 criteria checked, 0 unnumbered.
+exit:     0
+```
+
+`git status --porcelain` printed nothing before the first run, which is what makes it a
+measurement of `1c19cf0` rather than of a working tree that happens to sit on it. Every field but
+the two counters is identical across the pair, `46 selectable` included — `in-progress` and
+`completed` are both outside check 12's selectable set, so the status flip moves the closing
+counters and nothing else. `8` is `bean:0049`'s three criteria plus this bean's five.
+
+Both figures were captured before this section existed and the section was written from the
+capture file, so neither run could read its own transcript
+(`doc:50-memory-and-evidence#corpus-figures`). They are stamped at `1c19cf0`, which is
+`origin/main`'s head at the time of the run; a merge on this sprint falsifies the corpus fields
+and not the pair, which is what this block is about.
+
+### Block C — criterion 5, PR #70's checks and the commit they belong to
+
+```
+cmd:      GITHUB_TOKEN= gh pr view 70 --json mergeCommit,mergedAt,title -q '.mergeCommit.oid, .mergedAt, .title'
+observed: 0e4324d3be556136e16e4c05d779207cea09e697
+          2026-09-04T08:27:49Z
+          docs(05): state what a green check 14 establishes, and what it cannot
+exit:     0
+
+cmd:      GITHUB_TOKEN= gh pr view 70 --json statusCheckRollup \
+            -q '.statusCheckRollup[] | "\(.name)\t\(.conclusion)\t\(.detailsUrl)"'
+observed: which halves	SUCCESS	[...]/runs/33852845144/job/100959330898
+          which halves	SUCCESS	[...]/runs/33852839248/job/100959313117
+          build + mechanical gates	SUCCESS	[...]/runs/33852845144/job/100959368854
+          build + mechanical gates	SUCCESS	[...]/runs/33852839248/job/100959350849
+          backoffice + e2e	SKIPPED	[...]/runs/33852845144/job/100959370503
+          backoffice + e2e	SUCCESS	[...]/runs/33852839248/job/100959350791
+          gate	SUCCESS	[...]/runs/33852845144/job/100959615670
+          gate	SUCCESS	[...]/runs/33852839248/job/100960998163
+exit:     0
+```
+
+`[...]` elides the `https://github.com/m4xy/Modus/actions` prefix each URL carries, and nothing
+else; the run and job ids are what the columns are here for. Every check appears twice because
+two workflow runs answered for this pull request, `33852845144` and `33852839248`, and the pair
+is printed rather than collapsed so that the one job whose conclusion differs between them is
+visible: `backoffice + e2e` is `SKIPPED` in the first and `SUCCESS` in the second. Why the
+per-path job resolved differently across two runs of the same head is not established here and
+is not what this criterion rests on. Neither conclusion is a failure, and `gate` — the job
+`bean:0047` is holding a required-status rule back for — is `SUCCESS` in both.
+
+
+### Block D — criterion 5, the gate on the branch that carries this close
+
+```
+cmd:      git rev-parse HEAD && ./gradlew qualityCheck
+observed: 1c19cf0fc911f10992181a494a4f74a5703644dc
+          [...]
+          docs-lint-test: 37 passed, 0 failed.
+          [...]
+          bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+          bash-compat: OK — 3 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+          [...]
+          docs-lint: OK — 19 documents, 111 anchors, 1574 references, 103 beans, 37 graph edges, 47 selectable, 103 bean ids, 1 introduced, 102 on origin/main, 2 closing transitions, 8 criteria checked, 0 unnumbered.
+
+          > Task :qualityCheck
+
+          BUILD SUCCESSFUL in 21s
+          160 actionable tasks: 6 executed, 154 up-to-date
+exit:     0
+tree:     `chore/close-0049-and-0096`, uncommitted, everything this pull request presents
+          except this block. `git rev-parse HEAD` reports `1c19cf0` because the branch is cut
+          from it and nothing is committed yet.
+```
+
+Each `[...]` marks omitted output: Gradle's task list and the 37 named lines of
+`docsLintTest` before the first, the npm typecheck and lint output between the second and
+third, and Gradle's incubating problems-report line and its Gradle 10 deprecation notice
+before `BUILD SUCCESSFUL`. Nothing the criterion rests on was trimmed — `exit:` is stated
+separately and `BUILD SUCCESSFUL` is present — and no line inside the capture was edited.
+
+The `docs-lint` counters here read `1574 references` and `103 beans` where criterion 1's pair
+reads `1552` and `102`: the pair was taken before `bean:0120` and these two closing sections
+existed, and those are the only causes. `2 closing transitions, 8 criteria checked` is
+identical across both, which is the field this bean is about.
+
+Appending this block is the last edit to the tree the run measured, so the run does not cover
+its own transcript. That is unavoidable for the final gate capture and is stated rather than
+papered over; CI re-runs the same gate over the committed tree, and its result is on the pull
+request.
+### Block E — the run that proves check 14 examined this close rather than passed over it
+
+`docs-lint: OK` on a tree with no closing bean and `docs-lint: OK` on this one differ only in
+the counters, which is this bean's whole subject and is not by itself a demonstration that the
+check would have rejected anything here. Two plants against the closing sections this change
+adds, each restored from a copy taken before it, are. No `git` operation is involved in either,
+so no uncommitted work in the tree could be discarded (`bean:0102`).
+
+```
+plant:    this bean's criterion 3 row, with its `observed` cell emptied
+observed: 400:| 3 | the chosen option is recorded with its reason, and the rejected ones with theirs |  |
+          FAIL check 14 .beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md: criterion 3 closes with an empty evidence cell (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+          docs-lint: 1 failure(s).
+exit:     1
+
+plant:    every `criterion 2` and `Criterion 2` in `.beans/modus-0049--*.md` reworded to
+          `that criterion`, and its closing row renumbered from `| 2 |` to `| two |`, so
+          nothing in that bean bears or cites the number any more
+observed: FAIL check 14 .beans/modus-0049--bash-32-claim-is-unenforced.md: criterion 2 is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+          docs-lint: 1 failure(s).
+exit:     1
+
+cmd:      diff <copy of 0049> .beans/modus-0049--*.md && diff <copy of 0096> .beans/modus-0096--*.md
+          bash tools/docs-lint.sh
+observed: identical
+          docs-lint: OK — 19 documents, 111 anchors, 1572 references, 103 beans, 37 graph edges, 47 selectable, 103 bean ids, 1 introduced, 102 on origin/main, 2 closing transitions, 8 criteria checked, 0 unnumbered.
+exit:     0
+```
+
+The second plant is the sharper of the two, because the criterion it unanswers is the one
+`bean:0049` closes **unmet**. Check 14 accepts that bean with criterion 2 recorded NOT MET and
+rejects it the moment nothing bears the number — which is the distinction between answered and
+met, and the reason a green check 14 is a statement about shape (`doc:05-authoring-for-agents#checks`).
+The restored tree's counters are `103 beans` and `1 introduced` rather than criterion 1's `102`
+and `0`, because `bean:0120` is present by then; the two counters this section is about are
+unchanged.

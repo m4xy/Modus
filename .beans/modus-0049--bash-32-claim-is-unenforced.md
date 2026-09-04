@@ -1,7 +1,7 @@
 ---
 # modus-0049
 title: docs-lint claims bash 3.2 compatibility and nothing tests it
-status: in-progress
+status: completed
 type: fix
 priority: normal
 created_at: 2026-08-29T00:00:00Z
@@ -255,6 +255,130 @@ Nothing in `tools/lib/docs-lint-c14.awk` or `tools/lib/docs-lint-fence.awk` was 
 check 14's behaviour is unchanged. Three changes to that analyser are queued behind this one;
 pinning the interpreter is what gives them something to be validated against, and arriving
 early would defeat the ordering.
+
+## Closing evidence — merged as PR #69, squashed onto `main` as `1c19cf0`
+
+A bean cannot close itself, so this is the next change (`doc:00-constitution#bean-lifecycle`).
+What it adds is the half a branch run cannot carry: that the artefacts the criteria name are on
+`main`, and that one criterion is not among them. Every command below reads `1c19cf0`
+explicitly, so its output comes from any checkout rather than from this one
+(`doc:50-memory-and-evidence#corpus-figures`).
+
+The merge subject is `feat(tools): enforce the bash 3.2 claim the gate only asserted`, with no
+`(#69)` suffix, because the squash was taken with an explicit `--subject` and that replaces the
+pull-request title rather than appending to it. The pull request's own title was
+`feat(tools): pin the gate's shell and make the bash 3.2 claim falsifiable`. Neither string
+identifies the commit; the sha does, and every block below uses it.
+
+**Criterion 1 is met, with the residual entry 1 already states. Criterion 2 is NOT MET, and
+closing does not make it met. Criterion 3 does not apply.** The ruling on criterion 2 is the
+amendment *Criterion 2 is ruled unmeetable* below, made by the owner in review; this section
+carries it forward rather than restating it as satisfied.
+
+| # | criterion | observed |
+|---|---|---|
+| 1 | the gate runs the script under a 3.2-compatible interpreter, or the constraint is struck | **Met**, in the form entry 1 records. At `1c19cf0`, `build.gradle.kts:28` is `val gateShell = "/bin/bash"`, and lines 37, 48 and 60 route `docsLint`, `docsLintTest` and `bashCompatLint` through it instead of resolving `bash` on `PATH`; line 146 puts `bashCompatLint` inside `qualityCheck`. The task names the interpreter it got on every run: `interpreter /bin/bash (bash 3.2.57(1)-release)`. **Residual, carried from entry 1 rather than dropped:** the CI image's `/bin/bash` is bash 5, so the half of the gate that is a genuine 3.2 parse runs on macOS only. What CI gets is a known interpreter at a fixed path plus the construct scan, which does run on both. That is less than this criterion's literal words and more than the nothing that preceded it. Blocks A and C |
+| 2 | **NOT MET** — the interpreter observed rejecting a planted associative array or `mapfile` | **Not met, and nothing that merged meets it.** Under a real bash 3.2 both constructs produce a diagnostic and leave the exit status at 0; `tools/docs-lint.sh` has `set -uo pipefail` and no `set -e`, so the run continues to its `OK` line. Measured in entry 2, re-measured independently in review in the amendment named above, and the two agree. `tools/bash-compat-lint.sh` does reject both (entry 3) and is a substitute, not the mechanism this criterion names. The owner ruled the criterion wrong rather than the work. The concern it was reaching for — that `tools/docs-lint.sh` reaches `OK` at exit 0 through nearly every runtime failure, an inert check included — is `bean:0118`, which is on `origin/main` at `status: todo`. Block B |
+| 3 | if struck: the header states which interpreter the script targets, and `bean:0035`'s awk-portability notes are re-read | **Does not apply.** Its antecedent is false: the claim was kept, not struck. At `1c19cf0` `tools/docs-lint.sh:7-8` still asserts it and lines 9-10 name the gate that now backs the assertion, which is the change criterion 1 asked for. Its second clause sits inside the same conditional, and whether those notes were re-read **could not be verified**: `bean:0035` is cited twice in this bean, in its opening paragraph and in the criterion itself, and nowhere in the evidence or the amendments. Awk portability was re-observed rather than inherited, on the CI runner, in the amendment *The anchored regexes under CI's awk* — which is not the same act. Block A |
+
+A green `docs-lint` check 14 on this change asserts the **shape** of the three rows above and
+nothing about whether they are true, and criterion 2 is the case that makes the distinction
+concrete: the check counts a criterion answered when an entry bears its number, not when the
+entry says the criterion was met (`doc:05-authoring-for-agents#checks`, `bean:0096`).
+
+### Block A — criteria 1 and 3, read off `1c19cf0`
+
+```
+cmd:      git grep -n 'val gateShell' 1c19cf0 -- build.gradle.kts
+          git grep -n 'commandLine(gateShell' 1c19cf0 -- build.gradle.kts
+          git grep -n '"docsLint", "docsLintTest", "bashCompatLint"' 1c19cf0 -- build.gradle.kts
+observed: 1c19cf0:build.gradle.kts:28:val gateShell = "/bin/bash"
+          1c19cf0:build.gradle.kts:37:    commandLine(gateShell, "tools/docs-lint.sh")
+          1c19cf0:build.gradle.kts:48:    commandLine(gateShell, "tools/docs-lint-test.sh")
+          1c19cf0:build.gradle.kts:60:    commandLine(gateShell, "tools/bash-compat-lint.sh")
+          1c19cf0:build.gradle.kts:146:        subprojects.map { "${it.path}:check" } + listOf("check", "ktlintCheck", "docsLint", "docsLintTest", "bashCompatLint"),
+
+cmd:      git show 1c19cf0:tools/docs-lint.sh | awk 'NR >= 5 && NR <= 12 { printf "%d:%s\n", NR, $0 }'
+observed: 5:# Bash, not Kotlin: the checks are line- and glob-shaped, bash already runs in CI
+          6:# and locally, and a JavaExec task would need a source set, a toolchain and a test
+          7:# fixture to do the same string matching. No bash 4 feature is used: macOS ships 3.2 and
+          8:# /bin/bash there is still 3.2.57, which build.gradle.kts now pins the gate to. That is a
+          9:# gate rather than a comment — tools/bash-compat-lint.sh parses this file under the pinned
+          10:# interpreter and scans it for the constructs 3.2 lacks, from qualityCheck (bean:0049).
+          11:# Every failure is appended to one file so a check that fires inside a pipeline subshell
+          12:# still changes the exit status.
+exit:     0
+```
+
+The `awk` numbers the lines rather than a `sed -n` range, so the locator and the text it names
+come out of the same command — the correction the last review round made to this bean's opening
+locator, applied here at the start rather than after a reviewer finds it.
+
+### Block B — criterion 2's concern has a home on `main`, and it is not this bean
+
+```
+cmd:      git grep -n '^status:' origin/main -- '.beans/modus-0118--*.md'
+          git grep -c 'docs-lint' origin/main -- '.beans/modus-0118--*.md'
+observed: origin/main:.beans/modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md:4:status: todo
+          origin/main:.beans/modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md:32
+exit:     0
+```
+
+`origin/main` is `1c19cf0` at the time of this run, so the bean the concern was handed to
+merged with the change that raised it. The second figure is a `git grep -c` and its line
+therefore ends in a count rather than in file text: 32 lines of that bean mention `docs-lint`,
+which is a size, not a verdict.
+
+### Block C — criterion 1's live half, on this tree
+
+```
+cmd:      ./gradlew bashCompatLint docsLint docsLintTest
+observed: [... the build-logic task list ...]
+          > Task :docsLintTest
+          [... 37 named test lines ...]
+          docs-lint-test: 37 passed, 0 failed.
+
+          > Task :bashCompatLint
+          bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+          bash-compat: OK — 3 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+
+          > Task :docsLint
+          docs-lint: OK — 19 documents, 111 anchors, 1552 references, 102 beans, 37 graph edges, 46 selectable, 102 bean ids, 0 introduced, 102 on origin/main, 2 closing transitions, 8 criteria checked, 0 unnumbered.
+          [... Gradle's incubating problems-report line and its Gradle 10 deprecation notice ...]
+          BUILD SUCCESSFUL in 19s
+          12 actionable tasks: 6 executed, 6 from cache
+exit:     0
+tree:     `chore/close-0049-and-0096` at `1c19cf0`, with this section and `bean:0096`'s
+          counterpart present and both `status:` fields set to `completed`, uncommitted.
+```
+
+`2 closing transitions, 8 criteria checked` is check 14 examining this bean's three criteria and
+`bean:0096`'s five. The same command on the unmodified tree at the same head reports
+`0 closing transitions, 0 criteria checked` and is identical in every other field; that pair is
+in `bean:0096`'s closing section, where it is also that bean's own subject matter. That
+pair says the check ran; the two plants in the same section say it would have rejected this
+close, and the second of them is a plant against criterion 2 of this bean.
+
+### Block D — PR #69's checks, and that they are this commit's
+
+```
+cmd:      GITHUB_TOKEN= gh pr view 69 --json mergeCommit,mergedAt,title -q '.mergeCommit.oid, .mergedAt, .title'
+observed: 1c19cf0fc911f10992181a494a4f74a5703644dc
+          2026-09-04T09:41:02Z
+          feat(tools): pin the gate's shell and make the bash 3.2 claim falsifiable
+exit:     0
+
+cmd:      GITHUB_TOKEN= gh pr view 69 --json statusCheckRollup -q '.statusCheckRollup[] | "\(.name)\t\(.conclusion)"' | sort -u
+observed: backoffice + e2e	SKIPPED
+          build + mechanical gates	SUCCESS
+          gate	SUCCESS
+          which halves	SUCCESS
+exit:     0
+```
+
+The first command is what ties the second to this close: the checks are green on the pull
+request whose merge commit is the tree blocks A and B read. `backoffice + e2e SKIPPED` is the
+per-path subset behaving as `doc:00-constitution#workflow` §7.2.4 describes.
 
 ## Amendments
 
