@@ -639,14 +639,17 @@ observed: bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
           [...]
           docs-lint-gate-test: 11 passed, 0 failed.
           [...]
-          BUILD SUCCESSFUL in 44s
+          BUILD SUCCESSFUL in 27s
           161 actionable tasks: 7 executed, 154 up-to-date
 exit:     0
 ```
 
 Each `[...]` there elides Gradle's own task lines and the output of the tasks between the
-four this criterion is about; the five quoted lines are lines 347, 348, 410, 461 and 483 of
-the captured run, in that order, and the last two are its final two lines.
+four this criterion is about; the five quoted lines are lines 347, 348, 410, 459 and 481 of
+the 487-line capture, in that order, and the last two are its final two lines. The elapsed
+time is one sample of a task graph that is mostly cached — the same command on the same tree
+measured 44s a run earlier — and the figure that is not a sample is under "what the second
+gate run costs" below.
 
 `docs-lint-test: 51 passed, 0 failed` is the same figure as at `9daff18`: no assertion was
 added to that file, so none of its mutation figures is restated by this change. The
@@ -674,10 +677,29 @@ observed: rc=0  tools/docs-lint.sh               16.77 s
 
 So `docsLintGateTest` adds **2.7 to 4.1 seconds** to a build that already runs `docsLint`,
 against the ~17 seconds a single gate run takes, and the two full gate runs inside it cost
-2.5 seconds more than one. On the runner it is smaller still. In CI run 33906992159 Gradle
-emitted `> Task :docsLintGateTest`'s first line at `18:39:52.5743941Z` and its last at
-`18:40:02.4423572Z`, a 9.87 s span, with `> Task :docsLint` and its `OK` line at
-`18:40:02.1414422Z` — inside that window, and **0.30 s** before the gate test's last line.
+2.5 seconds more than one. That is the figure to use: it is wall clock around the whole
+invocation, measured twice per shape.
+
+On the runner it is smaller, and the evidence there is weaker in kind — Gradle's log
+timestamps are when it flushed a task's output, not when the task ran. What they do show, in
+both CI runs of this branch, is that `:docsLint` finishes *inside* `:docsLintGateTest`'s
+span, so the gate test is not a serial second gate run:
+
+```
+head:     9fe411c, run 33906992159 / 464a3b0, run 33917147569, both ubuntu-latest
+cmd:      the `> Task :` lines and the docs-lint OK line of each job log, with timestamps
+observed: 33906992159  18:39:52.5743941Z  > Task :docsLintGateTest   (first line)
+          33906992159  18:40:02.1414422Z  > Task :docsLint           (and its OK line)
+          33906992159  18:40:02.4423572Z  docs-lint-gate-test: 11 passed, 0 failed.
+          33917147569  20:38:18.5883650Z  > Task :docsLintGateTest   (first line)
+          33917147569  20:38:36.1353088Z  > Task :docsLint
+          33917147569  20:38:37.0348120Z  docs-lint: OK — [...] the counts line
+          33917147569  20:38:37.0360738Z  docs-lint-gate-test: 11 passed, 0 failed.
+```
+
+The gate test's last line lands 0.30 s after `:docsLint`'s output in the first run and
+0.0013 s after it in the second. Neither number is a task duration and neither should be
+quoted as one; what they bound is the serial tail, and it is well under a second.
 
 The whole green run, in full:
 
@@ -833,6 +855,31 @@ awk, which is not the awk they were written against" took exactly that measureme
 caught exactly once. That is a measurement of one analyser's regexes, not of the analysers
 in `tools/docs-lint.sh`, and this work item adds nothing to it. Named so the next reader
 does not mistake a difference in exit status for a difference in parsing.
+
+### The runner names its own awk
+
+Everything above settles the runner's `awk` by inference from a diagnostic's shape, which is
+how it was got wrong the first time. `tools/docs-lint-gate-test.sh` now prints the awk's own
+version line beside the interpreter's, so the first CI run after that change answers it
+without inference:
+
+```
+head:     464a3b0, GitHub Actions run 33917147569, job 101166858927, ubuntu-latest
+cmd:      ./gradlew qualityCheck --stacktrace -x backofficeTypecheck -x backofficeLint -x backofficeFormatCheck
+observed: docs-lint-gate-test: interpreter /bin/bash (bash 5.2.21(1)-release)
+          docs-lint-gate-test: analyser awk — GNU Awk 5.2.1, API 3.2, PMA Avon 8-g1, (GNU MPFR 4.2.1, GNU MP 6.3.0)
+          [...] the eleven assertion rows and the two banners between them, all `ok`, and
+                identical to the local green run under criterion 5 except for this stderr
+               awk: cmd. line:4:     removed = = 1
+               awk: cmd. line:4:               ^ syntax error
+               FAIL check -  an analyser exited 1 and examined nothing; its last argument was '/tmp/tmp.5Ce3WF2ev0/bean-edges.uniq'
+          docs-lint-gate-test: 11 passed, 0 failed.
+exit:     0, and the `gate` job passed
+```
+
+A gawk, as the diagnostic said: 5.2.1 on the runner against the 5.4.1 the local comparison
+used, agreeing with it on both the format and the status. Nothing about mawk was ever true
+of this image.
 
 ## Not verified here
 
