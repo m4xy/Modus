@@ -1,7 +1,7 @@
 ---
 # modus-0093
 title: Pasted check 14 output standing in top-level prose answers the criterion it reports unanswered
-status: in-progress
+status: completed
 type: fix
 priority: high
 created_at: 2026-08-29T00:00:00Z
@@ -900,3 +900,594 @@ structural sites, so the change does not move its own verdict.
   Reading polarity would be a blocklist of output patterns, which is the second option in the
   table above and the shape `doc:00-constitution#mechanical-enforcement` records as failing
   open on the first string nobody thought of.
+
+## Closing evidence — merged as PR #75, squashed onto `main` as `9daff18`
+
+A bean cannot close itself, so this is the next change (`doc:00-constitution#bean-lifecycle`).
+
+**The criteria are not restated below.** A close that rewrites its criteria is
+indistinguishable from a close that met them (`bean:0113`), so the table indexes
+`## Success criteria` by number and records a verdict against the wording already standing
+there. Nothing above this heading is edited by this change.
+
+**All but one criterion are met. Criterion 3 is NOT MET AS WORDED**, which its own section above
+already records; that section is not amended, the criterion is not reworded, and the residual
+is `bean:0121`'s. `doc:80-agent-operating-procedure` step 6 forbids weakening a criterion to
+reach green, and changing one is a separate work item and a human decision.
+
+**Answered is not met**, and this close is the sharpest instance of that distinction the
+corpus holds. Check 14 reports `7 criteria checked` on this change because every criterion is
+cited from a structural site; criterion 3 is among them and is not met. A green check 14 is a
+statement about the shape of the evidence and never about the verdict recorded in it
+(`doc:05-authoring-for-agents#checks`, `bean:0096`).
+
+Every figure names the head it was taken at, and the heads in play are these. Every figure was
+redirected to a file and pasted from that file; the elisions are marked `[...]` and none
+carries a count a verdict rests on.
+
+- **`9daff18`** — `origin/main` and this change's merge base, `.beans/` and `tools/`
+  unmodified. Blocks A, B and C, and Block D's `git show`.
+- **`9daff18`+`status:`** — the merge base with this bean's `status:` line as the only edit
+  and this section absent. Block F's second arm, the selectable probe's second arm, and the
+  graph plant, which runs on a copy of that tree and never on the worktree.
+- **`9daff18`+this section, with Block G absent** — Block G's two check 14 plants and the
+  run that restored them.
+- **`9daff18`+this section, with the gate block absent** — the gate run at the end.
+
+Block E is not on this list: PR #75's checks are GitHub's record of a head that is already
+`main`, and no tree of this branch produces them.
+
+| # | verdict | observed |
+|---|---|---|
+| 1 | met | The plant is a verdict rejection pinned in `tools/docs-lint-test.sh` and green on `main`, twice over: `the planted defect: pasted output at top level cannot answer its criterion`, and the bean's own shape, `an EVEN number of quoted markers no longer answers the criterion`. Block A |
+| 2 | met | Block A. The fenced control still fails for its own reason, and both structural sites have a passing negative control beside the rejections — an evidence sub-heading naming the criterion, and an evidence row citing a range |
+| 3 | **NOT MET AS WORDED** | The adopted rule is a property and names no container, and it rejects every wild instance and the plant. It does not reject the container class by construction: `citation_site()` receives a line of text and one flag of the analyser's own state, holds no raw-HTML-block model, and refuses a container only insofar as that container's contents are neither heading- nor row-shaped. The claim was corrected rather than the mechanism narrowed. Block B |
+| 4 | met | The differential over the whole corpus, re-run at the head the fix landed on rather than at the merge base it was measured on, and every changed bean named. Three beans entered the corpus between the measurement and the merge and are measured here; one bean drops out of the eleven and the cause is established. Block C |
+| 5 | met | Zero `decides "DEFECT` assertions remain, and all six are green verdict rejections rather than perception assertions. Block A |
+| 6 | met | `doc:05-authoring-for-agents#checks` carries the rule on `main`, with the container limit, the ATX-heading boundary and the evidence-cell qualifier stated beside it. Block D |
+| 7 | met | PR #75's `gate` is `SUCCESS` on the pull request whose merge commit is `9daff18`, and `./gradlew qualityCheck` is green on this closing branch. Block E and the gate section below |
+
+### Block A — criteria 1, 2 and 5, off the suite `main` carries
+
+The suite is the mechanism the two plants and the six flipped pins live in, so criteria 1, 2
+and 5 are read off one run rather than replanted. Both runs are at `9daff18` with `tools/`
+unmodified — `git status --porcelain` names this bean and nothing else, and the suite runs on
+its own fixtures and reads no bean file.
+
+```
+cmd:      git rev-parse HEAD && git status --porcelain && /usr/bin/grep -c 'decides "DEFECT' tools/docs-lint-test.sh
+observed: 9daff18c55ac1fa727da7906652b3bce337fbef9
+           M .beans/modus-0093--pasted-output-in-top-level-prose-answers-the-criterion-it-reports-unanswered.md
+          0
+exit:     1
+```
+
+`grep` here is `/usr/bin/grep`, the BSD grep 2.6.0-FreeBSD that CI also runs, named because
+the interactive shell's `grep` is a harness-installed `ugrep 7.8.4`. `exit: 1` is `grep -c`
+finding nothing, which is the result and not a failure. The pattern is anchored on
+`decides "DEFECT` rather than on the bare label, because that label still stands in the comment
+heading the flipped block and in the `ACCEPTED` note beside the container residual, and a count
+including those would measure the wrong thing.
+
+```
+cmd:      /bin/bash tools/docs-lint-test.sh
+observed: [...]
+          ok   verdict: a quoted fence marker is refused, not laundered into an answer
+          ok   verdict: quoted correctly, the pasted output stays inside the fence and answers nothing
+          [...]
+          ok   verdict: the planted defect: pasted output at top level cannot answer its criterion
+          ok   verdict: control: an evidence sub-heading naming the criterion answers it
+          ok   verdict: control: an evidence row citing a range of criteria answers all of them
+          [...]
+          ok   verdict: an EVEN number of quoted markers no longer answers the criterion
+          ok   verdict: a raw HTML <pre> block no longer answers its criteria
+          ok   verdict: an HTML comment renders as nothing and no longer answers
+          ok   verdict: <details> wrapping a <pre> does not answer either
+          ok   verdict: a line-initial inline code span leaves the next line unable to answer
+          ok   verdict: a backtick in the info string does the same
+          [...]
+          docs-lint-test: 51 passed, 0 failed.
+exit:     0
+```
+
+Four elisions, each a run of whole lines from the same capture and never a partial one: the
+perception and citation-site sections with their headers before the first; the rest of the
+verdict section between the first and the second; the adversarial assertions standing above
+the planted-defect pair between the second and the third; and the `ACCEPTED`, `intable` and
+tilde assertions between the third and the total. Nothing between the `ok` and the name on
+any kept line was touched.
+
+The two controls are what stop the six rejections above them meaning nothing: without a run
+asserting that something DOES answer, the same failure set is produced by deleting the
+citation scanner outright, which the suite header names as a measured mutation.
+
+### Block B — criterion 3, the shape of what shipped
+
+```
+cmd:      git show 9daff18:tools/lib/docs-lint-c14.awk | /usr/bin/grep -n -A2 '^function citation_site'
+observed: 86:function citation_site(line) {
+          87-  return (line ~ /^#+ / || (intable && line ~ /^\|/))
+          88-}
+exit:     0
+```
+
+That is the whole of the adopted rule. It takes the line and reads `intable`, the analyser's
+own table state, and nothing else.
+
+The criterion asks for three things and two of them hold. The rule is a property and not a
+list: no container is named anywhere in `citation_site()`, and adding a name to it would move
+no verdict, because there is nowhere in the function for a name to go. And every wild instance
+and the plant are rejected, all of them for one reason — they are running prose.
+
+The third does not hold. The container class is not refused *by construction*, because there
+is no construction here that could refuse a container: the function is given a line of text
+and one boolean, and a container is not a property of either. What it rejects is a shape, and
+a container is refused only when its contents happen not to have the accepted shapes.
+
+`### Criterion 3 — a property, not a list` above carries the measurement, the probe output
+naming which lines were read, and the reason the claim was corrected rather than the mechanism
+narrowed. It is unchanged. The limit is stated on `main` at
+`doc:05-authoring-for-agents#checks` and in the analyser's own comment, pinned as `ACCEPTED`
+verdict assertions in the suite, and owned by `bean:0121`.
+
+### Block C — criterion 4, re-measured at the head the fix landed on
+
+The measurement above was taken over 102 bean files at `1c19cf0`, the branch's merge base.
+The fix did not land there. `9daff18`'s parent is `4d75cc6`, which closed `bean:0049` and
+`bean:0096` and added two beans; `9daff18` added one more. So the corpus at the time of the
+fix is 105 beans, three of which no run recorded above could have covered, and the criterion
+quantifies over the corpus rather than over a count deliberately.
+
+Re-run at `9daff18`, whole corpus, shipped `citation_site()` against the exclusion rule at
+`1c19cf0` substituted into the same analyser, verdict sets diffed per file:
+
+```
+cmd:      one call: `git rev-parse HEAD`, then `git status --porcelain`, then the check 14
+          analyser over every bean file with the shipped `citation_site()` against the
+          `1c19cf0` rule substituted into the same analyser, verdict sets diffed per file
+observed: 9daff18c55ac1fa727da7906652b3bce337fbef9
+          CHANGED modus-0028--normative-gate-commands.md
+              1a2
+              > UNANSWERED	1
+              6a8
+              > UNANSWERED	7
+          CHANGED modus-0035--beans-graph-check.md
+              0a1,6
+              > UNANSWERED	1
+              > UNANSWERED	2
+              > UNANSWERED	3
+              > UNANSWERED	4
+              > UNANSWERED	5
+              > UNANSWERED	6
+          CHANGED modus-0061--check-14-is-gated-on-numbered-criteria.md
+              1a2,4
+              > UNANSWERED	1
+              > UNANSWERED	2
+              > UNANSWERED	3
+          CHANGED modus-0062--docs-lint-does-not-scan-claude-skills.md
+              1a2,3
+              > UNANSWERED	1
+              > UNANSWERED	2
+          CHANGED modus-0086--check-6-resolves-references-through-a-naive-fence-toggle.md
+              1a2
+              > UNANSWERED	1
+              3a5
+              > UNANSWERED	4
+          CHANGED modus-0091--transcript-discipline-in-evidence.md
+              3a4
+              > UNANSWERED	3
+              5a7
+              > UNANSWERED	6
+          CHANGED modus-0098--pull-request-bodies-restate-evidence.md
+              1a2
+              > UNANSWERED	1
+          CHANGED modus-0101--a-stacked-bean-is-unauditable-until-the-stack-lands.md
+              1a2
+              > UNANSWERED	1
+              4a6
+              > UNANSWERED	5
+          CHANGED modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md
+              2a3,4
+              > UNANSWERED	2
+              > UNANSWERED	3
+          CHANGED modus-0119--spend-records-carry-no-seq-kind-or-crc.md
+              0a1,3
+              > UNANSWERED	1
+              > UNANSWERED	2
+              > UNANSWERED	3
+              1a5,7
+              > UNANSWERED	5
+              > UNANSWERED	6
+              > UNANSWERED	7
+              2a9
+              > UNANSWERED	9
+          CHANGED modus-0120--nothing-closes-a-bean-after-its-work-merges.md
+              2a3
+              > UNANSWERED	3
+          CHANGED modus-0121--the-citation-site-constrains-shape-but-not-region-emptiness-or-container.md
+              1a2,6
+              > UNANSWERED	1
+              > UNANSWERED	2
+              > UNANSWERED	3
+              > UNANSWERED	4
+              > UNANSWERED	5
+          CHANGED modus-0122--the-constitution-misstates-the-ruleset-it-says-it-states-once.md
+              1a2
+              > UNANSWERED	2
+              2a4
+              > UNANSWERED	4
+          beans compared: 105
+          files differing: 13
+exit:     0
+```
+
+The head line is the `git rev-parse` at the front of that call; `git status --porcelain`
+printed nothing between the two, which is what makes this a measurement of `9daff18` and not
+of a tree that happens to sit on it — it was taken before this bean's `status:` line was
+edited. Everything below the head is the differential's stdout, redirected to a file and
+pasted whole from it. **No elision.**
+The `1a2` and `0a1,6` lines are `diff`'s hunk headers and the `>` lines are its marker for a
+line present only in the second verdict set, which is the shipped rule; so every `>` line is
+one criterion the narrowing newly reports unanswered, and the number after each is separated
+by a tab.
+
+**Two things moved against the eleven named at `1c19cf0`, and both are established rather
+than assumed.**
+
+`bean:0049` drops out. `### Criterion 4` above recorded it as the one bean needing action and
+not this bean's to act on, and predicted the failure if the parallel branch closed it after
+this landed. It closed *before* — in `4d75cc6`, `9daff18`'s parent — so it is `completed` on
+this change's merge base and check 14 never re-reads it. It also no longer differs at all,
+and that is not because its evidence sub-headings were renamed: they still read `### 1 — …`
+and `### 3 — …`. Its closing sections cite the numbers from block headings, which are
+structural sites:
+
+```
+cmd:      /usr/bin/grep -n '^#.*[Cc]riteri' .beans/modus-0049--bash-32-claim-is-unenforced.md
+observed: 35:## Success criteria
+          58:## Criterion 2 cannot be met as written, and this bean stays open
+          147:### 3 — the mechanism that was built, observed rejecting both (a substitute, not criterion 2)
+          289:### Block A — criteria 1 and 3, read off `1c19cf0`
+          334:### Block B — criterion 2's concern has a home on `main`, and it is not this bean
+          349:### Block C — criterion 1's live half, on this tree
+          461:### Block E — criteria 1 and 3 under the narrowing `bean:0093` carries, checked rather than assumed
+exit:     0
+
+cmd:      the check 14 analyser over .beans/modus-0049--bash-32-claim-is-unenforced.md at 9daff18
+observed: STATS	3	0
+exit:     0
+```
+
+Its second criterion is answered by the heading that denies it, which is the accepted boundary
+this bean records and not an accident.
+
+Three beans enter. `bean:0120` and `bean:0122` arrived in `4d75cc6` and `bean:0121` in
+`9daff18` itself, all three after the corpus measurement, and all three change. None fails
+today — every one is `todo` — and the cost is the forward one the criterion is about: each
+must file its citations structurally when it closes.
+
+The instrument is validated by its own agreement with the recorded measurement. Ten of the
+eleven files named at `1c19cf0` reproduce here with the same criterion numbers, and the
+eleventh has the cause above. A script matching nothing does not reproduce ten files.
+
+### Block D — criterion 6, the rule as it stands on `main`
+
+```
+cmd:      git show 9daff18:documentation/05-authoring-for-agents.md redirected to a scratch
+          file, then /usr/bin/grep -n over that file for the five alternatives
+          'A criterion is \*\*answered\*\*', 'Running prose is not a citation site',
+          'What the rule is not', 'At column zero' and 'A \*\*heading\*\* here is an ATX'
+observed: 283:- A criterion is **answered** by an evidence row bearing its number, or by a `criterion N` or
+          285:  Running prose is not a citation site, whatever it renders as. Write the citation as an
+          296:  **What the rule is not.** It is a test of a line's SHAPE, not a model of containers, and
+          309:  **`At column zero` is a qualifier and it has a price.** A citation is read from the whole of
+          320:  A **heading** here is an ATX heading: `#` characters at the start of the line. A
+exit:     0
+```
+
+The locators carry the command that produced them, and the command is a match rather than a
+range, so it cannot be misread later as a section extent
+(`doc:50-memory-and-evidence#capturing`). Line 283 is the rule; 296, 309 and 320 are the three
+things the first version of that section claimed and the check does not have — the container
+limit, the evidence-cell qualifier, and the ATX boundary — each corrected in review and each
+now on `main`.
+
+The emptiness residual `bean:0121` records is described here and not reproduced. Its fixture
+closes a five-criterion bean from a single range-citing sub-heading, and that heading is a
+citation site: pasting it into this bean would answer five of this bean's criteria from an
+example. That is the same laundering shape one layer up, and it is why the fixture stays in
+`tools/docs-lint-test.sh`, a file check 14 never reads because it reads only `.beans/*.md`.
+
+### Block E — criterion 7, the gate
+
+PR #75's checks, on the pull request whose merge commit is `9daff18`:
+
+```
+cmd:      GITHUB_TOKEN= gh pr view 75 --json statusCheckRollup \
+            -q '.statusCheckRollup[] | "\(.name)\t\(.conclusion)\t\(.detailsUrl)"'
+observed: which halves	SUCCESS	[...]/runs/33901590752/job/101116701849
+          which halves	SUCCESS	[...]/runs/33901585342/job/101116685207
+          build + mechanical gates	SUCCESS	[...]/runs/33901590752/job/101116756121
+          build + mechanical gates	SUCCESS	[...]/runs/33901585342/job/101116719671
+          backoffice + e2e	SKIPPED	[...]/runs/33901590752/job/101116757224
+          backoffice + e2e	SKIPPED	[...]/runs/33901585342/job/101116720739
+          gate	SUCCESS	[...]/runs/33901590752/job/101117024195
+          gate	SUCCESS	[...]/runs/33901585342/job/101117011697
+exit:     0
+```
+
+`[...]` elides the `https://github.com/m4xy/Modus/actions` prefix each URL carries and nothing
+else; the run and job ids are what the columns are for. Every check appears twice because two
+workflow runs answered for this pull request, and the pair is printed rather than collapsed.
+`backoffice + e2e` is `SKIPPED` in both, which is the per-path job declining a change that
+touches neither directory. `gate` — the job `bean:0047` is holding a required-status rule back
+for — is `SUCCESS` in both.
+
+The local gate on this closing branch is under **The gate on this branch** below, taken after
+this block was written, because a run taken here could not cover the text beneath it.
+
+### Block F — the counters moved, and check 12 is alive
+
+`main` at `9daff18` reports `0 closing transitions, 0 criteria checked`, which is what a change
+that closes nothing prints and what a check that examined nothing prints
+(`doc:00-constitution#observed-failing`). The pair below is the same tree differing in one
+line — this bean's `status:` — with this section absent from both arms, so the movement is
+attributable to the close and to nothing else.
+
+```
+cmd:      git status --porcelain; git rev-parse HEAD; /bin/bash tools/docs-lint.sh
+observed: 9daff18c55ac1fa727da7906652b3bce337fbef9
+          docs-lint: OK — 19 documents, 111 anchors, 1619 references, 105 beans, 37 graph edges, 48 selectable, 105 bean ids, 0 introduced, 105 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+exit:     0
+
+cmd:      git rev-parse HEAD; git diff --stat; /bin/bash tools/docs-lint.sh
+observed: 9daff18c55ac1fa727da7906652b3bce337fbef9
+           ...ut-in-top-level-prose-answers-the-criterion-it-reports-unanswered.md | 2 +-
+           1 file changed, 1 insertion(+), 1 deletion(-)
+          docs-lint: OK — 19 documents, 111 anchors, 1619 references, 105 beans, 37 graph edges, 49 selectable, 105 bean ids, 0 introduced, 105 on origin/main, 1 closing transitions, 7 criteria checked, 0 unnumbered.
+exit:     0
+```
+
+The leading `...` on the second arm's stat line is `git diff --stat`'s own abbreviation of a
+path too long for its column, not an elision of mine; the file is this one and it is the only
+one changed. `git status --porcelain` printed no line at all before the first run, which is
+why the head is the first thing under `observed:` there and is what makes that arm a
+measurement of `9daff18` rather than of a working tree that happens to sit on it. Exactly
+three fields move — `48 selectable` to `49`, `0 closing transitions` to `1`, `0 criteria
+checked` to `7` — and `1619 references` is identical across the pair, because a status flip
+adds no reference. Seven is this bean's seven numbered criteria, all of them cited from the
+`### Criterion N` sub-headings above, which are structural sites under the rule this bean
+adopted. The check reads its own subject.
+
+**`bean:0121` is selectable after this change, and it is the only bean whose selectability
+moves.** The counter says one bean joined; it does not say which. A probe reimplementing
+`AGENTS.md` step 1 independently of `tools/docs-lint.sh` — `status: todo`, `type` not `epic`,
+every `blocked_by` id resolving to a `completed` bean — was run on both arms and its two
+outputs diffed. It agrees with check 12's counter at 48 and at 49, which is what makes it an
+instrument rather than an assertion:
+
+```
+cmd:      the step 1 probe over `.beans`, on the `9daff18` arm, output redirected and piped
+          to `wc -l`
+observed:       48
+exit:     0
+
+cmd:      the same probe on the `9daff18`+`status:` arm, redirected and piped to `wc -l`
+observed:       49
+exit:     0
+
+cmd:      diff <the probe's output on the first arm> <its output on the second>
+observed: 47a48
+          > modus-0121
+exit:     1
+```
+
+The two counts are `wc -l`'s own column padding, pasted as printed. `exit: 1` on the third is
+`diff` reporting a difference, which is the result. One line added, none removed, none
+reordered: `bean:0121`'s only blocker is this bean, and closing it clears the edge. The probe
+is not check 12 and does not share a line of code with it, so its agreement with `48
+selectable` and `49 selectable` above is a cross-check of two independent readings of the
+same rule, not one reading quoted twice.
+
+**Check 12's analyser is alive on this tree, planted and reverted.** `bean:0118` records that
+this gate never inspects the exit status of twenty-one of the programs it runs, check 12's
+acyclicity `awk` among them, so a broken check 12 prints the same `OK` line as a passing one
+and `37 graph edges` on a green line is not by itself evidence the cycle detector ran.
+
+The plant runs on a **copy** of the tree, made with `cp -R` and with the worktree's `.git`
+file removed, so no `git` command runs anywhere near uncommitted work and no
+`git checkout -- .beans` exists to discard it (`bean:0102`, `bean:0116`). With no `.git` the
+diff-shaped checks report `-` rather than a count, which is how an inert run is distinguished
+from a clean one; check 12 needs no ref and runs either way.
+
+```
+cmd:      /bin/bash tools/docs-lint.sh, in a copy of the `9daff18`+`status:` tree with no `.git`
+observed: docs-lint: OK — 19 documents, 111 anchors, 1619 references, 105 beans, 37 graph edges, 49 selectable, 105 bean ids, - introduced, - on origin/main, - closing transitions, - criteria checked, - unnumbered.
+exit:     0
+
+cmd:      the same copy with `blocked_by: [modus-0063, modus-0121]` on this bean, so the
+          edge this bean's close clears points back at the bean that carries it
+observed: FAIL check 12 blocked_by graph has a cycle: modus-0093 -> modus-0121, modus-0121 -> modus-0093
+          docs-lint: 1 failure(s).
+exit:     1
+
+cmd:      the planted line restored by the inverse `sed`, then
+          `diff <the copy's bean file> <the worktree's> && echo identical`
+observed: identical
+exit:     0
+
+cmd:      /bin/bash tools/docs-lint.sh, in the restored copy
+observed: docs-lint: OK — 19 documents, 111 anchors, 1619 references, 105 beans, 37 graph edges, 49 selectable, 105 bean ids, - introduced, - on origin/main, - closing transitions, - criteria checked, - unnumbered.
+exit:     0
+```
+
+`identical` is `echo`'s, reached only because `diff` printed nothing and exited 0; the
+restored copy is byte-identical to the worktree's bean, so the plant left nothing behind.
+
+The cycle the plant makes is the exact edge this close clears, run backwards, so what the
+detector is watched rejecting is this change's own graph and not an unrelated one. Both the
+`OK` lines and the `FAIL` come from the same copy of the same tree.
+
+### Block G — check 14 examined this close rather than passing over it
+
+`1 closing transitions, 7 criteria checked` says the check had a candidate and counted its
+criteria. It does not say the check would have rejected anything here, and
+`doc:00-constitution#observed-failing` is explicit that a mechanism observed firing and never
+observed silent — or the reverse — is a claim. Two plants against the closing table this
+change adds, each restored from a copy taken before it, are the observation.
+
+Neither plant runs a `git` command. The bean is copied to a scratch file with `cp`, edited in
+place with `sed`, and restored by copying the scratch file back; there is no
+`git checkout -- .beans` anywhere in the procedure to discard the uncommitted work this whole
+change consists of (`bean:0102`, `bean:0116`). Both were taken with this closing section
+present and this block absent.
+
+```
+plant:    the closing table's row numbered 3, with its verdict cell kept and its evidence
+          cell emptied
+observed: FAIL check 14 .beans/modus-0093--pasted-output-in-top-level-prose-answers-the-criterion-it-reports-unanswered.md: criterion 3 closes with an empty evidence cell (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+          docs-lint: 1 failure(s).
+exit:     1
+
+plant:    the same row renumbered from `| 3 |` to `| three |`, and the two headings that
+          cite the number by it — the `### Criterion 3 — …` sub-heading under `## Evidence`
+          and the `### Block B — criterion 3, …` heading above — reworded to name it in
+          words, so that nothing in the file bears or cites the number any more
+observed: FAIL check 14 .beans/modus-0093--pasted-output-in-top-level-prose-answers-the-criterion-it-reports-unanswered.md: criterion 3 is not answered in the evidence; no evidence row bears its number and nothing cites it (adr:0005-evidence-lives-in-the-work-item#evidence-home)
+          docs-lint: 1 failure(s).
+exit:     1
+
+cmd:      cp <the scratch copy> <the bean> && diff <the scratch copy> <the bean> && echo identical
+          /bin/bash tools/docs-lint.sh
+observed: identical
+          docs-lint: OK — 19 documents, 111 anchors, 1627 references, 105 beans, 37 graph edges, 49 selectable, 105 bean ids, 0 introduced, 105 on origin/main, 1 closing transitions, 7 criteria checked, 0 unnumbered.
+exit:     0
+```
+
+The second plant is the sharper of the two, because the criterion it unanswers is the one this
+bean closes **unmet**. Check 14 accepts this bean with criterion 3 recorded NOT MET AS WORDED
+and rejects it the moment nothing bears or cites the number — which is the whole distinction
+between *answered* and *met*, and the reason a green check 14 is a statement about shape and
+not about a verdict.
+
+**The `FAIL` lines above are this check's own stdout, pasted into this bean, and they are
+inert.** That sentence is what this bean was raised to make true. They are inside a fence, so
+they are skipped whole; and under the rule this change adopted they would be inert at column
+zero as well, because a pasted transcript is neither a heading nor a row of an entered table.
+Before `9daff18` the second of them would have set `A[3]` and closed as answered the criterion
+it reports unanswered.
+
+### This close is itself an instance of `bean:0120`
+
+`doc:00-constitution#bean-lifecycle` holds a bean `in-progress` through its own pull request
+and ends by saying the close "is the first act of the session after a merge". Nothing
+establishes that the session happens, and `bean:0120` is that gap. This close is the act the
+rule describes and does not assign; it happened because it was dispatched, which is a fact
+about dispatch and not about a rule.
+
+The backlog it clears is one tree deep, and that is the honest size rather than a supporting
+one:
+
+```
+cmd:      git log --format='COMMIT %h %ad %s' --date=short -p origin/main \
+            -- .beans/modus-0093--…md | /usr/bin/grep -E '^COMMIT |^\+status:|^-status:'
+observed: COMMIT 9daff18 2026-09-04 fix(docs-lint): answer a criterion only from a structural site (#75)
+          -status: todo
+          +status: in-progress
+          COMMIT 63f367e 2026-08-30 docs(05): point the citation gap line at the bean that closes it (#62)
+          COMMIT 74cb201 2026-08-30 docs(beans): raise bean:0093 — pasted output in top-level prose answers its own criterion (#56)
+          +status: todo
+exit:     0
+```
+
+`…` elides the rest of this bean's filename in the pathspec, which was given in full. So
+`origin/main` has held this bean `in-progress` in exactly one tree, `9daff18`, its own head —
+a shorter run than any `bean:0120` E1 records. Two observations follow and only the first is
+about this bean.
+
+`status: in-progress` reached `main` in the same commit that shipped the work, not when the
+branch was cut: §7.2.1's first arrow is a rule about a branch, and `main` never sees it.
+`bean:0120` records that five of the nine beans in its window were created at `in-progress`
+and never flipped; this is the other route to the same conclusion — the status on `main` is
+not evidence of when the work started, so a backlog metric built on it measures merges.
+
+And a one-tree run is not evidence that the gap is small. The signal and its absence print
+the same characters, so the run is short here and would look identical at any length.
+
+### The record is measurement-neutral, stated rather than assumed
+
+`doc:50-memory-and-evidence#corpus-figures` warns that a record measuring a corpus it belongs
+to changes that corpus. This section is the bulk of what this change adds, appended to a bean
+that Blocks C, F and G all read. No line count is given for it, here or in a heading, because
+a count restated outside the thing it counts is a drift generator and this one moves with
+every review fix (`doc:05-authoring-for-agents#one-fact-one-place`); `git diff --stat` on the
+pull request is the figure and it is derived rather than copied.
+
+Block C's differential is measurement-neutral over this section by construction: this bean
+does not appear in the 13 under either rule, because its citations stand at `### Criterion N`
+sub-headings, which are structural sites under the shipped rule and under the one it replaced
+alike. So no amount of writing here can move that result — which is the property, not a
+result of having checked afterwards.
+
+Block F's `1619 references` and `105 beans` are not neutral over it, and are stamped
+`9daff18`+`status:` for that reason: both arms were captured before a line of this section
+existed. Block G's `1627 references` is the run that restored its two plants, taken with
+the closing section present and Block G itself not yet written. The gate below reports
+`1628` — the one further reference this section adds after that run, its first citation of
+`doc:05-authoring-for-agents#one-fact-one-place`, in the paragraph above about the line
+count. `refs.uniq` is a set of file-and-reference pairs, so a second mention of `bean:0102`
+in this file adds nothing to it and a first mention of anything adds one. Every figure moves
+only in the direction its own text accounts for.
+
+The gate run below is taken with everything above it present, and appending it is the last
+edit to the tree that run measured. That is unavoidable for a final capture and is stated
+rather than papered over; CI runs the same gate over the committed tree and its result is on
+the pull request.
+
+### The gate on this branch
+
+```
+cmd:      git rev-parse HEAD; ./gradlew qualityCheck
+observed: 9daff18c55ac1fa727da7906652b3bce337fbef9
+          [...]
+          > Task :bashCompatLint
+          bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+          bash-compat: OK — 3 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+          [...]
+          docs-lint-test: 51 passed, 0 failed.
+          [...]
+          > Task :docsLint
+          docs-lint: OK — 19 documents, 111 anchors, 1628 references, 105 beans, 37 graph edges, 49 selectable, 105 bean ids, 0 introduced, 105 on origin/main, 1 closing transitions, 7 criteria checked, 0 unnumbered.
+
+          > Task :qualityCheck
+
+          BUILD SUCCESSFUL in 24s
+          160 actionable tasks: 6 executed, 154 up-to-date
+          Configuration cache entry reused.
+exit:     0
+tree:     `chore/close-0093`, uncommitted, at `9daff18` with this change's single modified
+          file present and this block absent. `git rev-parse HEAD` names the merge base
+          because nothing was committed yet, not because the tree is `main`.
+```
+
+**Re-run once more after this block was appended**, because a final capture that cannot cover
+its own transcript is the one place this record is not self-checking. Every line pasted
+above that carries a verdict or a count reproduced: `51 passed, 0 failed`, the `bash-compat`
+line, the `docsLint` line with every count on it, and `160 actionable tasks: 6 executed, 154
+up-to-date`. One line did not, and it is Gradle's wall clock: `BUILD SUCCESSFUL in 24s` became
+`in 27s`. So the transcript stands at the head this change ships, not only at the head it was
+taken on. The re-run is not pasted, because it would be the block above with a timing line
+changed, and `doc:50-memory-and-evidence#capturing` is against a fence that is a composition.
+
+Three elisions, all Gradle task lines and the tool output between them: the Kotlin, ktlint,
+Detekt, ArchUnit and test tasks before the first, the `docs-lint-test` assertion lines and
+their section headers before the second — the total they sum to is the line kept — and the
+backoffice typecheck, lint and format-check output before the third. Nothing this criterion
+rests on was trimmed: `exit:` is stated separately, every line carrying a count is kept, and
+`BUILD SUCCESSFUL` is present.
+
+`1628 references` differs from Block F's `1619` and Block G's `1627` for the reason the
+section above gives, and the three fields this close moves — `49 selectable`,
+`1 closing transitions`, `7 criteria checked` — are identical across all of them. The gate
+reaches `docsLint` through Gradle rather than through `/bin/bash`, so this is the same verdict
+from the runner CI uses.
