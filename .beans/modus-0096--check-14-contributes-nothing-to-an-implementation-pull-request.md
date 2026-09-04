@@ -204,8 +204,10 @@ and none is amended.
 
 Runs are against the working tree, which is what `tools/docs-lint.sh` reads by its own
 construction (`BASE` against the working tree, not against `HEAD`). Each sha below names the
-commit the run was made on; the only tree content not in that commit is the paste of these cells
-themselves, and the re-run under criterion 1 is what shows the paste to be measurement-neutral.
+commit the run was made on. Later commits on this branch pasted these cells and rewrote the
+paragraph quoted under criterion 2; the re-run recorded below was made after all of them and
+prints the same counters, which is what makes the record measurement-neutral rather than merely
+reproducible (`doc:50-memory-and-evidence#corpus-figures`).
 
 ### Criterion 1 — the zero observation, reproduced on this branch, with its counterfactual
 
