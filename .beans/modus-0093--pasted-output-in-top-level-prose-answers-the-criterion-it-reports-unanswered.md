@@ -1266,8 +1266,8 @@ not this bean's to act on, and predicted the failure if the parallel branch clos
 this landed. It closed *before* — in `4d75cc6`, `9daff18`'s parent — so it is `completed` on
 this change's merge base and check 14 never re-reads it. It also no longer differs at all,
 and that is not because its evidence sub-headings were renamed: they still read `### 1 — …`
-and `### 3 — …`. Its closing sections cite the numbers from block headings, which are
-structural sites:
+and `### 3 — …`. Every one of its three criteria is cited from a structural site, though not
+all from the same kind of one:
 
 ```
 cmd:      /usr/bin/grep -n '^#.*[Cc]riteri' .beans/modus-0049--bash-32-claim-is-unenforced.md
@@ -1285,8 +1285,54 @@ observed: STATS	3	0
 exit:     0
 ```
 
-Its second criterion is answered by the heading that denies it, which is the accepted boundary
-this bean records and not an accident.
+Which site answers which criterion is not read off that listing, and a heading naming two
+numbers does not answer both. Line 289 reads `### Block A — criteria 1 and 3` and line 461
+`### Block E — criteria 1 and 3`; each answers criterion 1 alone, for the reason Block A's own
+heading above is now worded around. No heading in the file answers criterion 3 at all — its
+closing-evidence row does, which is the other kind of structural site. The shipped analyser
+says which line sets which, given one `print` at each of its three `A[]` assignments and no
+other change:
+
+```
+cmd:      the shipped analyser with the three-line patch shown below applied to a copy,
+          run over `git show 9daff18:.beans/modus-0049--bash-32-claim-is-unenforced.md`;
+          the excerpt after each line number is bracketed and truncated by the patch
+observed: == diff tools/lib/docs-lint-c14.awk against the instrumented copy
+          147c147
+          <         if (numbered && evcol > 1) { A[first + 0] = 1 }
+          ---
+          >         if (numbered && evcol > 1) { A[first + 0] = 1; print "ANSWEREDBY row " first " " FNR " [" substr(line,1,40) "]" }
+          181,182c181,182
+          <     if (hi > lo && hi - lo < 20) { for (k2 = lo; k2 <= hi; k2++) { A[k2] = 1 } }
+          <     else if (lo > 0) { A[lo] = 1 }
+          ---
+          >     if (hi > lo && hi - lo < 20) { for (k2 = lo; k2 <= hi; k2++) { A[k2] = 1; print "ANSWEREDBY site " k2 " " FNR " [" substr(line,1,60) "]" } }
+          >     else if (lo > 0) { A[lo] = 1; print "ANSWEREDBY site " lo " " FNR " [" substr(line,1,60) "]" }
+          == the instrumented analyser over bean:0049 as it stands at 9daff18
+          ANSWEREDBY site 2 58 [## Criterion 2 cannot be met as written, and this bean stays]
+          ANSWEREDBY site 2 147 [### 3 — the mechanism that was built, observed rejecting b]
+          ANSWEREDBY row 1 280 [| 1 | the gate runs the script under a 3]
+          ANSWEREDBY site 1 280 [| 1 | the gate runs the script under a 3.2-compatible interp]
+          ANSWEREDBY row 2 281 [| 2 | **NOT MET** — the interpreter ob]
+          ANSWEREDBY row 3 282 [| 3 | if struck: the header states which]
+          ANSWEREDBY site 1 282 [| 3 | if struck: the header states which interpreter the scr]
+          ANSWEREDBY site 3 282 [| 3 | if struck: the header states which interpreter the scr]
+          ANSWEREDBY site 1 289 [### Block A — criteria 1 and 3, read off `1c19cf0`]
+          ANSWEREDBY site 2 334 [### Block B — criterion 2's concern has a home on `main`, ]
+          ANSWEREDBY site 1 349 [### Block C — criterion 1's live half, on this tree]
+          ANSWEREDBY site 1 461 [### Block E — criteria 1 and 3 under the narrowing `bean:0]
+          STATS	3	0
+exit:     0
+```
+
+**No elision.** The `STATS 3 0` at the foot is the line the unpatched run above prints, and
+the filter passed `UNANSWERED` through as well as `ANSWEREDBY`: none appeared, so the patched
+copy reports what the unpatched one reports and the `print`s are additions, not a rewrite.
+
+Its second criterion is answered by the heading that denies it, at line 58, and again at line
+147 — a sub-heading numbered `3` that answers criterion **2**, because it names that number
+inside a parenthesis saying it is *not* that criterion. Both are the accepted boundary this
+bean records, the matcher never reading polarity, and neither is an accident.
 
 Three beans enter. `bean:0120` and `bean:0122` arrived in `4d75cc6` and `bean:0121` in
 `9daff18` itself, all three after the corpus measurement, and all three change. None fails
