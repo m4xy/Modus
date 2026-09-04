@@ -1,7 +1,7 @@
 ---
 # modus-0118
 title: docs-lint reports OK at exit 0 through almost every runtime failure
-status: todo
+status: in-progress
 type: fix
 priority: high
 created_at: 2026-09-04T00:00:00Z
@@ -238,3 +238,42 @@ path. That measurement is the entry point to this one.
 violation is not enforcement, it is a claim.
 `doc:50-memory-and-evidence#evidence-kinds` — firing on every input is also firing.
 `doc:05-authoring-for-agents#checks` — the table that counts the checks this gate runs.
+
+## Re-derived at `9daff18`, and split into children
+
+This bean is the parent. It stays `in-progress` while its children run and closes when the
+last of them merges; the work is `bean:0123`, `bean:0124`, `bean:0125`, `bean:0126` and
+`bean:0127`.
+
+**Every figure above that is about `tools/docs-lint.sh` still holds.** That file is
+byte-identical between `13d8c27`, where the figures were taken, and `9daff18` —
+`git diff --quiet 13d8c27 9daff18 -- tools/docs-lint.sh` exits 0, and the only file that
+round changed is `tools/docs-lint-test.sh`. Re-running the two counting commands at
+`9daff18` returns `awk_invocations=22` and the same twenty-two line numbers, and check 14's
+guard is still at 668-670. `bean:0123` carries the capture.
+
+**One claim in the remedy does not hold.** "The invocations inside `$( )`, where the
+failing command's status is the substitution's and is discarded by the assignment" is
+false for a plain assignment under `/bin/bash` 3.2.57: `v="$(awk …)"` leaves `$?` at the
+analyser's status. Only the `local`/`declare` form discards it, the status then being the
+builtin's, and `tools/docs-lint.sh` contains no such form. The obstacle to a per-site
+guard is the pipeline elements, not the assignments. Measured in `bean:0123`.
+
+**The split, and where the boundaries fall.** The two halves of the remedy are separated
+because a failure path is a change to the gate every other change depends on, and a
+per-check discrimination proof is a test harness whose cost is its design problem — one
+gate run is on the order of fifteen seconds, so a plant-and-run per check is not a thing
+that can be bolted onto the first change. `bean:0124` and `bean:0125` are separate again
+because the boundary rows and the test scripts' own exposure are each closable and
+verifiable alone, and `bean:0127` is last because "which checks can be inert" is answered
+by `bean:0126`'s harness rather than guessed before it exists.
+
+| child | what it closes | blocked_by |
+|---|---|---|
+| `bean:0123` | the analyser rows: an analyser that dies makes the gate red. Criteria 1 and 2 | — |
+| `bean:0124` | the rest of the boundary table: `false`, a missing file, a failed `cd`, a failed pipeline element, an unbound variable in `$( )`. Criterion 3 | `bean:0123` |
+| `bean:0125` | `tools/docs-lint-test.sh` and its new sibling, against the same boundary. Criterion 6 | `bean:0123` |
+| `bean:0126` | per-check discrimination: each check's analyser neutered in turn goes red. Criterion 4 | `bean:0123`, `bean:0125` |
+| `bean:0127` | the counts line carries a figure for every check that can be inert, or names the ones it cannot. Criterion 5 | `bean:0126` |
+
+Criterion 7 — `./gradlew qualityCheck` green — is carried by every child rather than by one.
