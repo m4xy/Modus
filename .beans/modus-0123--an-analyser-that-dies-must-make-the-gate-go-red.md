@@ -938,6 +938,12 @@ to a file and pasted from that file, and carries `[...]` on every elision.
   this section absent. Block E's second arm, and the bare-flip probe below it.
 - **`3b02871`+`status:`+this section, with Block C's and Block D's fences absent** — the two
   gate runs. Every other line of this section was present when they ran.
+- **`870be5c`** — this change's first commit, which is the three heads above with Block C's and
+  Block D's fences filled in. Block F, taken from its CI run rather than from this machine.
+
+Block F is out of alphabetical order on purpose: it belongs beside Block D's gate and was
+written after Block E, and renumbering would have edited a block whose figures were already
+taken (`doc:50-memory-and-evidence#capturing`).
 
 | # | verdict | observed |
 |---|---|---|
@@ -1172,6 +1178,42 @@ observed: build + mechanical gates	pass	1m17s	https://github.com/m4xy/Modus/acti
           which halves	pass	6s	https://github.com/m4xy/Modus/actions/runs/33917931026/job/101169325433
 exit:     0
 ```
+
+### Block F — the runner, re-read at the closing head rather than inherited
+
+"The runner names its own awk" above settles the image's `awk` at `464a3b0`, a head that no
+longer exists on any branch. The closing change gets its own CI run, so the figure is re-read
+rather than carried forward, which is what `doc:50-memory-and-evidence#primary-sources` asks of
+a citation relied on again.
+
+```
+head:     870be5c, GitHub Actions run 33921251544, job 101179886255, ubuntu-latest
+cmd:      GITHUB_TOKEN= gh run view 33921251544 --job 101179886255 --log \
+            | /usr/bin/grep -E 'docs-lint-gate-test:|analyser awk|docs-lint: OK|an analyser exited' \
+            > [...]/ci-awk.txt
+observed: [...] each line below is preceded in the capture by the job name, the step name and
+                an ISO-8601 timestamp, all three of GitHub's making and stripped here
+          docs-lint-gate-test: interpreter /bin/bash (bash 5.2.21(1)-release)
+          docs-lint-gate-test: analyser awk — GNU Awk 5.2.1, API 3.2, PMA Avon 8-g1, (GNU MPFR 4.2.1, GNU MP 6.3.0)
+          docs-lint: OK — 19 documents, 111 anchors, 1702 references, 111 beans, 42 graph edges, 51 selectable, 111 bean ids, 1 introduced, 110 on origin/main, 1 closing transitions, 5 criteria checked, 4 unnumbered.
+               FAIL check -  an analyser exited 1 and examined nothing; its last argument was '/tmp/tmp.2Akq34hO7q/bean-edges.uniq'
+          docs-lint-gate-test: 11 passed, 0 failed.
+exit:     0
+```
+
+**A gawk, again, and a different one: 5.2.1 here against the 5.2.1 at `464a3b0` and the 5.4.1
+the local three-way comparison used.** Nothing about mawk was ever true of this image, and
+this run says so directly rather than by inference from a diagnostic's shape.
+
+The two figures that differ from every local capture in this bean are the interpreter and the
+status. `/bin/bash` is 5.2.21 on the runner against 3.2.57 here, and the destroyed analyser
+exits **1** there against **2** here, because this machine's `awk` is `awk version 20200816`.
+The guard tests `-ne 0` and both runs take its fail branch, which is the whole reason the
+assertion reports the status instead of requiring it.
+
+The closing-transition counters are the runner's too: `1 closing transitions, 5 criteria
+checked`, on the tree this change proposes, so check 14 examined this bean where it is claimed
+to run and not only where that was convenient (`doc:00-constitution#observed-failing`).
 
 ### Block E — the counters moved, and `bean:0124` and `bean:0125` became selectable
 
