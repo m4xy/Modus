@@ -1050,7 +1050,7 @@ decides "a backtick in the info string does the same" \
 # This one is not of that kind: it needs a perception layer the analyser does not have, and
 # the argument above is why building it is the wrong trade. That argument was re-checked
 # against `pandoc 3.7.0.2` at bean:0121 and holds: a `#` heading inside <details> with blank
-# lines around it is a heading. The residual is now `bean:0128` and these two pins move when
+# lines around it is a heading. The residual is now `bean:0129` and these two pins move when
 # it does. Note that the region and emptiness constraints do NOT reach it — the container
 # below stands inside `## Evidence` under a `### The run` heading with content, which is
 # where evidence belongs.

@@ -198,6 +198,13 @@ scratch directory and run against the same fixture in the same command — the h
 to 110 beans. Two details of the `## Observed` section did not survive re-measurement and are
 corrected under criterion 1 and criterion 8 below rather than quietly worked around.
 
+The container residual is split out as `bean:0129`, which is **the second id this branch
+allocated for it**. It was raised as `0128`, and PR #78 — opened before this one, closing
+`bean:0123` — had allocated `0128` for a different finding. `.beans/` is the id allocator, it
+is read at branch time and nothing serialises two readers, so both branches were right within
+their own tree; the later allocator yields (`bean:0051`, `AGENTS.md`). Renamed here rather
+than left for check 13 to find after one of the two merges.
+
 ### Criterion 1
 
 The three fixtures this bean closes, each run through the analyser before and after. Fixtures
@@ -249,7 +256,7 @@ exit: 0
 UNANSWERED	3
 STATS	3	0
 exit: 0
-=== r4-container     the residual this bean did NOT close, carried to `bean:0128`
+=== r4-container     the residual this bean did NOT close, carried to `bean:0129`
 --- before
 STATS	4	0
 exit: 0
@@ -494,11 +501,11 @@ deleted beside it. It keeps its position in the file, under a comment saying it 
 
 The first two are **restated with the reason they remain accepted**, in the comment block above
 them: they are the container residual, they need a perception layer the analyser does not have,
-the argument against building it is `bean:0128`'s, and the three conditions this bean adds do
+the argument against building it is `bean:0129`'s, and the three conditions this bean adds do
 not reach them — the container in each fixture stands inside `## Evidence`, under a heading
 with content, which is where evidence belongs. The `pandoc 3.7.0.2` check of the second half
 of that argument — a `#` heading inside `<details>` with blank lines around it is a heading —
-was re-run and holds. Both pins name `bean:0128` and move when it does.
+was re-run and holds. Both pins name `bean:0129` and move when it does.
 
 ### Criterion 6
 
@@ -515,7 +522,7 @@ $ git diff --stat origin/main...HEAD -- documentation/
 Four paragraphs changed, not one appended. The "converse is not checked" paragraph now reads
 "is now checked" and says what the analogue is. The "at column zero is a qualifier and it has
 a price" paragraph is rewritten in the past tense with the cell condition named as what closed
-it. The "what the rule is not" paragraph hands the container residual to `bean:0128`. Check 14's
+it. The "what the rule is not" paragraph hands the container residual to `bean:0129`. Check 14's
 row in the table names the three conditions. Line count after: 391, inside `adr:0003`'s 500.
 
 ### Criterion 7

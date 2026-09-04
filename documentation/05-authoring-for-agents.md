@@ -226,7 +226,7 @@ raw `<pre>`, from an HTML comment, from a `<details>` wrapper, from a line-initi
 span and from a backtick info string, against negative controls for each of its two structural
 sites, in `bean:0093`. In every one of those the citation stood on a line of PROSE, which is
 what was rejected; the container was not, and the same containers holding a heading-shaped or
-row-shaped line are accepted. That is stated in full below and owned by `bean:0128`. The
+row-shaped line are accepted. That is stated in full below and owned by `bean:0129`. The
 three conditions beyond shape — region, emptiness and the evidence cell — were each observed
 rejecting a planted violation, against a negative control for each, in `bean:0121`.
 
@@ -318,7 +318,7 @@ conventions:
   inside `<details><pre>`, or inside an HTML comment IS read as a citation, as is a Markdown
   table pasted inside `<pre>`, whose delimiter row enters the table like any other. A fence
   is the one container the analyser does model: it is an entry, and it is not a citation
-  site. `bean:0128` owns the residual and states why closing it needs an enumeration of HTML
+  site. `bean:0129` owns the residual and states why closing it needs an enumeration of HTML
   tag names — and why "inside a container" is not the same set as "not rendered as a
   heading", since a `#` heading inside `<details>` with blank lines around it renders as a
   heading. What the rule does close is the shape it was written for: pasted check output at

@@ -56,7 +56,7 @@ function isevcol(h) {
 # like any other. Every one of those shapes is pinned in tools/docs-lint-test.sh, as a
 # verdict and not only as a classification, under the heading `ACCEPTED`.
 #
-# That residual is ACCEPTED here rather than closed, and `bean:0128` owns it. Refusing those
+# That residual is ACCEPTED here rather than closed, and `bean:0129` owns it. Refusing those
 # lines needs a model of which HTML blocks hold literal content — CommonMark §4.6's type 1,
 # whose four tag names are the whole rule, and type 2's comment — which is an enumeration of
 # containers, the allowlist this replaced. It would also be wrong in the other direction: a
