@@ -151,10 +151,18 @@
 #   cell off          the evidence cell not cut out of a row
 #                                                      ->  65 passed,  6 failed
 #
-# The three failure sets are disjoint apart from the citation-text probes, which every one of
-# them reaches: `region off` kills neither emptiness assertion, `emptiness off` kills neither
-# region one and no cell one either, and `cell off` kills only cell verdicts. That is the
-# measurement, not the argument.
+# The three failure sets, stated as the measurement gives them and not rounded to "disjoint
+# apart from the probes", which is what stood here and is not true of `emptiness off`:
+#
+#   region off     2 region verdicts + ALL THREE citation-text probes
+#   emptiness off  4 emptiness verdicts + NO probe at all
+#   cell off       4 cell verdicts + the two `texts` probes (not the `reads` map)
+#
+# So `region` and `emptiness` are disjoint, `emptiness` and `cell` are disjoint, and `region`
+# and `cell` meet in exactly the two `texts` probes — the assertions that print what survives a
+# row's mask, which both mechanisms decide between them. `emptiness` touches no probe because
+# the pending buffer is downstream of citation_text() and changes nothing that function
+# returns. That is the measurement, not the argument.
 #
 # AND ONE MORE INSIDE `emptiness`, because the constraint has two halves and the suite could
 # see only one of them until this bean's review. `Content is a non-blank line` is written

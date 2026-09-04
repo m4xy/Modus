@@ -455,12 +455,26 @@ the other's evidence:
   citation text: the escape is counted as cell content, not as a cell boundary
 ```
 
-`region off` kills neither emptiness assertion and neither cell one; `emptiness off` kills
-neither region one and neither cell one; `cell off` kills only cell assertions. They meet only
-in the citation-text probes, which assert the mechanism directly. Those probes are new: they
-read `citation_text()`'s own answer per line, because a verdict cannot tell "the region refused
-this line" from "no citation was written there", and for a row it cannot see the masked cell at
-all — the row still answers its own number through the evidence-row path.
+The three sets as the measurement gives them, rather than rounded to "disjoint apart from the
+probes" — which is not true of `emptiness off`, and was the wording in this file's first draft:
+
+```
+region off     2 region verdicts + ALL THREE citation-text probes
+emptiness off  4 emptiness verdicts + NO probe at all
+cell off       4 cell verdicts + the two `texts` probes (not the `reads` map)
+```
+
+So `region` and `emptiness` are disjoint, `emptiness` and `cell` are disjoint, and `region` and
+`cell` meet in exactly the two `texts` probes — the assertions that print what survives a row's
+mask, which both mechanisms decide between them. `emptiness` touches no probe because the
+pending buffer is downstream of `citation_text()` and changes nothing that function returns.
+That is what the criterion asks for: neither of the first two constraints is landed on the
+other's evidence, and no pair is held up by a single shared assertion.
+
+The probes are new: they read `citation_text()`'s own answer per line, because a verdict cannot
+tell "the region refused this line" from "no citation was written there", and for a row it
+cannot see the masked cell at all — the row still answers its own number through the
+evidence-row path.
 
 **`emptiness` has two halves, and only one of them was asserted when this bean was first
 reviewed.** `Content is a non-blank line` is written `line !~ /^[ \t\r]*$/`, and both emptiness
