@@ -17,9 +17,15 @@
 # running under a real 3.2. Under /bin/bash (3.2.57) a planted `declare -A seen` writes
 # `declare: -A: invalid option` to stderr, exits 0, and leaves an INDEXED array behind;
 # `mapfile` writes `command not found` and exits 0 from the script, which has no `set -e`.
-# Four further constructs diverge in total silence — `{1..9..2}` expands to itself,
-# $SRANDOM / $EPOCHSECONDS / $EPOCHREALTIME are simply unset. The full 23-construct
-# differential against bash 5.3.9 is in bean:0049.
+# Five further constructs diverge in total silence — `{1..9..2}` expands to itself,
+# $SRANDOM / $EPOCHSECONDS / $EPOCHREALTIME / $BASHPID are simply unset. The differential
+# this file was distilled from is in bean:0049, in two places: evidence entry 6, whose
+# table is the six families that diverge silently or behind a diagnostic `set -e` would
+# have caught, beside the count of families `/bin/bash -n` rejects on its own; and the
+# 2026-09-04 amendment, which runs eleven further constructs under both interpreters and
+# prints each one's stdout, stderr and exit status. Neither is a "full" differential of
+# bash 5 against bash 3.2 and this file does not claim one: it is a denylist of what was
+# measured, and it says so below.
 #
 # So the gate is two halves, neither of which subsumes the other:
 #
@@ -71,6 +77,16 @@ ls tools/*.sh > "$TMP/targets.txt"
 n_targets="$(lines "$TMP/targets.txt")"
 TARGETS="$(cat "$TMP/targets.txt")"
 
+# The same vacuity guard the rule count gets below, for the same reason: a run that
+# examined nothing may not report success (doc:00-constitution#observed-failing). It is
+# unreachable while this script is itself a tools/*.sh, which is a property of the glob
+# rather than a guarantee, and `scan` with no arguments would read stdin and block — so
+# this exits rather than accumulating into rc.
+if [ "$n_targets" -eq 0 ]; then
+  printf 'bash-compat: no script matched tools/*.sh; the parse and the scan would examine nothing.\n'
+  exit 2
+fi
+
 # ---------------------------------------------------------- interpreter ----
 # $BASH is the path of the running shell, so this reports what build.gradle.kts actually
 # invoked rather than what it meant to. On macOS /bin/bash is 3.2.57 and the parse below is
@@ -111,13 +127,48 @@ while IFS="$TAB" read -r rule sample; do
   fi
 done < "$TMP/rules.tsv"
 
-# The negative control. Every line is legal bash 3.2, and the last four are deliberate
-# near-misses of the rules directly above them: an indexed array beside the associative
-# one, a comma that is not a case modification, `[@]` that is not a parameter
-# transformation, a `%s (` that is not a time format. Without this, a rule that matched
-# every line would satisfy every assertion above.
+# The negative control. Every line is legal bash 3.2 and every line is a deliberate
+# near-miss of some rule in the pattern file — there is no filler here, so a rule that
+# matched every line would fail this assertion instead of satisfying the planted-sample
+# ones above. Naming what each line guards, in fixture order, because a comment that
+# counts ("the last four") stops being true the moment a line is added, and did:
+#
+#   declare -a list                       indexed array, not `declare -A`
+#   declare -i n=0                        an option cluster with no g, l, u, n or A in it
+#   declare -x PATH                       likewise
+#   local -r frozen=1                     likewise, on `local`
+#   run > "$log" 2>&1                     `>&` that is not `&>>`
+#   case … a) : ;; *) : ;; esac           `;;` that is not `;;&`
+#   for i in 1 2 3; do :; done            a brace-free list, not `{1..9..2}`
+#   shopt -s extglob                      a shopt option bash 3.2 has
+#   echo "${name}" … "${x:-a,b}" …        a comma inside a default, `[@]` that is not a
+#                                         parameter transformation, `${#arr[@]}`
+#   printf '%s (%s)\n' one two            a `%s (` that is not a `%(…)T` time format
+#   printf 'bash %s\n' "${BASH_VERSION…}" a BASH_ prefix that is not $BASHPID
+#
+# and the lines that are here because the pattern file REJECTED them while they are correct
+# bash 3.2 — the reason `test-v`, `case-modification` and `printf-time-format` are now
+# anchored to where their operator can occur. `(review)` marks the ones review ran against
+# the scanner and pasted verbatim; the rest are the same shape, pinning the anchoring from
+# the sides review did not exercise:
+#
+#   if [[ -n "$(command -v jq)" ]]        (review) the portable command-existence idiom;
+#                                         the `-v` is `command`'s, not `[[`'s
+#   if [[ "$flag" == -v ]]                (review) `-v` as a compared VALUE
+#   [[ -f "$f" ]] && grep -v x "$f"       `-v` as another command's option after `&&`
+#   trimmed="${csv%,}"                    (review) `%` suffix trim; a comma is not `${v,,}`
+#   joined="${list#,}"                    (review) `#` prefix trim, likewise
+#   printf 'coverage %d%%(min)\n' 90      (review) a literal `%%` before a parenthesis
+#   printf -v now %s hi                   `printf -v` onto a plain name, not `a[0]`
+#   echo "${x}<div>"                      `}` before `<` that is a parameter expansion,
+#                                         not a {varname} file descriptor
+#
+# Adding a line to the fixture means adding it to the list above. The two are checked
+# against each other by nothing, which is why they are kept adjacent and short.
 cat > "$TMP/clean.sh" <<'CLEAN'
 declare -a list
+declare -i n=0
+declare -x PATH
 local -r frozen=1
 run > "$log" 2>&1
 case "$x" in a) : ;; *) : ;; esac
@@ -125,6 +176,15 @@ for i in 1 2 3; do :; done
 shopt -s extglob
 echo "${name}" "${arr[0]}" "${#arr[@]}" "${x:-a,b}" "${arr[@]}"
 printf '%s (%s)\n' one two
+printf 'bash %s\n' "${BASH_VERSION:-unknown}"
+if [[ -n "$(command -v jq)" ]]; then :; fi
+if [[ "$flag" == -v ]]; then :; fi
+[[ -f "$f" ]] && grep -v x "$f"
+trimmed="${csv%,}"
+joined="${list#,}"
+printf 'coverage %d%%(min)\n' 90
+printf -v now %s hi
+echo "${x}<div>"
 CLEAN
 scan "$TMP/clean.sh" > "$TMP/clean.out"
 n_clean="$(lines "$TMP/clean.out")"

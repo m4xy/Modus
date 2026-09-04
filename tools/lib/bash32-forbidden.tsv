@@ -3,9 +3,10 @@
 # The list is MEASURED, not remembered. Every row was run under /bin/bash (3.2.57, what
 # macOS ships) and under Homebrew bash 5.3.9 and the two were compared on stdout, stderr
 # and exit status; only constructs that DIVERGED are here. The probe and its output are in
-# bean:0049.
+# bean:0049 — evidence entry 6 for the first sixteen rows, amendment 2026-09-04 for the
+# five added after review, which lists every construct it ran and what each printed.
 #
-# Four of them diverge SILENTLY — 3.2 exits 0, writes nothing to stderr, and produces a
+# Five of them diverge SILENTLY — 3.2 exits 0, writes nothing to stderr, and produces a
 # different answer. That is why this file exists at all and why running the script under a
 # real 3.2 is not by itself a gate:
 #
@@ -13,22 +14,39 @@
 #   $SRANDOM       3.2: unset                                 5: set
 #   $EPOCHSECONDS  3.2: unset                                 5: set
 #   $EPOCHREALTIME 3.2: unset                                 5: set
+#   $BASHPID       3.2: unset                                 5: set
 #
-# and two more exit 0 with only a line on stderr, which a script without `set -e` swallows:
-#
-#   declare -A m   3.2: `declare: -A: invalid option`, then m is an INDEXED array
-#   mapfile        3.2: `mapfile: command not found`
+# and the rest exit 0 with only a line on stderr, which a script without `set -e` swallows
+# — `declare: -A: invalid option` and its -g/-l/-u siblings, `mapfile: command not found`,
+# `shopt: direxpand: invalid shell option name`, `printf: `a[0]': not a valid identifier`.
+# `exec {fd}<f` is the one construct whose failure is loud: 3.2 exits 127. It is still here
+# because 127 is a status this script never inspects either.
 #
 # The regex column is an awk ERE, matched per line against source with full-line comments
 # removed. It carries no backslashes: it is used as a dynamic regex, where a backslash
 # would have to be doubled and the doubling is the kind of thing that is got wrong once and
 # then never looked at again.
 #
+# ANCHOR THE OPERATOR TO WHERE IT CAN OCCUR. A regex that finds the operator's characters
+# anywhere on the line rejects legal bash 3.2, and a gate that rejects correct code blocks
+# the next person's legitimate work. Three rows did exactly that until review found them:
+# `test-v` fired on `[[ -n "$(command -v jq)" ]]`, `case-modification` on `${csv%,}`, and
+# `printf-time-format` on `printf 'coverage %d%%(min)\n' 90`. All three now require the
+# syntax that makes the construct a bash 4 construct — `-v` directly after `[[`, `&&` or
+# `||`; `,`/`^` directly after the parameter name or its subscript; `%(...)T` with its
+# terminating `T`. Those five lines are in the negative control in
+# tools/bash-compat-lint.sh, so the narrowing is re-proved on every run rather than trusted.
+#
 # The sample column is not decoration. tools/bash-compat-lint.sh plants each sample into a
 # fixture on every run and asserts the scan finds it, finds it EXACTLY once, and finds
 # nothing in a clean fixture — the three observations doc:50-memory-and-evidence#evidence-kinds
 # requires of a mechanism claiming to discriminate. A row whose sample stops matching, or
 # starts matching two rules, fails the gate here rather than quietly widening or narrowing it.
+#
+# A row's ALTERNATIVES are not each planted — one sample per row is what the machinery
+# checks. `shopt-bash4-option` and `bash4-variable` each name several constructs and prove
+# one. That is the file's existing shape, not a new concession; the unproved alternatives
+# were each run under both interpreters before being added, and are listed in the bean.
 #
 # This is a DENYLIST and therefore fails open: a bash 4 feature nobody has named passes.
 # doc:00-constitution#observed-failing says as much about enumerating shapes. It is here
@@ -37,22 +55,32 @@
 # interpreter, which does fail closed and catches every SYNTAX-level bash 4 feature,
 # including ones absent from this file. Neither half subsumes the other.
 #
+# Anchoring narrows a denylist, so it trades a false positive for a miss, deliberately:
+# `[[ -n "$a" ]] && [[ -v opt ]]` is caught, `[[ -v ${x} ]]` written across two lines is
+# not. A miss leaves the gate where it already is on every unnamed bash 4 feature; a false
+# positive stops correct work.
+#
 # Adding a row: run it under both interpreters first, and put a row here only if they
 # disagree. A construct both accept is not a compatibility rule, it is a style preference.
 #
 associative-array	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*A	declare -A seen
 nameref	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*n	local -n out=$1
+declare-global	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*g	declare -g cache=1
+declare-lowercase	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*l	declare -l lower=ABC
+declare-uppercase	(^|[^[:alnum:]_])(declare|typeset|local)[[:space:]]+-[[:alnum:]]*u	declare -u upper=abc
 mapfile	(^|[^[:alnum:]_./-])(mapfile|readarray)([[:space:]]|$)	mapfile -t lines < "$f"
-case-modification	[$][{][^}]*[,^][}]	printf '%s' "${name^^}"
+case-modification	[$][{][A-Za-z_0-9]+([[][^]]*[]])?[,^]	printf '%s' "${name^^}"
 parameter-transform	[$][{][^}]*@[QEPAKLUua][}]	printf '%s' "${v@Q}"
 append-both-streams	&>>	run &>> "$log"
 pipe-both-streams	[|]&	run |& tee "$log"
 case-fallthrough	;[;]?&	case x in a) : ;;& esac
 coproc	(^|[^[:alnum:]_])coproc([[:space:]]|$)	coproc reader { cat; }
-shopt-bash4-option	shopt[[:space:]][^#]*(globstar|lastpipe|inherit_errexit)	shopt -s globstar
+shopt-bash4-option	shopt[[:space:]][^#]*(globstar|lastpipe|inherit_errexit|direxpand|autocd|dirspell|checkjobs|globasciiranges)	shopt -s globstar
 brace-expansion-step	[{][^{}]*[.][.][^{}]*[.][.][^{}]*[}]	for i in {1..9..2}; do :; done
 negative-subscript	[$][{][A-Za-z_][A-Za-z_0-9]*[[]-[0-9]	echo "${arr[-1]}"
-test-v	[[][[][^]]*[[:space:]]-v[[:space:]]	if [[ -v opt ]]; then :; fi
+test-v	([[][[]|&&|[|][|])[[:space:]]*[!]?[[:space:]]*-v[[:space:]]	if [[ -v opt ]]; then :; fi
 wait-n	(^|[^[:alnum:]_])wait[[:space:]]+-[[:alnum:]]*n	wait -n
-printf-time-format	printf[^#]*%[(]	printf '%(%Y)T' -1
-bash4-variable	[$][{]?(SRANDOM|EPOCHSECONDS|EPOCHREALTIME|BASH_ARGV0)	echo "$EPOCHSECONDS"
+printf-time-format	printf[^#]*%[(][^)]*[)]T	printf '%(%Y)T' -1
+printf-v-subscript	printf[[:space:]]+-[[:alnum:]]*v[[:space:]]+["']?[A-Za-z_][A-Za-z_0-9]*[[]	printf -v "a[0]" %s hi
+varfd-redirect	(^|[^[:alnum:]_$])[{][A-Za-z_][A-Za-z_0-9]*[}][<>]	exec {fd}<"$f"
+bash4-variable	[$][{]?(SRANDOM|EPOCHSECONDS|EPOCHREALTIME|BASH_ARGV0|BASHPID)	echo "$EPOCHSECONDS"
