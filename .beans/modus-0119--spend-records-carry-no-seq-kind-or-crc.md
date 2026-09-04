@@ -867,9 +867,10 @@ was billed and what the pre-damage records had already billed, not written into 
 the damage rather than the harness.
 
 **E7 — three shapes, one writer, no discriminator.** Step 7, recaptured. The earlier capture ran
-three different greps, printed four hit lines with `385` on two of them, called that *"three
-grep hits"*, and attributed all three wrongly. `grep -n '^ *append('` finds every call site under
-one pattern and prints exactly three lines:
+three different greps, printed four hit lines with `385` on two of them, and called that *"three
+grep hits"* — a miscount of its own paste. Of the three attributions it drew from them, `385` as
+the error record was right and the other two were not. `grep -n '^ *append('` finds every call
+site under one pattern and prints exactly three lines:
 
 - `tools/cost-record.py:217` — the **refusal** record. Step 7's second half prints the two lines
   above it, `if messages is None:` and its comment, which is the branch it sits inside.
@@ -911,9 +912,9 @@ document**, at line `102`, which is §2.2.6. The condition §2.2.6 defines is st
 and absent from the section it delegates its consequence to.
 
 **E11 — the live ledger, and the detector that costs nothing.** Step 16, clock-stamped by its
-own trailing `date` at `2026-09-04T09:24:25Z` rather than pinned to a commit, because its subject is the primary
-checkout's working tree and that tree grows on every agent run, including the one that took this
-figure. 287 records across 51 distinct `runId`s, of which **33 carry exactly one record** — which
+own trailing `date` at `2026-09-04T09:24:25Z` rather than pinned to a commit, because its
+subject is the primary checkout's working tree and that tree grows on every agent run, including
+the one that took this figure. 287 records across 51 distinct `runId`s, of which **33 carry exactly one record** — which
 is what makes E6's family A the majority case and family B the rest. 51 records are stamped
 `billingBasis: full`, one per run. `tools/cost-record.py:277` writes that field straight from
 `advance_cursor`'s return (step 19a), which is why a re-bill after a lost cursor is stamped
@@ -935,5 +936,5 @@ and will read this tier-3 writer's output.
 **E13 — the struck criterion restated a live gate.** Step 19b. `tools/docs-lint.sh:305` opens
 check 11 with *"A completed bean is final except for appended amendments"*, classifying each
 changed bean by the `status:` it has on the merge base. That is what the struck criterion 9
-asserted, in the same words, and it runs inside `bash tools/docs-lint.sh` — which the surviving
-criterion 9 requires green.
+asserted, in substance and over a wider set than its two named beans, and it runs inside
+`bash tools/docs-lint.sh` — which the surviving criterion 9 requires green.
