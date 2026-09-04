@@ -938,8 +938,14 @@ to a file and pasted from that file, and carries `[...]` on every elision.
   this section absent. Block E's second arm, and the bare-flip probe below it.
 - **`3b02871`+`status:`+this section, with Block C's and Block D's fences absent** — the two
   gate runs. Every other line of this section was present when they ran.
-- **`870be5c`** — this change's first commit, which is the three heads above with Block C's and
+- **`b5abd2b`** — this change's first commit, which is the three heads above with Block C's and
   Block D's fences filled in. Block F, taken from its CI run rather than from this machine.
+  It was `870be5c` when Block F was taken and was **reworded** in review — the message only;
+  `git rev-parse b5abd2b^{tree}` and `git rev-parse 870be5c^{tree}` both print
+  `e42ff798dd8bec8f2d2018e8b82ef38dc3e7bbfd`. Run 33921251544 therefore measured this tree, and
+  the stamp is renamed rather than re-taken, because `870be5c` is on no branch after the
+  force-push and a citation must be re-readable where it is relied on
+  (`doc:50-memory-and-evidence#primary-sources`).
 
 Block F is out of alphabetical order on purpose: it belongs beside Block D's gate and was
 written after Block E, and renumbering would have edited a block whose figures were already
@@ -1187,7 +1193,8 @@ rather than carried forward, which is what `doc:50-memory-and-evidence#primary-s
 a citation relied on again.
 
 ```
-head:     870be5c, GitHub Actions run 33921251544, job 101179886255, ubuntu-latest
+head:     b5abd2b (`870be5c` when this ran; reworded in review, identical tree — see the
+          head list above), GitHub Actions run 33921251544, job 101179886255, ubuntu-latest
 cmd:      GITHUB_TOKEN= gh run view 33921251544 --job 101179886255 --log \
             | /usr/bin/grep -E 'docs-lint-gate-test:|analyser awk|docs-lint: OK|an analyser exited' \
             > [...]/ci-awk.txt
@@ -1201,9 +1208,10 @@ observed: [...] each line below is preceded in the capture by the job name, the 
 exit:     0
 ```
 
-**A gawk, again, and a different one: 5.2.1 here against the 5.2.1 at `464a3b0` and the 5.4.1
-the local three-way comparison used.** Nothing about mawk was ever true of this image, and
-this run says so directly rather than by inference from a diagnostic's shape.
+**A gawk again, and the same one: 5.2.1 here as at `464a3b0`.** The 5.4.1 is
+`/opt/homebrew/bin/gawk` and never ran on a runner — only the local three-way comparison
+used it. Nothing about mawk was ever true of this image, and this run says so directly
+rather than by inference from a diagnostic's shape.
 
 The two figures that differ from every local capture in this bean are the interpreter and the
 status. `/bin/bash` is 5.2.21 on the runner against 3.2.57 here, and the destroyed analyser
