@@ -314,24 +314,35 @@ interactive shell installs, which parallelises across files and emits each as it
 E3 has the `| sort` and this fence did not, because E3 is where the race was noticed — which
 is the argument for that rule living in `doc:50` and not in one author's habit.
 
-The race is measured rather than asserted. All three runs below are on the tree this close
-produces, and each is five runs collapsed to the set of distinct outputs, so the answer is a
-count of orders and not an order. **Which `grep` is on `PATH` decides the first answer, and
-that dependence is the finding**: the first two are in an agent's interactive shell, where
-`grep` is a shell function the harness installs (`type grep` names the snapshot file it comes
-from), and the third names `/usr/bin/grep` by absolute path — which is also what a
-non-interactive `bash -c` gets, and what CI gets.
+The race is measured rather than asserted. All three runs are on the tree this close produces,
+and each collapses five runs to the set of distinct outputs, so the answer is a count of
+orders and not an order. **Each fence carries the shell it depends on**, on a `shell:` line
+beside its `cmd:`, and the lines are not decoration: every one was run under both an
+interactive shell and `bash -c` before it was written. Only the first fence differs between
+them, and it differs by the whole claim — 5 under the shim, 1 under `bash -c`. Stating that
+on the fence is the point rather than a courtesy: the finding is that which `grep` you have
+decides the answer and nothing on the page tells you, so a fence that left its own condition
+to the prose two lines up would be reproducing the hazard in its own presentation.
 
 ```
 cmd:      for i in 1 2 3 4 5; do grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | tr '\n' ' '; echo; done | sort -u | grep -c .
+shell:    an agent's interactive zsh, where `grep` is the shell function the harness
+          installs; `type grep` names the snapshot file it comes from. **Under `bash -c`,
+          `/bin/sh` or CI this returns 1**, because `grep` resolves to `/usr/bin/grep`
+          there. That difference is the finding, not a defect in the capture, and it is
+          stated on the fence because the finding is that nothing on the page states it
 observed: 5
 exit:     0
 
 cmd:      for i in 1 2 3 4 5; do grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | sort | tr '\n' ' '; echo; done | sort -u | grep -c .
+shell:    any — `| sort` makes the answer independent of which `grep` is on `PATH`, which
+          is the whole point of adding it; 1 under the shim and 1 under `/usr/bin/grep`
 observed: 1
 exit:     0
 
 cmd:      for i in 1 2 3 4 5; do /usr/bin/grep -H '^status:' .beans/modus-{0009,0011,0012,0013,0014,0015,0016,0017,0018,0019,0020,0021,0022,0030,0065}--*.md | sed -E 's|\.beans/modus-([0-9]{4})--[^:]*:status: |\1 |' | tr '\n' ' '; echo; done | sort -u | grep -c .
+shell:    any — the binary is named by absolute path, so the shim is bypassed whatever
+          the shell; the control for the first fence, and 1 under both
 observed: 1
 exit:     0
 ```

@@ -500,3 +500,18 @@ occurrences did not.
 The four files this refusal names are the four this close was carrying. Had the script's first
 command been the pathspec form instead, this section would be a report of the loss rather than
 of the refusal, written after redoing the work for the fourth time in this bean's history.
+
+**A fifth occurrence, within the hour, by this close's reviewer.** Its fence harness ran the
+probes above blind — the `printf >>`, the `git checkout -- .beans`, the `git checkout -b`, and
+a `coverageBaselineWrite` from another bean — moving its worktree onto a probe branch, creating
+a commit and dirtying the coverage baseline. It restored cleanly, re-ran with mutations
+filtered, and disclosed the whole thing unprompted. Reported by the orchestrator from that
+review and recorded as reported; no artefact in this repository carries it.
+
+Twice within the hour, by two readers, each of whom had just read this bean. That settles
+something the section above left open: **reading the rule immediately before violating it is
+the observed case here, not the hypothetical one**, so *"a convention its own author cannot
+follow while writing it down"* is not a fact about that author. Both occurrences came through
+one door — a script that runs a bean's fences without asking which of them mutate — and that
+door is specific enough to build against, which the three earlier occurrences were not. A fence
+harness needs a mutation predicate. This bean does not build one and does not claim the fix.
