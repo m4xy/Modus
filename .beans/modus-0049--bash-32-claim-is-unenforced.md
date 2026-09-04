@@ -878,8 +878,8 @@ would repeat the defect a fourth time. Every cross-reference in both beans was r
 its source, not re-read from the prose. What moved:
 
 - `tools/docs-lint.sh:6`, the locator this bean opens with, is `:7-8` on `origin/main` — the
-  quoted sentence wraps across two lines. It was off by one when the bean was raised and stayed
-  off by one through four rounds, being a locator with no command beside it
+  quoted sentence wraps across two lines. It was off by one when the bean was raised and
+  survived every review round until this one, being a locator with no command beside it
   (`doc:50-memory-and-evidence#unverified-shapes`). It now carries its command.
 - The two `./gradlew bashCompatLint` runs in the second entry of this section were stamped
   `13d8c27` by the preamble. They cite `tools/bash-compat-lint.sh:180-185`, and at `13d8c27`
@@ -888,8 +888,8 @@ its source, not re-read from the prose. What moved:
   `set -uo pipefail`" — `set -uo pipefail` is at line 28 and line 29 is blank. Two lines after,
   not immediately after; both that entry's `line 30` and the later entry's `line 29` are what
   the runs printed.
-- `bean:0118`'s `tools/bash-compat-lint.sh:116-194` is `119-229` at `caf95db`, after this round extended the
-  fixture. It now carries its command, for the reason the first bullet gives.
+- `bean:0118`'s `tools/bash-compat-lint.sh:116-194` is `119-229` at `caf95db`, after this round
+  extended the fixture. It now carries its command, for the reason the first bullet gives.
 - The first entry of this section says "23 is a number no run in this repository produced".
   This round took the pattern file to 23 rows, so `bashCompatLint` now prints `23 rules`. The
   sentence is bound to `13d8c27`, where it is true and checkable; left unbound it would have
@@ -1065,6 +1065,13 @@ observed: {"conclusion":"success","headSha":"9de540100d415ae218e6cb5013f3a71100c
 
 Each check appears twice because two workflow runs were triggered for the same head; the two
 `gh run view` lines are there so the pair is not read as two different heads agreeing.
+
+This observation is stamped at `9de5401` and **carries to every later head on this branch**,
+which is a property of the tree and not an assumption: `tools/` was last touched at `caf95db`,
+and `git diff --stat caf95db..HEAD -- tools/` is empty, so the pattern file, the scanner and
+the lint script CI ran are byte-identical to the ones under review. Every commit after
+`9de5401` is `.beans/` only. A CI stamp on an earlier head is worth nothing without that check,
+which is the shape this round's third entry is about.
 
 That `docs-lint` line reads `101 beans` and `1530 references` where the local run above reads
 `99` and fewer, for the reason the previous entry gives: CI lints the merge of this branch with
