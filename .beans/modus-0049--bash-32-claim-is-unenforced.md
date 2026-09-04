@@ -391,10 +391,15 @@ not retaken; what was wrong is the tree it was attributed to. Five trees, built 
 in one run, say which one it is — the second.
 
 ```
-cmd:      bash .scratch-a696/fivetrees.sh
-          # cp of the three bean files from git objects, one `bash tools/docs-lint.sh` per
-          # tree, restore from copies taken before the first build. No `git checkout`
-          # (bean:0102). The script is [...]/fivetrees.sh, a scratchpad file.
+cmd:      bash [...]/fivetrees.sh
+          # `[...]` is a scratchpad directory. The script, in full: copy the three bean
+          # files aside; write each tree's inputs from git objects —
+          #   git show 1c19cf0:<bean>                                     (trees 1, 2 base)
+          #   sed '4s/^status: in-progress$/status: completed/'           (tree 2's flip)
+          #   git show 5ce4b80:<bean>                                     (trees 3, 4, 5)
+          # — running `bash tools/docs-lint.sh` after each, then restore from the copies and
+          # `diff` them. No `git` operation touches the working tree, so nothing uncommitted
+          # can be discarded (bean:0102).
 expect:   exactly one tree reproduces `1552 references [...] 2 closing transitions, 8 criteria
           checked`, and it is not the one the `tree:` line named
 observed: merge base: 1c19cf0fc911f10992181a494a4f74a5703644dc
@@ -422,9 +427,14 @@ tree:     each arm names its own. Trees 1 and 2 are `1c19cf0` content and are re
           re-run of trees 3 to 5 prints (`doc:50-memory-and-evidence#corpus-figures`).
 ```
 
-Tree 5 is this pull request as `5ce4b80` presents it, and its `1575 references, 103 beans,
-1 introduced` is the figure `bean:0096`'s Block D records for the same content. Trees 1 and 2
-differ in two bytes and in two counters, which is `bean:0096`'s whole subject.
+Tree 5 is this pull request as `5ce4b80` presents it. `bean:0096`'s Block D reports the same
+`1575 references, 103 beans, 1 introduced`, and that is **not** claimed here as an identity of
+trees: Block D's `tree:` names `aad2eee` with this bean's Block E uncommitted on top, and
+`5ce4b80` additionally rewrote Block D itself, so the two trees differ in `bean:0096`. The
+figures agree; the trees are near neighbours, and this note exists so the next reader does not
+infer from equal counters that the content was equal — which is the inference that produced the
+`tree:` line being corrected above. Trees 1 and 2 differ in nothing but the two `status:` lines
+and the two closing counters, which is `bean:0096`'s whole subject.
 
 ### Block D — PR #69's checks, and that they are this commit's
 
