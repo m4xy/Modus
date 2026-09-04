@@ -1,7 +1,7 @@
 ---
 # modus-0096
 title: Check 14 contributes nothing to any implementation pull request, by rule, and a green docs-lint line there says nothing about evidence
-status: todo
+status: in-progress
 type: task
 priority: high
 created_at: 2026-08-30T00:00:00Z
@@ -178,3 +178,207 @@ Deciding between them is this bean's work, not its premise.
 - The fence classifier and the citation matcher (`bean:0061`, `bean:0063`).
 - Check 11's classification by merge-base status, which is what makes §7.2.1 unenforced. That
   is a deliberate design recorded in `bean:0038` and changing it would block every closure.
+
+## Decision
+
+**Adopted: option 1 — state it in `doc:05-authoring-for-agents#checks`.** The `OK` line already
+carries the datum: a run on an implementation pull request prints `0 closing transitions, 0
+criteria checked`, a true and complete report of what was examined. What no document owned was
+what that zero means, so the gap closes where the check is specified rather than by changing
+what any run reports. The paragraph sits directly after the one that already states check 14's
+scope, so scope and consequence are read together, and it adds the half the scope paragraph did
+not carry: the check's conditions are structural, so a green check 14 establishes the *shape* of
+the evidence in the beans a change closes and nothing about the implementation under review.
+
+| rejected | reason |
+|---|---|
+| reword the `OK` line when `closing transitions` is zero | It edits a string quoted verbatim in the evidence of `completed` beans that check 11 has frozen, and buys a reader who already has the number a second spelling of it. One anchor saying what the zero means costs no corpus divergence |
+| run check 14 report-only over the branch's bean regardless of status | A second execution path, and a verdict nobody must act on. It also reports more than it can decide: a bean under implementation has criteria whose evidence is the merge, so at the moment such a run fires those criteria are *correctly* unanswered and every implementation branch draws the same routine report |
+| require the closing pull request to name the implementation pull request it closes | Procedural and unenforced. It addresses the closing reviewer's corroboration problem, not the misreading of a green line on the implementation pull request, which is what this bean is about |
+| leave it | The misreading stays available to every reviewer and nothing warns against it |
+
+The `OK` line's text is unchanged by this bean, so no frozen transcript quoting it is affected
+and none is amended.
+
+## Evidence
+
+Runs are against the working tree, which is what `tools/docs-lint.sh` reads by its own
+construction (`BASE` against the working tree, not against `HEAD`). Every sha below was printed
+by a `git rev-parse HEAD` in the same command as the run beside it, and names the commit that run
+was made on. Three fences carry none: arm B, run on the same tree as arm A and named as such in
+the sentence above it; criterion 4, whose command is itself written relative to `HEAD`; and the
+first gate transcript under criterion 5, whose command prints no head and for which none is
+recorded.
+
+Later commits on this branch pasted these cells and rewrote the paragraph quoted under criterion
+2. The re-run under criterion 1 was made after all of them, at a named head, and is what shows
+the paste to be measurement-neutral rather than merely reproducible
+(`doc:50-memory-and-evidence#corpus-figures`). It no longer reprints the record byte for byte,
+and the difference is not the paste: `origin/main` has moved since arm A and arm B were taken, so
+the `on origin/main` field differs and, as the diff shows, nothing else does. Those two arms are
+left at the figures their stamped head printed, because a merge falsifies a corpus sweep and its
+author cannot prevent it — re-running the sweep belongs to that merge, not to this pull request.
+Nothing added to this bean since cites an anchor it did not already cite, for the same reason: a
+new reference would move the `references` field the arms record, and the drift would stop being
+attributable to one cause.
+
+### Criterion 1 — the zero observation, reproduced on this branch, with its counterfactual
+
+Arm A, the change as it is reviewed: `bean:0096` `in-progress`, as
+`doc:00-constitution#bean-lifecycle` requires for the whole life of this pull request.
+
+```
+cmd:      git rev-parse HEAD && bash tools/docs-lint.sh
+expect:   exit 0; the counters report no closing transition and no criterion examined
+observed: c2b12c053210ddd2129f34dd25634788af7d8318
+          docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 98 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+exit:     0
+```
+
+Arm B, the counterfactual: the identical tree with this bean's `status:` flipped to `completed`,
+which `doc:00-constitution#bean-lifecycle` forbids in this pull request and which is therefore
+the only way to observe the check running on the bean whose work this branch contains. Reverted
+immediately after the run; the plant is uncommitted and the bean was committed first, so
+`git checkout -- .beans` restores it (`AGENTS.md`).
+
+```
+cmd:      sed -i '' 's/^status: in-progress/status: completed/' .beans/modus-0096--*.md
+          grep -n '^status:' .beans/modus-0096--*.md
+          bash tools/docs-lint.sh; git checkout -- .beans
+expect:   exit 0; the plant in place, one closing transition, and this bean's five criteria
+          examined and sound
+observed: 4:status: completed
+          docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 98 on origin/main, 1 closing transitions, 5 criteria checked, 0 unnumbered.
+exit:     0
+```
+
+The pair is the bean's claim: one status field, forbidden to the author of this pull request,
+separates "examined nothing" from "examined five criteria and found them sound".
+
+Measurement-neutrality of the record itself (`doc:50-memory-and-evidence#corpus-figures`): both
+arms were first run with the two cells above holding a sentinel marker, so no run could satisfy
+itself from its own transcript; the outputs were then pasted and both arms re-run.
+
+```
+cmd:      git rev-parse HEAD && \
+          B=.beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md
+          bash tools/docs-lint.sh | tail -1 > /tmp/a2.txt
+          sed -i '' 's/^status: in-progress/status: completed/' "$B"
+          bash tools/docs-lint.sh | tail -1 > /tmp/b2.txt; git checkout -- .beans
+          awk '/^ +docs-lint: OK — [0-9]+ documents/ { sub(/^ +/, ""); print }' "$B" \
+            > /tmp/pasted.txt
+          cat /tmp/a2.txt /tmp/b2.txt > /tmp/rerun.txt
+          diff /tmp/pasted.txt /tmp/rerun.txt && echo "identical: what this bean records is what a re-run prints"
+expect:   the head named, and the paste adding no document, anchor, reference or bean: any line
+          the diff reports differs in the `on origin/main` field and in nothing else
+observed: c9b0194c91ad7b12e918f7ac2ca019d758e51916
+          1,2c1,2
+          < docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 98 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          < docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 98 on origin/main, 1 closing transitions, 5 criteria checked, 0 unnumbered.
+          ---
+          > docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 100 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          > docs-lint: OK — 19 documents, 111 anchors, 1473 references, 98 beans, 37 graph edges, 44 selectable, 98 bean ids, 0 introduced, 100 on origin/main, 1 closing transitions, 5 criteria checked, 0 unnumbered.
+exit:     1
+```
+
+### Criterion 2 — a reader of a green line can determine that no evidence was examined
+
+The run prints the discriminating number already; what was missing was an anchor saying what it
+means. Both halves now exist, and the anchor is one hop from the check that printed the line.
+
+```
+cmd:      git rev-parse HEAD && awk '/^Every condition in check 14/,/^$/' \
+            documentation/05-authoring-for-agents.md
+expect:   the paragraph states that `0 closing transitions` means no bean's evidence was
+          examined, and that an implementation pull request always reports it
+observed: c937150e7538e60e8c3181eb1f68a7aa787b328a
+          Every condition in check 14's row above is structural. Whether the output in an evidence cell
+          was ever produced, whether the command beside it reproduces that output, and whether either
+          bears on the criterion the cell is filed under are outside what the check can decide. Scope
+          compounds it: `doc:00-constitution#bean-lifecycle` holds a bean `in-progress` for the whole
+          life of its own pull request, so on the pull request that implements a bean, that bean is
+          never a candidate. `0 closing transitions` on the `OK` line is that statement — no bean's
+          evidence was examined, and the zero beside it under `criteria checked` follows from the empty
+          candidate set, not from a bean inspected and found bare. A non-zero pair comes from a bean the
+          change *closes*, whose implementation merged earlier and was reviewed elsewhere. A green check
+          14 therefore establishes the shape of the evidence in the beans a change closes, and nothing
+          at all about the implementation under review (`bean:0096`).
+```
+
+Residual, stated rather than claimed away: a reader who consults no anchor still sees only the
+counters. Nothing in this change alters what a run prints, and the run does not cite the
+paragraph — that is what the rejected `OK`-line option would have bought, at the cost recorded
+under Decision.
+
+### Criterion 3 — the chosen option and the rejected ones are recorded with reasons
+
+The `## Decision` section above, in this bean: option 1 adopted with its reason, the four
+rejected options each with theirs. `documentation/` is not the home for it —
+`doc:05-authoring-for-agents#bean-split` puts what is being done and why in the bean, and
+`doc:05-authoring-for-agents#prose-ban` keeps rationale out of the document.
+
+### Criterion 4 — the `OK` line's text is unchanged, so no frozen transcript is touched
+
+Conditional criterion, and its condition does not hold: this change edits no file under
+`tools/`, so the `printf` that emits the `OK` line is byte-identical to `origin/main`'s.
+
+```
+cmd:      git diff --name-only origin/main...HEAD
+expect:   documentation and this bean only; nothing under tools/
+observed: .beans/modus-0096--check-14-contributes-nothing-to-an-implementation-pull-request.md
+          documentation/05-authoring-for-agents.md
+```
+
+No completed bean quoting the `OK` line verbatim is amended, because none is invalidated.
+
+### Criterion 5 — the gate is green
+
+This first transcript is the one fence here whose command prints no head, and none is recorded
+for it: `./gradlew qualityCheck` alone says nothing about the tree it ran on, and a sha written
+beside it now would be a reconstruction rather than something the run printed. The stamped re-run
+below is what ties the gate to a commit. `[same]` stands for the counters line quoted in full
+under criterion 1 arm A, as its author recorded it; every other omission is marked `[...]`.
+
+```
+cmd:      ./gradlew qualityCheck
+expect:   BUILD SUCCESSFUL, docsLint inside it
+observed: [...]
+          > Task :docsLintTest
+          [...]
+          docs-lint-test: 37 passed, 0 failed.
+          [...]
+          > Task :docsLint
+          docs-lint: OK — [same]
+          [...]
+          > Task :qualityCheck
+          [...]
+          BUILD SUCCESSFUL in 5m 11s
+          168 actionable tasks: 55 executed, 113 from cache
+exit:     0
+```
+
+Re-run on the committed head, so the gate is observed green on a tree that differs from the one
+this pull request presents only by the paste of this cell and of the criterion 1 re-run above it.
+Its counters line is elided rather than marked `[same]`: it is not the same as arm A, because
+`origin/main` moved after arm A was taken. It is byte-identical to the first `>` line of the
+criterion 1 diff above, which is where the counters a run on this tree prints are quoted in full.
+
+```
+cmd:      git rev-parse HEAD && ./gradlew qualityCheck
+expect:   BUILD SUCCESSFUL, with :docsLintTest and :docsLint inside it
+observed: c9b0194c91ad7b12e918f7ac2ca019d758e51916
+          [...]
+          > Task :docsLintTest
+          [...]
+          docs-lint-test: 37 passed, 0 failed.
+          [...]
+          > Task :docsLint
+          docs-lint: OK — [...]
+          [...]
+          > Task :qualityCheck
+          [...]
+          BUILD SUCCESSFUL in 26s
+          159 actionable tasks: 5 executed, 154 up-to-date
+          Configuration cache entry reused.
+exit:     0
+```
