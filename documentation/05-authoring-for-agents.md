@@ -214,7 +214,7 @@ Each check is decidable from repository contents alone.
 | 11 | completed beans are final | a bean that was `completed` on the merge base changes in any way other than gaining entries under a trailing `## Amendments` section, or an amendment omits its date, its authoring bean, `**Claimed:**`, `**Found:**` or `**Evidence:**` (`adr:0005-evidence-lives-in-the-work-item#amendments`) |
 | 12 | bean graph | a `blocked_by` or `parent` id matches other than exactly one bean file, a `blocked_by` edge names a `type: epic` bean, the `blocked_by` graph has a cycle, two beans that reach `AGENTS.md` step 1's tiebreak together share an `order` value, or no bean is selectable at all |
 | 13 | bean id uniqueness | a bean id names two files in the tree, a filename's id and its front-matter `# <id>` marker disagree, a bean filename is not `<prefix><id>--<slug>.md` at `.beans.yml`'s `id_length`, or an id this branch **introduces** already exists on `origin/main` |
-| 14 | a bean closes without evidence | a bean that is `completed` in the change and was not `completed` on the merge base carries no evidence section, an evidence section holding no entry, a numbered table in an evidence section with no evidence column, an unanswered numbered criterion — where a citation answers only from a structural site, inside a criteria or evidence section, with something under it, and never from a row's evidence cell — an evidence cell that is empty or holds only a name from `doc:50-memory-and-evidence#evidence-kinds`, or a fenced block that is never closed |
+| 14 | a bean closes without evidence | a bean that is `completed` in the change and was not `completed` on the merge base carries no evidence section, an evidence section holding no entry, a numbered table in an evidence section with no evidence column, an unanswered numbered criterion — where a citation answers only from a structural site, inside an evidence section or from a `## ` heading of its own, with something under it, and never from a row's evidence cell — an evidence cell that is empty or holds only a name from `doc:50-memory-and-evidence#evidence-kinds`, or a fenced block that is never closed |
 
 **Enforced by:** `tools/docs-lint.sh`, run by the `docsLint` task inside `qualityCheck`
 (`rule:ci/build`). Each check has been observed rejecting a planted violation; check 11's
@@ -294,14 +294,27 @@ conventions:
 
   | condition | a citation is not read from |
   |---|---|
-  | region | a sub-heading or a row standing outside a criteria or evidence section — `### Criterion 3 was not attempted` under `## Not in scope` answers nothing. A `## ` heading is exempt, because `region` is what a `## ` heading sets: a top-level section devoted to one criterion is that criterion's evidence home, and `bean:0038` closed on exactly that shape |
+  | region | a sub-heading or a row standing outside an **evidence** section — `## Evidence`, or the combined `## Success criteria and evidence`. `### Criterion 3 was not attempted` under `## Not in scope` answers nothing, and neither does `### Criterion 2 cannot be met as written` under `## Success criteria`: a criteria section is not an evidence section, and evidence is what this condition is about. A `## ` heading is exempt, because `region` is what a `## ` heading sets: a top-level section devoted to one criterion is that criterion's evidence home, and `bean:0038` closed on exactly that shape |
   | emptiness | a citing heading with nothing under it before the next heading at its own level or shallower. `### Criteria 1-5` as the whole of a five-criterion bean's `## Evidence` answers nothing. Content is any **non-blank line**, which is deliberately weaker than the *entry* defined above: an entry rule refuses `### Criterion 2 cannot be met as written` followed by the ruling and its reason, which this section accepts below and `bean:0038` writes |
-  | cell | the **evidence cell** of a row. The rest of the row is read, so `\| 3 \| criteria 1-5 \| … \|` still answers; the cell where output is pasted does not. The cost is a row that names, in its evidence cell, a span its own run genuinely covers — write that span in the row's first cell instead |
+  | cell | the **evidence cell** of a row. The rest of the row is read, so `\| 3 \| criteria 1-5 \| … \|` still answers; the cell where output is pasted does not. The cost is a row that names, in its evidence cell, a span its own run genuinely covers — write that span in any **other** column of the row instead, since the cut is one column wide. Not necessarily the first: in a table whose rows are numbered, the first cell is the criterion number, and a span written there stops the row being numbered and so stops it answering its own criterion |
 
   The cell condition applies to every row and not only to a numbered one. Masking only a
   numbered row's cell leaves the identical laundering one column over, in the evidence cell of
   an unnumbered row; both forms give the same verdict on every bean in `.beans/`, so the
   corpus does not choose between them and the reasoning does.
+
+  A row's **cells** are its pipe-separated fields, and two shapes GFM permits are cells all
+  the same: a row may omit its trailing pipe, and a cell may hold an escaped `\|`. Both were
+  measured getting past the cut before `bean:0121`'s review — the first left the evidence cell
+  as the last field and so outside the cut, the second shifted every field after it and moved
+  the cut onto the wrong column. The condition is unconditional, so both are cells now.
+
+  Three edges of **emptiness**, stated because each is a rule and not an accident. A line of
+  only spaces or tabs is **blank**, so it is not content and does not save a citing heading.
+  A fenced block IS content even when it is empty, which follows from an *entry* being a
+  fenced block rather than the text inside one. And a citing heading immediately followed by
+  a **sibling** heading heads nothing, so of two adjacent `### Criterion N` headings sharing
+  one paragraph, only the second is answered — give each citing heading its own content.
 
   The rule names where a citation may stand and enumerates no container, because an
   enumeration would be an allowlist and would fail on the first container nobody named,

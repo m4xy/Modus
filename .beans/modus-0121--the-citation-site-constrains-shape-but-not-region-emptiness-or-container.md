@@ -369,13 +369,16 @@ re-measured rather than quoted:
 
 ```
 # one named edit to a copy of tools/lib/docs-lint-c14.awk each time, then
-# bash tools/docs-lint-test.sh; the analyser is restored from a pristine cp after each
-unmutated                    rc=0  docs-lint-test: 62 passed, 0 failed.
-region off                   rc=1  docs-lint-test: 59 passed, 3 failed.
-emptiness off                rc=1  docs-lint-test: 60 passed, 2 failed.
-cell off                     rc=1  docs-lint-test: 59 passed, 3 failed.
-bean:0121 deleted whole      rc=1  docs-lint-test: 55 passed, 7 failed.
-citation scanner deleted     rc=1  docs-lint-test: 50 passed, 12 failed.
+# bash tools/docs-lint-test.sh; the mutation is applied to a MIRROR of tools/ under a
+# private scratch root, so the tree under review is never written to and there is no
+# pristine copy to restore from (bean:0102, and the commit that raised that rule here)
+unmutated                    rc=0  docs-lint-test: 71 passed, 0 failed.
+region off                   rc=1  docs-lint-test: 66 passed, 5 failed.
+emptiness off                rc=1  docs-lint-test: 67 passed, 4 failed.
+emptiness, whitespace-blind  rc=1  docs-lint-test: 70 passed, 1 failed.
+cell off                     rc=1  docs-lint-test: 65 passed, 6 failed.
+bean:0121 deleted whole      rc=1  docs-lint-test: 58 passed, 13 failed.
+citation scanner deleted     rc=1  docs-lint-test: 54 passed, 17 failed.
 ```
 
 The failure SETS, which are what the criterion asks for — neither constraint may be landed on
@@ -385,28 +388,67 @@ the other's evidence:
 ########## region off
   verdict: a citing sub-heading outside the evidence region answers nothing
   citation text: and the region is what refuses them, not their shape
+  verdict: a citing sub-heading in the CRITERIA region answers nothing
   citation text: the evidence cell is cut out of the row, and the rest of it is not
+  citation text: the escape is counted as cell content, not as a cell boundary
 ########## emptiness off
   verdict: a citing heading with nothing under it answers nothing
   verdict: a citing heading closed by a sibling heading still answers nothing
+  verdict: a whitespace-only line under a citing heading is not content
+  verdict: of two adjacent citing headings, only the second is answered
+########## emptiness, whitespace-blind
+  verdict: a whitespace-only line under a citing heading is not content
 ########## cell off
   verdict: pasted stdout in an evidence CELL no longer answers a criterion no row numbers
   verdict: sacrificed: a row's evidence cell no longer answers even when it cites honestly
   citation text: the evidence cell is cut out of the row, and the rest of it is not
+  verdict: a row with no trailing pipe still has its evidence cell cut
+  verdict: an escaped pipe in a cell does not misalign the cut
+  citation text: the escape is counted as cell content, not as a cell boundary
 ```
 
-`region off` kills neither emptiness assertion and `emptiness off` kills neither region one.
-They meet only in the citation-text probes, which assert the mechanism directly. The two
-probes are new: they read `citation_text()`'s own answer per line, because a verdict cannot
-tell "the region refused this line" from "no citation was written there", and for a row it
-cannot see the masked cell at all — the row still answers its own number through the
-evidence-row path.
+`region off` kills neither emptiness assertion and neither cell one; `emptiness off` kills
+neither region one and neither cell one; `cell off` kills only cell assertions. They meet only
+in the citation-text probes, which assert the mechanism directly. Those probes are new: they
+read `citation_text()`'s own answer per line, because a verdict cannot tell "the region refused
+this line" from "no citation was written there", and for a row it cannot see the masked cell at
+all — the row still answers its own number through the evidence-row path.
 
-The third state matters as much as the first two. A narrowing, its ABSENCE and its DELETION
-are three things, and this file's own header records that it once scored the last two alike.
-`bean:0121 deleted whole` kills seven assertions and every one is a REJECTION; `citation
-scanner deleted` kills twelve and every one is a CONTROL. Both figures are in the header of
-`tools/docs-lint-test.sh` with the sets named.
+**`emptiness` has two halves, and only one of them was asserted when this bean was first
+reviewed.** `Content is a non-blank line` is written `line !~ /^[ \t\r]*$/`, and both emptiness
+fixtures terminated their section with a genuinely zero-length line — EOF in one, a sibling
+heading in the other — so nothing exercised the character class. Relaxing the test to
+`line != ""` scored `62 passed, 0 failed, rc=0` at `58210d6` against the suite as it then
+stood, while a five-criterion bean whose whole `## Evidence` is `### Criteria 1-5` followed by
+ONE SPACE closed green:
+
+```
+$ awk -v KINDS="…" -f tools/lib/docs-lint-fence.awk -f tools/lib/docs-lint-c14.awk ws.md
+# shipped
+UNANSWERED	1
+UNANSWERED	2
+UNANSWERED	3
+UNANSWERED	4
+UNANSWERED	5
+STATS	5	0
+# mutant, `line != ""`
+STATS	5	0
+```
+
+That is the `intable sticky` blindness one level down — the same failure this bean's own file
+names as "the blindness `bean:0093`'s blocker entered through" — and it was found the same way,
+by mutating a clause nobody had aimed a fixture at. The fixture added for it is the only
+assertion the fourteenth mutation kills.
+
+The third state matters as much as the first two. A narrowing, its ABSENCE and its DELETION are
+three things, and this file's own header records that it once scored the last two alike.
+`bean:0121 deleted whole` kills thirteen assertions and `citation scanner deleted` kills
+seventeen; both sets are ENUMERATED member by member in the header of `tools/docs-lint-test.sh`
+rather than characterised, because the characterisation that stood there was wrong in three
+places at once — the sets were said to meet in "the two citation-text probes" when there are
+three probes and five members in the meet, and each set was said to be purely controls or
+purely rejections when neither is. A count of a set is the claim that goes stale without
+anyone noticing.
 
 ### Criterion 3
 
@@ -489,6 +531,27 @@ The measurement above is still worth having, and `bean:0038` is why. It is prote
 not fail — and it is the bean that showed two candidate forms of this change to be wrong. The
 corpus differential is how a narrowing is judged, not how a build is kept green.
 
+**Where the risk actually lands, stated because this bean's PR body said otherwise.** It is not
+that a too-aggressive narrowing "fails beans that were correctly closed and cannot be
+corrected": check 14 cannot reach a bean that was `completed` on the merge base, which is the
+two-gate argument above. The risk lands on beans *about to* close — a bean whose evidence is
+written and whose closing pull request is open when the narrowing merges — and those are
+correctable, by moving the citation to a site the narrowed rule reads. That is a real cost and
+a smaller one, and it is the cost this differential measures.
+
+**The row-shape fix found in review is verdict-neutral over the same corpus**, which is worth a
+figure of its own because it changes what a row's cells ARE and could in principle have moved
+any table in `.beans/`:
+
+```
+$ bash <scratch>/corpus.sh <58210d6 analyser> <HEAD analyser>
+111 compared, 0 differing
+```
+
+The corpus contains neither a data row without a trailing pipe nor an escaped pipe in an
+evidence cell, so the fixtures are the whole of the evidence for that fix and the corpus says
+nothing either way. Stated rather than left as a silent clean run.
+
 ### Criterion 5
 
 The three `ACCEPTED` verdict assertions in `tools/docs-lint-test.sh` at `3b02871`, and what
@@ -514,6 +577,15 @@ with content, which is where evidence belongs. The `pandoc 3.7.0.2` check of the
 of that argument — a `#` heading inside `<details>` with blank lines around it is a heading —
 was re-run and holds. Both pins name `bean:0129` and move when it does.
 
+A **fourth** `ACCEPTED` assertion is added by this bean rather than inherited, and it is
+labelled the same way for the same reason: an empty fenced block satisfies the emptiness
+condition. That follows from an *entry* being a fenced block rather than the text inside one,
+and from the OPEN delimiter being what commits a heading's pending citations. Nothing weaker
+would be coherent — the analyser deliberately never reads inside a fence, so "is this fence
+empty" is a question it has no business answering. It is documented in
+`doc:05-authoring-for-agents#checks` and pinned as
+`accepted: an EMPTY fenced block under a citing heading is still content`.
+
 ### Criterion 6
 
 `doc:05-authoring-for-agents#checks` carries the three conditions as a table beside the
@@ -522,15 +594,48 @@ beside them. `git diff --stat origin/main...HEAD -- documentation/`:
 
 ```
 $ git diff --stat origin/main...HEAD -- documentation/
- documentation/05-authoring-for-agents.md | 82 +++++++++++++++++++++-----------
- 1 file changed, 54 insertions(+), 28 deletions(-)
+ documentation/05-authoring-for-agents.md | 95 ++++++++++++++++++++++----------
+ 1 file changed, 67 insertions(+), 28 deletions(-)
 ```
 
 Four paragraphs changed, not one appended. The "converse is not checked" paragraph now reads
 "is now checked" and says what the analogue is. The "at column zero is a qualifier and it has
 a price" paragraph is rewritten in the past tense with the cell condition named as what closed
 it. The "what the rule is not" paragraph hands the container residual to `bean:0129`. Check 14's
-row in the table names the three conditions. Line count after: 391, inside `adr:0003`'s 500.
+row in the table names the three conditions.
+
+**The document promised a shape the gate refuses, and that half was found in review.** Two
+places — check 14's row and the `region` row of the conditions table — said a citation is read
+`inside a criteria or evidence section`. The code requires `EV` or `BOTH`; region `CRIT`, which
+a bare `## Success criteria` heading sets, is refused exactly like `NONE`. Measured on the same
+fixture at both heads — `### Criterion 2 cannot be met as written` with the ruling under it,
+standing inside `## Success criteria`, with criterion 1 answered normally by an evidence row:
+
+```
+# base 3b028713b4c887cd0f2647c7dc12969cf5a2c68a
+STATS	2	0
+# head 58210d65f658b0ba61157184ef0d5bdba56d9a67
+UNANSWERED	2
+STATS	2	0
+```
+
+This is the fail-open direction of a documentation error and it is the worse one: nothing in
+the build goes red, an author follows the document, writes the sub-heading where it says to,
+and the gate refuses their close with a message about evidence they believe they wrote. The
+code is deliberate — `citation_text()`'s region clause aligns the citation path with the
+numbered-row path beside it, which has required `EV` or `BOTH` since `bean:0045` — so **the
+document is what is wrong**, and it now says "an evidence section, or a `## ` heading of its
+own" in both places. The shape is pinned as a verdict, `a citing sub-heading in the CRITERIA
+region answers nothing`, so the wording cannot drift back without the suite saying so.
+
+Two smaller corrections in the same document. The `cell` row said the sacrificed span goes in
+`the row's first cell`; in a table whose rows are numbered the first cell is the criterion
+NUMBER, and a span written there stops the row being numbered — measured, and pinned in both
+directions. And three edges of `emptiness` that were undocumented are now stated: a
+whitespace-only line is blank, an empty fenced block is content, and of two adjacent citing
+headings only the second is answered.
+
+Line count after: 404, inside `adr:0003`'s 500.
 
 ### Criterion 7
 
@@ -541,6 +646,10 @@ pattern literals the change introduces into `tools/lib/docs-lint-c14.awk`:
 /^## /            a heading level, not a word
 /^#+ /            a heading, unchanged from bean:0093
 "|"               the field separator a row is split on
+/\\\|/            the CommonMark escape for a pipe INSIDE a cell, so that it is counted as
+                  cell content and not as a cell boundary
+/\|[ \t]*$/       a trailing pipe, so that the empty field after it is not counted as a cell
+SUBSEP            awk's own separator, standing in for a masked escape
 /^[ \t\r]*$/      blankness
 "EV", "BOTH"      the analyser's own region values, already tracked
 ```
@@ -571,6 +680,39 @@ shape this bean measured — a numbered row's cell — and leaves the identical 
 column over, in the evidence cell of an UNNUMBERED row: the same machine-generated string, the
 same site, nothing written by hand. That is the case that decides it.
 
+**The cut was one column wide and the row's columns were counted wrongly, twice.** The rule is
+unconditional; `split(line, c, "|")` made it conditional on a row shape. Both bypasses were
+found in review, both are the identical laundering string — this check's own stdout about
+criteria no row numbers — in the evidence cell of a row that GFM and this analyser both read as
+a row. Measured at `58210d6`, then again after the fix:
+
+```
+# | 3 | three | criterion 1 is not answered in the evidence; criterion 2 is not answered
+#   a row with NO TRAILING PIPE: split() returns the evidence cell as the last field, so
+#   `evcol < n` was false and the whole line was read
+at 58210d6:   STATS	3	0
+after:        UNANSWERED	1
+              UNANSWERED	2
+              STATS	3	0
+
+# | 3 | three | a \| b criterion 1 is not answered; criterion 2 is not answered |
+#   an ESCAPED PIPE, the documented way to put a pipe in a cell: split() counted it as a
+#   delimiter, every field after it shifted, and the mask cut the column to its left
+at 58210d6:   STATS	3	0
+after:        UNANSWERED	1
+              UNANSWERED	2
+              STATS	3	0
+```
+
+Each row is still numbered 3, so criterion 3 is answered through the evidence-row path in every
+run above — that is what stops the rejections being produced by a scanner that read nothing.
+Both are fixed rather than pinned as residuals, because the document states the cell condition
+unconditionally and a residual would make it conditional in prose too. `rowcells()` is the one
+place a row's cells are decided, and the header scan and the `EMPTYCELL`/`HOLLOW` path use it
+as well, so the two halves cannot drift apart. What survives the cut is asserted directly, not
+inferred from an absence: `citation text: the escape is counted as cell content, not as a cell
+boundary` reads `| 3 | three ` and nothing else.
+
 **The case sacrificed, and it is a real one.** A row that records a run and names, in its
 evidence cell, a span of criteria that run genuinely covers no longer answers that span. It is
 pinned as a verdict in `tools/docs-lint-test.sh` under the name `sacrificed: a row's evidence
@@ -579,18 +721,55 @@ numbers itself 3 and whose cell honestly names the other two; both come back `UN
 example is described here and written out only inside that file, for the reason this bean's
 own eighth criterion gives.
 
-What the author does instead is one cell to the left: the span goes in the row's first cell,
-where a row says what it is about, and the evidence cell holds the run. That shape is a
-control in the same file and it still closes. The asymmetry is the whole of the argument — the
-evidence cell is where output is PASTED, and this check's own stdout is what gets pasted there;
-the first cell is written by an author deciding something.
+What the author does instead is any **other** column: the cut is one column wide, so the span
+goes wherever the row says what it is about and the evidence cell holds the run. Not
+necessarily the first cell — in a table whose rows are numbered, the first cell is the
+criterion NUMBER, and a span written there stops the row being numbered and costs it its own
+criterion. Both halves are pinned as verdicts in `tools/docs-lint-test.sh`, under
+`control: an honest span in a non-evidence column answers, and the row keeps its own number`
+and `the same span in the FIRST cell costs the row its own criterion`. The asymmetry is the
+whole of the argument — the evidence cell is where output is PASTED, and this check's own
+stdout is what gets pasted there; every other column is written by an author deciding
+something.
 
-This bean's `## Observed` section names the corpus instance at
+**A correction in this bean was itself wrong, and this paragraph replaces it rather than
+deleting it.** This bean's `## Observed` section names the corpus instance at
 `.beans/modus-0055--evidence-required-to-close-a-bean.md:123` and says the row is harmless
-because the rows below it answer their own criteria. That reading is right about the outcome
-and imprecise about the mechanism: the numbers that survive the mask on that row are in its
-COMMAND column, not its evidence column, so the row keeps answering a span even with the cell
-cut out. `modus-0055` is unchanged in the corpus differential above for both reasons at once.
+because rows 4 and 5 of that table answer their own criteria. A later paragraph here called
+that reading "right about the outcome and imprecise about the mechanism", and asserted that
+the surviving numbers on row 123 are in its **command** column, so the row keeps answering a
+span even with the cell cut out. Both halves of that assertion are false. Probing the row with
+the shipped `evcol`, mask and matcher — `citation_text()` and `scan()` loaded after the
+analyser, so `intable` and `evcol` are the values the real scan held on that line:
+
+```
+$ awk -v KINDS="…" -f tools/lib/docs-lint-fence.awk -f tools/lib/docs-lint-c14.awk \
+    -f probe0055.awk .beans/modus-0055--evidence-required-to-close-a-bean.md
+n=7  evcol=6  intable=1
+whole line             hits: 4 5
+masked (citation_text) hits:  <none>
+col 2                  hits:  <none>
+col 3                  hits:  <none>
+col 4                  hits:  <none>
+col 5                  hits:  <none>
+col 6                  hits: 4 5
+STATS	11	0
+```
+
+Column 4 is the command column and it hits nothing: its text reads `criteria numbered 1-5`,
+and ` numbered ` sits between the word and the digits, which the matcher's
+`criteri(on|a)[^0-9a-z]*[0-9]+` does not cross. Column 6 is the evidence column, it carries
+both numbers, and the mask cuts it — so **nothing at all** survives on that row. The row
+answers only its own criterion 3, through the evidence-row path.
+
+The **original** `## Observed` wording was therefore correct exactly as written: `modus-0055`
+is unchanged in the corpus differential above because rows 4 and 5 are numbered and answer
+themselves, and for no other reason. The amendment was not a refinement of it; it was a
+second, wrong mechanism asserted beside a right conclusion, and it survived because the
+conclusion it sat next to was true. This corpus has now produced several self-corrections that
+were themselves defects, which is why the wrong one is recorded here instead of quietly
+reverted: a correction is a claim, and `doc:00-constitution#observed-failing` binds a claim to
+a measurement whoever makes it and whichever direction it points.
 
 ### Criterion 9
 

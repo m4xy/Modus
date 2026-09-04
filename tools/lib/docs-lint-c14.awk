@@ -116,18 +116,48 @@ function citation_site(line) {
 # same machine-generated string arriving through the same site. What the broad form
 # sacrifices is stated rather than left implicit: a row that legitimately names, in its
 # evidence cell, a span of criteria the run recorded in that cell genuinely covers. That
-# author writes the span in the row's first cell instead, which is where a row says what it
-# is about; the evidence cell is where output is PASTED, and that asymmetry is the reason to
-# cut here. The corpus does not choose between the two forms: over all 110 beans at 3b02871
-# they give byte-identical verdicts, 110 compared and 0 differing. The reasoning chooses.
-function citation_text(line,   n, c, i, t) {
+# author writes the span in ANY OTHER COLUMN of the row — the cut is one column wide and the
+# rest of the row is read whole. Not, as this comment and doc:05-authoring-for-agents#checks
+# both said until this bean's review, `the row's first cell`: in the shape-A table the first
+# cell is the criterion NUMBER, and a span written there stops `first ~ /^[0-9]+$/` matching,
+# so the row is no longer numbered and stops answering its own criterion. The first cell is
+# where the row says what it is about only in the shape-B table, whose rows are unnumbered.
+# The evidence cell is where output is PASTED, and that asymmetry is the reason to cut here.
+# The corpus does not choose between the two forms: over all 110 beans at 3b02871 they give
+# byte-identical verdicts, 110 compared and 0 differing. The reasoning chooses.
+#
+# WHICH FIELDS OF A ROW ARE ITS CELLS is its own question, and a naive `split(line, c, "|")`
+# answers it wrongly in two ways that were each measured to BYPASS the cut. The doc states
+# the cell rule unconditionally, so both are closed here rather than described:
+#
+#   no trailing pipe   `| 3 | three | <pasted stdout>` is a row to GFM, and it is a row to
+#                      this analyser, whose table state is set by the delimiter row above and
+#                      not by this line's shape. split() then returns the evidence cell as
+#                      the LAST field, `evcol < n` was false, and the whole line — cell
+#                      included — was read.
+#   an escaped pipe    `\|` is the documented way to put a pipe INSIDE a cell (the GFM tables extension).
+#                      split() counted it as a delimiter, so every field after it shifted by
+#                      one and the mask cut a column that was not the evidence column.
+#
+# Both are closed in one place, because a second rule for what a row's cells are is how the
+# two halves would drift apart. rowcells() returns the index of the LAST REAL cell; the cells
+# are c[2] .. c[last]. c[1] is the empty field before the leading pipe and is never a cell.
+# The escape becomes SUBSEP rather than being removed, so the matcher and every width the
+# caller measures see the same number of characters they always did.
+function rowcells(line, c,   s, n) {
+  s = line
+  gsub(/\\\|/, SUBSEP, s)
+  n = split(s, c, "|")
+  return (s ~ /\|[ \t]*$/) ? n - 1 : n
+}
+function citation_text(line,   last, c, i, t) {
   if (!citation_site(line)) { return "" }
   if (line !~ /^## / && region != "EV" && region != "BOTH") { return "" }
   if (line ~ /^#+ /) { return tolower(line) }
-  n = split(line, c, "|")
-  if (evcol > 1 && evcol < n) {
+  last = rowcells(line, c)
+  if (evcol > 1 && evcol <= last) {
     t = ""
-    for (i = 2; i < n; i++) { if (i != evcol) { t = t "|" c[i] } }
+    for (i = 2; i <= last; i++) { if (i != evcol) { t = t "|" c[i] } }
     return tolower(t)
   }
   return tolower(line)
@@ -208,11 +238,13 @@ function allkinds(c,   t, i, n, a) {
     region = "CRIT"
   } else if (line ~ /^\|/) {
     if (line ~ /^\|[ :|-]+\|[ \t]*$/) {
-      nh = split(prev, hc, "|"); evcol = 0
-      for (i = 2; i < nh; i++) { if (isevcol(norm(hc[i]))) { evcol = i } }
+      # rowcells(), not split(), and for the reason above it: `evcol` is an index into a
+      # row's cells, so the header and every row it indexes must agree on what a cell is.
+      nh = rowcells(prev, hc); evcol = 0
+      for (i = 2; i <= nh; i++) { if (isevcol(norm(hc[i]))) { evcol = i } }
       intable = 1; flagged = 0
     } else if (intable) {
-      nc = split(line, cc, "|")
+      nc = rowcells(line, cc)
       first = norm(cc[2])
       numbered = (first ~ /^[0-9]+$/)
       if (region == "CRIT" || region == "BOTH") {
@@ -232,7 +264,7 @@ function allkinds(c,   t, i, n, a) {
           printf "NOEVCOL\t%s\n", head
         }
       }
-      if (evcol > 1 && evcol < nc) {
+      if (evcol > 1 && evcol <= nc) {
         cell = cc[evcol]
         if (norm(cell) == "") {
           printf "EMPTYCELL\t%s\n", (numbered ? first : "?")
