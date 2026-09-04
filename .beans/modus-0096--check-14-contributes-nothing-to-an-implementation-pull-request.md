@@ -1,7 +1,7 @@
 ---
 # modus-0096
 title: Check 14 contributes nothing to any implementation pull request, by rule, and a green docs-lint line there says nothing about evidence
-status: todo
+status: in-progress
 type: task
 priority: high
 created_at: 2026-08-30T00:00:00Z
@@ -178,3 +178,115 @@ Deciding between them is this bean's work, not its premise.
 - The fence classifier and the citation matcher (`bean:0061`, `bean:0063`).
 - Check 11's classification by merge-base status, which is what makes §7.2.1 unenforced. That
   is a deliberate design recorded in `bean:0038` and changing it would block every closure.
+
+## Decision
+
+**Adopted: option 1 — state it in `doc:05-authoring-for-agents#checks`.** The `OK` line already
+carries the datum: a run on an implementation pull request prints `0 closing transitions, 0
+criteria checked`, a true and complete report of what was examined. What no document owned was
+what that zero means, so the gap closes where the check is specified rather than by changing
+what any run reports. The paragraph sits directly after the one that already states check 14's
+scope, so scope and consequence are read together, and it adds the half the scope paragraph did
+not carry: the check's conditions are structural, so a green check 14 establishes the *shape* of
+the evidence in the beans a change closes and nothing about the implementation under review.
+
+| rejected | reason |
+|---|---|
+| reword the `OK` line when `closing transitions` is zero | It edits a string quoted verbatim in the evidence of `completed` beans that check 11 has frozen, and buys a reader who already has the number a second spelling of it. One anchor saying what the zero means costs no corpus divergence |
+| run check 14 report-only over the branch's bean regardless of status | A second execution path, and a verdict nobody must act on. It also reports more than it can decide: a bean under implementation has criteria whose evidence is the merge, so at the moment such a run fires those criteria are *correctly* unanswered and every implementation branch draws the same routine report |
+| require the closing pull request to name the implementation pull request it closes | Procedural and unenforced. It addresses the closing reviewer's corroboration problem, not the misreading of a green line on the implementation pull request, which is what this bean is about |
+| leave it | The misreading stays available to every reviewer and nothing warns against it |
+
+The `OK` line's text is unchanged by this bean, so no frozen transcript quoting it is affected
+and none is amended.
+
+## Evidence
+
+Runs are against the working tree, which is what `tools/docs-lint.sh` reads by its own
+construction (`BASE` against the working tree, not against `HEAD`). Each sha below names the
+commit the run was made on; the only tree content not in that commit is the paste of these cells
+themselves, and the re-run under criterion 1 is what shows the paste to be measurement-neutral.
+
+### Criterion 1 — the zero observation, reproduced on this branch, with its counterfactual
+
+Arm A, the change as it is reviewed: `bean:0096` `in-progress`, as
+`doc:00-constitution#bean-lifecycle` requires for the whole life of this pull request.
+
+```
+cmd:      git rev-parse HEAD && bash tools/docs-lint.sh
+expect:   exit 0; the counters report no closing transition and no criterion examined
+observed: <<SENTINEL-RUN-A>>
+```
+
+Arm B, the counterfactual: the identical tree with this bean's `status:` flipped to `completed`,
+which `doc:00-constitution#bean-lifecycle` forbids in this pull request and which is therefore
+the only way to observe the check running on the bean whose work this branch contains. Reverted
+immediately after the run; the plant is uncommitted and the bean was committed first, so
+`git checkout -- .beans` restores it (`AGENTS.md`).
+
+```
+cmd:      sed -i '' 's/^status: in-progress/status: completed/' .beans/modus-0096--*.md
+          bash tools/docs-lint.sh; git checkout -- .beans
+expect:   exit 0; one closing transition and this bean's five criteria examined and sound
+observed: <<SENTINEL-RUN-B>>
+```
+
+The pair is the bean's claim: one status field, forbidden to the author of this pull request,
+separates "examined nothing" from "examined five criteria and found them sound".
+
+Measurement-neutrality of the record itself (`doc:50-memory-and-evidence#corpus-figures`): both
+arms were first run with the two cells above holding a sentinel marker, so no run could satisfy
+itself from its own transcript; the outputs were then pasted and both arms re-run.
+
+```
+cmd:      bash tools/docs-lint.sh > /tmp/sp3-0096-rerun-a.txt; diff of the counters line
+          against the pasted arm-A cell, and the same for arm B
+expect:   identical; the paste adds no document, anchor, reference or bean
+observed: <<SENTINEL-RERUN>>
+```
+
+### Criterion 2 — a reader of a green line can determine that no evidence was examined
+
+The run prints the discriminating number already; what was missing was an anchor saying what it
+means. Both halves now exist, and the anchor is one hop from the check that printed the line.
+
+```
+cmd:      awk '/^Check 14.s conditions are structural/,/^$/' \
+            documentation/05-authoring-for-agents.md
+expect:   the paragraph states that `0 closing transitions` means no bean's evidence was
+          examined, and that an implementation pull request always reports it
+observed: <<SENTINEL-PARA>>
+```
+
+Residual, stated rather than claimed away: a reader who consults no anchor still sees only the
+counters. Nothing in this change alters what a run prints, and the run does not cite the
+paragraph — that is what the rejected `OK`-line option would have bought, at the cost recorded
+under Decision.
+
+### Criterion 3 — the chosen option and the rejected ones are recorded with reasons
+
+The `## Decision` section above, in this bean: option 1 adopted with its reason, the four
+rejected options each with theirs. `documentation/` is not the home for it —
+`doc:05-authoring-for-agents#bean-split` puts what is being done and why in the bean, and
+`doc:05-authoring-for-agents#prose-ban` keeps rationale out of the document.
+
+### Criterion 4 — the `OK` line's text is unchanged, so no frozen transcript is touched
+
+Conditional criterion, and its condition does not hold: this change edits no file under
+`tools/`, so the `printf` that emits the `OK` line is byte-identical to `origin/main`'s.
+
+```
+cmd:      git diff --name-only origin/main...HEAD
+expect:   documentation and this bean only; nothing under tools/
+observed: <<SENTINEL-DIFF>>
+```
+
+No completed bean quoting the `OK` line verbatim is amended, because none is invalidated.
+
+### Criterion 5 — the gate is green
+
+```
+cmd:      ./gradlew qualityCheck
+expect:   BUILD SUCCESSFUL, docsLint inside it
+observed: <<SENTINEL-GRADLE>>
+```
