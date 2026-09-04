@@ -156,6 +156,14 @@ in every transcript here. From this point the record is measurement-neutral — 
 added since add no reference to a file that did not already carry it, and no bean
 (`doc:50-memory-and-evidence#corpus-figures`).
 
+**Every `OK` line quoted here is this branch's, and CI's `pull_request` run will not match
+it.** The two CI runs of head `fb29cc6` print different counts from the same commit: the
+`push` run 33917588234 prints `1659 references, 47 selectable`, which is this branch's tree
+and the figure in every transcript below, and the `pull_request` run 33917590984 prints
+`1669 references, 48 selectable`, because that event checks out the branch merged into
+`main` and `main` has moved. Named so the next reader does not read the difference as a
+defect in a count (`doc:50-memory-and-evidence#corpus-figures`).
+
 ### Criterion 1 · every call site is covered; bypasses are named, not bounded
 
 **Met in part, and the half that is not met is named here rather than reworded.** "Every
