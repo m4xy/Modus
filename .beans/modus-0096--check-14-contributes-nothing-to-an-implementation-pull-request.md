@@ -325,3 +325,16 @@ observed: [...]
           168 actionable tasks: 55 executed, 113 from cache
 exit:     0
 ```
+
+Re-run on the committed head, so the gate is observed green on a tree that differs from the
+one this pull request presents only by the paste of this cell:
+
+```
+cmd:      git rev-parse HEAD && ./gradlew qualityCheck
+expect:   BUILD SUCCESSFUL; the counters unchanged from arm A
+observed: 6842412a092afc1c758193e158172da80a796b89
+          docs-lint-test: 37 passed, 0 failed.
+          docs-lint: OK — [same]
+          BUILD SUCCESSFUL in 26s
+exit:     0
+```
