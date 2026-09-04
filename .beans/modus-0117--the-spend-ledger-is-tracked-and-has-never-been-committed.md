@@ -383,11 +383,13 @@ outside `.modus/` is intended to be committed and that this is what makes git th
 of 274.
 
 **E5, E6 — one path, many trees.** `tools/cost-record.py:38` takes `REPO` from
-`$CLAUDE_PROJECT_DIR`, which the harness sets to the project directory rather than to the
-running agent's worktree, and line 40 joins a fixed suffix onto it. Step 7 is the consequence
-measured rather than inferred: 84 records whose own `cwd` field is a worktree path, from 24
-distinct worktrees, sitting in the primary checkout's copy. Step 8 is the other half — that
-worktree's copy of the same file is clean, at the 2 committed lines.
+`$CLAUDE_PROJECT_DIR` and line 40 joins a fixed suffix onto it, so the log path is whatever that
+variable holds. **What the harness sets that variable to was not observed here** — no run in
+this session printed it — and the claim does not rest on it. Steps 7 and 8 measure the effect
+directly instead: 84 records whose own `cwd` field is a worktree path, from 24 distinct
+worktrees, sitting in the *primary* checkout's copy, while one of those worktrees' own copy of
+the same file is clean at the 2 committed lines. Whatever the variable holds, the writes landed
+in one tree and it is not the one the agent was standing in.
 
 **E8 — the blast radius, which is narrower than feared.** Step 11's third command searches
 `.beans`, `documentation`, `AGENTS.md` and `.claude` at `2b67b23` for `checkout -- domains`, for
