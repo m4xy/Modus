@@ -1000,7 +1000,7 @@ observed: [...]
           bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
           bash-compat: OK — 3 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
           [...]
-          docs-lint: OK — 19 documents, 111 anchors, 1487 references, 99 beans, 37 graph edges, 45 selectable, 99 bean ids, 1 introduced, 100 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          docs-lint: OK — 19 documents, 111 anchors, 1489 references, 99 beans, 37 graph edges, 45 selectable, 99 bean ids, 1 introduced, 101 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
           [...]
           BUILD SUCCESSFUL in 20s
           [...]
@@ -1011,3 +1011,64 @@ The three lines are in the order this run printed them, which is not the order t
 declared in: Gradle's scheduling put `docsLintTest` ahead of `bashCompatLint` here and behind it
 on the previous run. An `[...]` between two lines of a capture marks omitted output, not
 adjacency, and never a sequence chosen by the author.
+
+### 2026-09-04 · bean:0049
+
+*The third round's bracket forms under CI's awk, which the previous round's observation does not cover.*
+
+**Claimed:** the entry *The anchored regexes under CI's awk* — all twenty-one samples caught
+exactly once on the runner, with the negative control clean, so the widened patterns are
+portable.
+
+**Found:** that observation was taken at `ea4185f` and covers the bracket forms that existed
+there — `[!]`, a positive `[]]`, and `["']`. This round added shapes it does not cover, and
+they are the shapes most likely to differ between awks: `[^-[:alnum:]_./[]`, a NEGATED class
+holding a literal `[` with the `-` placed first so it is literal too; `[^#'"]` and `[^"'%]`,
+negated classes holding both quote characters. A claim carried forward from an observation
+that predates the thing it is claimed about is a hypothesis, not a citation
+(`doc:50-memory-and-evidence#primary-sources`), so it was re-taken rather than inherited. It
+still could not be checked locally — no gawk, mawk or busybox awk on the development machine,
+which the previous entry recorded and which has not changed — so it was checked on the runner.
+All twenty-three samples are caught exactly once under CI's awk and the extended negative
+control is still clean.
+
+As before this is not load-bearing on its own: an awk that compiled the brackets differently
+would fail the planted-sample assertions loudly rather than report every script clean. It is
+the only direct evidence that this round's patterns are portable.
+
+**Evidence:**
+
+```
+cmd:      gh run view --job 100977630618 --log      # qualityCheck on ubuntu-latest, head 9de5401
+observed: [...]
+          bash-compat: interpreter /bin/bash (bash 5.2.21(1)-release)
+          bash-compat: OK — 3 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+          [...]
+          docs-lint-test: 37 passed, 0 failed.
+          [...]
+          docs-lint: OK — 19 documents, 111 anchors, 1530 references, 101 beans, 37 graph edges, 45 selectable, 101 bean ids, 1 introduced, 100 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          [...]
+cmd:      gh pr checks 69      # tab-separated; the trailing URL column is [...]
+observed: build + mechanical gates	pass	59s	[...]
+          build + mechanical gates	pass	1m4s	[...]
+          gate	pass	2s	[...]
+          gate	pass	4s	[...]
+          backoffice + e2e	skipping	0	[...]
+          backoffice + e2e	skipping	0	[...]
+          which halves	pass	6s	[...]
+          which halves	pass	4s	[...]
+cmd:      gh run view 33858610317 --json headSha,conclusion --jq '{headSha,conclusion}'
+observed: {"conclusion":"success","headSha":"9de540100d415ae218e6cb5013f3a71100c7c508"}
+cmd:      gh run view 33858614475 --json headSha,conclusion --jq '{headSha,conclusion}'
+observed: {"conclusion":"success","headSha":"9de540100d415ae218e6cb5013f3a71100c7c508"}
+```
+
+Each check appears twice because two workflow runs were triggered for the same head; the two
+`gh run view` lines are there so the pair is not read as two different heads agreeing.
+
+That `docs-lint` line reads `101 beans` and `1530 references` where the local run above reads
+`99` and fewer, for the reason the previous entry gives: CI lints the merge of this branch with
+`origin/main`, and `origin/main` has moved. The `bash-compat` line is unaffected — it counts
+rules and scripts, neither of which the merge changes — and it is the line this entry is about.
+The `gate` job is the one `bean:0047` is holding back a required-status rule for; it is green
+here, on a real pull request, which is the observation that unblocks it.
