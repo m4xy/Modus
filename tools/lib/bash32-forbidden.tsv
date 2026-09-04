@@ -6,11 +6,14 @@
 # probe transcript covering this file. It is three records, and none of them covers all of
 # it: evidence entry 6, a DISTILLED table of the six families that diverge silently or behind
 # a diagnostic, beside one sentence recording how many of the sixteen original families
-# `/bin/bash -n` rejects on its own — a table, not probe output, and not per row; the third
-# 2026-09-04 amendment, which runs the eleven constructs behind the five rows added in the
-# first review round and the alternatives then added to `shopt-bash4-option` and
-# `bash4-variable`, printing each one's stdout, stderr and exit status under both
-# interpreters; and the fourth, which does the same for `[ -v name ]` and `test -v name`.
+# `/bin/bash -n` rejects on its own — a table, not probe output, and not per row; the amendment
+# titled "Five constructs absent from rows that already enumerate their siblings", which runs
+# the eleven constructs behind the five rows added in the first review round and the
+# alternatives then added to `shopt-bash4-option` and `bash4-variable`, printing each one's
+# stdout, stderr and exit status under both interpreters; and the two amendments from the
+# second round, "Three more rows rejecting legal bash 3.2" and "The `-v` positions are three,
+# not one", which do the same for the nine lines this gate was rejecting and for
+# `[ -v name ]` and `test -v name`. Amendments are named, not numbered: the ordinals move.
 # The rows this file was created with therefore have no per-construct transcript anywhere:
 # they were measured, and the measurement was distilled to entry 6's table rather than pasted.
 #
@@ -72,8 +75,9 @@
 # preceded by an identifier, path or task-path character — and the planted-sample assertion
 # re-checks that on every run. Measured: on `[ -v name ]` and `test -v name`, bash 3.2 writes
 # `-v: unary operator expected` and the test exits 2; bash 5 exits 0 when the name is set and
-# 1 when it is not, silently. Both differ from 3.2 on stderr and on status. The transcript is
-# in bean:0049's fourth 2026-09-04 amendment.
+# 1 when it is not, silently. Both differ from 3.2 on stderr and on status. `/bin/bash -n`
+# accepts both at rc 0, so the parse half cannot reach them and this scan is the only half that
+# can. The transcript is in bean:0049's amendment "The `-v` positions are three, not one".
 #
 # The sample column is not decoration. tools/bash-compat-lint.sh plants each sample into a
 # fixture on every run and asserts the scan finds it, finds it EXACTLY once, and finds

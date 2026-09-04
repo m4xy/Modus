@@ -19,14 +19,16 @@
 # `mapfile` writes `command not found` and exits 0 from the script, which has no `set -e`.
 # Five further constructs diverge in total silence — `{1..9..2}` expands to itself,
 # $SRANDOM / $EPOCHSECONDS / $EPOCHREALTIME / $BASHPID are simply unset. The differential
-# this file was distilled from is in bean:0049, in three places: evidence entry 6, whose
-# table is the six families that diverge silently or behind a diagnostic `set -e` would
-# have caught, beside the count of families `/bin/bash -n` rejects on its own; the third
-# 2026-09-04 amendment, which runs eleven further constructs under both interpreters and
-# prints each one's stdout, stderr and exit status; and the fourth, which does the same for
-# `[ -v name ]` and `test -v name` and for the nine legal lines the second review round found
-# this gate rejecting. None is a "full" differential of bash 5 against bash 3.2 and this file
-# does not claim one: it is a denylist of what was measured, and it says so below.
+# this file was distilled from is in bean:0049, in three places, none of them per row:
+# evidence entry 6, whose table is the six families that diverge silently or behind a
+# diagnostic `set -e` would have caught, beside the count of families `/bin/bash -n` rejects on
+# its own; the amendment "Five constructs absent from rows that already enumerate their
+# siblings", which runs eleven further constructs under both interpreters and prints each one's
+# stdout, stderr and exit status; and the two second-round amendments, which do the same for
+# `[ -v name ]`, `test -v name` and the nine legal lines that round found this gate rejecting.
+# Amendments are cited by title, not by ordinal, because the ordinals move. None is a "full"
+# differential of bash 5 against bash 3.2 and this file does not claim one: it is a denylist of
+# what was measured, and it says so below.
 #
 # So the gate is two halves, neither of which subsumes the other:
 #
