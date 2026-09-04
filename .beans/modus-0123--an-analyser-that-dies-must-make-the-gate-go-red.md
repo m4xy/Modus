@@ -1,7 +1,7 @@
 ---
 # modus-0123
 title: An analyser that dies must make docs-lint go red, not print OK
-status: in-progress
+status: completed
 type: fix
 priority: high
 created_at: 2026-09-04T00:00:00Z
@@ -912,3 +912,366 @@ writes to a tracked file at all.
 `doc:00-constitution#observed-failing` — and `doc:50-memory-and-evidence#evidence-kinds`
 for the negative half, which is why the control run is here beside the planted one.
 `doc:50-memory-and-evidence#corpus-figures` — why the counts on the `OK` line move.
+
+## Closing evidence — merged as PR #77, squashed onto `main` as `3b02871`
+
+A bean cannot close itself, so this is the next change (`doc:00-constitution#bean-lifecycle`).
+
+**The criteria are not restated below, and none is reworded.** A close that rewrites its
+criteria is indistinguishable from a close that met them, so the table below indexes
+`## Success criteria and evidence` by number and records a verdict against the wording
+already standing there. The `status:` line is the only edit this change makes outside this
+section.
+
+**Criterion 1 closes `met in part`, which is the verdict its own section above already
+records**, and its `Enforcement gap:` naming `bean:0126` stands unaltered.
+`doc:80-agent-operating-procedure#self-validate` step 6 forbids weakening a criterion to reach
+green, and changing one is a separate work item and a human decision. Block B re-measures both
+halves of it at the closing head rather than inheriting either.
+
+The heads in play. Every figure below is stamped with the one it was taken at, was redirected
+to a file and pasted from that file, and carries `[...]` on every elision.
+
+- **`3b02871`** — `origin/main`, this change's merge base, `.beans/` and `tools/` unmodified.
+  Block A, Block B, and the first arm of Block E.
+- **`3b02871`+`status:`** — the merge base with this bean's `status:` line as the only edit and
+  this section absent. Block E's second arm, and the bare-flip probe below it.
+- **`3b02871`+`status:`+this section, with Block C's and Block D's fences absent** — the two
+  gate runs. Every other line of this section was present when they ran.
+
+| # | verdict | observed |
+|---|---|---|
+| 1 | **met in part** | The covered half holds and is re-measured: the same seventeen call sites take the guard's fail branch at the closing head, and the five that do not are the five named above, for the reasons named above. The uncovered half does not hold — the bypass assertion is still a lexical enumeration and `bean:0126` still owns it. Block B |
+| 2 | met | `docsLintGateTest` plants the syntax error into check 12's acyclicity analyser in a copy and the gate exits non-zero, saying it failed rather than printing `OK`, and attributing it to an analyser that examined nothing. Block C |
+| 3 | met | The negative control in the same run: the same copy unmutated exits 0, prints the `OK` line, and writes nothing at all to stderr. Without it a guard firing on every input would score identically (`doc:50-memory-and-evidence#evidence-kinds`). Block C |
+| 4 | met | The proof is a `qualityCheck` dependency and ran as one here, not by hand. Its four structural assertions — the mutation site occurs exactly once, the copy differs on exactly one line, that line is the plant, and the control copy is identical to the gate — all pass, which is what makes the plant a plant. Block C, and Block D for the task graph it ran under |
+| 5 | met | `./gradlew qualityCheck` green on this closing branch, re-run rather than reused: an earlier run measured a different tree (`doc:80-agent-operating-procedure#self-validate`). PR #77's own `gate` job is `pass` on the pull request whose merge commit is `3b02871`. Block D |
+
+### Block A — what merged, read from the commit rather than from this bean
+
+```
+head:     3b02871
+cmd:      git show 3b02871 --stat --format='%h %s' > [...]/merged-stat.txt
+observed: 3b02871 fix(docs-lint): make a dead analyser fail the gate (#77)
+
+           ...orts-ok-through-almost-every-runtime-failure.md |  41 +-
+           ...analyser-that-dies-must-make-the-gate-go-red.md | 914 +++++++++++++++++++++
+           ...non-analyser-fail-open-boundary-in-docs-lint.md |  56 ++
+           ...nt-test-fails-open-through-its-own-analysers.md | 105 +++
+           ...nt-check-is-proved-to-discriminate-per-check.md |  91 ++
+           ...ounts-line-carries-no-figure-for-most-checks.md |  59 ++
+           build.gradle.kts                                   |  17 +-
+           tools/docs-lint-gate-test.sh                       | 186 +++++
+           tools/docs-lint-test.sh                            |   8 +
+           tools/docs-lint.sh                                 |  45 +
+           10 files changed, 1520 insertions(+), 2 deletions(-)
+exit:     0
+
+cmd:      GITHUB_TOKEN= gh pr view 77 --json number,title,mergeCommit,mergedAt,state \
+            --jq '{number, title, state, mergedAt, merge: .mergeCommit.oid}'
+observed: {"merge":"3b028713b4c887cd0f2647c7dc12969cf5a2c68a","mergedAt":"2026-09-04T21:07:18Z","number":77,"state":"MERGED","title":"fix(docs-lint): make a dead analyser fail the gate"}
+exit:     0
+```
+
+The `--stat` is git's own abbreviation of the six bean paths and is not an elision of mine.
+The three files this bean's prose claims as its subject are all in it: the wrapper's 45 lines
+into `tools/docs-lint.sh`, the new `tools/docs-lint-gate-test.sh`, and the 17 lines into
+`build.gradle.kts` that register `docsLintGateTest` and add it to `qualityCheck`'s
+dependencies. `tools/docs-lint-test.sh` is `bean:0121`'s file and gained 8 lines here.
+
+### Block B — criterion 1's two halves, re-measured at the closing head
+
+The forced-guard measurement from criterion 1, re-run at `3b02871` on a corpus that has moved.
+The mutant is a copy at `tools/.docs-lint-sites.sh`, one line for one line so every line number
+in the gate still holds; it is deleted by the same script, and `git status --porcelain` is
+printed after the deletion and is empty, so no tracked file was written and there is no restore
+step to skip (`bean:0102`).
+
+```
+head:     3b02871, working tree clean
+cmd:      /bin/bash [...]/sites.sh [...] > [...]/sites.out
+observed: --- diff tools/docs-lint.sh tools/.docs-lint-sites.sh
+          72c72
+          <   if [ "$awk_wrap_rc" -ne 0 ]; then
+          ---
+          >   if [ "$awk_wrap_rc" -ge 0 ]; then echo "${BASH_LINENO[0]}" >> [...]/sites.txt
+          --- forced run STDOUT, in full:
+          forced run exit: 1
+          docs-lint: 2146 failure(s).
+          --- forced run stdout line count: 1
+          --- guard firings recorded: 2146
+          --- call sites observed taking the fail branch (count, line):
+            19 92
+           763 128
+           152 130
+             1 133
+            19 237
+           132 254
+           132 256
+             9 264
+           611 300
+           110 434
+            42 482
+            42 483
+             1 517
+             1 523
+             1 560
+           110 587
+             1 605
+          --- distinct sites: 17
+          --- mutant removed; git status:
+          --- (end)
+exit:     0
+```
+
+**The seventeen sites hold; the total does not, and that is the figure's own prediction.**
+Criterion 1 recorded `2140` firings on this branch's tree at PR #77; this run records
+**2146** on `main` at `3b02871`, off the same seventeen line numbers with three of the
+per-site counts moved — 128, 300 and the total. That is what the sentence under the original
+capture says will happen: the per-site counts and the total are figures of this corpus and
+move with it, and the seventeen line numbers and the five absentees do not
+(`doc:50-memory-and-evidence#corpus-figures`). The `git status` line after the deletion is
+empty because the mutant was the only file written and it is gone.
+
+Nothing here re-measures the bypass half, because nothing has changed about it: the assertion
+`tools/docs-lint-gate-test.sh` carries is still the lexical enumeration criterion 1 records
+nine spellings walking past, and the two mutations that leave twenty-one of the twenty-two
+call sites unguarded still score a clean sheet against it. That residual is `bean:0126`'s and
+is why this criterion does not close met.
+
+### Block C — criterion 2, criterion 3 and criterion 4, off the suite `main` now carries
+
+The word is repeated in that heading on purpose. Check 14's matcher takes at most two numbers
+per `criteri(on|a)` token separated by at most three non-alphanumeric characters, so a heading
+reading `criteria 2, 3 and 4` would set only the first two and silently drop the third, ` and `
+being letters and not a separator. Written as three tokens it says what it reads as.
+
+```
+head:     3b02871 + this bean's `status:` line + this section + `bean:0128`, with this fence
+          and Block D's replaced by a one-token placeholder line
+cmd:      ./gradlew qualityCheck > [...]/quality.txt
+observed: > Task :docsLintGateTest
+          docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
+          docs-lint-gate-test: analyser awk — awk version 20200816
+
+          --- the plant: check 12's acyclicity analyser, destroyed
+          ok   the mutation site occurs exactly once in the gate
+          ok   the copy differs from the gate on exactly one line (one '<', one '>')
+          ok   and the line it differs on is the planted syntax error
+          ok   the control copy is identical to the gate
+
+          --- the runs: both halves, over the whole corpus
+          [...] the three backoffice tasks' output, interleaved by the parallel executor:
+                `backofficeFormatCheck`, `backofficeLint` and `backofficeTypecheck`, each
+                clean, and `> Task :docsLint` with the OK line quoted in Block D
+          > Task :docsLintGateTest
+          ok   a destroyed analyser makes the gate exit non-zero
+          ok   and the gate says it failed rather than printing OK
+          ok   and attributes it to an analyser that examined nothing
+               (this awk exited 2 on the planted syntax error)
+          ok   the negative control: the same copy unmutated exits 0
+          ok   and prints the OK line
+          ok   and writes nothing at all to stderr
+
+          --- the mutated run's stderr: 6 line(s), at most 20 shown
+               awk: syntax error at source line 4
+                context is
+               	    removed = >>>  = <<<  1
+               awk: illegal statement at source line 4
+               awk: illegal statement at source line 4
+               FAIL check -  an analyser exited 2 and examined nothing; its last argument was '/var/folders/[...]/T/tmp.zFznD8TKaP/bean-edges.uniq'
+
+          --- the guard covers every call site, because no call site opts in
+          ok   the guard's own call is the only site that bypasses it
+
+          docs-lint-gate-test: 11 passed, 0 failed.
+exit:     0
+```
+
+`docsLintGateTest` is the mechanism criterion 4 names and it ran here as a `qualityCheck`
+dependency, not by hand. Its first four rows are the assertions that make the plant a plant —
+the mutation site occurs exactly once in the gate, the copy differs from it on exactly one
+line, that line is the planted syntax error, and the control copy is byte-identical to the gate
+— and criterion 2 and criterion 3 are the two runs under them, the mutated one red and the
+unmutated one green, silent and printing the `OK` line.
+
+**The analyser's exit status is reported and not required, and this run is why that was the
+right call.** It reads `2` here against the `1` the runner printed at `9fe411c`: this machine's
+`awk` is `awk version 20200816`, the BSD awk macOS ships, and the runner's is a gawk. The
+guard tests `-ne 0` and is written against neither. The version line beside the interpreter's
+is what makes that readable without inference, and the CI arm of this close reads it directly.
+
+### Block D — criterion 5, the gate on this branch
+
+The gate is `doc:00-constitution#workflow` §7.2.4's block, run whole rather than as the three
+tasks this bean's own subject would have made it tempting to run alone. It is the same run
+Block C reads `docsLintGateTest` out of.
+
+```
+head:     3b02871 + this bean's `status:` line + this section + `bean:0128`, with this fence
+          and Block C's replaced by a one-token placeholder line
+cmd:      ./gradlew ktlintFormat > [...]/ktlint.txt
+exit:     0
+cmd:      ./gradlew qualityCheck > [...]/quality.txt
+observed: [...] lines 1-354: the Gradle task banners for every module — the `build-logic`
+                tasks, the Kotlin compilations, ktlint, Detekt, both test suites, the
+                ArchUnit run, `coverageAggregateReport` and `> Task :check`
+          bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+          bash-compat: OK — 4 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+          [...] line 357, blank, and lines 358-417: `> Task :docsLintTest` and its 51 `ok`
+                rows under their four `---` banners
+          docs-lint-test: 51 passed, 0 failed.
+          [...] lines 419-443: `> Task :e2eInstall` and `> Task :backofficeInstall` with npm's
+                deprecation warning, package counts, funding notice and `found 0
+                vulnerabilities` for each, and `> Task :architecture-tests:test` and `:check`
+          [...] lines 444-491: the `docsLintGateTest` banner and its four plant rows, quoted
+                whole in Block C, then the three backoffice tasks' clean output
+          docs-lint: OK — 19 documents, 111 anchors, 1701 references, 111 beans, 42 graph edges, 51 selectable, 111 bean ids, 1 introduced, 110 on origin/main, 1 closing transitions, 5 criteria checked, 4 unnumbered.
+          [...] lines 493-513: the six `docsLintGateTest` run rows and the mutated run's
+                6-line stderr, quoted whole in Block C
+          docs-lint-gate-test: 11 passed, 0 failed.
+          [...] lines 515-525: a blank line, the `> Task :qualityCheck` banner, the
+                incubating problems-report notice and the Gradle 10 deprecation warning
+          BUILD SUCCESSFUL in 28s
+          170 actionable tasks: 54 executed, 96 from cache, 20 up-to-date
+          Configuration cache entry stored.
+exit:     0
+```
+
+The elisions above are line ranges of the redirect, so each is checkable against it rather than
+merely described — which is the failure mode this bean was reviewed for. The redirect is 528
+lines; the eight quoted lines are 355, 356, 418, 492, 514, 526, 527 and 528, and the six ranges
+cover 1-354, 357-417, 419-443, 444-491, 493-513 and 515-525, which is every remaining line.
+
+**Nothing in the redirect is a failure.** `/usr/bin/grep -niE 'fail|error'` over it returns 18
+lines: eleven `checkKotlinGradlePluginConfigurationErrors SKIPPED` task banners, the two
+`N passed, 0 failed` summary lines, and five lines inside `docsLintGateTest`'s deliberate plant
+— including the one `FAIL check -` line, which is the guard firing on the destroyed analyser and
+is the thing this bean shipped.
+
+**This `OK` line is not Block E's, and the difference is not a defect in a count.** It reads
+`1701 references, 111 beans, 51 selectable, 1 introduced` where Block E's second arm reads
+`1669`, `110`, `50` and `0`, because this tree also introduces `bean:0128` — the bean this
+change raises. A record that measures a corpus it belongs to changes that corpus
+(`doc:50-memory-and-evidence#corpus-figures`), and the closing transition and criteria counts,
+which are the two this close is about, are `1` and `5` on both.
+
+PR #77's own checks, which are criterion 5's merged half and are GitHub's record of a head that
+is already `main`:
+
+```
+head:     3b02871, the merge commit of PR #77
+cmd:      GITHUB_TOKEN= gh pr checks 77 > [...]/pr77-checks.txt
+observed: build + mechanical gates	pass	1m17s	https://github.com/m4xy/Modus/actions/runs/33917931026/job/101169364224	
+          gate	pass	4s	https://github.com/m4xy/Modus/actions/runs/33917925889/job/101169654777	
+          gate	pass	2s	https://github.com/m4xy/Modus/actions/runs/33917931026/job/101169720656	
+          backoffice + e2e	skipping	0	https://github.com/m4xy/Modus/actions/runs/33917931026/job/101169366504	
+          build + mechanical gates	pass	1m8s	https://github.com/m4xy/Modus/actions/runs/33917925889/job/101169337504	
+          backoffice + e2e	skipping	0	https://github.com/m4xy/Modus/actions/runs/33917925889/job/101169338947	
+          which halves	pass	4s	https://github.com/m4xy/Modus/actions/runs/33917925889/job/101169307543	
+          which halves	pass	6s	https://github.com/m4xy/Modus/actions/runs/33917931026/job/101169325433
+exit:     0
+```
+
+### Block E — the counters moved, and `bean:0124` and `bean:0125` became selectable
+
+`main` at `3b02871` reports `0 closing transitions, 0 criteria checked`, which is what a tree
+with no bean closing in it prints and also what a run that examined nothing prints
+(`bean:0096`). Both counters move here, which is the statement that check 14 examined this
+bean rather than passing over it.
+
+```
+head:     3b02871, working tree clean
+cmd:      /bin/bash tools/docs-lint.sh > [...]/baseline-3b02871.txt
+observed: docs-lint: OK — 19 documents, 111 anchors, 1669 references, 110 beans, 42 graph edges, 48 selectable, 110 bean ids, 0 introduced, 110 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+exit:     0
+
+head:     3b02871 + this bean's `status:` line, this section absent
+cmd:      /bin/bash tools/docs-lint.sh > [...]/bareflip.txt
+observed: docs-lint: OK — 19 documents, 111 anchors, 1669 references, 110 beans, 42 graph edges, 50 selectable, 110 bean ids, 0 introduced, 110 on origin/main, 1 closing transitions, 5 criteria checked, 4 unnumbered.
+exit:     0
+```
+
+`0 closing transitions, 0 criteria checked` becomes `1 closing transitions, 5 criteria checked`,
+and `48 selectable` becomes `50`. **Check 12 reports an acyclic graph on both**, at 42 edges
+across 110 beans; the `OK` line is the check's own vacuity assertion and a run that parsed
+nothing reports zero rather than success (`doc:05-authoring-for-agents#checks`).
+
+**And that green line means more here than it did before `3b02871`, which is checked rather
+than assumed.** Before the wrapper, an analyser destroyed mid-run wrote nothing, no `fail`
+fired, and this same line printed at exit 0 with stdout byte-identical to a clean run — so
+`42 graph edges, 48 selectable` was consistent with check 12's analyser never having parsed.
+Block C is that claim under test on this tree: check 12's acyclicity analyser destroyed makes
+this gate exit non-zero and say so.
+
+The two counts the `OK` line does not name are the two beans, so the difference is named rather
+than inferred. The set is `AGENTS.md` step 1's: `status: todo`, not `type: epic`, every
+`blocked_by` id resolving to a `completed` bean.
+
+```
+head:     3b02871, and the same tree with the `status:` line flipped
+cmd:      /usr/bin/awk -f [...]/selectable.awk .beans/*.md > [...]/sel-before.txt
+          /usr/bin/awk -f [...]/selectable.awk .beans/*.md > [...]/sel-after.txt
+          diff [...]/sel-before.txt [...]/sel-after.txt
+observed: 49c49,51
+          < selectable=48
+          ---
+          > modus-0124
+          > modus-0125
+          > selectable=50
+exit:     1
+```
+
+`modus-0124` and `modus-0125` are the whole of the difference, and both are `blocked_by:
+[modus-0123]` alone. `bean:0126` is `blocked_by: [modus-0123, modus-0125]` and stays
+unselectable, correctly: `completed` means `completed`, and `bean:0125` is still `todo`.
+`bean:0127` is `blocked_by: [modus-0126]` and stays unselectable behind it. `bean:0118` is
+`in-progress` and is not in the set in either arm — it is the parent of five children and only
+this one closes here.
+
+The enumerator above is this closing change's own script and not the gate's, so its answer
+needs a check that is not itself: it returns **48** on the tree whose `OK` line reads
+`48 selectable`, and **50** on the tree whose `OK` line reads `50 selectable`. Two mechanisms,
+one written for this record and one already in `qualityCheck`, agreeing on both arms.
+
+### The gate applied no pressure to write any block above
+
+The second arm of Block E is a **bare `status:` flip** — one changed line, this whole section
+absent — and it is green at exit 0, reporting `1 closing transitions, 5 criteria checked`.
+The five `### Criterion N` sub-headings this bean already carried from PR #77 answer all five
+criteria on their own, so check 14 was satisfied before a word of this close was written.
+
+Everything above is author discipline, not gate pressure, and the same was true of
+`bean:0093`'s close. That is not a defect in check 14: a green check 14 is a statement about
+the shape of a record and never about the verdict recorded in it, which
+`doc:05-authoring-for-agents#checks` already states. What has no home anywhere is the verdict
+vocabulary itself — this bean closes a criterion `met in part`, `bean:0093` closed one
+`NOT MET AS WORDED`, and `bean:0049` closed one `NOT MET`, three phrasings for one practice
+that no document permits, forbids or names. Raised as `bean:0128` by the change that closes
+this bean.
+
+### This close is itself an instance of `bean:0120`
+
+`doc:00-constitution#bean-lifecycle` ends by saying the close "is the first act of the session
+after a merge", and nothing establishes that the session happens. This close happened because
+it was dispatched, which is a fact about dispatch and not about a rule. The backlog it clears
+is one tree deep, and that is the honest size rather than a supporting one:
+
+```
+head:     3b02871
+cmd:      git log --format='COMMIT %h %ad %s' --date=short -p origin/main \
+            -- '.beans/modus-0123--an-analyser-that-dies-must-make-the-gate-go-red.md' \
+            | /usr/bin/grep -E '^COMMIT |^\+status:|^-status:' > [...]/backlog.txt
+observed: COMMIT 3b02871 2026-09-04 fix(docs-lint): make a dead analyser fail the gate (#77)
+          +status: in-progress
+exit:     0
+```
+
+One commit and one `+status:` line with no `-status:` beside it. `3b02871` is the only tree
+`main` has ever held this bean `in-progress` on, which is the shortest such run the corpus can
+produce and is not evidence that `bean:0120`'s gap is small. The absent `-status:` is that
+bean's E4 finding on a ninth instance: this bean was **created** `in-progress` rather than
+flipped there, so `doc:00-constitution#bean-lifecycle`'s `todo` → `in-progress` transition is
+not what put it on `main` and a mechanism resting on that transition would rest on an act the
+record shows did not occur. `/usr/bin/grep` is BSD grep 2.6.0-FreeBSD, named because this
+harness's interactive `grep` is a shell function running `ugrep 7.8.4` and CI's is a third one.
