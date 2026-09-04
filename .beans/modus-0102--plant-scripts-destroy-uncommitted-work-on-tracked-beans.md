@@ -820,6 +820,12 @@ the procedure's preconditions hold, and `bean:0051` records following the skill 
 procedure. The defence is also not what happened: this amendment did not weigh the label, it
 never saw the file.
 
+There is a consequence for the label itself, which this amendment states and does not act on.
+`doc:70-skills#skill-lifecycle` gives `draft`'s exit condition as a validation command proven
+on **positive and negative cases**. The negative case is the one described above — a run that
+destroyed the author's work and passed — so the exit condition is not met, and the skill is
+correctly `draft` for a reason nobody had recorded.
+
 **Provenance, and what this amendment ships beside it.** The finding is the work of the agent
 implementing `bean:0096`, which met the trap twice inside one change and reported it; that
 provenance is recorded here, in prose, because it is true. The heading names `bean:0116`

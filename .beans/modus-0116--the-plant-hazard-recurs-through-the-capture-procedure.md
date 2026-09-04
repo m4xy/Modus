@@ -77,6 +77,14 @@ source, rather than deducing it.
 
 ## Success criteria
 
+**The criteria are those of the work as shipped, not of work not yet begun.** This bean was
+raised after the branch rather than before it (see the closing section), so 2, 5, 6 and 7 name
+decisions the change had already taken — `SKILL.md:27` by name, keeping the failed sweep, and
+the two reconciliation edits. Writing forward-looking substitutes for them would be inventing a
+record, and a criteria table that cannot be told apart from one written before the work is
+`bean:0113`'s subject. The handling is `bean:0105`'s, which states in its own criteria section
+which work its criteria belong to rather than leaving a reader to infer it.
+
 | # | criterion | evidence kind |
 |---|---|---|
 | 1 | `bean:0102` gains exactly one `## Amendments` entry and its body is unchanged, byte for byte, from the merge base | diff |

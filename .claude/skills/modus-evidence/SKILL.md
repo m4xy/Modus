@@ -88,7 +88,9 @@ write instead. Every one of them bites while planting and reverting a violation.
 
 - [ ] The mechanism was observed failing, and the output is recorded verbatim in the bean.
 - [ ] The recorded failure is the assertion the mechanism's name describes.
-- [ ] The tree is clean afterwards — `git status --porcelain` is empty.
+- [ ] The tree is clean afterwards — `git status --porcelain` is empty. Empty proves the
+      plant is gone and **not** that your own uncommitted work survived; the precondition
+      above is what separates the two, and `## Validation` says why.
 - [ ] Any mechanism that could not be made to fail is an `Enforcement gap:` naming a bean.
 
 ## Validation
