@@ -247,7 +247,8 @@ cmd:      B=.beans/modus-0096--check-14-contributes-nothing-to-an-implementation
           bash tools/docs-lint.sh | tail -1 > /tmp/a2.txt
           sed -i '' 's/^status: in-progress/status: completed/' "$B"
           bash tools/docs-lint.sh | tail -1 > /tmp/b2.txt; git checkout -- .beans
-          awk '/^ +docs-lint: OK/ { sub(/^ +/, ""); print }' "$B" > /tmp/pasted.txt
+          awk '/^ +docs-lint: OK — [0-9]+ documents/ { sub(/^ +/, ""); print }' "$B" \
+            > /tmp/pasted.txt
           cat /tmp/a2.txt /tmp/b2.txt > /tmp/rerun.txt; diff /tmp/pasted.txt /tmp/rerun.txt
 expect:   no difference; the paste adds no document, anchor, reference or bean, so the
           counters the record quotes are the counters a run still prints
