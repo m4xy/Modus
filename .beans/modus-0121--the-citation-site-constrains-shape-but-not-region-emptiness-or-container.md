@@ -1025,18 +1025,18 @@ a measurement whoever makes it and whichever direction it points.
 
 ### Criterion 9
 
-Taken at `112e201`, the last commit that changes any file this gate reads other than this
+Taken at `cd8f3f9`, the last commit that changes any file this gate reads other than this
 paragraph. The figure that stood here was taken at `5a625fc`, five commits behind the head
-under review, which makes it a statement about a tree nobody would merge; it was re-taken once
-at `2bcd9aa` and again here, because the bean's own prose is an input to `docs-lint` and its
-reference count moved between the two.
+under review, which makes it a statement about a tree nobody would merge; it was re-taken at
+`2bcd9aa`, at `112e201`, and again here, because the bean's own prose is an input to `docs-lint`
+and its reference count moves whenever this file does.
 
 ```
 $ ./gradlew qualityCheck
 [...]
 bash-compat: OK — 4 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
 [...]
-docs-lint-test: 71 passed, 0 failed.
+docs-lint-test: 76 passed, 0 failed.
 [...]
 docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
 docs-lint-gate-test: analyser awk — awk version 20200816
@@ -1050,15 +1050,17 @@ BUILD SUCCESSFUL in 26s
 ```
 
 The analyser is the same under all three awks a CI runner might supply, which is worth a figure
-of its own because `rowcells()` introduces this file's first `\\` inside a regex:
+of its own because `rowcells()` introduces this file's first `\\` inside a regex — and now
+because `CUTCHAR` puts a character of the check's own into every row it reads. Re-taken at
+`cd8f3f9`; the file count moved because the corpus and the document set did, not the verdicts:
 
 ```
 $ bash <scratch>/awkport.sh    # same analyser, three awks, every bean and document
-124 files compared across bsd awk / gawk / mawk, 0 differing
+126 files compared across bsd awk / gawk / mawk, 0 differing
 $ bash <scratch>/suite-awks.sh # the whole assertion suite under each, via a PATH shim
-awk                          71 passed, 0 failed.
-gawk                         71 passed, 0 failed.
-mawk                         71 passed, 0 failed.
+awk                          docs-lint-test: 76 passed, 0 failed.
+gawk                         docs-lint-test: 76 passed, 0 failed.
+mawk                         docs-lint-test: 76 passed, 0 failed.
 ```
 
 `0 closing transitions` is expected and is not a gap: `doc:00-constitution#bean-lifecycle`
