@@ -17,6 +17,32 @@ import java.nio.file.Path
  * (`bean:0174`): production resolves the default filesystem, gets an ordinary channel, and
  * cannot be configured into a state where a `force` does not happen.
  *
+ * **What this seam does NOT see, stated so `bean:0175` inherits the hazard rather than
+ * discovering it.** Every item is a live trap for the next bean, not a caveat.
+ *
+ * - **`newByteChannel` is not instrumented**, and so neither are `Files.write`,
+ *   `Files.newOutputStream`, `Files.newBufferedWriter` or `Files.copy`. This is the one that
+ *   will bite: an `O_APPEND` appender written the idiomatic way goes through
+ *   `newByteChannel`, and every durability assertion then reads "no forces missing" while
+ *   observing nothing — the vacuity failure this seam exists to prevent, one bean
+ *   downstream. `bean:0175`'s appender must open a `FileChannel` explicitly, and its tests
+ *   must assert `interceptedChannelOpens` is non-zero.
+ * - **`shortWriteLimit` constrains `write(ByteBuffer)` and nothing else.**
+ *   `write(src, position)`, the gathering `write(srcs, offset, length)`, `transferFrom` and
+ *   `map` all bypass it, so a loop driven through any of them never short-writes and
+ *   `bean:0175`'s criterion 2 would pass without exercising the loop at all.
+ * - **`lock` and `tryLock` return a `FileLock` bound to the delegate**, so `acquiredBy()` is
+ *   not this object. Harmless for `CrossProcessLock`, which only releases it; an assertion
+ *   on the lock's channel identity would be wrong.
+ * - **`newWatchService`, `Path.register`, `getFileStore`, `getFileStores`, `toFile` and
+ *   `toUri` are forwarded unwrapped** and driven by no test. A `File` obtained from `toFile`
+ *   leaves the seam entirely.
+ *
+ * None of these is a defect today: nothing here uses them, and instrumenting every path into
+ * the filesystem before there is a caller is speculative surface with no test to hold it
+ * honest. They are written down because the failure they produce is **silent**, and a silent
+ * gap nobody wrote down is indistinguishable from a mechanism that works.
+ *
  * @param shortWriteLimit the most bytes a single [write] will consume, or null for the real
  *   channel's behaviour. `doc:40-durability` §4.2 says `FileChannel.write` may perform a
  *   short write and that no API can assert a single syscall; this makes that happen on

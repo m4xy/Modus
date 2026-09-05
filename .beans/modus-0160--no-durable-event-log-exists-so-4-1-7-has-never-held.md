@@ -5,7 +5,7 @@ status: todo
 type: feature
 priority: high
 created_at: 2026-09-05T00:00:00Z
-blocked_by: [modus-0147, modus-0174, modus-0175, modus-0176, modus-0149, modus-0150]
+blocked_by: [modus-0147, modus-0176, modus-0149, modus-0150]
 ---
 
 # No durable event log exists, so §4.1.7 has never held and dispatch loses events
@@ -46,10 +46,11 @@ delivery guarantee this system offers is "best effort, on one thread, once".
 
 **Edge re-pointed by `bean:0147`.** This bean was written naming `modus-0017`, which has
 since become the epic over `bean:0147` to `bean:0150`; `docs-lint` check 12 refuses an edge
-onto a `type: epic` bean, so the edge names all four children. All four rather than a
-subset, because the single edge cleared only when all four bullets were done and naming all
-four clears at the same moment (`bean:0017`) — over-naming preserves the meaning, narrowing
-would loosen it on a guess.
+onto a `type: epic` bean, so the edge names those children. All four rather than a subset,
+because they are independent and the single edge cleared only when all four bullets were
+done (`bean:0017`). Where a split produces a **chain** instead, the tail alone preserves the
+same point and naming the whole chain is wrong rather than conservative — `bean:0148`'s three
+children are that case, and this bean's edge names only `modus-0176` of them.
 
 The guess in question is a real one and is left for whoever picks this up: the paragraph
 below argues that the **writer** is the open question, and the writer is `bean:0148` alone.

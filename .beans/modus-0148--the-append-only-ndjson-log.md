@@ -99,7 +99,18 @@ reasons it falls there rather than anywhere else:
 `bean:0174` re-points `bean:0150`'s criterion 7, which currently assumes the `fsync` gap
 closes no earlier than the `SIGKILL` test.
 
-**The `blocked_by` edges naming this bean moved to the children**, for the reason
-`bean:0017` records: check 12 refuses an edge onto a `type: epic` bean. Six edges, each
-naming all three children rather than the subset it needs — the single edge cleared only
-when all of this bean's criteria were met, so naming all three clears at the same moment.
+**The `blocked_by` edges naming this bean moved to the children** — check 12 refuses an edge
+onto a `type: epic` bean — and each names **`modus-0176` alone**.
+
+That is different from what `bean:0017` did, and the difference is not a change of policy.
+`bean:0017`'s four children are independent, so no single one of them clears when the parent
+would have; naming all four was the only edge that preserved the pre-split clearing point.
+These three are a **strict chain** — `0176` is `blocked_by` `0175`, which is `blocked_by`
+`0174` — so `0176` alone clears at exactly that moment and nothing is lost. Over-naming a
+chain is not conservative, it is wrong in a way that shows: `bean:0067` and `bean:0018` would
+each have declared themselves blocked by a test-only filesystem seam they will never call.
+
+An earlier version of this section reused `bean:0017`'s reason verbatim. It does not
+transfer, and reusing a correct argument in a case its premise does not hold is the shape
+`doc:05-authoring-for-agents#one-fact-one-place` warns about — a restatement that drifts from
+the thing it restates.

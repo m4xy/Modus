@@ -95,8 +95,15 @@ other agents hit this sprint:
 - **A plant that fails to apply reports a pass.** Another agent ran a whole loop against
   unmodified source because a formatter had rewrapped its plant point; every run was green
   and proved nothing. The driver is `set -eu`, aborts if the search text is absent, and
-  **prints the line count and the diff of each plant before the suite is allowed to run** —
-  the `planted (N+ M-)` line below is that proof.
+  **prints the numstat and the diff of each plant before the suite is allowed to run** — the
+  `planted (N+ M-)` line below is that proof.
+
+  **The driver is `tools/plant.sh`, committed by this bean.** Review observed that its
+  claimed properties were unverifiable from the artefact — it was not committed, and nothing
+  in the pull request could be checked against — while what actually carried the weight was
+  the per-plant numstat, which an independent re-plant reproduced exactly for all four
+  original plants. Both halves of that are now true: the driver is readable, and the numstat
+  stays the evidence rather than the prose about the driver.
 
 ### Criterion 4 — the gap closes
 
@@ -159,60 +166,146 @@ uninstrumented channel open.
 ### Criterion 6 — the seam cannot silently do nothing
 
 The failure mode this bean was most at risk of shipping: a wrapper that stops intercepting
-looks exactly like a mechanism that is working, because both report no missing forces. Two
-plants break the **seam** rather than the mechanism, and both are red.
+looks exactly like a mechanism that is working, because both report no missing forces.
+
+**The first two plants written for this criterion were the wrong plants, and review caught
+it.** They broke the seam *loudly* — the suite died on exceptions rather than on the
+assertion whose name describes the property — while the failure this criterion exists to
+guard against is the **silent** one. That is a fresh instance of the blind-plant defect
+inside the pull request that fixes blind plants: the aim was right and the choice of plant
+was not. Both are re-run below with their real messages, and two plants that fail on the
+named assertion are added.
+
+**The load-bearing pair.** Each disables the interception while leaving everything
+compiling and every path looking correct, which is precisely the shape that would otherwise
+go unnoticed:
 
 ```
-planted (1+ 1-):  InstrumentedPath.kt
+planted (1+ 1-)  testfs/InstrumentedFileSystems.kt
+-    fun pathTo(path: Path): Path = provider.fileSystem().wrap(InstrumentedPath.unwrap(path))
++    fun pathTo(path: Path): Path = InstrumentedPath.unwrap(path)
+observed: 8 FAILED, every one an assertion:
+          the writer opens exactly the two channels it forces() FAILED
+          org.opentest4j.AssertionFailedError: expected:<2> but was:<0>
+          both forces are issued, on the temp file and then on the parent directory() FAILED
+          org.opentest4j.AssertionFailedError: expected:<2> but was:<0>
+          a second write forces twice again, so the mechanism is per write and not once per
+          process() FAILED
+          org.opentest4j.AssertionFailedError: expected:<4> but was:<0>
+          a write that fails before the rename forces the temp file and never the directory()
+          FAILED
+          org.opentest4j.AssertionFailedError: expected:<1> but was:<0>
+          the seam records opens and forces as separate kinds, in order() FAILED
+          org.opentest4j.AssertionFailedError: Collection should contain exactly:
+            [OPEN_FILE_CHANNEL, FORCE] but was: []
+          a channel opened on a wrapped path is intercepted, and one on a plain path is not()
+          FAILED — expected:<1> but was:<0>
+          a force that throws is not recorded as having happened() FAILED
+            — expected:<1> but was:<0>
+          a short-writing channel consumes only what it was allowed, and the caller must
+          loop() FAILED — expected:<8L> but was:<4096L>
+reverted: tree clean: []
+
+planted (2+ 6-)  testfs/InstrumentedFileSystemProvider.kt
+-        return InstrumentedFileChannel(delegate = delegate.newFileChannel(...), …)
++        return delegate.newFileChannel(real, options, *attrs)
+observed: 7 FAILED, every one an assertion:
+          the writer opens exactly the two channels it forces() FAILED
+          org.opentest4j.AssertionFailedError: expected:<2> but was:<0>
+          both forces are issued, on the temp file and then on the parent directory() FAILED
+          org.opentest4j.AssertionFailedError: expected:<2> but was:<0>
+          a second write forces twice again … FAILED — expected:<4> but was:<0>
+          a write that fails before the rename … FAILED — expected:<1> but was:<0>
+          a channel opened on a wrapped path is intercepted, and one on a plain path is not()
+          FAILED
+          org.opentest4j.AssertionFailedError: Collection should contain exactly:
+            ["watched.md"] but was: []
+          the seam records opens and forces as separate kinds, in order() FAILED
+          org.opentest4j.AssertionFailedError: Collection should contain exactly:
+            [OPEN_FILE_CHANNEL, FORCE] but was: [OPEN_FILE_CHANNEL]
+          a short-writing channel … FAILED — expected:<8L> but was:<4096L>
+reverted: tree clean: []
+```
+
+`expected:<2> but was:<0>` on `interceptedChannelOpens` is the assertion that matters. It is
+the vacuity figure, and these two plants are what establish it is live rather than
+decorative — a recorder that observed nothing and a mechanism with nothing to observe both
+report an empty `forcedPaths`, and `bean:0051` records that being the entire difference
+between an inert check and a passing one.
+
+**The two loud plants, kept and correctly described.** They establish that the wrapping is
+load-bearing at all; they do **not** establish what the paragraph beside them originally
+claimed.
+
+```
+planted (1+ 1-)  testfs/InstrumentedPath.kt
 -    override fun getFileSystem(): FileSystem = fileSystem
 +    override fun getFileSystem(): FileSystem = delegate.fileSystem
-observed: 10 tests FAILED — every test in InstrumentedFileSystemIntegrationTest and every
-          test in AtomicWriteDurabilityIntegrationTest
+observed: 10 FAILED, all with
+          java.nio.file.ProviderMismatchException
+          (no assertion is reached: `Files` refuses the path before any test asserts)
 reverted: tree clean: []
 
-planted (1+ 1-):  InstrumentedPath.kt
+planted (1+ 1-)  testfs/InstrumentedPath.kt
 -    override fun resolve(other: Path): Path = wrap(delegate.resolve(unwrap(other)))
 +    override fun resolve(other: Path): Path = delegate.resolve(unwrap(other))
-observed: every path operation returns a path still bound to the seam() FAILED
+observed: 6 FAILED — four of them
+          java.nio.file.AtomicMoveNotSupportedException: Atomic move between providers is
+            not supported
+          and two assertions:
           org.opentest4j.AssertionFailedError:
-            expected:<...testfs.InstrumentedFileSystemProvider@d13379e>
-            but was:<sun.nio.fs.MacOSXFileSystemProvider@7c8df667>
-          and all four AtomicWriteDurabilityIntegrationTest tests FAILED
+            expected:<...testfs.InstrumentedFileSystemProvider@7c8df667>
+            but was:<sun.nio.fs.MacOSXFileSystemProvider@…>
 reverted: tree clean: []
 ```
 
-The second is the more instructive one and it is a **single leaked return value**.
-`AtomicFileWriter` reaches its temp file through `Files.createTempFile`, which ends in
-`dir.resolve(name)`; with `resolve` handing back a delegate path, the temp file is opened on
-the default provider, one of the two forces stops being observed, and the durability tests go
-red. That is the defect this class invites, caught by the tests rather than by reading 350
-lines of forwarding.
+**Corrected claim.** An earlier version of this section said of the `resolve` plant that
+"one of the two forces stops being observed, and the durability tests go red". That is not
+what happens. `Files.move` throws `AtomicMoveNotSupportedException` because the temp file and
+the target end up on different providers, so the write dies **before any force count is ever
+compared**. The four durability failures are that exception, not an assertion. The one thing
+the plant does establish is the two assertion failures, in the wrapping test.
 
-### Criterion 7 — the document
+### Criterion 6, continued — the seven return values no test constrained
 
-`doc:40-durability` §4's `Enforcement gap:` is replaced by an `Enforced by:` naming the
-mechanism and both plants, with the production-configurability argument stated in the
-document rather than only in a bean. The section's **other** half — the ArchUnit and Detekt
-rules restricting who may call `java.nio.file.Files` write methods — is untouched by this
-bean and stays a gap, now naming `bean:0150` rather than the epic. It is about what *other*
-code may call, not about what `AtomicFileWriter` does, and conflating the two is how a
-half-closed gap reads as closed.
+Review found the harder half of the same defect and it was **silent**: leaking
+`InstrumentedPath.getName`, `subpath`, `relativize` and `toRealPath`, plus
+`Provider.readSymbolicLink`, `Provider.getPath(URI)` and `FileSystem.getRootDirectories`,
+**all seven at once**, gave 41 tests and 0 failures. The class KDoc's claim that "every
+operation that returns a path returns a wrapped one" was true by inspection only, and
+unguarded against the next edit — which is the state this whole bean exists to refuse.
 
-`bean:0150`'s criterion 7 is re-pointed, with a table separating the three questions that
-were being carried as one: whether a force is issued (closed here), whether a crash leaves a
-recoverable store (still `bean:0150`), and whether the platform honours a force (nobody, and
-no test in this repository reaches it).
+`every path-returning method on the wrapper is wrapped, including the ones no other test
+drives` now constrains all seven:
+
+```
+planted (7+ 7-)  across InstrumentedPath.kt, InstrumentedFileSystemProvider.kt and
+                 InstrumentedFileSystem.kt — three files, so this one plant was applied by
+                 hand rather than through tools/plant.sh, whose contract is one file
+observed: every path-returning method on the wrapper is wrapped, including the ones no other
+          test drives() FAILED
+          org.opentest4j.AssertionFailedError:
+            expected:<...testfs.InstrumentedFileSystemProvider@acd3460>
+            but was:<sun.nio.fs.MacOSXFileSystemProvider@3ea9…>
+reverted: tree clean: []
+```
+
+The KDoc's claim is now enforced rather than asserted.
 
 ### Criterion 8 — the gate, and the coverage baseline
 
 ```
 cmd:      ./gradlew ktlintFormat
-observed: BUILD SUCCESSFUL in 12s
+observed: BUILD SUCCESSFUL in 1s
 cmd:      ./gradlew qualityCheck
-observed: BUILD SUCCESSFUL in 2m 55s
-          186 actionable tasks: 14 executed, 1 from cache, 171 up-to-date
+observed: BUILD SUCCESSFUL in 1m 49s
+          186 actionable tasks: 17 executed, 7 from cache, 162 up-to-date
 cmd:      git status --porcelain config/coverage/baseline.tsv
 observed: (no output)
+cmd:      integration test counts, from build/test-results/integrationTest/*.xml
+observed: 42 tests, 0 failures, 0 errors — AtomicWrite 8, AtomicWriteDurability 4,
+          CrossProcessLock 5, InstrumentedFileSystem 7, OptimisticConcurrency 10,
+          PathLocking 8
 ```
 
 The baseline is **unchanged**, and the criterion asked for that rather than for a rewrite: a
@@ -221,8 +314,15 @@ been a finding — either the seam had reached production code, or a test had st
 a line no test covered before, and both want explaining. Neither happened.
 
 `coverageBaselineWrite` was therefore never run, so `bean:0033`'s provenance blocks are
-intact by not being touched. That is the first change in this sequence that did not have to
-restore them by hand; the count stays at ten.
+intact by not being touched — four `REGRESSION` blocks on this base, and the restoration
+tally in `config/coverage/baseline.tsv` reads **sixteen** after `bean:0152` added six. This
+is the first change in that sequence that did not have to restore anything by hand, and the
+count is unchanged by it.
+
+*(An earlier version of this sentence said "the count stays at ten". That was true at the
+head it was written against and false after the rebase onto `60132a8`, which is the
+live-figure-versus-stamped-capture distinction applied to a number this bean states about
+another file rather than about itself.)*
 
 ## What this bean does not establish
 
@@ -234,5 +334,24 @@ restore them by hand; the count stays at ten.
   against it yet. `doc:40-durability` §4.2 step 3 mandates the loop on the append path, which
   does not exist until `bean:0175`. The instrument ships now because a seam with one
   instrument is a seam that gets rebuilt for the second.
-- **Anything about `bean:0148`'s log format.** No production source is touched by this bean
-  at all; `git diff --stat` on `src/main` is empty.
+- **Anything about `bean:0148`'s log format.** No *executable* production change: the only
+  edit under `src/main` is KDoc in `AtomicFileWriter.kt`, correcting two passages this bean
+  makes false.
+
+  The precise claim, measured rather than asserted, because "byte-identical" would have been
+  wrong: `javap -p -c` on `AtomicFileWriter.class` is **identical across the edit** — 219
+  lines of disassembly, no diff — while the `.class` file itself is **not**, because a KDoc
+  edit that changes line count shifts the `LineNumberTable`. Instructions unchanged, debug
+  metadata moved.
+
+```
+cmd:      javap -p -c …/AtomicFileWriter.class   # before and after the KDoc edit
+observed: IDENTICAL instructions (219 lines of disassembly)
+```
+
+  The passages corrected: `AtomicFileWriter`'s class KDoc said "Neither `force` is covered by
+  a test … both `channel.force(true)` calls can be deleted with the suite staying green" and
+  `SyncObserver`'s said the `SIGKILL` test was "the only thing in the plan that could detect
+  a missing `fsync`". This bean makes both false, and `doc:40-durability` §4 and `bean:0150`
+  already say so. Leaving them would be the half-closed-reads-as-closed failure this bean was
+  careful about elsewhere, inverted — a *closed* gap still telling its reader it is open.

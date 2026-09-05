@@ -51,7 +51,12 @@ class InstrumentedFileSystems private constructor(
          *
          * Not used by `bean:0174`, which owns only the recording half. It ships here rather
          * than in `bean:0175` because a seam with one instrument is a seam that gets rebuilt
-         * for the second, and `InstrumentedFileChannelTest` proves it works.
+         * for the second; `InstrumentedFileSystemIntegrationTest` drives it, so it is live
+         * code rather than an unexercised parameter waiting for its first caller.
+         *
+         * **It constrains `write(ByteBuffer)` and nothing else** — see the boundary note on
+         * [InstrumentedFileChannel]. `bean:0175`'s appender must write through that overload
+         * or its short-write criterion passes vacuously.
          */
         fun writingAtMost(bytes: Int): InstrumentedFileSystems = InstrumentedFileSystems(shortWriteLimit = bytes)
     }

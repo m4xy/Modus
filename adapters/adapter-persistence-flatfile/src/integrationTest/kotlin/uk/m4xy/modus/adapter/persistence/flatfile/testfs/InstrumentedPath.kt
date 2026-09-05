@@ -21,10 +21,11 @@ import java.nio.file.WatchService
  *
  * **Every operation that returns a path returns a wrapped one.** An override that leaks a
  * delegate path is the defect this class invites: the leak compiles, the test still passes,
- * and it silently stops exercising the seam from that point on. `InstrumentedFileSystemTest`
- * asserts the wrapping survives `resolve`, `getParent`, `normalize`, `toAbsolutePath` and a
- * directory listing, because reading the forwarding by eye is exactly how such a defect is
- * missed.
+ * and it silently stops exercising the seam from that point on.
+ * `InstrumentedFileSystemIntegrationTest` asserts the wrapping survives every path-returning
+ * method on this class and on the provider and filesystem beside it, because reading the
+ * forwarding by eye is exactly how such a defect is missed — and because leaking seven of
+ * them at once was measured giving 41 tests and 0 failures before those assertions existed.
  */
 class InstrumentedPath internal constructor(
     internal val delegate: Path,

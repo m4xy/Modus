@@ -6,7 +6,7 @@ type: feature
 priority: high
 created_at: 2026-09-05T00:00:00Z
 parent: modus-0018
-blocked_by: [modus-0147, modus-0174, modus-0175, modus-0176, modus-0149, modus-0150, modus-0132]
+blocked_by: [modus-0147, modus-0176, modus-0149, modus-0150, modus-0132]
 ---
 
 # The session endpoint — the read-only slice that lights the app shell
