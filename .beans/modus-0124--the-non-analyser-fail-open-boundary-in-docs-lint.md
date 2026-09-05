@@ -175,8 +175,16 @@ stderr: FAIL check -  line 301: a command exited 1 and nothing checked it: 'sort
 exit: 1
 stdout: docs-lint: 1 failure(s).
 stderr: FAIL check -  line 303: a command exited 1 and nothing checked it: 'sort -u > "$TMP/declared.txt"' (pipeline exited 1 0 0, left to right)
+--- the same tree against the gate this SHIPS, both interpreters, byte-identical, stderr empty:
+exit: 0
+docs-lint: OK — 20 documents, 111 anchors, 1738 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+--- git status --porcelain after the probe document was removed: empty
 --- (end)
 ```
+
+Twenty documents rather than nineteen, and the reference count moves with the probe file's own
+two references: the plant is visible in the counts line, which is what says the run examined it
+rather than skipping it.
 
 **The inference that let it through is in this bean, and it is false at that site.** The
 red-corpus audit below concluded that "every one of them is a line whose next few lines report
@@ -194,15 +202,18 @@ head:     688f3ba, tools/docs-lint.sh as that commit has it
 tree:     AGENTS.md is TRACKED, so the plant is into a COPY of the corpus — AGENTS.md,
           CLAUDE.md, .beans.yml, .beans, documentation, tools, .github, config and
           architecture-tests copied to a scratch directory and the gate run there. No `.git`
-          there, so the five diff-shaped counts report `-`; the same copy is green before the
-          edit. The edit is one word: `derived, not restated here` -> `not restated here`
-cmd:      /usr/bin/grep -cE '^\|.*derived' AGENTS.md   ->  0
-          /bin/bash tools/docs-lint.sh   and   /opt/homebrew/bin/bash tools/docs-lint.sh
---- /bin/bash 3.2.57 and /opt/homebrew/bin/bash 5.3.9, byte-identical:
+          there, so the five diff-shaped counts report `-`. The edit is one word:
+          `derived, not restated here` -> `not restated here`
+--- the copy BEFORE the edit, with the 688f3ba gate, /bin/bash 3.2.57 (the control that says
+    the copying is not what turns it red):
+exit: 0
+docs-lint: OK — 19 documents, 111 anchors, 1736 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, - introduced, - on origin/main, - closing transitions, - criteria checked, - unnumbered.
+--- after the edit; /usr/bin/grep -cE '^\|.*derived' AGENTS.md now prints 0.
+    /bin/bash 3.2.57 and /opt/homebrew/bin/bash 5.3.9, byte-identical:
 exit: 1
 stdout: docs-lint: 1 failure(s).
 stderr: FAIL check -  line 390: a command exited 1 and nothing checked it: 'grep -nE '^\|.*derived' AGENTS.md > "$TMP/derived.txt"'
---- and the same copy with the row restored, both interpreters:
+--- the same edited copy against the gate this SHIPS, both interpreters, byte-identical:
 exit: 0
 docs-lint: OK — 19 documents, 111 anchors, 1736 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, - introduced, - on origin/main, - closing transitions, - criteria checked, - unnumbered.
 --- (end)
@@ -747,7 +758,9 @@ and `if` body that runs there. That is a plain `false` that writes nothing at al
 file, a failed `cd`, a pipeline that fails at any element under `pipefail`, a command
 substitution that fails, an unbound variable expanded inside `$( )` or inside a pipeline
 element, and a bash syntax error inside `$( )`. It also adds a second record at an analyser's
-call site, which `bean:0123`'s wrapper cannot name.
+call site, which `bean:0123`'s wrapper cannot name; a `grep` at an opted-out site that could
+not look, which `absent_ok` names because the trap there can only name a `return`; and its own
+absence, if anything below the arming disarms it.
 
 **Does not catch**, named because the assertions would otherwise imply it:
 
@@ -1301,38 +1314,79 @@ qualityCheck exit: 0
 `bean:0118` recorded "could not verify: the boundary on the CI image" and called it the figure
 in that bean most likely to be wrong. It was wrong, twice over: the first CI run of this branch
 found a success-path site no run here could see, quoted in the audit section above, and this
-one is the same tree with that site opted out. Five classes, five records, under bash 5.2.21
-and a gawk:
+one is the same tree with the opt-out re-derived. Eight planted points, nine records, the
+analyser's two, and the one-interpreter banner, under bash 5.2.21 and a gawk:
 
 ```
-head:     44422df, GitHub Actions run 33941899636, job 101240866956, ubuntu-latest
-cmd:      GITHUB_TOKEN= gh run view 33941899636 --job 101240866956 --log \
-            | /usr/bin/grep -E 'docs-lint-gate-test:|analyser awk|docs-lint: OK|nothing checked it|an analyser exited|BUILD '
+head:     2efeb1c, GitHub Actions run 33950230043, job 101263499409, ubuntu-latest
+cmd:      GITHUB_TOKEN= gh run view 33950230043 --job 101263499409 --log \
+            | /usr/bin/grep -E 'docs-lint-gate-test:|analyser awk|ONE bash MAJOR|docs-lint: OK|nothing checked it|could not look|an analyser exited|BUILD |bash-compat: |docs-lint-test:'
 observed: [...] each line below is preceded in the capture by the job name, the step name and
                 an ISO-8601 timestamp, all three of GitHub's making and stripped here
+bash-compat: interpreter /bin/bash (bash 5.2.21(1)-release)
+bash-compat: OK — 5 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
 docs-lint-gate-test: interpreter /bin/bash (bash 5.2.21(1)-release)
 docs-lint-gate-test: analyser awk — GNU Awk 5.2.1, API 3.2, PMA Avon 8-g1, (GNU MPFR 4.2.1, GNU MP 6.3.0)
-docs-lint: OK — 19 documents, 111 anchors, 1736 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
-     FAIL check -  an analyser exited 1 and examined nothing; its last argument was '/tmp/tmp.ncl5X0Xzpc/bean-edges.uniq'
-     FAIL check -  line 588: a command exited 1 and nothing checked it: 'cycle="$(awk -F'\t' '   { from[NR] = $1; to[NR] = $2; n = NR }   END {     removed = = 1     while (removed) {       ...'
-     FAIL check -  line 147: a command exited 1 and nothing checked it: 'false __probe_silent__'
-     FAIL check -  line 226: a command exited 1 and nothing checked it: 'cat /no/such/file/__probe_missing_file__'
-     FAIL check -  line 337: a command exited 1 and nothing checked it: 'sed -n 's/__probe_pipeline__//p'' (pipeline exited 1 0, left to right)
-     FAIL check -  line 505: a command exited 1 and nothing checked it: 'probe="$(echo "${__probe_unbound_subst}")"'
-     FAIL check -  line 681: a command exited 1 and nothing checked it: 'cd /no/such/dir/__probe_failed_cd__'
-docs-lint-gate-test: 49 passed, 0 failed.
-BUILD SUCCESSFUL in 51s
-exit:     0, and the `gate` job passed on both events
+docs-lint-gate-test: exercising /bin/bash (bash 5.2.21(1)-release)
+docs-lint-gate-test: ONE bash MAJOR VERSION ONLY on this host. The claims in
+docs-lint-gate-test: tools/docs-lint.sh's trap comment that differ BY interpreter —
+docs-lint-gate-test: which pipeline shapes reach the ERR trap, which element
+docs-lint-gate-test: $BASH_COMMAND names, and what $LINENO holds inside a loop body —
+docs-lint-gate-test: are exercised here for bash 5 and for no other.
+docs-lint-test: 76 passed, 0 failed.
+docs-lint: OK — 19 documents, 111 anchors, 1738 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+     FAIL check -  an analyser exited 1 and examined nothing; its last argument was '/tmp/tmp.BdfRtFLfb1/bean-edges.uniq'
+     FAIL check -  line 655: a command exited 1 and nothing checked it: 'cycle="$(awk -F'\t' '   { from[NR] = $1; to[NR] = $2; n = NR }   END {     removed = = 1     while (removed) {       ...'
+     FAIL check -  an opted-out command exited 2 and could not look, which is not 'no match': grep -c . /no/such/file/__probe_cannot_look__
+     FAIL check -  line 205: a command exited 1 and nothing checked it: 'false __probe_silent__'
+     FAIL check -  line 208: a command exited 2 and nothing checked it: 'return "$ec"'
+     FAIL check -  line 290: a command exited 1 and nothing checked it: 'cat /no/such/file/__probe_missing_file__'
+     FAIL check -  line 401: a command exited 1 and nothing checked it: 'sed -n 's/__probe_pipeline__//p'' (pipeline exited 1 0, left to right)
+     FAIL check -  line 573: a command exited 1 and nothing checked it: 'probe="$(echo "${__probe_unbound_subst}")"'
+     FAIL check -  line 750: a command exited 1 and nothing checked it: 'cd /no/such/dir/__probe_failed_cd__'
+     FAIL check -  line 818: a command exited 1 and nothing checked it: 'false __probe_check14__'
+     FAIL check -  line 894: a command exited 1 and nothing checked it: 'cat /no/such/file/__probe_last_statement__'
+docs-lint-gate-test: 74 passed, 0 failed, over 1 bash major version(s).
+BUILD SUCCESSFUL in 56s
+exit:     0, and the `gate` job passed
 ```
+
+And the shape table the suite now prints on every run, taken there — the runner's own answer
+to the question the gate's trap comment turns on, rather than this machine's reasoning about it:
+
+```
+head:     2efeb1c, the same job; the same capture, `grep -A 14 'what an ERR trap can see'`
+     /bin/bash (bash 5.2.21(1)-release) — firings per shape
+       while             	1
+       for               	1
+       until             	1
+       if                	1
+       case              	1
+       brace group       	1
+       redirected group  	1
+       subshell          	2
+       simple command    	1
+       function          	1
+ok   a pipeline ending in a simple command reaches the trap under bash 5.2.21(1)-release
+ok   and one ending in a function does too, under bash 5.2.21(1)-release
+```
+
+**bash 5.2.21 on the runner answers exactly as bash 5.3.9 does here, and neither answers as
+3.2.57 does.** That is the difference the first CI run of this branch went red on, now printed
+by the suite on the machine it matters on instead of inferred from a Homebrew build.
 
 **Two figures differ from this machine's, and neither is asserted on.** The analyser's exit
 status is **1** there against **2** here, which is gawk against the BSD awk macOS ships and is
 the difference `bean:0123` had to stop asserting on. And the **line number** in one record is
-the interpreter's rather than the gate's: the missing-file plant sits at line 226 of the
-mutated copy, which is what bash 5.2.21 reports, and `/bin/bash` 3.2.57 reports **207** for the
-same line because `$LINENO` inside a `for` body is not the file's line there. Both are printed
-and neither is required, for the reason `bean:0123` gives: a number that differs per image is a
-measurement and not a requirement.
+the interpreter's rather than the gate's: the missing-file plant sits at line 290 of the
+mutated copy under bash 5, and `/bin/bash` 3.2.57 reports **271** for the same line because
+`$LINENO` inside a `for` body is not the file's line there. Both are printed and neither is
+required, for the reason `bean:0123` gives: a number that differs per image is a measurement
+and not a requirement.
+
+**And one figure is smaller there, which is the point of it.** `74 passed` against `110` here:
+the suite repeats its run assertions per bash MAJOR version, the runner has one, and it says so
+in five lines rather than leaving a reader to infer it from a pass count.
 
 ## Can the suite tell this change from its absence, and from its deletion?
 
