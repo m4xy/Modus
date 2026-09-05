@@ -144,12 +144,13 @@ class PathLockingIntegrationTest {
 
     @Test
     fun `the multi-lock helper acquires in canonical order, whatever order it was given`() {
-        // The probe timeout must be far SHORTER than how long the holder keeps `alice`, and
-        // this is load-bearing rather than tuning. With the two equal, the first version of
-        // this test passed against the unordered mutation by 250 ms: the holder's own await
-        // expired, it released `alice`, the mutated helper finished, and the probe acquired
-        // `bob` just inside its window. The mutation survived a test written to kill it.
-        val locks = PathLocks(PROBE_TIMEOUT)
+        // No lock in this test may time out, and that is the whole design of it. Two
+        // earlier versions bounded the probe with the LOCK's timeout and both were decided
+        // by a race between two expiries rather than by the ordering: the first let the
+        // mutation pass outright, and the second killed it through a later assertion while
+        // the one the comment pointed at still passed. The bound is the LATCH's, so the
+        // only thing that can end the probe early is acquiring the lock.
+        val locks = PathLocks(NOTHING_TIMES_OUT)
         // "alice.md" sorts before "bob.md", so canonical order is alice-then-bob.
         val alice = root.resolve("alice.md")
         val bob = root.resolve("bob.md")
@@ -179,10 +180,16 @@ class PathLockingIntegrationTest {
 
         // It cannot be inside the action: `alice` is held by another thread.
         enteredBoth.await(SETTLE_MILLIS, TimeUnit.MILLISECONDS) shouldBe false
-        // And it is blocked on `alice` — the canonically FIRST path — rather than sitting
-        // on `bob`, which it was asked for first. This is the assertion: with the ordering
-        // removed, the helper holds `bob` here and this call times out instead.
-        locks.exclusive(bob) { "free" } shouldBe "free"
+
+        // The assertion. The helper is blocked on `alice` — the canonically FIRST path —
+        // and has not touched `bob`, which it was asked for first, so a third thread takes
+        // `bob` at once. With the ordering removed the helper is sitting on `bob` and
+        // cannot release it until `alice` frees, which is not for another minute.
+        val bobTaken = CountDownLatch(1)
+        val prober = Thread { locks.exclusive(bob) { bobTaken.countDown() } }
+        prober.start()
+        bobTaken.await(PROBE_WINDOW_SECONDS, TimeUnit.SECONDS) shouldBe true
+        prober.join()
 
         releaseAlice.countDown()
         holder.join()
@@ -251,10 +258,13 @@ class PathLockingIntegrationTest {
         val MEDIUM_TIMEOUT: Duration = Duration.ofSeconds(2)
 
         /**
-         * The lock timeout of the ordered-acquisition test, deliberately far shorter than
-         * [AWAIT_SECONDS]: the probe has to give up while the other path is still held.
+         * A lock timeout no test is meant to reach. The ordered-acquisition test bounds
+         * its probe with a latch instead, so a timeout there is a bug in the test.
          */
-        val PROBE_TIMEOUT: Duration = Duration.ofSeconds(5)
+        val NOTHING_TIMES_OUT: Duration = Duration.ofSeconds(60)
+
+        /** How long the ordered-acquisition test waits for a free lock before failing. */
+        const val PROBE_WINDOW_SECONDS = 5L
 
         /** How long a thread holds a lock for another thread to observe. */
         const val AWAIT_SECONDS = 60L
