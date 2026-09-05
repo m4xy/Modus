@@ -9,15 +9,19 @@
 #   :core-domain: covered branches 44 -> 38
 # REGRESSION accepted with -Pcoverage.regress: GrantIssued stores its capabilities as a Set rather than a List, so three toSet() calls disappear from equals, hashCode and the field initialiser; six instructions leave the source, none become uncovered (missed instructions stay 0)
 #   :core-domain: covered instructions 1549 -> 1543
+# REGRESSION accepted with -Pcoverage.regress: PathLocks moved its stripe map from an instance field to the companion object so two DocumentStore instances over one root share one lock (bean:0147 criterion 8); the per-instance field initialiser leaves the source, none of its instructions become uncovered (missed instructions stay 0)
+#   :adapter-persistence-flatfile: covered instructions 780 -> 778
 # Restored by hand in bean:0032, bean:0030, twice in bean:0036, again in bean:0065 and
-# again in bean:0147 after coverageBaselineWrite erased it; it also erases a PREVIOUS
+# twice in bean:0147 after coverageBaselineWrite erased it; it also erases a PREVIOUS
 # regression block when recording a new one. bean:0065 is the cleanest instance yet: the
 # writer destroyed all six lines on a run in which NO figure changed, because it rebuilds
 # the file from a constant header plus rows and the note it composes is empty unless THIS
-# run regressed. bean:0147's run did not regress either — it only raised covered counts on
-# one module — and the block went the same way. bean:0033 makes it survive.
+# run regressed. bean:0147 saw both halves in one branch: its first write did not regress
+# and the block went anyway, and its second DID regress and erased the two older blocks
+# while writing its own — so a regression is recorded at the cost of every regression
+# before it. bean:0033 makes it survive.
 :adapter-agent-claude          33	0	0	0
-:adapter-persistence-flatfile  33	0	780	18
+:adapter-persistence-flatfile  33	0	778	18
 :adapter-rest                  3	0	0	0
 :adapter-vcs-git               33	0	0	0
 :core-application              6	0	0	0

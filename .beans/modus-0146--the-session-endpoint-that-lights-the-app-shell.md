@@ -6,7 +6,7 @@ type: feature
 priority: high
 created_at: 2026-09-05T00:00:00Z
 parent: modus-0018
-blocked_by: [modus-0017, modus-0132]
+blocked_by: [modus-0147, modus-0148, modus-0149, modus-0150, modus-0132]
 ---
 
 # The session endpoint — the read-only slice that lights the app shell
@@ -100,9 +100,13 @@ MSW: the dev-server wiring below, the session contract, and capability gating. E
 behind it renders its empty or locked state, which is the honest picture of a backoffice with
 one endpoint.
 
-Its edges: `modus-0017`, the durable store, because `bean:0009` declared `ActorRepository`
-and `PermissionGrantRepository` and implemented neither; and `modus-0132`, which settles what
-this route is called before the first controller is written. `bean:0009` and `bean:0030` are
+Its edges: the durable store, because `bean:0009` declared `ActorRepository` and
+`PermissionGrantRepository` and implemented neither; and `modus-0132`, which settles what
+this route is called before the first controller is written. The store edge named
+`modus-0017` when this bean was written and now names that bean's four children,
+`bean:0147` to `bean:0150`: `docs-lint` check 12 refuses an edge onto a `type: epic` bean,
+and all four rather than a subset because the single edge cleared only when all four bullets
+were done, so naming all four clears at exactly the same moment (`bean:0017`). `bean:0009` and `bean:0030` are
 `completed` and supply the model. The work-item chain — `modus-0067`, and `modus-0013`
 behind it — is **no longer an edge here**: it belonged to the work route, and the work route
 went back to the parent with it.

@@ -93,10 +93,18 @@ verbatim, revert, green again (`doc:35-testing#load-bearing-evidence`). The tree
 before **every** plant and after every revert, asserted by the driver rather than assumed
 (`AGENTS.md`, and `bean:0102`); each entry below carries its `tree clean: []`.
 
-Thirteen mutations, thirteen killed, every one by tests about the thing it broke. Two of
-them were killed only after a defect in the **tests** was found by this pass and fixed —
-both recorded under "What this evidence pass found in its own tests" below, because a
-mutation that a test lets through is the finding, not a step on the way to one.
+Thirteen mutations at first submission, thirteen killed, every one by tests about the thing
+it broke. Two of them were killed only after a defect in the **tests** was found by this pass
+and fixed — both recorded under "What this evidence pass found in its own tests" below,
+because a mutation that a test lets through is the finding, not a step on the way to one.
+
+Review added three more, and **all three of those found something these thirteen had not**,
+which is the honest summary of this bean's evidence and is recorded here rather than buried
+in the criterion it belongs to. Two deleted an `fsync` and the suite stayed green (criterion
+1); one restored per-instance lock stripes and the suite stayed green (criterion 8). Sixteen
+mutations now, fifteen killed and one demoted to an admitted gap. The thirteen were chosen by
+the author of the code they were testing, and they were blind in exactly the direction that
+author was.
 
 The suite:
 
@@ -104,10 +112,14 @@ The suite:
 cmd:      ./gradlew :adapter-persistence-flatfile:integrationTest
 observed: BUILD SUCCESSFUL
           AtomicWriteIntegrationTest            tests="8"  failures="0" errors="0"
-          CrossProcessLockIntegrationTest       tests="4"  failures="0" errors="0"
+          CrossProcessLockIntegrationTest       tests="5"  failures="0" errors="0"
           OptimisticConcurrencyIntegrationTest  tests="10" failures="0" errors="0"
           PathLockingIntegrationTest            tests="8"  failures="0" errors="0"
 ```
+
+31 tests. The fifth in `CrossProcessLockIntegrationTest` arrived with the review fix under
+criterion 8; the counts elsewhere in this bean that say "thirty" describe the suite as first
+submitted and are left as they stood.
 
 ### Criterion 1 — the steps, in order, at the two observed points
 
@@ -516,23 +528,43 @@ is named as such rather than assumed.
 
 ```
 cmd:      ./gradlew ktlintFormat
-observed: BUILD SUCCESSFUL in 383ms
+observed: BUILD SUCCESSFUL in 751ms
 cmd:      ./gradlew qualityCheck
-observed: BUILD SUCCESSFUL in 1m 24s
-          165 actionable tasks: 7 executed, 158 up-to-date
+observed: BUILD SUCCESSFUL in 3m 11s
+          174 actionable tasks: 10 executed, 164 up-to-date
 cmd:      ./gradlew coverageBaselineWrite
 observed: :adapter-persistence-flatfile  33 0 0 0 -> 33 0 780 18
+
+          then, after the review fix moved PathLocks' stripe map to the companion:
+
+cmd:      ./gradlew coverageBaselineWrite
+observed: :adapter-persistence-flatfile  33 0 780 18 -> 33 0 778 18  <-- REGRESSION
+          > coverageBaselineWrite refuses to record worse coverage:
+            :adapter-persistence-flatfile (covered instructions 780 -> 778). Restore the
+            coverage, or re-run with -Pcoverage.regress=<reason>
+          BUILD FAILED
+
+cmd:      ./gradlew coverageBaselineWrite -Pcoverage.regress="PathLocks moved its stripe map
+            from an instance field to the companion object ..."
+observed: :adapter-persistence-flatfile  33 0 780 18 -> 33 0 778 18  <-- REGRESSION
+          BUILD SUCCESSFUL
 ```
 
-Written by the task, not by hand, and no `-Pcoverage.regress` was needed: the missed counts
-are unchanged and only the covered counts moved. The 33 missed instructions that remain are
-the pre-existing `FlatFilePersistenceAdapter` placeholder, untouched by this bean. Every
-instruction and every branch of the new code is covered — asserted by reading the JaCoCo XML
-per method, not inferred from the module total.
+Written by the task, not by hand, both times. The two instructions are the per-instance field
+initialiser leaving the source when the stripe map became JVM-wide; **no instruction became
+uncovered** — missed instructions and missed branches stay at 0 — which is why the reason is
+recorded rather than the change reverted. The 33 missed instructions that remain are the
+pre-existing `FlatFilePersistenceAdapter` placeholder, untouched by this bean. Every
+instruction and every branch of the new code is covered, asserted by reading the JaCoCo XML
+per method rather than inferred from the module total.
 
-**The writer erased the regression-provenance header again**, on a run in which no figure
-regressed. That is the sixth instance and it is `bean:0033`'s subject; the block is restored
-by hand in the same diff and the header now records this instance beside the previous five.
+**`bean:0033`'s defect fired twice on this one branch, and the second form is worse than the
+first.** The first write did **not** regress — it only raised covered counts — and the
+provenance header went anyway, which is `bean:0065`'s instance exactly. The second write
+*did* regress, and while composing its own `REGRESSION` block it erased the **two older
+ones**: so recording a regression costs you every regression recorded before it, and the
+worse the change the more history the writer destroys. Restored by hand both times, in the
+same diff; the header now records both instances beside the previous five.
 
 ## What this evidence pass found in its own tests
 
