@@ -144,7 +144,13 @@ need `bean:0066` merged (`bean:0153`); persistence (`bean:0017`); any REST surfa
 ## Evidence
 
 `./gradlew qualityCheck` green on the head rebased onto `99212fc`. `:core-domain` goes
-137 -> 191 tests; the coverage row moves `0 0 1573 130` -> `0 0 2714 240`, so nothing new is uncovered in either half. Both figures are re-derived by a `coverageBaselineWrite` run on the rebased head, not carried over from before it. Every figure
+119 -> 191 tests; the coverage row moves `0 0 1573 130` -> `0 0 2714 240`, so nothing new is
+uncovered in either half. The coverage figures are re-derived by a `coverageBaselineWrite`
+run on the rebased head, not carried over from before it. The test counts are `@Test`
+annotations — 119 on `origin/main`, 191 here — and that method is cross-checked against the
+JUnit XML on this branch, where both give 191. An earlier draft of this line said 137 for
+`main`, which was never measured; it is corrected rather than deleted because an unmeasured
+figure in an evidence section is the defect, not the wrong digit. Every figure
 here is from `./gradlew :core-domain:test` unfiltered unless a `--tests` selector is named.
 
 ### Criterion 1b — criteria cannot be omitted
