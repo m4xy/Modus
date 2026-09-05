@@ -37,8 +37,14 @@ and one that declares the wrong mode is at least a reviewable line rather than a
 a comment. **Do it while there is one implementor** — `InProcessDomainEventDispatch` — rather
 than after `bean:0160` and the four contexts behind it have arrived.
 
-A source-reading ArchUnit rule over the KDoc text is the shape to avoid: it would check that
-a sentence exists, not that it is true, which is the defect this bean is about.
+A source-reading ArchUnit rule over the KDoc text is the shape to avoid, and the reason is
+sharper than "it would check that a sentence exists rather than that it is true". **It would
+be worse than the admitted gap it replaced.** Satisfying criterion 4 swaps `Enforcement gap:`
+for `Enforced by:`, and `doc:README#conventions` admits that line "only once that tool has
+been observed rejecting one" — here, rejecting the *missing*-sentence case. The
+*wrong*-sentence case, an implementation whose KDoc names the mode it does not exhibit, would
+then pass green in perpetuity behind a line telling every reader the rule is enforced. An
+admitted gap at least leaves someone looking (`doc:00-constitution#observed-failing`).
 
 ## Success criteria and evidence
 
@@ -47,5 +53,5 @@ a sentence exists, not that it is true, which is the defect this bean is about.
 | 1 | An implementation of `DomainEventDispatchPort` that declares no delivery mode fails the build, observed failing on a planted implementation and reverted (`doc:00-constitution#observed-failing`) | |
 | 2 | The healthy case is shown passing in the same run — `InProcessDomainEventDispatch` declares synchronous and is green — so the mechanism is not one that rejects every input | |
 | 3 | Declaring a mode an implementation does not exhibit is caught, or the residual is stated plainly as still unenforceable rather than left implied by criterion 1 | |
-| 4 | §4.1.8's `Enforcement gap:` line is replaced by an `Enforced by:` naming the mechanism | |
+| 4 | §4.1.8 carries an `Enforced by:` naming the mechanism. If criterion 3 leaves a residual, the `Enforcement gap:` line is **narrowed to that residual and kept beside it**, never deleted — an `Enforced by:` standing alone claims cover this bean may not have delivered | |
 | 5 | `./gradlew qualityCheck` green | |

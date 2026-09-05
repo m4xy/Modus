@@ -58,12 +58,18 @@ belief drift not at all, so the section's own failure mode does not detect them.
 `doc:05-authoring-for-agents` is at 417 and owns both subjects, so both land there and
 nothing is compressed to fit.
 
-`bean:0066` is left untouched, deliberately, on two grounds. It is `in-progress` and its
-closure is the orchestrator's next act (`doc:00-constitution#bean-lifecycle`), so editing it
-here risks a conflict on a file this branch does not own. And the split is already the one
-`doc:05-authoring-for-agents#bean-split` §5 prescribes: the bean records **what was observed**
-— a doubt flagged and shipped, one belief corrected at three sites — and `doc:05` states the
-rule derived from it. Promoting the rule does not make the observation a duplicate of it.
+`bean:0066` is left untouched, **on the lifecycle ground alone**. It is `in-progress`, its
+closure is the orchestrator's next act (`doc:00-constitution#bean-lifecycle`), and a
+documentation branch editing an in-flight bean it does not own courts exactly the `.beans`
+conflict this repository has already been bitten by.
+
+An earlier draft of this note also argued the split was already the one
+`doc:05-authoring-for-agents#bean-split` §5 prescribes — bean records the observation,
+document states the rule. That is overstated: `bean:0066` does not confine itself to what was
+observed, it generalises, so a sentence of the rule now lives in two places. The duplication
+is real but inert, and its disposal is a one-line amendment at closure converting that
+generalisation into a reference to `doc:05-authoring-for-agents#bean-split` — the
+orchestrator's act, not this branch's.
 
 ## Success criteria and evidence
 
@@ -71,11 +77,11 @@ rule derived from it. Promoting the rule does not make the observation a duplica
 |---|---|---|
 | 1 | §4.1.8 carries an `Enforcement gap:` line naming a bean, and `doc:20-ddd-practices` is still within its 500-line budget | **MET.** The line names `bean:0163` and states what an unchecked declaration lets through: *"an implementation that declares nothing, or declares the mode it is not, fails no build"*. `wc -l documentation/20-ddd-practices.md` → **500**, unchanged, because §4.1.8 is a single-line table row and adding to its text costs no line. `docs-lint` check 8 green, and check 6 resolves `bean:0163` against the tree |
 | 2 | `bean:0161` criterion 4 requires a failure on a zero parse, not a report | **MET.** It now reads *"The check **fails** when it parses zero modules, observed by planting a `settings.gradle.kts` whose `module(...)` calls the parser cannot see"*, with the count kept as a diagnostic beside the gate. The reason is recorded in the bean's prose beside the rule it protects, citing `bean:0051`'s inert check 11 |
-| 3 | Both findings from `bean:0066` are stated in `doc:05-authoring-for-agents`, in the sections that own their subjects, and are not compressed to fit a budget | **MET.** §3 gains restatement's second cost — consistent copies of a wrong belief produce no drift, so the signal every instance in §3's own evidence table was found by is absent — plus the ranking rule that the costliest site is the type other authors implement. §5 gains "flagging a doubt is not narrowing it" and the rule it rests on: the author of a rule is the worst-placed reader of its scope. `wc -l` → **450** of 500, so nothing was shortened to fit |
+| 3 | Both findings from `bean:0066` are stated in `doc:05-authoring-for-agents`, in the sections that own their subjects, and are not compressed to fit a budget | **MET.** §3 gains restatement's second cost — copies that agree produce no drift signal — citing row 4 of its own table as the prior instance and `bean:0066` as the second, plus the ranking rule that the costliest site is the type other authors implement. An earlier draft claimed **every** instance in that table was found by two copies disagreeing; three of the six were not, and the paragraph now records that the table's third column states what was wrong rather than how it was found, so no row of it can evidence a discovery mechanism. §5 gains "flagging a doubt is not narrowing it" and the rule it rests on: the author of a rule is the worst-placed reader of its scope, with the obligation to name the unbuilt member **in the rule's text or the PR body**, so a reviewer can tell a discharged obligation from a skipped one. `wc -l` → **464** of 500, so nothing was shortened to fit |
 | 4 | `./gradlew qualityCheck` green | **MET.** Transcript below |
 
 ```
-docs-lint: OK — 19 documents, 111 anchors, 1869 references, 128 beans, 47 graph edges, 62 selectable, 128 bean ids, 2 introduced, 126 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+docs-lint: OK — 19 documents, 111 anchors, 1872 references, 128 beans, 47 graph edges, 62 selectable, 128 bean ids, 2 introduced, 135 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
 docs-lint-gate-test: 168 passed, 0 failed, over 2 bash major version(s).
 
 > Task :qualityCheck
@@ -83,6 +89,20 @@ docs-lint-gate-test: 168 passed, 0 failed, over 2 bash major version(s).
 BUILD SUCCESSFUL in 1m 32s
 182 actionable tasks: 7 executed, 175 up-to-date
 ```
+
+Re-taken from the shipped tree. An earlier revision recorded `1869 references`, measured
+before the last content edit — the same family of defect as a filtered run recorded as a full
+one, and smaller only because the figure was near-right. **The reference count moves with the
+edit that records it**, so the transcript above was substituted and `docs-lint` re-run to
+confirm it is a fixed point. It took two rounds: the first substitution was correct at
+`1871`, and this very paragraph then cited a bean and made it `1872`. A transcript that
+counts the corpus it lives in is only true once nothing further is written, which is an
+argument for citing such a figure rather than pasting it.
+
+Two of its figures are **not** properties of this branch and will read as stale without being
+wrong: `2 introduced` and `135 on origin/main` are both relative to `origin/main`, which moves
+whenever a sibling merges. `135` was `126` when this branch was cut. The `BUILD SUCCESSFUL`
+timing and task counts likewise depend on configuration-cache state (`bean:0065`).
 
 No plant is recorded against criteria 1 to 3: this change adds no mechanism. Criterion 1
 **records** the absence of one, and `bean:0163` is where a mechanism is built and observed
