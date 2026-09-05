@@ -34,12 +34,79 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT" || exit 2
 
-TMP="$(mktemp -d)"
+# Both statuses are checked because EVERY failure record in this file is a line of
+# $TMP/fails.txt and the exit status is that file's line count: a $TMP that was never
+# created makes every record vanish into a directory that is not there, and the gate then
+# prints `docs-lint: OK` at exit 0 with 287 `FAIL check` lines above it on its own stdout.
+# Measured, by making mktemp fail: bean:0124. These two lines are above the ERR trap
+# because the trap cannot record before the file it records into exists.
+TMP="$(mktemp -d)" || exit 2
 trap 'rm -rf "$TMP"' EXIT
-: > "$TMP/fails.txt"
+: > "$TMP/fails.txt" || exit 2
 
 fail() { printf 'FAIL check %-2s %s\n' "$1" "$2" | tee -a "$TMP/fails.txt"; }
 TAB="$(printf '\t')"
+
+# THE FAILURE PATH for the runtime errors that are not an analyser (bean:0124). The awk
+# wrapper below covers the analysers. This covers the rest of bean:0118's boundary table —
+# a `false`, a missing file, a failed `cd`, a failed pipeline element, and an unbound
+# variable expanded inside `$( )` or inside a pipeline element — every one of which reached
+# the `OK` line at exit 0, three of them having written nothing at all to stderr.
+#
+# AN ERR TRAP, NOT `set -e`. errexit abandons the run at the first non-zero status, so a
+# gate whose purpose is to report every defect in one pass would report one and stop —
+# before the counts line that is its own vacuity assertion. The trap records through the
+# same `fail` every check uses and lets the run continue: the exit status changes and
+# nothing else does.
+#
+# AND NOT `set -E` (errtrace), which is the measured half of that choice. Without errtrace
+# the trap is not inherited by functions, subshells or command substitutions, so a failure
+# inside one is recorded once, at the enclosing statement whose status it makes non-zero.
+# With errtrace the same failure records three and four times, at a depth that is bash's
+# business and not this gate's — and bean:0123 already had to stop asserting on one number
+# that varied by interpreter. WHAT IT COSTS is a failure whose status an enclosing construct
+# then discards: a non-final command inside a `printf … | while read` body, which runs in a
+# subshell of its own. Measured and named in bean:0124, not closed here.
+#
+# Redirected to stderr for the reason the awk wrapper is: a call site inside `$( )` has its
+# stdout captured, and a record on stdout becomes part of the value the caller parses.
+#
+# Every field is passed in rather than read inside the handler, where `$BASH_COMMAND` names
+# the handler and `$LINENO` names its own line. `$BASH_COMMAND` on a failing PIPELINE holds
+# the LAST element, which under `pipefail` is very often the one that succeeded, so the
+# statuses go in beside it: `false | cat` reports `'cat'` and `1 0`, and the `1` is what
+# says which end broke.
+#
+# ONE RECORD IS ONE LINE, which is why the command is flattened and clipped here.
+# `docs-lint: N failure(s).` is a count of the LINES of $TMP/fails.txt, so a record
+# carrying a nineteen-line awk program verbatim reported `20 failure(s).` for two records —
+# measured, on check 12's analyser, in bean:0124. The line number is where the command
+# ENDS, which is what `$LINENO` holds for a multi-line command.
+docs_lint_err() { # <status> <command> <line> <PIPESTATUS as one word-separated string>
+  local cmd="$2"
+  local extra=""
+  cmd="${cmd//$'\n'/ }"
+  if [ "${#cmd}" -gt 120 ]; then cmd="${cmd:0:117}..."; fi
+  case "$4" in *" "*) extra=" (pipeline exited $4, left to right)" ;; esac
+  fail - "line $3: a command exited $1 and nothing checked it: '$cmd'$extra" >&2
+}
+trap 'docs_lint_err $? "$BASH_COMMAND" "$LINENO" "${PIPESTATUS[*]}"' ERR
+
+# `grep` exits 1 when the pattern is ABSENT — an answer about the input — and 2 or more
+# when it could not look, which is a failure. The sites where absence is legal on a GREEN
+# run go through this, so the trap sees the second and not the first: a mechanism that
+# fires on a clean tree is worse than the gap, because it gets removed
+# (doc:00-constitution#observed-failing). Which sites those are is measured, not guessed —
+# bean:0124 runs this file under a recording trap and reads the list off a green run, under
+# BOTH interpreters: bash 3.2 does not reach the trap for a pipeline whose last element is a
+# compound command and bash 5 does, so the audit under the pinned interpreter alone missed a
+# site and the runner found it by going red on a clean tree. The command below runs inside an
+# `||` list, the one context errexit and the ERR trap both exempt.
+absent_ok() { # absent_ok <command…> — status 1 is "no match"; 2 and above still record
+  local ec=0
+  "$@" || ec=$?
+  [ "$ec" -le 1 ] || return "$ec"
+}
 
 # Every analyser in this file runs through this wrapper, which shadows the name rather
 # than guarding each call site. `set -u` is fail-closed only in the top-level shell: an
@@ -252,7 +319,7 @@ REF_RE='(doc:[0-9]{2}[a-z0-9-]*|doc:README|bean:[0-9]{4}[a-z0-9-]*|adr:[0-9]{4}[
 : > "$TMP/refs.tsv"
 for f in $REF_FILES; do
   awk '/^```/ { fence = !fence; next } !fence { print }' "$f" |
-    grep -oE "$REF_RE" |
+    absent_ok grep -oE "$REF_RE" |
     awk -v f="$f" '{ print f "\t" $0 }' >> "$TMP/refs.tsv"
 done
 
@@ -339,7 +406,11 @@ done < "$TMP/derived.txt"
 # (doc:05#reference-syntax). This migration proved a bare path survives the
 # directory it names being deleted with no lint signal at all — a typed
 # reference is the only legal way to point at a bean.
-grep -noE '\bbeans/[0-9]' documentation/*.md AGENTS.md CLAUDE.md 2>/dev/null |
+# `absent_ok` because finding no bare path is the whole point of this check, and because
+# whether the ERR trap SEES that is the interpreter's business: under bash 3.2 a pipeline
+# whose last element is a compound command does not reach the trap, and under bash 5 it does.
+# Found by the CI runner, on a run that had been green on macOS (bean:0124).
+absent_ok grep -noE '\bbeans/[0-9]' documentation/*.md AGENTS.md CLAUDE.md 2>/dev/null |
   while IFS=: read -r f ln _; do
     fail 10 "$f:$ln: bare beans/ path in prose; use a typed bean:NNNN reference (doc:05#reference-syntax)"
   done
@@ -744,7 +815,18 @@ if [ -n "$BASE" ]; then
 fi
 
 # -------------------------------------------------------------------- done ---
-n_fail="$(grep -c . "$TMP/fails.txt")"
+# THE RECORD FILE HAS TO STILL BE HERE. `set -u` firing inside a TOP-LEVEL PIPELINE ELEMENT
+# exits that subshell, and that subshell runs the EXIT trap it inherited — which deletes
+# $TMP out from under the rest of the run. Every record after that is lost, the trap's own
+# included, and the gate then printed `docs-lint: OK` at exit 0 with its twelve counts EMPTY
+# and 287 `FAIL check` lines above it on the same stdout. Measured in bean:0124, at the plant
+# point bean:0118's table cannot reach. `$BASH_SUBSHELL` cannot be used to stop the deletion
+# instead: it reads 0 inside that subshell's EXIT trap under /bin/bash 3.2.57, also measured.
+if [ ! -f "$TMP/fails.txt" ]; then
+  printf 'docs-lint: the failure record %s vanished mid-run; nothing above this line can be trusted.\n' "$TMP/fails.txt"
+  exit 2
+fi
+n_fail="$(absent_ok grep -c . "$TMP/fails.txt")"
 if [ "$n_fail" -gt 0 ]; then
   echo "docs-lint: $n_fail failure(s)."
   exit 1
