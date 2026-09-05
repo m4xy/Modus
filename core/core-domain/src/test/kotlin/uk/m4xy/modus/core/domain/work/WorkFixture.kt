@@ -145,7 +145,15 @@ object WorkFixture {
         epicId: EpicId? = EPIC,
         id: WorkItemId = ITEM,
         domainId: DomainId = MODUS,
-    ): WorkItem = WorkItem.create(id, domainId, TITLE, process, AT, criteria, epicId)
+    ): WorkItem = WorkItem.create(WorkItemSpecification.of(id, TITLE, criteria, epicId), domainId, process, AT)
+
+    /** The specification the default [item] is built from, for a test that is about the spec itself. */
+    fun spec(
+        criteria: List<SuccessCriterion> = THREE_CRITERIA,
+        epicId: EpicId? = EPIC,
+        id: WorkItemId = ITEM,
+        title: WorkItemTitle = TITLE,
+    ): WorkItemSpecification = WorkItemSpecification.of(id, title, criteria, epicId)
 
     /** An [ENGINEERING] item at `doing`, fully evidenced, one move from a legal close. */
     fun readyToClose(criteria: List<SuccessCriterion> = THREE_CRITERIA): WorkItem {

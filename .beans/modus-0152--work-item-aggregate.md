@@ -77,6 +77,23 @@ published. `bean:0154` carries correcting the document and deciding whether `Act
 becomes a third shared-kernel member (which needs an ADR,
 `adr:0004-domain-id-shared-kernel#shared-kernel-membership`).
 
+**Everything a work item is born with arrives as one `WorkItemSpecification`, and its
+criteria are mandatory.** This reverses a decision taken earlier in this bean and the
+reversal is recorded rather than tidied away. `WorkItem.create` had seven parameters;
+Detekt's `LongParameterList` refuses six; the first fix defaulted `criteria` to
+`emptyList()`. That was wrong, and wrong in the specific way this bean exists to prevent:
+an item with no criteria closes with no evidence — which is the correct rule — so the
+default made the **shortest path to a `WorkItem`** the one that produces an item able to
+close having proved nothing. A hole in the rule, reachable by writing less code.
+
+The lint was reporting a missing concept rather than asking for a default.
+`WorkItemSpecification` is that concept — identity, title, criteria, epic: everything fixed
+for the item's life — and it also collapses the root's constructor from eight parameters to
+four, because what remains is exactly the mutable half. The duplicate-criterion-id invariant
+moves onto it, which is where a structural property of a value belongs
+(`doc:20-ddd-practices#invariants` §7.1). `epicId` keeps its default: absence there is
+meaningful, and omitting it cannot weaken a guard.
+
 **A per-context sealed exception root, not a repository-wide `DomainException`.**
 `doc:20-ddd-practices#invariants` §7.2 names a sealed `DomainException` hierarchy; a root
 spanning every context would be a third shared-kernel member and needs an ADR. `WorkException`
@@ -88,6 +105,7 @@ context. `bean:0154` carries the wider question.
 | # | criterion | evidence kind |
 |---|---|---|
 | 1 | `WorkItem` and `Epic` are aggregate roots under `..work.aggregate`: private constructor, named factory, no public mutable surface, `final` | citation + `rule:archunit/aggregatesAreSealedOrFinal` |
+| 1b | A `WorkItem` cannot be created without stating its success criteria — no parameter of `WorkItem.create` or `WorkItemSpecification.of` defaults the criteria | citation + test-run |
 | 2 | `WorkItemCreated`, `WorkItemTransitioned` and `WorkItemClosed` are raised by the root, never dispatched, and accumulate on `pendingEvents`; `drainEvents` hands them over exactly once | test-run |
 | 3 | The state machine is data, not code: two processes with disjoint state vocabularies drive the same aggregate, a state terminal in one is a legal intermediate in the other, and `src/main` under `..domain.work` contains no enum and no state literal | test-run + `grep` over `src/main` |
 | 4 | A transition the domain's process does not permit is refused with `WorkItemTransitionNotPermittedException`, and every transition it does permit is allowed | test-run, rejecting **and** accepting case |
@@ -103,6 +121,8 @@ context. `bean:0154` carries the wider question.
 | 14 | The `WorkContext` marker is gone and `BoundedContexts` names `work` as a literal | `git diff`; `BoundedContextsTest` still asserts six |
 | 15 | `./gradlew qualityCheck` is green | test-run |
 
+Criterion count is 16 with 1b; the table is the authority, not this sentence.
+
 Out of scope, explicitly: consuming `ProcessDefinitionChanged` and every use case
 (`bean:0153`); implementing `RaisesDomainEvents` and adding a `DrainEventsTest` case, which
 need `bean:0066` merged (`bean:0153`); persistence (`bean:0017`); any REST surface
@@ -110,8 +130,21 @@ need `bean:0066` merged (`bean:0153`); persistence (`bean:0017`); any REST surfa
 
 ## Evidence
 
-`./gradlew qualityCheck` green. `:core-domain` goes 130 -> 173 tests; the coverage row moves
-`0 0 1543 130` -> `0 0 2505 216`, so nothing new is uncovered in either half.
+`./gradlew qualityCheck` green. `:core-domain` goes 130 -> 176 tests; the coverage row moves
+`0 0 1543 130` -> `0 0 2654 238`, so nothing new is uncovered in either half.
+
+### Criterion 1b — criteria cannot be omitted
+
+`WorkItemSpecification.of(id, title, criteria, epicId = null)` is the only route into a
+`WorkItem`, and `criteria` carries no default. `grep -n "criteria" ` over
+`WorkItemSpecification.kt` and `WorkItem.kt` shows one declaration of the parameter and no
+`= emptyList()` anywhere in the context.
+
+The reversal this criterion records was found in review, not by a gate, and no gate would
+have found it: a defaulted parameter is legal Kotlin and the suite passed with it. What
+made it visible was reading the default beside the rule it interacts with — an item with no
+criteria closes freely, so defaulting the criteria makes the easiest call the unsafe one.
+`bean:0026`'s Detekt gap is the nearest mechanism and it would not catch this either.
 
 ### Criterion 3 — the state machine is data, not code
 

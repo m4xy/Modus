@@ -232,3 +232,23 @@ severity and the framing:
 
   Recorded at this length because a future fixer reading the original text would have
   concluded criterion 1 needed no strengthening, and it does.
+
+## Further instances, from `bean:0152`
+
+Two more, both on **upward-only** writes, bringing the count to seven. They are recorded
+here because they are the direct evidence for this bean's title clause *"including one that
+changes nothing"* — the failure is not conditional on a regression, and now three of the
+seven instances had none.
+
+| write | figures | regressed? | provenance |
+|---|---|---|---|
+| `:core-domain` gains the `work` context | `0 0 1543 130` -> `0 0 2505 216` | no — both covered counts rose, both missed counts stayed 0 | all eleven comment lines erased |
+| `:core-domain` gains `WorkItemSpecification` | `0 0 2505 216` -> `0 0 2654 238` | no — same | erased again, including the line recording the previous erasure |
+
+The second is the sharper of the two: the note added by hand after the *first* erasure was
+itself erased by the very next write. So a hand restoration does not survive the next run
+either, which means the current mitigation — "check the diff and restore by hand" — costs
+once per baseline write, not once per regression.
+
+Both restored with `git show origin/main:config/coverage/baseline.tsv`, per `AGENTS.md`'s
+rule against restoring from a `cp` taken earlier.

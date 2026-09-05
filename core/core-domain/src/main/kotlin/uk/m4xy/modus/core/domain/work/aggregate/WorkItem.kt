@@ -9,6 +9,7 @@ import uk.m4xy.modus.core.domain.work.SuccessCriterion
 import uk.m4xy.modus.core.domain.work.UnknownSuccessCriterionException
 import uk.m4xy.modus.core.domain.work.WorkItemAlreadyClosedException
 import uk.m4xy.modus.core.domain.work.WorkItemNotClosableException
+import uk.m4xy.modus.core.domain.work.WorkItemSpecification
 import uk.m4xy.modus.core.domain.work.WorkItemTransitionNotPermittedException
 import uk.m4xy.modus.core.domain.work.event.WorkItemClosed
 import uk.m4xy.modus.core.domain.work.event.WorkItemCreated
@@ -57,16 +58,22 @@ import java.time.Instant
  * [equals]/[hashCode] say so.
  */
 public class WorkItem private constructor(
-    public val id: WorkItemId,
+    private val specification: WorkItemSpecification,
     public val domainId: DomainId,
-    public val epicId: EpicId?,
-    public val title: WorkItemTitle,
     // JustifiedVar: the state machine is this root's reason to exist; transitionTo is its
     // only writer, and it validates against the domain's ProcessDefinition first.
     private var currentState: WorkItemState,
-    private val criteria: List<SuccessCriterion>,
     private val events: MutableList<DomainEvent>,
 ) {
+    /** This item's identity, fixed for its life. */
+    public val id: WorkItemId get() = specification.id
+
+    /** What this item is called. Retitling is not modelled; it would be a new specification. */
+    public val title: WorkItemTitle get() = specification.title
+
+    /** The epic this item belongs to, or null for one that belongs to none. */
+    public val epicId: EpicId? get() = specification.epicId
+
     /**
      * Not a constructor parameter, unlike [events]. A work item is created with nothing
      * proved, always — there is no caller that could legitimately supply evidence at
@@ -81,8 +88,8 @@ public class WorkItem private constructor(
     /** Where this item stands right now, in its own domain's vocabulary. */
     public val state: WorkItemState get() = currentState
 
-    /** A fresh copy every read: mutating it adds no criterion this item must satisfy. */
-    public val successCriteria: List<SuccessCriterion> get() = criteria.toList()
+    /** A fresh copy every read: [WorkItemSpecification.criteria] copies on the way out. */
+    public val successCriteria: List<SuccessCriterion> get() = specification.criteria
 
     /** A fresh copy every read: mutating it evidences nothing. */
     public val evidenceRecords: List<EvidenceRecord> get() = evidence.toList()
@@ -132,7 +139,7 @@ public class WorkItem private constructor(
         if (process.isTerminal(currentState.asStateName())) {
             throw WorkItemAlreadyClosedException(id, currentState)
         }
-        if (criteria.none { it.id == record.criterionId }) {
+        if (specification.criteria.none { it.id == record.criterionId }) {
             throw UnknownSuccessCriterionException(id, record.criterionId)
         }
         evidence += record
@@ -177,7 +184,7 @@ public class WorkItem private constructor(
         currentState = target
         events += WorkItemTransitioned(id, domainId, from, target, at)
         if (closing) {
-            events += WorkItemClosed(id, domainId, target, criteria.size, at)
+            events += WorkItemClosed(id, domainId, target, specification.criteria.size, at)
         }
         return this
     }
@@ -192,7 +199,10 @@ public class WorkItem private constructor(
      */
     private fun criteriaWithoutEvidence(): Set<SuccessCriterionId> {
         val evidenced = evidence.map { it.criterionId }.toSet()
-        return criteria.map { it.id }.filterNot { it in evidenced }.toSet()
+        return specification.criteria
+            .map { it.id }
+            .filterNot { it in evidenced }
+            .toSet()
     }
 
     /**
@@ -220,58 +230,37 @@ public class WorkItem private constructor(
          * ever passing the evidence guard — the guard is on the transition, and an item
          * created in a terminal state never makes one.
          *
-         * Criterion ids must be distinct. Two criteria sharing an id are one criterion the
-         * evidence guard would count once and a reader would count twice, so the count in
-         * [WorkItemClosed] would disagree with the list that produced it. That is a
-         * malformed argument rather than a business rule, so it is a `require`
-         * (`doc:20-ddd-practices#invariants` §7.2).
-         *
-         * The last two parameters are the two a work item may genuinely be without, and
-         * they are the two the store this models already treats as optional: a bean in
-         * `.beans/` carries `parent:` only when it has one, and plenty carry no success
-         * criteria at all. Everything before them is required, and deliberately so —
-         * `process` most of all, because it is what stops an item being created in a state
-         * of the caller's choosing.
-         *
-         * @param criteria may be empty. An item with nothing to prove closes with no
-         *   evidence, and that is correct rather than a hole in the guard: the rule is a
-         *   record **per success criterion**, and zero criteria is zero records. Stating a
-         *   criterion is what makes evidence owed, and `doc:80-agent-operating-procedure`
-         *   step 2 is where an item is required to state one — a procedural rule about
-         *   authoring, which this aggregate is not the place to enforce.
-         * @param epicId absent by default: an item belonging to no epic is a whole work
-         *   item, and the null has no second meaning
-         *   (`doc:20-ddd-practices#domain-prohibitions` §8.2).
+         * Everything an item is born with arrives as one [WorkItemSpecification], which is
+         * where the duplicate-criterion-id invariant lives and which makes its criteria
+         * mandatory. An earlier version took the criteria here with a default of
+         * `emptyList()`, to get under Detekt's `LongParameterList`; that made the shortest
+         * path to a `WorkItem` the one producing an item able to close having proved
+         * nothing — a hole in the rule this whole context exists to enforce, reachable by
+         * writing less code. The lint was reporting a missing concept, not asking for a
+         * default.
          */
         public fun create(
-            id: WorkItemId,
+            specification: WorkItemSpecification,
             domainId: DomainId,
-            title: WorkItemTitle,
             process: ProcessDefinition,
             at: Instant,
-            criteria: List<SuccessCriterion> = emptyList(),
-            epicId: EpicId? = null,
         ): WorkItem {
-            val declared = criteria.toList()
-            require(declared.map { it.id }.toSet().size == declared.size) {
-                "work item '${id.value}' declares duplicate success criterion ids: " +
-                    declared
-                        .map { it.id.value }
-                        .groupBy { it }
-                        .filterValues { it.size > 1 }
-                        .keys
-                        .sorted()
-                        .joinToString(", ")
-            }
             val initial = WorkItemState(process.initial.value)
             return WorkItem(
-                id = id,
+                specification = specification,
                 domainId = domainId,
-                epicId = epicId,
-                title = title,
                 currentState = initial,
-                criteria = declared,
-                events = mutableListOf(WorkItemCreated(id, domainId, epicId, title, initial, at)),
+                events =
+                    mutableListOf(
+                        WorkItemCreated(
+                            specification.id,
+                            domainId,
+                            specification.epicId,
+                            specification.title,
+                            initial,
+                            at,
+                        ),
+                    ),
             )
         }
     }

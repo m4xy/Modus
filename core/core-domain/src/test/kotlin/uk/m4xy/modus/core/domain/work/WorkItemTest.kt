@@ -13,6 +13,7 @@ import uk.m4xy.modus.core.domain.work.WorkFixture.FIRST
 import uk.m4xy.modus.core.domain.work.WorkFixture.ITEM
 import uk.m4xy.modus.core.domain.work.WorkFixture.MODUS
 import uk.m4xy.modus.core.domain.work.WorkFixture.NO_CRITERIA
+import uk.m4xy.modus.core.domain.work.WorkFixture.ONE_CRITERION
 import uk.m4xy.modus.core.domain.work.WorkFixture.OTHER_ITEM
 import uk.m4xy.modus.core.domain.work.WorkFixture.SECOND
 import uk.m4xy.modus.core.domain.work.WorkFixture.THIRD
@@ -24,6 +25,7 @@ import uk.m4xy.modus.core.domain.work.WorkFixture.item
 import uk.m4xy.modus.core.domain.work.aggregate.WorkItem
 import uk.m4xy.modus.core.domain.work.event.WorkItemCreated
 import uk.m4xy.modus.core.domain.work.event.WorkItemTransitioned
+import uk.m4xy.modus.core.domain.work.published.WorkItemTitle
 import kotlin.test.Test
 
 class WorkItemTest {
@@ -76,7 +78,7 @@ class WorkItemTest {
     fun `refuses to create a work item whose success criteria share an id`() {
         val thrown =
             shouldThrow<IllegalArgumentException> {
-                WorkItem.create(ITEM, MODUS, TITLE, ENGINEERING, AT, listOf(criterion(FIRST), criterion(FIRST)), EPIC)
+                WorkItemSpecification.of(ITEM, TITLE, listOf(criterion(FIRST), criterion(FIRST)), EPIC)
             }
 
         thrown.message shouldBe "work item 'modus-0152' declares duplicate success criterion ids: c1"
@@ -91,7 +93,7 @@ class WorkItemTest {
     fun `a duplicate-id refusal names only the ids that repeat`() {
         val thrown =
             shouldThrow<IllegalArgumentException> {
-                WorkItem.create(ITEM, MODUS, TITLE, ENGINEERING, AT, listOf(criterion(FIRST), criterion(SECOND), criterion(FIRST)))
+                WorkItemSpecification.of(ITEM, TITLE, listOf(criterion(FIRST), criterion(SECOND), criterion(FIRST)))
             }
 
         thrown.message shouldBe "work item 'modus-0152' declares duplicate success criterion ids: c1"
@@ -100,9 +102,9 @@ class WorkItemTest {
     /** The accepting half: distinct ids at the same size are fine, and both are kept. */
     @Test
     fun `accepts success criteria with distinct ids`() {
-        val subject = WorkItem.create(ITEM, MODUS, TITLE, ENGINEERING, AT, listOf(criterion(FIRST), criterion(SECOND)), EPIC)
+        val subject = WorkItemSpecification.of(ITEM, TITLE, listOf(criterion(FIRST), criterion(SECOND)), EPIC)
 
-        subject.successCriteria.map { it.id } shouldBe listOf(FIRST, SECOND)
+        subject.criteria.map { it.id } shouldBe listOf(FIRST, SECOND)
     }
 
     @Test
@@ -111,17 +113,58 @@ class WorkItemTest {
     }
 
     /**
-     * The two optional arguments, taken at their defaults rather than passed. Every other
-     * call in this suite supplies both, so without this the defaulted path is never
-     * executed — a default nothing exercises is a shape the tests do not describe.
+     * `epicId` is the one defaulted argument in this context, and every other call in the
+     * suite supplies it — so without this the defaulted path is never executed. `criteria`
+     * has **no** default: an item that owes no evidence must be written down as owing none,
+     * because it can close having proved nothing.
      */
     @Test
-    fun `a work item created without an epic or criteria has neither`() {
-        val subject = WorkItem.create(ITEM, MODUS, TITLE, ENGINEERING, AT)
+    fun `a work item created without an epic has none, and its criteria are still stated`() {
+        val subject = WorkItem.create(WorkItemSpecification.of(ITEM, TITLE, NO_CRITERIA), MODUS, ENGINEERING, AT)
 
         subject.epicId shouldBe null
         subject.successCriteria shouldBe emptyList()
         subject.state shouldBe BACKLOG
+    }
+
+    /**
+     * A specification is a value: two built from equal parts are equal, and one built from
+     * different parts is not. `equals` is hand-written because the type owns a collection
+     * and so cannot be a `data class` (`doc:20-ddd-practices#value-objects` §3.1).
+     */
+    @Test
+    fun `two specifications built from equal parts are equal`() {
+        val subject = WorkFixture.spec()
+
+        subject shouldBe WorkFixture.spec()
+        subject.hashCode() shouldBe WorkFixture.spec().hashCode()
+        subject shouldBe subject
+        subject shouldNotBe WorkFixture.spec(criteria = ONE_CRITERION)
+        subject shouldNotBe WorkFixture.spec(id = OTHER_ITEM)
+        subject shouldNotBe WorkFixture.spec(epicId = null)
+        subject shouldNotBe WorkFixture.spec(title = WorkItemTitle("Something else entirely"))
+        subject shouldNotBe ITEM
+        subject.toString().startsWith("WorkItemSpecification(") shouldBe true
+
+        // The nullable epic is three comparisons, not one, and a fixture that always
+        // carries an epic reaches only the first: null-to-null, null-to-present and
+        // present-to-null are separate paths through `equals`, and the hash has its own.
+        WorkFixture.spec(epicId = null) shouldBe WorkFixture.spec(epicId = null)
+        WorkFixture.spec(epicId = null) shouldNotBe subject
+        WorkFixture.spec(epicId = null).hashCode() shouldBe WorkFixture.spec(epicId = null).hashCode()
+    }
+
+    /**
+     * Two criteria on purpose: at size one `toList()` returns an immutable singleton and the
+     * down-cast throws before it can prove anything (`doc:35-testing#fixture-variation`).
+     */
+    @Test
+    fun `a caller cannot add a criterion through the specification's getter`() {
+        val subject = WorkFixture.spec(criteria = THREE_CRITERIA)
+
+        (subject.criteria as MutableList<SuccessCriterion>).clear()
+
+        subject.criteria.size shouldBe 3
     }
 
     /**
