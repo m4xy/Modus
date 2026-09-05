@@ -112,9 +112,9 @@ Resolution: `kind` selects the directory; `name` MUST include the fixed-width nu
 - Summaries, recaps, convenience tables and examples that re-encode a rule are restatement.
 - A derived listing (for example the routing table in `AGENTS.md`) is permitted only when it is marked derived and names its normative source. On disagreement the source wins and the listing is the bug.
 
-Evidence — PR #1 at review: 13 files (12 documents, 1 bean), +3458 lines, 8 review threads. Six were one fact living in two to four places and drifting apart:
+Evidence — PR #1 at review: 13 files (12 documents, 1 bean), +3458 lines, 8 review threads. Six were one fact living in two to four places and drifting apart, or agreeing on something false:
 
-| drifted fact | copies | outcome |
+| restated fact | copies | outcome |
 |---|---|---|
 | per-model `effort` support | `60` §4.1, `60` §4.4, `70` §3.7 | the specified benchmark grid was four API calls that all return 400 |
 | non-domain-scoped route allowlist | `10` §4.3, `30` §4, `00` §8 | `/domains` missing from two copies; the derived rule failed the build |

@@ -49,9 +49,13 @@ and then by nobody; `doc:05-authoring-for-agents` is read by everyone who writes
 | Flagging a doubt about a rule's scope is not narrowing it | `doc:05-authoring-for-agents#bean-split` §5 |
 | One belief restated at three sites had to be corrected at three, and the three agreed, so nothing could see it was wrong | `doc:05-authoring-for-agents#one-fact-one-place` §3 |
 
-The second is the more generalisable: §3's existing evidence is six facts that **drifted
-apart**, and drift is what makes a duplicate visible. Three consistent copies of one wrong
-belief drift not at all, so the section's own failure mode does not detect them.
+The second is the more generalisable. Where restated copies **drift apart**, the disagreement
+is itself the signal; three consistent copies of one wrong belief drift not at all, so that
+signal is absent. §3's existing evidence contains both shapes — row 4 is three documents
+asserting a `@Disabled` check that cannot exist, agreeing perfectly — so `bean:0066` is the
+pattern's second instance and not its first. An earlier draft of this bean said §3's six rows
+were all facts that drifted apart; they were not, and criterion 3's evidence cell records the
+correction.
 
 `doc:20-ddd-practices` and `doc:00-constitution` are both at the 500-line ceiling.
 `doc:80-agent-operating-procedure` is at 498, which is not room for either passage.
@@ -81,7 +85,7 @@ orchestrator's act, not this branch's.
 | 4 | `./gradlew qualityCheck` green | **MET.** Transcript below |
 
 ```
-docs-lint: OK — 19 documents, 111 anchors, 1872 references, 128 beans, 47 graph edges, 62 selectable, 128 bean ids, 2 introduced, 135 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+docs-lint: OK — 19 documents, 111 anchors, 1873 references, 128 beans, 47 graph edges, 62 selectable, 128 bean ids, 2 introduced, 135 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
 docs-lint-gate-test: 168 passed, 0 failed, over 2 bash major version(s).
 
 > Task :qualityCheck
@@ -94,15 +98,33 @@ Re-taken from the shipped tree. An earlier revision recorded `1869 references`, 
 before the last content edit — the same family of defect as a filtered run recorded as a full
 one, and smaller only because the figure was near-right. **The reference count moves with the
 edit that records it**, so the transcript above was substituted and `docs-lint` re-run to
-confirm it is a fixed point. It took two rounds: the first substitution was correct at
-`1871`, and this very paragraph then cited a bean and made it `1872`. A transcript that
-counts the corpus it lives in is only true once nothing further is written, which is an
-argument for citing such a figure rather than pasting it.
+confirm it is a fixed point. It has taken three rounds so far — `1871`, then `1872` when this
+very paragraph first cited a bean, then `1873` when the review round below added two more
+citations. A transcript that counts the corpus it lives in is true only once nothing further
+is written into that corpus, so it is the last thing to record and it is re-measured after
+every subsequent edit, this sentence included.
 
 Two of its figures are **not** properties of this branch and will read as stale without being
 wrong: `2 introduced` and `135 on origin/main` are both relative to `origin/main`, which moves
 whenever a sibling merges. `135` was `126` when this branch was cut. The `BUILD SUCCESSFUL`
 timing and task counts likewise depend on configuration-cache state (`bean:0065`).
+
+**Most of this is already a rule, and finding that out is the useful part.**
+`doc:50-memory-and-evidence#corpus-figures` §2.7 third bullet owns the self-measurement half
+outright — *"A record that measures a corpus it belongs to changes that corpus"* — and
+prescribes the sentinel-and-diff procedure whose "re-run and diff" step is exactly what caught
+the non-convergence above. Nothing here needs writing for that; it needed reading.
+
+The residue is one bullet's worth and is **not** covered: a sentinel makes a figure neutral
+against the author's own edit, and no sentinel stabilises a figure measured against a moving
+external ref, because a sibling's merge changes it after the author has left. §2.7's second
+bullet says that of a corpus *sweep* and not of a figure inside a pasted transcript, where
+§2.6 forbids silent trimming. **If this recurs, it lands as a bullet on
+`doc:50-memory-and-evidence#corpus-figures` §2.7 permitting a figure relative to a moving ref
+to be elided as `[...]` under §2.6's marking rule** — the elision form already exists, and
+only the permission is missing. One instance, so under
+`doc:05-authoring-for-agents#bean-split` §5 it stays an observation here until there is a
+second.
 
 No plant is recorded against criteria 1 to 3: this change adds no mechanism. Criterion 1
 **records** the absence of one, and `bean:0163` is where a mechanism is built and observed
