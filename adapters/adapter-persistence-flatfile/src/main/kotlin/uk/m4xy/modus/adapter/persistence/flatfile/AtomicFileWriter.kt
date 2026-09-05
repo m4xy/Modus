@@ -34,19 +34,21 @@ public enum class ForcedDescriptor {
  *
  * It **cannot** decide that `channel.force(true)` was called. This notification is a
  * separate statement standing next to the force, not a consequence of it: delete either
- * `force` and leave the notification, and the whole suite stays green — observed, twice, in
- * `bean:0147`'s review. So a test here is evidence about the **sequence of steps**, and the
- * force inside a step is unevidenced. `doc:00-constitution#observed-failing` says a
- * mechanism nobody has watched reject a violation is a claim, and the honest form is an
- * admitted gap: `bean:0150` owns it, because the `SIGKILL`-at-randomised-points test
- * `doc:40-durability` §5 asks for is the only thing in the plan that could detect a missing
- * `fsync`.
+ * `force` and leave the notification, and every test that depends on this interface alone
+ * stays green — observed, twice, in `bean:0147`'s review.
  *
- * The distance between the two is why it is an observer and not a strategy: it is called
- * **after** the real force, so nothing passed here can make the writer skip one. A seam that
- * could disable the mechanism would make every test of that mechanism a test of the seam —
- * and, as the plants above show, the price of that safety is that it cannot witness the
- * mechanism either.
+ * **That is a limit of this interface and no longer a gap in the suite.** `bean:0174` closed
+ * it from outside, with a delegating `java.nio.file.spi.FileSystemProvider` that observes the
+ * real syscall: `AtomicWriteDurabilityIntegrationTest` fails if either `force` is deleted,
+ * and `doc:40-durability` §4 carries an `Enforced by:` naming it. This class was not modified
+ * to make that possible and takes no parameter from it.
+ *
+ * The distance between notification and syscall is why this stayed an observer and did not
+ * become a strategy: it is called **after** the real force, so nothing passed here can make
+ * the writer skip one. A seam that could disable the mechanism would make every test of that
+ * mechanism a test of the seam. The price of that safety is that this interface cannot
+ * witness the mechanism either — which is exactly why the witness had to come from a layer
+ * production cannot be configured to bypass.
  */
 public fun interface SyncObserver {
     public fun forced(
@@ -69,11 +71,14 @@ public fun interface SyncObserver {
  * directory entry to be lost in a crash even though the file's data was synced, leaving a
  * durable file nobody can find and the old content still visible.
  *
- * **Neither `force` is covered by a test, and JaCoCo says otherwise.** The module reports 0
- * missed instructions and 0 missed branches here, and both `channel.force(true)` calls can
- * be deleted with the suite staying green (`bean:0147`, criterion 1). Line coverage counts
- * execution, not consequence. `bean:0150` owns the gap; see [SyncObserver] for what the
- * tests do establish.
+ * **Both `force` calls are covered, and JaCoCo never was the reason.** The module reported 0
+ * missed instructions and 0 missed branches here throughout the period in which both
+ * `channel.force(true)` calls could be deleted with the suite staying green (`bean:0147`,
+ * criterion 1) — line coverage counts execution, not consequence, and this class is the
+ * cleanest example of that distinction in the repository. What closed it was `bean:0174`'s
+ * instrumented filesystem, which observes the syscall rather than a notification beside it;
+ * deleting either call now fails `AtomicWriteDurabilityIntegrationTest`. See [SyncObserver]
+ * for what this class's own seam does and does not establish.
  *
  * **A failed write deliberately leaves its temp file behind.** §4.1 states what a crash
  * leaves — the previous version intact plus an orphan `.tmp` — and §7 makes sweeping those

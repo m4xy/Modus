@@ -1,8 +1,8 @@
 ---
 # modus-0148
 title: The append-only NDJSON log
-status: todo
-type: feature
+status: in-progress
+type: epic
 priority: high
 order: CF
 created_at: 2026-09-05T00:00:00Z
@@ -67,3 +67,50 @@ obvious fixture — append records, chop the file — only ever produces damage 
 a reader that checks only the tail passes every such fixture while failing the condition §7
 actually states. At least one fixture must place a torn record with intact records on
 **both** sides of it.
+
+## Split into three children
+
+Sized before any code was written, as `doc:00-constitution` §6.2 requires, and found over the
+ceiling. Ten criteria, and one of them — the short-write loop — needs a delegating
+`java.nio.file.spi.FileSystemProvider` that is ~350 lines of `Path`/`FileSystem`/`Provider`
+delegation before a single log record is appended. One pull request carrying the seam, the
+write path and the read path is not reviewable and not separately revertible.
+
+| child | what it owns | criteria |
+|---|---|---|
+| `bean:0174` | the instrumented filesystem seam, and `bean:0147`'s `fsync` gap which it closes on arrival | — |
+| `bean:0175` | the record format and the appender: canonical NDJSON, CRC-32C, `seq`/`at`/`kind`, `O_APPEND`, the appender lock, the short-write loop, and the fsync/cursor policy | 1, 2, 8 |
+| `bean:0176` | recovery-on-read and segments: torn-record detection anywhere in the file, `degraded`, `seq` gaps, the truncated-tail repair, and rolling | 3, 4, 5, 6, 7, 9 |
+
+The cut is **write path / read path / the seam both need**, not an arbitrary thirds. Two
+reasons it falls there rather than anywhere else:
+
+- **The seam ships first because it is the only piece with a consumer already on `main`.**
+  `bean:0147` merged carrying an admitted gap — deleting either `channel.force(true)` from
+  `AtomicFileWriter` leaves its suite green — and the seam closes it the day it lands, on
+  code that is already shipped. Everything else here waits for a format that does not exist
+  yet. A test-only change that turns two surviving mutations into two killed ones is exactly
+  an atomic pull request.
+- **The read path is where this bean's stated trap lives** ("The trap this bean is most
+  likely to fall into", above) and it deserves its own review rather than arriving as the
+  back half of a larger diff. A corruption detector reviewed in the same breath as the writer
+  that produced its fixtures is reviewed by someone holding the writer's assumptions.
+
+`bean:0174` re-points `bean:0150`'s criterion 7, which currently assumes the `fsync` gap
+closes no earlier than the `SIGKILL` test.
+
+**The `blocked_by` edges naming this bean moved to the children** — check 12 refuses an edge
+onto a `type: epic` bean — and each names **`modus-0176` alone**.
+
+That is different from what `bean:0017` did, and the difference is not a change of policy.
+`bean:0017`'s four children are independent, so no single one of them clears when the parent
+would have; naming all four was the only edge that preserved the pre-split clearing point.
+These three are a **strict chain** — `0176` is `blocked_by` `0175`, which is `blocked_by`
+`0174` — so `0176` alone clears at exactly that moment and nothing is lost. Over-naming a
+chain is not conservative, it is wrong in a way that shows: `bean:0067` and `bean:0018` would
+each have declared themselves blocked by a test-only filesystem seam they will never call.
+
+An earlier version of this section reused `bean:0017`'s reason verbatim. It does not
+transfer, and reusing a correct argument in a case its premise does not hold is the shape
+`doc:05-authoring-for-agents#one-fact-one-place` warns about — a restatement that drifts from
+the thing it restates.

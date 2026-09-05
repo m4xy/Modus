@@ -5,7 +5,7 @@ status: todo
 type: epic
 priority: normal
 created_at: 2026-08-29T00:00:00Z
-blocked_by: [modus-0038, modus-0147, modus-0148, modus-0149, modus-0150, modus-0022, modus-0044, modus-0045]
+blocked_by: [modus-0038, modus-0147, modus-0176, modus-0149, modus-0150, modus-0022, modus-0044, modus-0045]
 ---
 
 # Repository topology — what becomes its own repository, and when

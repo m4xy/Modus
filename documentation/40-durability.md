@@ -187,11 +187,30 @@ in `adapters/adapter-persistence-flatfile`, and nothing else in the codebase cal
 
 Step 7 is the one people skip. Without it, POSIX permits the directory entry to be lost
 in a crash even though the file's data was synced: you get a durable file nobody can
-find, and the old content still visible. **Enforcement gap:** neither the ArchUnit rule
-restricting `java.nio.file.Files` write methods to a single class, `AtomicFileWriter`, nor
-the Detekt `ForbiddenMethodCall` entry for `File.writeText`, `File.writeBytes` and
-`Files.newOutputStream` outside that class exists — `AtomicFileWriter` itself does not
-exist. `bean:0017` carries it.
+find, and the old content still visible.
+
+**Enforced by:** `AtomicWriteDurabilityIntegrationTest` in
+`adapters/adapter-persistence-flatfile`, which observes both `fsync` calls being **issued**
+— step 4 on the temp file in the target's own directory, step 7 on the parent directory —
+by handing `AtomicFileWriter` a path from an instrumented `java.nio.file.spi.FileSystemProvider`.
+Observed rejecting a planted violation: deleting `channel.force(true)` on the temp file
+fails four tests, and deleting the one on the parent directory fails three, each naming the
+force that went missing (`bean:0174`).
+
+The production class is unmodified by that mechanism and gains no parameter, which is what
+makes it admissible: the disqualifying property under `doc:00-constitution#observed-failing`
+is whether *production* can be configured into a state where the mechanism does not run, and
+here it cannot. `FileChannel.open(Path, Set, FileAttribute...)` dispatches to
+`path.getFileSystem().provider().newFileChannel(...)` by specification, and production always
+resolves the default filesystem. `bean:0147` shipped this section with the gap open because
+the only seam it had — an observer notified *beside* each force rather than by it — could not
+tell a force from no force, and both calls were deletable with all 31 of its tests green.
+
+**Enforcement gap:** neither the ArchUnit rule restricting `java.nio.file.Files` write
+methods to `AtomicFileWriter`, nor the Detekt `ForbiddenMethodCall` entry for
+`File.writeText`, `File.writeBytes` and `Files.newOutputStream` outside that class, exists.
+That half of this section's enforcement is untouched by the above: it is about what *other*
+code may call, not about what `AtomicFileWriter` does. `bean:0150` carries it.
 
 ### 4.1 Guarantees this gives
 
