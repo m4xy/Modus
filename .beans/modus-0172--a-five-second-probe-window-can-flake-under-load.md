@@ -1,5 +1,5 @@
 ---
-# modus-0154
+# modus-0172
 title: The ordering probe's five-second window can flake red under load
 status: todo
 type: fix

@@ -114,7 +114,7 @@ public class PathLocks(
          *
          * It never evicts, so it grows with the number of distinct paths a process has ever
          * touched. That is bounded by the store's document count in a long-lived server and
-         * is `bean:0152`, which is a memory question and not a correctness one — a stripe
+         * is `bean:0170`, which is a memory question and not a correctness one — a stripe
          * that is dropped while nobody holds it and recreated on the next acquisition is
          * still the same lock to every acquirer, so eviction is safe and simply not yet
          * needed.

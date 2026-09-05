@@ -17,6 +17,40 @@ a store that survives being restarted. It is last because §7's recovery table h
 each of them: an orphan `.tmp` is `bean:0147`'s, a torn line is `bean:0148`'s, a document
 failing schema validation is `bean:0149`'s.
 
+## The `fsync` gap this bean inherits, and why `bean:0147` did not close it
+
+`bean:0147` implements `doc:40-durability#atomic-write` and **nothing in it establishes that
+either `fsync` is issued**. Deleting `channel.force(true)` on the temp file, or on the parent
+directory, while leaving the observer notification in place, leaves all of its tests green —
+observed twice. JaCoCo reports 100% instruction and branch coverage on that class, because
+line coverage counts execution and not consequence.
+
+Criterion 7 below is what closes it: the `SIGKILL`-at-randomised-points test
+`doc:40-durability` §5 asks for is the only thing in the four-bean plan that can tell a
+forced write from an unforced one, because the difference is only visible after the process
+dies without flushing.
+
+**Inherit the argument for why it was not closed earlier, so it is not rediscovered.**
+`bean:0147` could have added a seam that lets a test witness `force` — a delegating
+`java.nio.file.spi.FileSystemProvider` whose `newFileChannel` returns a recording
+`FileChannel` is the obvious one. It did not, on this reasoning:
+
+> The seam that would witness a force is a seam that could suppress one, and a mechanism
+> whose test can turn it off is a test of the seam.
+
+That is `doc:00-constitution#observed-failing` applied to the instrument rather than to the
+gate. `SyncObserver` is deliberately called **after** the real force for the same reason, and
+the price of that safety is that it cannot witness the force either — the two properties are
+the same property.
+
+This bean is not bound by that argument, and there is a legitimate route past it: a seam that
+can only **observe** is not the same as a seam that can substitute. A recording `FileChannel`
+that delegates every call including `force` is observation; one that decides whether to
+delegate is substitution. If this bean builds the first, say so and re-point the gap here
+rather than at criterion 7. `bean:0148` may build the same seam for a different reason — a
+short-writing `FileChannel` for `doc:40-durability` §4.2 step 3 — and whichever bean builds
+it first should carry both uses.
+
 ## Success criteria
 
 | # | criterion | evidence |

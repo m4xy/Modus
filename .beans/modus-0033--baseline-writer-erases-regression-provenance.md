@@ -1,13 +1,19 @@
 ---
 # modus-0033
-title: coverageBaselineWrite erases recorded provenance on any write, including one that changes nothing
+title: coverageBaselineWrite destroys recorded provenance on every write, and a regression destroys the ones before it
 status: todo
 type: fix
 priority: normal
 created_at: 2026-08-29T00:00:00Z
 ---
 
-# coverageBaselineWrite erases recorded provenance on any write, including one that changes nothing
+# coverageBaselineWrite destroys recorded provenance on every write, and a regression destroys the ones before it
+
+**The title changed in `bean:0147`.** It named the no-op write, which the seventh and
+eighth observations show is the *milder* half: a write that legitimately records a new
+regression destroys every regression recorded before it, and the original title did not
+cover that. The two observations are at the end of this bean; nothing above them is
+edited.
 
 `config/coverage/baseline.tsv`'s own header states:
 
@@ -97,3 +103,101 @@ restorations so far was caught by a human or agent reading the diff by eye.
   module's row next changes are both defensible; silently dropping on any write is not.
 - The `// The reason lives in the file…` comment at `modus.coverage.gradle.kts` is
   corrected or deleted. It is the claim this bean disproves.
+
+## Seventh and eighth observations (`bean:0147`) — the erasure is worse when the write is legitimate
+
+Both on one branch, in one afternoon, which is what makes them a pair rather than two more
+tally marks. The first is the known shape. The second is not, and it is what retitles this
+bean.
+
+### Seventh — the known shape, confirmed a third time
+
+`bean:0147` adds the flat-file store's write path. Its first baseline write raised
+`:adapter-persistence-flatfile` from `33 0 0 0` to `33 0 780 18` — a pure improvement, no
+`-Pcoverage.regress` needed, no regression of its own.
+
+```
+cmd:      ./gradlew coverageBaselineWrite
+observed: :adapter-persistence-flatfile  33 0 0 0 -> 33 0 780 18
+cmd:      git diff config/coverage/baseline.tsv
+observed: -# REGRESSION accepted with -Pcoverage.regress: identity validators replaced two …
+          -#   :core-domain: covered branches 44 -> 38
+          -# REGRESSION accepted with -Pcoverage.regress: GrantIssued stores its capabilities …
+          -#   :core-domain: covered instructions 1549 -> 1543
+          -# Restored by hand in bean:0032, bean:0030, twice in bean:0036 and again in bean:0065 …
+          (11 header lines deleted; one row changed)
+```
+
+Identical to the `bean:0065` observation above, and restored by hand the same way.
+
+### Eighth — a legitimate regression erases the two regressions before it
+
+Later on the same branch, review found a real defect: `PathLocks` held its lock stripes per
+instance, so two `DocumentStore`s over one root were not serialised. The fix moves the map to
+the companion object, which removes the per-instance field initialiser — **two covered
+instructions leave the source and none becomes uncovered**. Missed instructions and missed
+branches both stay at `0`.
+
+That is exactly the case `-Pcoverage.regress` exists for, and the writer's refusal worked:
+
+```
+cmd:      ./gradlew coverageBaselineWrite
+observed: :adapter-persistence-flatfile  33 0 780 18 -> 33 0 778 18  <-- REGRESSION
+          > coverageBaselineWrite refuses to record worse coverage:
+            :adapter-persistence-flatfile (covered instructions 780 -> 778). Restore the
+            coverage, or re-run with -Pcoverage.regress=<reason>; the reason is written into
+            the baseline and belongs in the pull request body too.
+          BUILD FAILED in 44s
+```
+
+Re-run with the reason, as instructed. It succeeded, recorded its own block — and deleted the
+other two:
+
+```
+cmd:      ./gradlew coverageBaselineWrite -Pcoverage.regress="PathLocks moved its stripe map
+            from an instance field to the companion object …"
+observed: :adapter-persistence-flatfile  33 0 780 18 -> 33 0 778 18  <-- REGRESSION
+          BUILD SUCCESSFUL in 17s
+cmd:      git diff config/coverage/baseline.tsv
+observed: -# REGRESSION accepted with -Pcoverage.regress: identity validators replaced two …
+          -#   :core-domain: covered branches 44 -> 38
+          -# REGRESSION accepted with -Pcoverage.regress: GrantIssued stores its capabilities …
+          -#   :core-domain: covered instructions 1549 -> 1543
+          -# Restored by hand in bean:0032, bean:0030, twice in bean:0036, again in bean:0065 …
+          +# REGRESSION accepted with -Pcoverage.regress: PathLocks moved its stripe map from an
+          +#   instance field to the companion object …
+          +#   :adapter-persistence-flatfile: covered instructions 780 -> 778
+```
+
+Two `REGRESSION` blocks in, one out. `bean:0009`'s reason and `bean:0036`'s reason were both
+destroyed by the act of recording `bean:0147`'s.
+
+### What the eighth observation changes
+
+The mechanism is the same one this bean already names — `header + note + rows`, where `note`
+is derived from **this** run alone — so nothing about the diagnosis moves. What moves is the
+severity and the framing:
+
+- **The instruction the tool prints leads directly to the data loss.** The refusal message
+  says "re-run with `-Pcoverage.regress=<reason>`; the reason is written into the baseline".
+  Following that instruction, exactly as given, is what destroys the older reasons. An agent
+  cannot avoid this by being careful, because being careful *is* the path.
+- **The loss scales with how much history exists.** Every recorded regression makes the next
+  recorded regression more destructive. The file is at its most informative immediately before
+  the write that empties it.
+- **The `bean:0065` framing said the dangerous case is the one that looks safe.** That is
+  still true and is now the milder half. The eighth observation is the case that looks
+  *correct* — a genuine regression, a written reason, a green build, a diff a reviewer will
+  read as "one row and one comment moved" because the deletions sit above the addition in the
+  same hunk.
+- **Eight restorations by hand, none by a mechanism.** `bean:0032`, `bean:0030`, twice in
+  `bean:0036`, `bean:0065`, and twice in `bean:0147`.
+
+### One more success criterion, from the eighth observation
+
+- **A write that records a new regression preserves every regression block already in the
+  file.** Observed failing first: record a regression for module A, then record one for
+  module B, and assert A's reason is still present. This is not implied by the first
+  criterion above — that one covers a later write which does *not* regress, and this branch
+  passed it while failing this one. A writer that appends its note to the existing blocks
+  satisfies both; one that rebuilds from a constant header satisfies neither.

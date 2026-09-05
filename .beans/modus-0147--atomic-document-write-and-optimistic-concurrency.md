@@ -528,10 +528,10 @@ is named as such rather than assumed.
 
 ```
 cmd:      ./gradlew ktlintFormat
-observed: BUILD SUCCESSFUL in 751ms
+observed: BUILD SUCCESSFUL in 1s
 cmd:      ./gradlew qualityCheck
-observed: BUILD SUCCESSFUL in 3m 11s
-          174 actionable tasks: 10 executed, 164 up-to-date
+observed: BUILD SUCCESSFUL in 2m 34s
+          165 actionable tasks: 15 executed, 150 up-to-date
 cmd:      ./gradlew coverageBaselineWrite
 observed: :adapter-persistence-flatfile  33 0 0 0 -> 33 0 780 18
 
