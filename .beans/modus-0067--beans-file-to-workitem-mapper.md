@@ -6,7 +6,7 @@ type: feature
 priority: high
 order: AR
 created_at: 2026-08-29T00:00:00Z
-blocked_by: [modus-0013, modus-0017]
+blocked_by: [modus-0013, modus-0147, modus-0148, modus-0149, modus-0150]
 ---
 
 # The .beans file to WorkItem mapper
@@ -77,7 +77,7 @@ ship first and make the skeleton's first step reachable sooner. Both halves of t
 fail:
 
 - **It makes nothing reachable earlier.** The mapper's only consumer is the REST layer, and
-  `bean:0018` is already `blocked_by: [modus-0017, modus-0031]`. Landing the mapper before
+  `bean:0018` is already blocked on the store. Landing the mapper before
   `bean:0017` therefore advances no date; it only moves work in front of a blocker that still
   has to clear.
 - **It contradicts the adapter's own charter.** `bean:0017` states that "every later context
@@ -85,8 +85,13 @@ fail:
   puts a flat-file implementation in that same adapter. Two beans building pieces of one
   adapter in an undefined order is precisely what `bean:0017` was written to prevent.
 
-So `blocked_by: [modus-0013, modus-0017]`, and the order is `bean:0013` and `bean:0017` →
-this bean → `bean:0018`. Losing the split costs nothing real and removes a contradiction.
+So the store is a hard dependency, and the order is `bean:0013` and the store → this bean →
+`bean:0018`. Losing the split costs nothing real and removes a contradiction.
+
+`bean:0017` has since become the epic over `bean:0147`, `bean:0148`, `bean:0149` and
+`bean:0150`, so this bean's `blocked_by` and `bean:0018`'s each name those four rather than
+the epic — `docs-lint` check 12 refuses an edge onto a `type: epic` bean. The argument above
+is unchanged: "the store" is what the four children are between them.
 
 One consequence survives the change and is worth keeping: `.beans/` is a store that humans
 and agents write by hand, and a read racing a concurrent hand-edit is a real possibility, not

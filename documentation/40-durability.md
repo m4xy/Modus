@@ -330,10 +330,27 @@ Every document write is conditional on the version the writer read:
   decides whether a retry is safe.
 
 This is what replaces database row versioning. It is **required** for every document
-mutation; there is no unconditional overwrite API. **Enforcement gap:** the store's public
-port does not exist yet, so there is no `write(path, bytes)` method to have omitted —
-`bean:0017` carries defining the port with only the expected-version-guarded mutation
-entry point.
+mutation; there is no unconditional overwrite API.
+
+**Enforced by:** `DocumentStore.write(target, expected, bytes)` in
+`adapters/adapter-persistence-flatfile`, which is the store's whole mutation surface — there
+is no second entry point that omits the check, and `DocumentVersion.ABSENT` is how a *create*
+states what it expected to find, so creating is the same conditional operation as replacing.
+Observed rejecting a planted violation: with the `current != expected` guard deleted, four
+integration tests fail, including the one that hand-edits the file outside Modus with
+`Files.writeString` and expects the next conditional write to be refused (`bean:0147`,
+criterion 4). The re-read happens **under** the lock, not against the version the caller
+happens to hold.
+
+The store's public surface is declared inside the adapter and is deliberately not a port:
+nothing outside that adapter calls it, and a `Path`-and-bytes interface in `core-domain`
+would violate `doc:00-constitution` §1.3, which bans `java.nio.file` there outright. The
+phrase "the store's public port" in the enforcement gap this replaces was read twice as
+requiring one; `bean:0147` records the ruling.
+
+**Enforcement gap:** the bounded retry above — "retries are bounded (3)" — is caller-side and
+has no implementation. `DocumentStore` refuses and returns the current version; nothing yet
+re-reads, re-applies and counts. `bean:0149` carries it, as the first caller that needs to.
 
 ### 6.5 Multi-document changes
 

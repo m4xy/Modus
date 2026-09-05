@@ -309,3 +309,64 @@ branch, before a reviewer is spent.
   `.beans/modus-0047--require-the-gate-check.md` has a second one, so "the marker is the
   only `#` line" and "the marker is line 2" are both wrong rules; the marker is the unique
   front-matter comment shaped `# <prefix>…`.
+
+## Amendments
+
+### 2026-09-05 · bean:0147
+
+*The signal this bean named for revisiting the allocator has fired.*
+
+**Claimed:** under "Recommendation for a human" — "Keep numeric ids. Revisit only if the
+residual bites: check 13 cannot see a *second unmerged* branch, so two open branches still
+collide until one merges. … The signal to revisit is a **second** collision that check 13
+refuses; one refusal is the check working, two is the allocator being wrong. If it comes,
+the cheap middle option is not nanoids but a reserved band per concurrent agent, which keeps
+every existing citation resolvable."
+
+**Found:** three concurrent agents collided on **three** ids at once, not one — the residual
+this bean predicted, at the scale it did not. Working from `main` at `7731d13`, whose highest
+bean is `modus-0129`, each agent took the next free ids and all three took `0130` onwards.
+`bean:0147` allocated `0130`–`0133`; pull request #83 allocated `0130`–`0131`; pull request
+#82 allocated `0132` and `0140`–`0146`. Check 13 refused none of them, and could not: its
+cross-branch condition compares against `origin/main`, where every one of those ids is free,
+and this bean already recorded that a *second unmerged* branch is outside what it can see.
+The collision surfaced when a human compared the three open pull requests.
+
+Two things this bean did not anticipate. First, the residual is not bounded at one id: an
+agent that raises four follow-ups takes a **block**, and two agents each taking a block from
+the same base overlap across the whole block. Second, the cost is not "one rebase and one
+renumber": the losing branch renames every file, rewrites every `parent:` and `blocked_by:`
+edge, and rewrites every `bean:NNNN` citation in its own prose and in the beans it had
+already re-pointed — five files renamed and eleven rewritten here, with `docs-lint` check 6
+as the only thing standing between a missed citation and a broken build.
+
+The remedy this bean already names is the right one and is now due rather than hypothetical:
+**a reserved band per concurrent agent**, allocated by whoever dispatches them. Prevention
+by construction, no change to the id scheme, and every existing citation still resolves.
+Raising the bean that implements it is out of this amendment's scope; `bean:0147` is an
+implementation bean and its author is not the orchestrator that would own the dispatch rule.
+
+**Evidence:**
+
+```
+cmd:      git log --oneline -1 origin/main
+observed: 7731d13 fix(docs-lint): record the runtime failures no check inspects (#80)
+
+cmd:      GITHUB_TOKEN= gh api repos/m4xy/Modus/contents/.beans --jq '.[].name' | tail -1
+observed: modus-0129--a-heading-or-row-inside-a-raw-html-block-is-still-a-citation-site.md
+
+cmd:      bash tools/docs-lint.sh          # on this branch, before the renumber
+observed: docs-lint: OK — 19 documents, 111 anchors, 1787 references, 116 beans,
+            57 graph edges, 48 selectable, 116 bean ids, 4 introduced,
+            112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+          exit=0
+
+          `4 introduced` is the whole finding: check 13 saw four ids introduced against
+          origin/main, found all four free there, and passed — while two sibling branches
+          held three of them. The check worked exactly as specified and the specification
+          is what does not cover this.
+
+resolved: modus-0130 -> modus-0147, modus-0131 -> modus-0148, modus-0132 -> modus-0149,
+          modus-0133 -> modus-0150, and the unwritten 0134 -> modus-0151. Renumbering fell
+          to this branch because the other two pull requests were further along.
+```
