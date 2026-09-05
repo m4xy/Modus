@@ -112,7 +112,9 @@ RUNTIME="$ROOT/tools/.docs-lint-probe-$$-runtime.sh"
 TMPFAIL="$ROOT/tools/.docs-lint-probe-$$-notmp.sh"
 VANISH="$ROOT/tools/.docs-lint-probe-$$-vanish.sh"
 DISARM="$ROOT/tools/.docs-lint-probe-$$-disarm.sh"
-trap 'rm -rf "$TMP"; rm -f "$MUTANT" "$CONTROL" "$RUNTIME" "$TMPFAIL" "$VANISH" "$DISARM"' EXIT
+RETRAP="$ROOT/tools/.docs-lint-probe-$$-retrap.sh"
+REDEF="$ROOT/tools/.docs-lint-probe-$$-redef.sh"
+trap 'rm -rf "$TMP"; rm -f "$MUTANT" "$CONTROL" "$RUNTIME" "$TMPFAIL" "$VANISH" "$DISARM" "$RETRAP" "$REDEF"' EXIT
 TAB="$(printf '\t')"
 
 pass=0
@@ -137,13 +139,28 @@ echo "docs-lint-gate-test: analyser awk — $(awk --version 2>&1 | head -1)"
 for s in $SHELLS; do
   echo "docs-lint-gate-test: exercising $s (bash $(shell_version "$s"))"
 done
+# NAMING ALL FIVE, not the three that happen to have a table below them. A banner that lists
+# some of what it cannot verify reads, to anyone who checks it against the file, as a list of
+# all of it — and the two it left out are the two whose single-verification is hardest to
+# notice, one being asserted per-interpreter (so it looks covered) and one being asserted
+# nowhere at all (so nothing points at it). bean:0127.
 if [ "$n_majors" -lt 2 ]; then
   echo "docs-lint-gate-test: ONE bash MAJOR VERSION ONLY on this host. The claims in"
   echo "docs-lint-gate-test: tools/docs-lint.sh's trap comment that differ BY interpreter —"
   echo "docs-lint-gate-test: which pipeline shapes reach the ERR trap, which element"
-  echo "docs-lint-gate-test: \$BASH_COMMAND names, and what \$LINENO holds inside a loop body —"
-  echo "docs-lint-gate-test: are exercised here for bash ${BASH_VERSINFO[0]} and for no other."
+  echo "docs-lint-gate-test: \$BASH_COMMAND names, what \$LINENO holds inside a loop body,"
+  echo "docs-lint-gate-test: that \$BASH_COMMAND holds 'return \"\$ec\"' at an absent_ok caller,"
+  echo "docs-lint-gate-test: and that a '{ … } 2>/dev/null' group still records through the"
+  echo "docs-lint-gate-test: redirection — are exercised here for bash ${BASH_VERSINFO[0]} and for no other."
 fi
+# The fifth is unconditional, because it is asserted on NO host: tools/docs-lint.sh's comment
+# says \$BASH_SUBSHELL reads 0 inside a pipeline element's EXIT trap under 3.2.57, which is why
+# the guard there is a '[ ! -f ]' and not a \$BASH_SUBSHELL test. That is a measurement in
+# bean:0124 carrying a decision, not a gate — said here so the banner above is not read as the
+# whole list (doc:00-constitution#observed-failing).
+echo "docs-lint-gate-test: NOT ASSERTED HERE, on any host: that \$BASH_SUBSHELL reads 0 inside"
+echo "docs-lint-gate-test: a pipeline element's EXIT trap under 3.2.57. It is bean:0124's"
+echo "docs-lint-gate-test: measurement, and the reason the record-file guard is a '[ ! -f ]'."
 
 echo
 echo "--- what an ERR trap can see, per interpreter"
@@ -234,9 +251,18 @@ echo "--- the second plant: eight runtime failures that are not an analyser"
 # POSITION — the points run from just under the trap that arms the failure path to the last
 # statement the gate executes before it counts its records: under the trap, in check 2's
 # per-document loop, at the end of check 6, at the head of check 12, inside check 13c, in
-# check 14's preamble, and after the `done` banner. One is inside a loop body rather than at
-# the top level. The last two exist because an earlier revision planted nothing below check
-# 13c, and `trap - ERR` planted below the lowest plant passed the whole suite.
+# check 14's preamble, and immediately above the `n_fail` read. One is inside a loop body
+# rather than at the top level. The last two exist because an earlier revision planted nothing
+# below check 13c, and `trap - ERR` planted below the lowest plant passed the whole suite.
+#
+# THE LAST ROW USED TO STOP SHORT AND CLAIM OTHERWISE. Its anchor was the `# ---- done ----`
+# banner, which is twenty-seven lines above the `n_fail` read and above the two guards between
+# them; the range it left uncovered is exactly where bean:0127's second finding lived, and
+# neither this suite nor the gate's own end-of-run check could tell. It is anchored now on the
+# statement that immediately precedes the count. What remains below it is one `[ … ] || fail`
+# list, and an `||` list is a context the ERR trap is exempt from BY CONSTRUCTION — it can
+# produce no record to lose — so this is the last trap-visible statement in the file, not
+# merely the last one somebody measured.
 #
 # Each line carries a marker token that occurs nowhere else in the gate, asserted below, so
 # the record it produces is matched by something no other line can produce. `false __probe_…`
@@ -254,7 +280,7 @@ a failed pipeline element	sort -u "$TMP/refs.tsv" > "$TMP/refs.uniq"	false | sed
 an unbound variable inside $( )	: > "$TMP/beans.tsv"	probe="$(echo "${__probe_unbound_subst}")"	__probe_unbound_subst	nothing checked it.*__probe_unbound_subst
 a failed cd	awk -F'\t' '{ print $1 }' "$TMP/beans.tsv" | sort -u > "$TMP/bean-ids-tree.txt"	cd /no/such/dir/__probe_failed_cd__	__probe_failed_cd__	nothing checked it.*__probe_failed_cd__
 a silent non-zero exit in check 14's preamble	KINDS=" command test-run diff citation fetch observation "	false __probe_check14__	__probe_check14__	nothing checked it.*__probe_check14__
-a missing file at the last statement before the count	# -------------------------------------------------------------------- done ---	cat /no/such/file/__probe_last_statement__	__probe_last_statement__	nothing checked it.*__probe_last_statement__
+a missing file at the last statement before the count	n_armed="$(absent_ok grep -cF '__docs_lint_armed_probe__' "$TMP/fails.txt")"	cat /no/such/file/__probe_last_statement__	__probe_last_statement__	nothing checked it.*__probe_last_statement__
 PLANTS_EOF
 
 awk -F'\t' '
@@ -322,25 +348,72 @@ check "and the copy differs from the gate on exactly one line (one '>')" \
   "1" "$(diff "$GATE" "$VANISH" | grep -c '^[<>]')"
 
 echo
-echo "--- the fifth plant: the ERR trap disarmed mid-file, which nothing below it can see"
+echo "--- the fifth plant: three one-line breaks of the failure path, which nothing below can see"
 
-# ONE LINE, AND IT IS NOT A NO-OP: `trap - ERR` here leaves everything above it recorded and
-# everything below it silent, and the gate reports OK at exit 0. Against the revision of this
-# file that had no plant below check 13c it scored a clean sheet — 49 passed, 0 failed — which
-# is why tools/docs-lint.sh now asks the shell what handler it holds at its last line. The
-# plant point is deliberately BELOW every other plant here, so what catches it cannot be one
-# of them.
+# ONE LINE EACH, AND NONE IS A NO-OP: each leaves everything above it recorded and everything
+# below it silent, and the gate reported OK at exit 0. Against the revision of this file that
+# had no plant below check 13c the first of them scored a clean sheet — 49 passed, 0 failed —
+# which is why tools/docs-lint.sh now fires the failure path at its last line instead of
+# reading it. The plant point is deliberately BELOW every other plant here, so what catches
+# them cannot be one of them.
+#
+# THREE ROWS BECAUSE THE READING THIS REPLACES CAUGHT ONE. `case "$(trap -p ERR)" in
+# *docs_lint_err*)` matched a spelling in the handler string, and its comment claimed "no list
+# of spellings, which would fail open" — a ONE-TOKEN list is a list, and
+# doc:00-constitution#observed-failing binds it. Rows two and three each walked past it with a
+# single edit: a re-trap whose TEXT merely contains the token, and a redefinition of the
+# handler that leaves `trap -p ERR` byte-identical. The gate now fires a `false` and requires
+# the record, so all three are the same question asked once.
+#
+# NOT PLANTED, because they are not escapes — measured under both interpreters at this head,
+# and recorded so nobody plants them expecting red: `( trap - ERR; true )` leaves the parent's
+# trap intact, and `trap - ERR` inside a FUNCTION does not disarm the caller, bash restoring
+# the function-local ERR trap on return. Both left the gate at `docs-lint: OK`, rc=0.
 DISARM_ANCHOR='KINDS=" command test-run diff citation fetch observation "'
-awk -v anc="$DISARM_ANCHOR" '
-  $0 == anc && !d { print "trap - ERR"; d = 1 } { print }
-' "$GATE" > "$DISARM"
+BREAKS="$TMP/breaks.tsv"
+# columns: name, the line to plant, the copy to write
+cat > "$BREAKS" <<BREAKS_EOF
+the ERR trap disarmed${TAB}trap - ERR${TAB}$DISARM
+the ERR trap re-trapped to text that merely contains the handler's name${TAB}trap ': docs_lint_err' ERR${TAB}$RETRAP
+the handler redefined to do nothing${TAB}docs_lint_err() { :; }${TAB}$REDEF
+BREAKS_EOF
 
-check "the plant point for the disarmed trap occurs exactly once in the gate" \
+check "the plant point for the broken failure path occurs exactly once in the gate" \
   "1" "$(grep -cxF "$DISARM_ANCHOR" "$GATE")"
-check "and the copy differs from the gate on exactly one line (one '>')" \
-  "1" "$(diff "$GATE" "$DISARM" | grep -c '^[<>]')"
-check "and the disarm is planted exactly once in the copy" \
-  "1" "$(grep -cx 'trap - ERR' "$DISARM")"
+
+n_breaks=0
+while IFS="$TAB" read -r bname bline bfile; do
+  [ -n "$bname" ] || continue
+  n_breaks=$((n_breaks + 1))
+  awk -v anc="$DISARM_ANCHOR" -v ins="$bline" '
+    $0 == anc && !d { print ins; d = 1 } { print }
+  ' "$GATE" > "$bfile"
+  check "the copy for $bname differs from the gate on exactly one line (one '>')" \
+    "1" "$(diff "$GATE" "$bfile" | grep -c '^[<>]')"
+  check "and $bname is planted exactly once in the copy" \
+    "1" "$(grep -cxF "$bline" "$bfile")"
+  check "and the gate itself does not carry that line" \
+    "0" "$(grep -cxF "$bline" "$GATE")"
+done < "$BREAKS"
+
+check "three ways of breaking the failure path were planted, one copy each" \
+  "3" "$n_breaks"
+
+# The one shell fact the end-of-run probe rests on, in a fixture of its own so it is measured
+# under every interpreter rather than asserted once on the runner. `fail`'s `tee -a` writes to
+# the file AND to the handler's stdout, which `docs_lint_err` sends to stderr; the group's
+# redirection has to swallow the second without losing the first.
+GROUPPROBE="$TMP/groupprobe.sh"
+cat > "$GROUPPROBE" <<'GROUPPROBE_EOF'
+set -uo pipefail
+f="$(mktemp)"
+fail() { printf 'FAIL check %-2s %s\n' "$1" "$2" | tee -a "$f"; }
+docs_lint_err() { fail - "line $3: a command exited $1: '$2'" >&2; }
+trap 'docs_lint_err $? "$BASH_COMMAND" "$LINENO" "${PIPESTATUS[*]}"' ERR
+{ false __probe_group_marker__; } 2>/dev/null
+printf '%s' "$(grep -cF __probe_group_marker__ "$f")"
+rm -f "$f"
+GROUPPROBE_EOF
 check "and the gate itself disarms nothing" \
   "0" "$(grep -c '^[[:space:]]*trap[[:space:]]*-[[:space:]]*ERR' "$GATE")"
 
@@ -375,6 +448,10 @@ run_under() { # run_under <shell path>
   local vanish_pid=$!
   "$sh" "$DISARM" > "$d/disarm.out" 2> "$d/disarm.err" &
   local disarm_pid=$!
+  "$sh" "$RETRAP" > "$d/retrap.out" 2> "$d/retrap.err" &
+  local retrap_pid=$!
+  "$sh" "$REDEF" > "$d/redef.out" 2> "$d/redef.err" &
+  local redef_pid=$!
   wait "$mutant_pid"
   local mutant_rc=$?
   wait "$control_pid"
@@ -387,6 +464,10 @@ run_under() { # run_under <shell path>
   local vanish_rc=$?
   wait "$disarm_pid"
   local disarm_rc=$?
+  wait "$retrap_pid"
+  local retrap_rc=$?
+  wait "$redef_pid"
+  local redef_rc=$?
 
   check "a destroyed analyser makes the gate exit non-zero$at" \
     "rc=1" "rc=$mutant_rc"
@@ -483,14 +564,27 @@ run_under() { # run_under <shell path>
     "0" "$(grep -c '^docs-lint: OK' "$d/vanish.out")"
 
   echo
-  echo "--- and with the ERR trap disarmed below every plant, the gate says so$at"
+  echo "--- and with the failure path broken below every plant, three ways, the gate says so$at"
 
-  check "a gate whose ERR trap was disarmed mid-file exits non-zero$at" \
-    "rc=1" "rc=$disarm_rc"
-  check "and names the disarm rather than reporting OK$at" \
-    "1" "$(grep -c 'the ERR trap was not armed at the end of the run' "$d/disarm.out")"
-  check "and never reaches the OK line$at" \
-    "0" "$(grep -c '^docs-lint: OK' "$d/disarm.out")"
+  # ONE ASSERTION SHAPE FOR THREE BREAKS, because the gate answers them with one question. The
+  # record names what it measured — how many records a top-level `false` produced — rather than
+  # which spelling was planted, so a fourth way of breaking the path nobody has thought of is
+  # caught by the same three lines without being enumerated here (bean:0124).
+  for br in disarm retrap redef; do
+    case "$br" in
+      disarm) local what="the ERR trap disarmed" ; local brc=$disarm_rc ;;
+      retrap) local what="the ERR trap re-trapped to text containing the handler's name" ; local brc=$retrap_rc ;;
+      redef)  local what="the handler redefined to do nothing" ; local brc=$redef_rc ;;
+    esac
+    check "a gate with $what exits non-zero$at" \
+      "rc=1" "rc=$brc"
+    check "and names the broken failure path rather than reporting OK ($br)$at" \
+      "1" "$(grep -c 'the failure path was not working at the end of the run' "$d/$br.out")"
+    check "and says the probe produced 0 records, which is what it measured ($br)$at" \
+      "1" "$(grep -c "a top-level 'false' produced 0 record(s)" "$d/$br.out")"
+    check "and never reaches the OK line ($br)$at" \
+      "0" "$(grep -c '^docs-lint: OK' "$d/$br.out")"
+  done
 
   echo
   echo "--- the opt-out under bash $ver: what the trap is told not to look at"
@@ -540,6 +634,38 @@ run_under() { # run_under <shell path>
   check "and prints the one file a glob that matches one does$at" \
     "1 lines, rc=0" \
     "$("$sh" -c "$globfn"'; out="$(glob_lines "'"$GATE"'")"; rc=$?; printf "%s lines, rc=%s" "$(printf %s "$out" | grep -c .)" "$rc"')"
+
+  # THE ROW THE FIRST VERSION OF THIS HELPER FAILED, and nothing here could tell. `[ -e ]`
+  # FOLLOWS SYMLINKS, so a member of the glob that the shell can name and the helper cannot
+  # stat was dropped — silently, at status 0, because a helper that "cannot fail" has no status
+  # left to say it with. `ls` reported such a bean as five records; `[ -e ]` alone reported
+  # `docs-lint: OK … 112 beans, … 112 bean ids` at exit 0, and the counts line could not see it
+  # either, `n_bean_files` and `n_beans` both deriving from this one output (bean:0127).
+  #
+  # ASSERTED ON A REAL BROKEN SYMLINK, in this suite's own scratch directory rather than in
+  # .beans/, so a crash here cannot leave the corpus in a state that turns everyone's gate red.
+  # What the whole-gate half of this looks like is the plant recorded in bean:0127: the same
+  # symlink under .beans/, the gate red at rc=1, reverted.
+  local brokenlink="$TMP/__probe_broken_symlink__.md"
+  ln -sf /no/such/target/__probe_broken__ "$brokenlink"
+  check "the probe symlink is one the shell can name and cannot stat$at" \
+    "L=yes e=no" \
+    "L=$([ -L "$brokenlink" ] && echo yes || echo no) e=$([ -e "$brokenlink" ] && echo yes || echo no)"
+  check "and the helper emits it rather than dropping it, so something downstream can fail$at" \
+    "1 lines, rc=0" \
+    "$("$sh" -c "$globfn"'; out="$(glob_lines "'"$brokenlink"'")"; rc=$?; printf "%s lines, rc=%s" "$(printf %s "$out" | grep -c .)" "$rc"')"
+  rm -f "$brokenlink"
+
+  # The redirection the end-of-run probe depends on, measured rather than remembered: the ERR
+  # trap's own output is written under a `{ … } 2>/dev/null` group's redirection — so the probe
+  # is silent — while the record it appends to the file is NOT lost with it. BOTH HALVES, and
+  # the stderr half is counted from a real redirect rather than printed as a constant: without
+  # it the probe would be a `FAIL check` line on every clean run, and without the other half it
+  # would be no record at all.
+  "$sh" "$GROUPPROBE" > "$d/group.out" 2> "$d/group.err"
+  check "a '{ … } 2>/dev/null' group records through the redirection and prints nothing$at" \
+    "0 stderr lines, 1 record" \
+    "$(grep -c . "$d/group.err") stderr lines, $(cat "$d/group.out") record"
 }
 
 for s in $SHELLS; do
@@ -587,5 +713,11 @@ if [ "$((pass + fail))" -eq 0 ]; then
   echo "docs-lint-gate-test: no assertion ran."
   exit 2
 fi
-echo "docs-lint-gate-test: $pass passed, $fail failed, over $n_majors bash major version(s)."
+# `run_number` and not `n_majors`: the first counts what RAN, the second what was DISCOVERED,
+# and a summary that reports discovery would say "over 2" for a run that managed one. They are
+# asserted equal rather than only one being printed, because the assertion is the thing that
+# keeps them the same figure (bean:0127).
+check "every discovered bash major version was actually run" \
+  "$n_majors" "$run_number"
+echo "docs-lint-gate-test: $pass passed, $fail failed, over $run_number bash major version(s)."
 [ "$fail" -eq 0 ] || exit 1

@@ -130,6 +130,13 @@ trap 'docs_lint_err $? "$BASH_COMMAND" "$LINENO" "${PIPESTATUS[*]}"' ERR
 # "nothing found" means the tree is broken and no check says so — `.beans.yml` with no
 # `prefix:` is the only such site left in this file, and the comment on it says why.
 #
+# THE RULE HAS A THIRD OUTCOME, and the sentence above read as if it had two. Check 11's
+# `sed -n '/^## Amendments/,$p' | absent_ok grep '^### '` is a site whose "nothing found" means
+# the tree IS broken and no check said so — and the answer there is neither to arm it nor to
+# leave it, but to READ the answer: the opt-out is correctly derived and the missing thing was
+# a `fail`. That `fail 11` is now beside it. A site the derivation sends here can still be a
+# site whose result nobody checks, and those are two questions, not one (bean:0127).
+#
 # `ls` is deliberately NOT routed through this. Its "no such file" is status 1 on the BSD `ls`
 # macOS ships and 2 on GNU coreutils, so tolerating it here would mean tolerating 2 — exactly
 # the widening this opt-out exists to refuse, and the one tools/docs-lint-gate-test.sh now
@@ -154,14 +161,34 @@ absent_ok() { # absent_ok <command…> — status 1 is "no match"; 2 and above s
   return "$ec"
 }
 
-# The members of a glob that exist, one per line: `ls <glob> 2>/dev/null` without the status.
-# In the `ls … | grep -c .` this replaces BOTH elements report "none" with a non-zero status
-# that is not a failure, and `ls`'s number differs by implementation, so there is no single
-# status to tolerate. Answering with the shell's own test leaves nothing to opt out of.
-glob_lines() { # glob_lines <path…> — the ones that exist, one per line
+# The members of a glob that NAME something, one per line: `ls <glob> 2>/dev/null` without the
+# status. In the `ls … | grep -c .` this replaces BOTH elements report "none" with a non-zero
+# status that is not a failure, and `ls`'s number differs by implementation, so there is no
+# single status to tolerate. Answering with the shell's own test leaves nothing to opt out of.
+#
+# `-e` ALONE WOULD BE A DETECTION REGRESSION, and it shipped as one. `-e` follows symlinks, so
+# a path the shell globbed and this function cannot stat is dropped — silently, at status 0,
+# because the whole point of the function is that it has no status to fail with. A broken
+# symlink `.beans/modus-0199--a-broken-symlink-bean.md -> /no/such/target` was reported by
+# `ls` on the base of this branch as five records (three analysers that could not open it,
+# `front-matter carries 0 '# modus-…' id markers`, and `113 bean file(s) on disk but 112
+# parsed`) and by `-e` alone as `docs-lint: OK … 112 beans, … 112 bean ids` at exit 0 —
+# measured at 160e1ff under /opt/homebrew/bin/bash 5.3.9, both halves, and the assertion in
+# tools/docs-lint-gate-test.sh named "a bean the shell can glob but not stat" now pins it.
+#
+# THE COUNTS LINE CANNOT SEE THIS, which is why it needs its own assertion rather than the
+# vacuity assertion at the end: `n_bean_files` and `n_beans` both derive from this function's
+# output, so a dropped member shrinks the count and the thing it is compared against together
+# and the pair reads a clean `112 / 112`. A vacuity assertion over two figures with one source
+# is not one.
+#
+# `-L` IS THE WIDENING THAT NARROWS: an unstattable name is emitted and then fails LOUDLY at
+# whatever tries to read it, which is the behaviour `ls` had. `documentation/`'s list at the
+# `ls` below never lost it, and that asymmetry is why the regression was invisible here.
+glob_lines() { # glob_lines <path…> — the ones that name something, one per line
   local p
   for p in "$@"; do
-    [ -e "$p" ] && printf '%s\n' "$p"
+    if [ -e "$p" ] || [ -L "$p" ]; then printf '%s\n' "$p"; fi
   done
   return 0
 }
@@ -546,6 +573,16 @@ if [ -n "$BASE" ]; then
         esac
       done < "$TMP/amend-heads.txt"
       n_amend="$(absent_ok grep -c . "$TMP/amend-heads.txt")"
+      # AN `## Amendments` SECTION WITH NO AMENDMENT IN IT IS THE VACUOUS PASS OF THIS CHECK,
+      # and it needs a `fail` of its own rather than the trap. The `absent_ok grep '^### '`
+      # above finds nothing, `n_amend` and every `n_k` become 0, `[ 0 != 0 ]` is false, and the
+      # loop below reports nothing — the gate printed `docs-lint: OK` at exit 0 for a completed
+      # bean carrying `## Amendments` and bare prose. Arming that `grep` would be the WRONG fix:
+      # "no `### ` heading" is a legal answer about the input and the site's opt-out is correctly
+      # derived; what was missing is a check that reads the answer. Measured at this branch's
+      # head under /opt/homebrew/bin/bash 5.3.9, with the positive control that the same bean
+      # carrying `### not-a-valid-heading` fires four `fail 11` records (bean:0127).
+      [ "$n_amend" -gt 0 ] || fail 11 "$f: has an '## Amendments' section carrying no '### ' amendment heading, so every per-amendment check below it compares 0 against 0 and passes vacuously (adr:0005#amendments)"
       for k in Claimed Found Evidence; do
         n_k="$(sed -n '/^## Amendments/,$p' "$f" | absent_ok grep -c "\*\*$k:\*\*")"
         if [ "$n_amend" != "$n_k" ]; then
@@ -757,6 +794,18 @@ if [ -n "$BASE" ]; then
   n_main_ids="$(absent_ok grep -c . "$TMP/bean-ids-main.txt")"
   while IFS= read -r nid; do
     [ -n "$nid" ] || continue
+    # THE ONE BLANKET `|| continue` LEFT, and it is named rather than narrowed. Here the STATUS
+    # is the answer — this id is on origin/main, or it is not — so `absent_ok`, which is for
+    # sites that read a VALUE, does not fit: it returns 0 for both 0 and 1 and would erase the
+    # answer. `|| continue` therefore tolerates 2 along with 1, which is the widening this
+    # file's opt-out exists to refuse. It is UNREACHABLE today: `bean_ids_of origin/main` writes
+    # $TMP/bean-ids-main.txt unconditionally a few lines above, inside the same `if`, so the
+    # only way to reach a `grep` here that could not look is for the file to vanish mid-run —
+    # and the `[ ! -f "$TMP/fails.txt" ]` guard at the end catches that class by its cause.
+    # Left as a note and not a fix because a fix nothing can be observed to protect is not
+    # enforcement (doc:00-constitution#observed-failing): the loop body runs only for ids this
+    # branch introduced, which is empty on a clean tree, so no plant in
+    # tools/docs-lint-gate-test.sh reaches it. Whoever makes it reachable owes it a narrowing.
     grep -qx "$nid" "$TMP/bean-ids-main.txt" || continue
     here="$(awk -F'\t' -v d="$nid" '$1 == d { printf "%s ", $2 }' "$TMP/beans.tsv")"
     there="$(git ls-tree -r --name-only origin/main -- .beans |
@@ -896,21 +945,66 @@ if [ ! -f "$TMP/fails.txt" ]; then
   exit 2
 fi
 
-# AND THE TRAP HAS TO STILL BE ARMED. `trap - ERR` inserted anywhere between the `trap … ERR`
-# above and here silences every record below it and the run reports OK at exit 0 — and against that
-# one-line edit tools/docs-lint-gate-test.sh scored a clean sheet, because every plant it
-# carried sat above the disarm. The suite could not tell this file covered to its last line
-# from covered to its middle (bean:0123's "22 sites or 1 site", moved from call sites to line
-# ranges). This asks the SHELL what handler it is holding rather than asking the file what it
-# says, so `trap - ERR`, `trap '' ERR` and a re-trap to some other handler are all caught by
-# the same three lines — no list of spellings, which would fail open
-# (doc:00-constitution#observed-failing). What it does not catch is a disarm that re-arms
-# before this line; that needs two edits, and it is named here rather than left implied.
-case "$(trap -p ERR)" in
-  *docs_lint_err*) ;;
-  *) fail - "the ERR trap was not armed at the end of the run; it is armed once, near the top of this file, and nothing below may disarm it — every runtime failure between the disarm and here went unrecorded" ;;
-esac
-n_fail="$(absent_ok grep -c . "$TMP/fails.txt")"
+# EVERY COUNT IS TAKEN BEFORE THE EXIT DECISION READS `n_fail`. Four of the twelve used to be
+# `$( )` arguments of the `printf` below, which runs only on the OK branch — AFTER the `if`
+# has already decided the exit status. A "could not look" at one of those four was recorded by
+# `absent_ok` into $TMP/fails.txt, and NOTHING READS THAT FILE AGAIN: the run printed
+# `docs-lint: OK — 19 documents,  anchors, 1738 references, …` at exit 0 with the anchor count
+# blank and the record on stderr, uncounted. Their statuses cannot reach the trap either,
+# being command substitutions inside a `printf` argument list. Measured at this branch's head
+# under /opt/homebrew/bin/bash 5.3.9 by planting `rm -f "$TMP/provides.tsv"` immediately above
+# the `n_fail` read; the OK line above is that run's stdout, verbatim.
+#
+# `- introduced` versus `0 introduced` is the same failure one character over: check 11's
+# inert CI runs differed from real ones by exactly that (doc:00-constitution#observed-failing).
+# A blank between two commas is what a count that could not be taken looks like, and the
+# vacuity assertion cannot assert over a figure the branch that prints it computes.
+n_documents="$(printf '%s\n' $FM_FILES | absent_ok grep -c .)"
+n_anchors="$(absent_ok grep -c . "$TMP/provides.tsv")"
+n_references="$(absent_ok grep -c . "$TMP/refs.uniq")"
+n_edges="$(absent_ok grep -c . "$TMP/bean-edges.uniq")"
+
+# AND THE FAILURE PATH HAS TO STILL WORK — asked by FIRING IT, not by reading it. `trap - ERR`
+# inserted anywhere between the `trap … ERR` near the top of this file and here silences every
+# record below it and the run reports OK at exit 0; against that one-line edit
+# tools/docs-lint-gate-test.sh once scored a clean sheet, because every plant it carried sat
+# above the disarm (bean:0123's "22 sites or 1 site", moved from call sites to line ranges).
+#
+# THE READING THIS REPLACES WAS A ONE-TOKEN ALLOWLIST. `case "$(trap -p ERR)" in *docs_lint_err*)`
+# asks the shell what handler string it holds and then matches a spelling in it, and its comment
+# claimed there was "no list of spellings, which would fail open" — a one-token list is a list,
+# and §9.1's MUST binds it. Two ONE-EDIT escapes walked past it, both confirmed under
+# /bin/bash 3.2.57 and /opt/homebrew/bin/bash 5.3.9:
+#   trap ': docs_lint_err' ERR   — a re-trap whose TEXT merely contains the token; the `case`
+#                                  matches and the handler that runs records nothing.
+#   docs_lint_err() { :; }       — redefined anywhere below the arming line. `trap -p ERR` is
+#                                  byte-identical, the `case` matches, every record is dropped.
+#                                  This is the more plausible accident of the two.
+# Firing the path answers all three shapes and every shape nobody has thought of, because it
+# asks the question the records depend on — does a failing command at the top level of this
+# file end up as a LINE OF $TMP/fails.txt — rather than a proxy for it. A `false` that records
+# is the whole contract; `{ … } 2>/dev/null` keeps the probe's own record off stderr, and that
+# it still reaches the file through the group's redirection is measured under both
+# interpreters (bean:0124). The marker is filtered out of `n_fail` below rather than deleted
+# from the file, so a failure to remove it cannot lose a real record.
+#
+# WHAT IT STILL DOES NOT CATCH, stated rather than implied: a disarm that RE-ARMS before this
+# line, which needs two edits. Two shapes that look like escapes and are not, measured under
+# both interpreters: a disarm inside a `( … )` subshell leaves the parent's trap intact, and
+# `trap - ERR` inside a FUNCTION does not disarm the caller — bash restores the function-local
+# ERR trap on return. Neither is an escape and neither needs guarding against.
+{ false __docs_lint_armed_probe__; } 2>/dev/null
+n_armed="$(absent_ok grep -cF '__docs_lint_armed_probe__' "$TMP/fails.txt")"
+[ "$n_armed" = 1 ] || fail - "the failure path was not working at the end of the run: a top-level 'false' produced $n_armed record(s) in the failure file instead of exactly 1. The ERR trap is armed once, near the top of this file; nothing below may disarm it, re-trap it, or redefine docs_lint_err. Every runtime failure between the break and here went unrecorded"
+
+# `-v`, so the probe's own record is not a failure of the corpus. It is the only line that can
+# carry that marker; if a document ever does, this counts 2 above and the gate goes red rather
+# than quiet, which is the direction a token of this shape should fail in.
+n_fail="$(absent_ok grep -cvF '__docs_lint_armed_probe__' "$TMP/fails.txt")"
+# `[ "$n_fail" -gt 0 ]` on an EMPTY `n_fail` is `[ "" -gt 0 ]`, which is a syntax error the
+# trap is exempt from inside an `if` condition — the gate would print OK at exit 0 through it.
+# Unreachable: the `[ ! -f ]` guard above returns before here if the file is gone, and every
+# other path through `absent_ok grep -c` yields digits. Shape only, named so it stays that way.
 if [ "$n_fail" -gt 0 ]; then
   echo "docs-lint: $n_fail failure(s)."
   exit 1
@@ -918,11 +1012,11 @@ fi
 # The counts are the vacuity assertion: a check that silently examined nothing
 # reports zero here, where check 11 shipping inert went unnoticed for four plants.
 printf 'docs-lint: OK — %s documents, %s anchors, %s references, %s beans, %s graph edges, %s selectable, %s bean ids, %s introduced, %s on origin/main, %s closing transitions, %s criteria checked, %s unnumbered.\n' \
-  "$(printf '%s\n' $FM_FILES | absent_ok grep -c .)" \
-  "$(absent_ok grep -c . "$TMP/provides.tsv")" \
-  "$(absent_ok grep -c . "$TMP/refs.uniq")" \
+  "$n_documents" \
+  "$n_anchors" \
+  "$n_references" \
   "$n_beans" \
-  "$(absent_ok grep -c . "$TMP/bean-edges.uniq")" \
+  "$n_edges" \
   "$n_ready" \
   "$n_bean_ids" \
   "$n_introduced" \
