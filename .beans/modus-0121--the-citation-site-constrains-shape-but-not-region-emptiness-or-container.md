@@ -598,8 +598,20 @@ corpus is 111 beans, including the one this change raises.
 **Re-taken at `eabd009`**, because the second review round changed what the mask writes and a
 corpus figure is expired by default: `111 compared, 1 differing` against `494f174`, the same
 single bean and no other, and `111 compared, 0 differing` against `5cf9c58` — the round moves
-nothing in the corpus at all. Both runs are under criterion 8 with the change they measure. The
-`5a625fc` figure below is left as it was taken:
+nothing in the corpus at all. Both runs are under criterion 8 with the change they measure.
+
+**`111` is this BRANCH's corpus and CI reports `112`, and the difference is not a stale count.**
+The merge base is `3b02871`; `main` has moved to `494f174` since, which added
+`.beans/modus-0128`. So the `push` run measures the branch and prints 111 beans, and the
+`pull_request` run measures `refs/pull/79/merge` and prints 112. `modus-0128` is the whole of
+the difference, and it gives a byte-identical verdict under the `494f174` analyser, under
+`5cf9c58` and under `eabd009` — `NOEV`, eight `UNANSWERED` lines and `STATS 8 0` in all three —
+so the post-merge corpus differential is the branch's with one unchanged row added. The
+differentials below and under criterion 8 are figures about the branch, which is what a review
+of the branch needs; the merged state is stated here rather than left as a discrepancy between
+two numbers a reader can see.
+
+The `5a625fc` figure below is left as it was taken:
 
 ```
 $ bash <scratch>/corpus.sh <3b02871 analyser> <HEAD analyser>
