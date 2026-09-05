@@ -50,15 +50,22 @@ tasks.register<Exec>("docsLintTest") {
 
 // docs-lint's own FAILURE PATH, which is a different subject from the task above and so is
 // a different script: that one feeds fixtures to the awk libraries under tools/lib/, this
-// one can only observe the shell script by running the whole gate twice. It plants a syntax
-// error into check 12's analyser in a COPY and requires the gate to go red, and requires the
-// same copy unmutated to go green — the negative half, without which a guard that fires on
-// every input would score identically (doc:50-memory-and-evidence#evidence-kinds).
+// one can only observe the shell script by running the whole gate — six mutated and
+// unmutated copies of it, backgrounded against each other, once per bash MAJOR version the
+// host has. It plants a syntax error into check 12's analyser in a COPY and requires the gate
+// to go red, and requires the same copy unmutated to go green — the negative half, without
+// which a guard that fires on every input would score identically
+// (doc:50-memory-and-evidence#evidence-kinds).
 // Before bean:0118 the mutated run printed `docs-lint: OK` at exit 0 with stdout
 // byte-identical to the clean one.
+//
+// gateShell is passed as the interpreter, so the pinned 3.2.57 is always one of the ones
+// exercised; the script finds the others itself, because the properties docs-lint's ERR trap
+// depends on differ between bash 3.2 and bash 5 and a suite that ran only the interpreter
+// that invoked it turned the runner red on a clean tree (bean:0124).
 tasks.register<Exec>("docsLintGateTest") {
     group = "verification"
-    description = "Plants an analyser failure into a copy of docs-lint and requires the gate to go red."
+    description = "Plants runtime failures into copies of docs-lint and requires the gate to go red."
     commandLine(gateShell, "tools/docs-lint-gate-test.sh")
 }
 

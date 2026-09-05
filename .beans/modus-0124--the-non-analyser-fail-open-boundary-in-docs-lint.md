@@ -64,6 +64,19 @@ and this change's `ERR` trap is armed further down still. A plant there measures
 the script where nothing is armed yet. So the table's two analyser rows still read `exit 0`
 and `reached OK`, and that is a fact about the plant point rather than about the guard
 `bean:0123` shipped — **the first figure in `bean:0118` that no longer means what it says.**
+The correction is carried in `bean:0118` itself, which is `in-progress` and therefore not
+frozen by check 11; it is not left as a note in a child bean nobody reading that table will
+open.
+
+**And the harness that produces these tables is committed**, as
+`tools/docs-lint-boundary-probe.sh`. Every earlier version lived in a scratch directory and
+was deleted, so this table could be read and not re-run — a figure whose measurement needs
+apparatus nobody has built, which `doc:50-memory-and-evidence#evidence-kinds` names as the
+shape most likely to be fabricated. It takes an interpreter argument, so the row of "Not
+verified here" that says the boundary table has never been taken under bash 5 is now closable
+with one command rather than with a rebuild. It is deliberately not in `qualityCheck`: one
+pass is forty-two runs of the whole gate over the whole corpus.
+
 Re-derived at that anchor, unchanged:
 
 ```
@@ -136,14 +149,139 @@ of which 287 are `FAIL check`, with every count between the commas of that `OK` 
 been created yet. The same shape, reached the other way, is the scratch-directory row below.
 
 
-## The audit, which is what made the trap safe to arm — and which had to be run twice
+## The opt-out, re-derived from the semantics — and the two clean trees it went red on
+
+The first version of this opt-out held three commands, and each was there because a run had
+been **seen** firing at it. That is the wrong warrant, and it produced the wrong list twice:
+once when the runner found a site this machine could not see, and once — recorded here —
+when two trees that break no documented rule turned the gate red.
+
+**Blocker 1: a `status: draft` document that declares no anchor.**
+`doc:05-authoring-for-agents` §2's front-matter table says `provides` "May be empty only when
+`status: draft`", so a draft with no anchors is legal in as many words; check 2 permits it,
+and check 5's `grep -oE '^#+ .*<a id="…">'` then finds nothing and exits 1 for saying so.
+
+```
+head:     688f3ba, tools/docs-lint.sh as that commit has it
+tree:     that worktree plus ONE UNTRACKED file, documentation/98-a-draft-with-no-anchors.md,
+          carrying all seven required keys, `status: draft`, an empty `provides:` and no
+          `<a id=` anywhere; removed by the same script, `git status --porcelain` empty after
+cmd:      /bin/bash tools/docs-lint.sh   and   /opt/homebrew/bin/bash tools/docs-lint.sh
+--- /bin/bash (GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25))
+exit: 1
+stdout: docs-lint: 1 failure(s).
+stderr: FAIL check -  line 301: a command exited 1 and nothing checked it: 'sort -u > "$TMP/declared.txt"' (pipeline exited 1 0 0, left to right)
+--- /opt/homebrew/bin/bash (GNU bash, version 5.3.9(1)-release (aarch64-apple-darwin25.1.0))
+exit: 1
+stdout: docs-lint: 1 failure(s).
+stderr: FAIL check -  line 303: a command exited 1 and nothing checked it: 'sort -u > "$TMP/declared.txt"' (pipeline exited 1 0 0, left to right)
+--- (end)
+```
+
+**The inference that let it through is in this bean, and it is false at that site.** The
+red-corpus audit below concluded that "every one of them is a line whose next few lines report
+the same defect on stdout". Check 5's site fires on **zero anchors declared**, and check 5
+reports only a **promised** anchor that no heading declares. Those are different conditions:
+the first is legal, the second is the defect. One is not evidence about the other.
+
+**Blocker 2: an `AGENTS.md` with no `derived` row.** Nothing requires one. Check 9's
+`grep -nE '^\|.*derived' AGENTS.md` is structurally the same command as check 10's
+`grep -noE '\bbeans/[0-9]'`, which *was* opted out; the two differ only in what today's
+corpus happens to contain.
+
+```
+head:     688f3ba, tools/docs-lint.sh as that commit has it
+tree:     AGENTS.md is TRACKED, so the plant is into a COPY of the corpus — AGENTS.md,
+          CLAUDE.md, .beans.yml, .beans, documentation, tools, .github, config and
+          architecture-tests copied to a scratch directory and the gate run there. No `.git`
+          there, so the five diff-shaped counts report `-`; the same copy is green before the
+          edit. The edit is one word: `derived, not restated here` -> `not restated here`
+cmd:      /usr/bin/grep -cE '^\|.*derived' AGENTS.md   ->  0
+          /bin/bash tools/docs-lint.sh   and   /opt/homebrew/bin/bash tools/docs-lint.sh
+--- /bin/bash 3.2.57 and /opt/homebrew/bin/bash 5.3.9, byte-identical:
+exit: 1
+stdout: docs-lint: 1 failure(s).
+stderr: FAIL check -  line 390: a command exited 1 and nothing checked it: 'grep -nE '^\|.*derived' AGENTS.md > "$TMP/derived.txt"'
+--- and the same copy with the row restored, both interpreters:
+exit: 0
+docs-lint: OK — 19 documents, 111 anchors, 1736 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, - introduced, - on origin/main, - closing transitions, - criteria checked, - unnumbered.
+--- (end)
+```
+
+### The rule the list is derived from now
+
+> `grep` exits 1 to say the pattern is ABSENT, and 2 or more to say it could not look.
+> `grep -c` says the same thing twice: it exits 1 whenever the count it has just printed is 0.
+> **Wherever the gate reads the OUTPUT — the count, the matching lines, the file they were
+> written into — the status restates something the gate already holds.** Such a site is opted
+> out. It stays armed only where "nothing found" means the tree is broken and no check says so.
+
+That is a rule about the command, not about a corpus, which is what makes it re-derivable by
+the next reader. Applied to `tools/docs-lint.sh` it names every `grep` in the file except one,
+and it retires the `|| true` and `|| :` blanket tolerances beside five of them — those swallow
+every status, including the "could not look" this opt-out exists to keep. The sites are named
+rather than counted, since the count moves with the next check anyone writes.
+
+| site | why |
+|---|---|
+| check 2's `keys \| grep -cx "$k"` | 0 is the count line 221 reports as `key '$k' appears 0 times` |
+| check 5's anchor `grep -oE` | **blocker 1** — a draft may declare no anchor |
+| check 6's `rule:` counts, three of them | 0 is the count line 351 reports |
+| check 6's `printf \| grep -c .` and `awk \| grep -c .` | 0 is the count lines 362 and 368 report |
+| check 8's two budget `grep -oE`s | absence is what line 376 reports |
+| check 8's two `grep -c ''` | a file of 0 lines has a count of 0; check 1 reports an empty file |
+| check 9's `grep -nE '…derived'` | **blocker 2** — nothing requires a `derived` row |
+| check 11's `grep -c ''`, `grep -m1`, `grep '^### '`, two `grep -c` | all five read the output; three were `\|\| true`, which is worse |
+| check 12's two `\| grep -c .` after a glob | 0 is the count lines 532 and 548 report |
+| check 12's `n_ready` | **the sharpest**: `grep -c .` returns 1 on exactly the condition line 602 reports — "no bean is selectable" cost two records |
+| check 13's `id_length` grep | absence is what line 626 reports |
+| check 13's `n_marker` | 0 is the count line 661 reports |
+| check 13c's `n_bean_ids`, `n_introduced`, `n_main_ids`, `n_beans`, the `ls-tree \| grep` | all read the output; four were `\|\| true` |
+| the four `grep -c` of the **counts line** | a record written there is written AFTER `n_fail` has been read, so an armed site there records into a number nobody inspects again: fail-open, not enforcement |
+| `n_fail` itself | already opted out; unchanged |
+| check 10's bare-`beans/` grep, check 6's reference `grep -oE` | already opted out; unchanged |
+
+**The one site left armed** is `BEAN_PREFIX="$(grep -E '^ *prefix:' .beans.yml \| …)"`. A
+`.beans.yml` with no `prefix:` is not a legal tree — every bean path checks 6, 12 and 13 build
+comes from that value — and, unlike `id_length:` twelve lines below it, **no check reports its
+absence**. The trap's record is the only signal there is, so it keeps it. That asymmetry is the
+rule doing work rather than a list being copied.
+
+**`ls` is deliberately not routed through `absent_ok`.** Its "no such file" is status 1 on the
+BSD `ls` macOS ships and 2 on GNU coreutils, so tolerating it would mean tolerating 2 — exactly
+the widening the suite now plants a `grep` that could not look to catch. The six `ls <glob>
+2>/dev/null` sites are answered by `glob_lines` instead, which is the shell's own `[ -e ]` over
+the expanded glob and cannot fail, so there is no status left to tolerate.
+
+**And `absent_ok` now names the command it refuses.** With `set -E` off, the ERR trap fires at
+the CALLER for the function's non-zero return, and `$BASH_COMMAND` there holds `return "$ec"` —
+the last command `absent_ok` ran — under both interpreters:
+
+```
+head:     this branch's working tree
+cmd:      bash <scratch>/optprobe.sh, a five-line file defining absent_ok, a recording ERR
+          trap, and one call: `absent_ok grep -c . /no/such/file/__probe_cannot_look__`
+--- /bin/bash 3.2.57:            rec: status=2 cmd=[return "$ec"]
+--- /opt/homebrew/bin/bash 5.3.9: rec: status=2 cmd=[return "$ec"]
+```
+
+So a `grep` that could not look would have been recorded as a `return`. `absent_ok` writes its
+own `fail` naming the argv, and the trap's record stands beside it — one failure, two records,
+exactly as one dead analyser is two.
+
+## The audit, which is what made the trap safe to arm — and which had to be run four times
 
 `bean:0124` names the audit of every command in the file as the work, and
 `doc:00-constitution#observed-failing`'s negative half is why: a mechanism that fires when
 nothing is wrong is worse than the gap, because it will be removed rather than fixed. The
 audit is a measurement, not a reading. A copy of the gate gets `set -E` and an `ERR` trap that
-only **records** — errtrace ON here, so a firing inside a function or a subshell cannot be
-missed — and the green run says which commands return non-zero when nothing is wrong.
+records — errtrace ON here, so a firing inside a function or a subshell cannot be missed — and
+the green run says which commands return non-zero when nothing is wrong.
+
+**The two audits BELOW are of `main`'s gate, and they are sound.** `main`'s gate arms no `ERR`
+trap of its own, so a recorder inserted after `set -uo pipefail` there is live for the whole
+file and nothing replaces it. The two audits of the gate this SHIPS were a different matter,
+and they are corrected below the CI section.
 
 ```
 head:     this branch's working tree; the gate under audit is main's at 277c4d5
@@ -242,67 +380,131 @@ The fourth line of that listing is the same site as the second: with errtrace on
 inside the command substitution and the assignment that contains it are both recorded, which
 is the doubling the shipped trap does not have because it does not set errtrace.
 
-All three now go through `absent_ok`, which tolerates `grep`'s status 1 — the pattern is
-absent — and nothing above it. The audit against the gate as it ships, under both
-interpreters, finds nothing:
+All three then went through `absent_ok`. **And the two "after" audits that said so were run
+with the recorder somewhere it could not see anything.**
+
+### The instrument was blind, and its zero was a coincidence
+
+Both "after" audits inserted `set -E` and a recording `ERR` trap at line 33 — immediately
+after `set -uo pipefail`. `tools/docs-lint.sh` arms **its own** `ERR` trap further down the
+file, and a second `trap … ERR` REPLACES the first. So the recorder was live for the 59 lines
+between the two arming points and dead for the remaining 789, and "0 firings" was a fact about
+those 59 lines. On the unmodified corpus the number happens to be right, which makes it worse
+rather than better: it is a figure that would have read the same had the instrument been
+disconnected, and it was.
+
+Demonstrated on the tree that made blocker 1 red. The gate goes red; the recorder at
+`bean:0124`'s own insertion point logs **nothing**:
 
 ```
-head:     this branch's working tree; the gate under audit is the one this ships
-method:   the same recording trap, at the same insertion point, under /bin/bash 3.2.57
-gate under audit: [...]/tools/docs-lint.sh
-interpreter:      /bin/bash (GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25))
---- the two lines inserted:
-32a33,34
-> set -E
-> trap 'printf "%s\t%s\n" "$?" "$BASH_COMMAND" >> [...]/errsites-after.txt' ERR
---- the run:
-exit: 0
-stdout:
-docs-lint: OK — 19 documents, 111 anchors, 1736 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
-stderr byte count: 0
---- ERR firings on a green run, by (status, command), most frequent first:
+head:     688f3ba; the gate under audit is `git show 688f3ba:tools/docs-lint.sh`, copied to
+          tools/.docs-lint-audit-$$.sh and deleted after
+tree:     this worktree plus the untracked documentation/98-a-draft-with-no-anchors.md of
+          blocker 1, removed by the same script; `git status --porcelain` after shows it gone
+method:   `set -E` and a RECORDING ERR trap inserted immediately after `set -uo pipefail`
+--- /bin/bash 3.2.57 and /opt/homebrew/bin/bash 5.3.9, identical:
+exit: 1
+stdout: docs-lint: 1 failure(s).
+stderr byte count: 138
+--- ERR firings, by (status, line, command), most frequent first:
 --- total firings: 0
 --- distinct commands: 0
---- git status --porcelain:
- M tools/docs-lint.sh
 --- (end)
 ```
 
+The same recorder moved BELOW the gate's own `trap … ERR`, on the same tree, logs blocker 1
+itself and nothing else:
+
 ```
-head:     this branch's working tree; the gate under audit is the one this ships
-method:   the same recording trap, at the same insertion point, under bash 5.3.9
-gate under audit: [...]/tools/docs-lint.sh
-interpreter:      /opt/homebrew/bin/bash (GNU bash, version 5.3.9(1)-release (aarch64-apple-darwin25.1.0))
---- the two lines inserted:
-32a33,34
-> set -E
-> trap 'printf "%s\t%s\n" "$?" "$BASH_COMMAND" >> [...]/errsites-after5.txt' ERR
---- the run:
-exit: 0
-stdout:
-docs-lint: OK — 19 documents, 111 anchors, 1736 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
-stderr byte count: 0
---- ERR firings on a green run, by (status, command), most frequent first:
---- total firings: 0
---- distinct commands: 0
---- git status --porcelain:
- M tools/docs-lint.sh
+head:     688f3ba; same gate, same tree, same script
+method:   the recorder inserted immediately after the gate's own `trap … ERR` line, and
+          CHAINED rather than replacing it — it records and then calls `docs_lint_err` with
+          the same four fields, so the run is identical to an uninstrumented one and
+          `docs_lint_err` is still what the gate's end-of-run check finds in the ERR slot.
+          A record-only recorder trips that check, which is the instrument changing what it
+          measures. errtrace ON, so a firing inside a function or a subshell cannot be missed
+--- /bin/bash 3.2.57
+exit: 1
+stdout: docs-lint: 1 failure(s).
+--- ERR firings, by (status, line, command), most frequent first:
+   1 1	304	sort -u > "$TMP/declared.txt"
+--- total firings: 1   distinct commands: 1
+--- /opt/homebrew/bin/bash 5.3.9
+exit: 1
+stdout: docs-lint: 1 failure(s).
+--- ERR firings, by (status, line, command), most frequent first:
+   1 1	306	sort -u > "$TMP/declared.txt"
+--- total firings: 1   distinct commands: 1
 --- (end)
 ```
 
-And the suite itself, run under bash 5.3.9 rather than the pinned 3.2.57, which is the check
-that would have caught the site before the runner did:
+(The line numbers are three higher than the gate's own records — 301 and 303 — because the
+recorder's three lines sit above them. Same site, same two interpreters, same difference of
+two between them, for the reason `$LINENO` differs inside a `for` body under 3.2.57.)
+
+### The audit redone, where the recorder can observe
+
+Three lines inserted immediately after the gate's own `trap … ERR`, chaining into it, on the
+clean tree, under both interpreters:
 
 ```
-head:     this branch's working tree
-cmd:      /opt/homebrew/bin/bash tools/docs-lint-gate-test.sh > [...]/gate-test-bash5.txt 2>&1
-observed: docs-lint-gate-test: interpreter /opt/homebrew/bin/bash (bash 5.3.9(1)-release)
-          [...] the forty-nine assertion rows and the banners between them, identical to the
-                3.2.57 run quoted under criterion 4 except for the interpreter line, the awk
-                version line, and the analyser's exit status where it is reported
-          docs-lint-gate-test: 49 passed, 0 failed.
-exit:     0
+head:     688f3ba, working tree; the gate under audit is the one this ships
+method:   a COPY at tools/.docs-lint-audit-$$.sh with `set -E` and a CHAINING recording ERR
+          trap inserted after the gate's own; the copy deleted and `git status` printed after
+occurrences of that anchor in the gate: 1
+--- the lines inserted:
+113a114,116
+> set -E
+> __audit_rec=[...]/rec-shipped-below-32.txt
+> trap '__ec=$?; __ps="${PIPESTATUS[*]}"; __cmd="$BASH_COMMAND"; __ln=$LINENO; printf "%s\t%s\t%s\n" "$__ec" "$__ln" "$__cmd" >> "$__audit_rec"; docs_lint_err "$__ec" "$__cmd" "$__ln" "$__ps"' ERR
+
+=== /bin/bash (GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25))
+exit: 0
+stdout:
+docs-lint: OK — 19 documents, 111 anchors, 1737 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+stderr byte count: 0
+--- ERR firings on this run, by (status, line, command), most frequent first:
+--- total firings: 0
+--- distinct commands: 0
+
+=== /opt/homebrew/bin/bash (GNU bash, version 5.3.9(1)-release (aarch64-apple-darwin25.1.0))
+exit: 0
+stdout:
+docs-lint: OK — 19 documents, 111 anchors, 1737 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+stderr byte count: 0
+--- ERR firings on this run, by (status, line, command), most frequent first:
+--- total firings: 0
+--- distinct commands: 0
+
+--- git status --porcelain:
+ M .beans/modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md
+ M .beans/modus-0124--the-non-analyser-fail-open-boundary-in-docs-lint.md
+ M tools/docs-lint-gate-test.sh
+ M tools/docs-lint.sh
+?? tools/docs-lint-boundary-probe.sh
+--- (end)
 ```
+
+**This zero is a different zero from the one it replaces**, and the difference is the pair of
+runs above: the same instrument, on a tree with one legal-tree defect, logs one firing and
+names it. A mechanism observed silent and never observed firing is not discrimination
+(`doc:50-memory-and-evidence#evidence-kinds`); the control is what makes the silence mean
+something.
+
+**A note on the `references` count, which is not constant across this bean's fences and cannot
+be.** `.beans/modus-0124--*.md` is one of the files check 6 reads, so writing this bean changes
+the number the gate prints while it is being written: `1736` in the fences taken before this
+review round, `1737` in the ones taken during it, `1738` in the last ones — `qualityCheck`,
+criterion 3, and the run this paragraph was checked against. Each is what its command printed
+when it was run, and none has been retyped to agree with the others. That is the
+measurement-neutrality question `doc:50-memory-and-evidence#corpus-figures` says to state
+rather than assume: this record is neutral at no step, and the stamp on each fence is what
+distinguishes them. The `documents`, `anchors`, `beans`, `graph edges`, `selectable` and
+`bean ids` counts are unmoved throughout.
+
+For completeness, the recorder at the OLD insertion point on the CLEAN tree also logs 0 under
+both interpreters — the same number the old fences carry, arrived at by an instrument that
+cannot see. That is the coincidence, stated as one.
 
 **And the sites where a non-zero status is an answer on a RED run are not opted out, because
 each is followed by the check that reports it.** That is a claim about paths, so it is
@@ -352,15 +554,131 @@ FAIL check 12 .beans/modus-9901--a-probe-bean-with-unresolvable-edges.md: blocke
 --- (end)
 ```
 
-Seven distinct sites fire, and every one of them is a line whose next few lines report the
+Seven distinct sites fire, and on THIS corpus each is a line whose next few lines report the
 same defect on stdout — `key 'depends_on' appears 0 times`, the check 6 record for a `doc:`
 reference to a document that is not there, and `blocked_by 'modus-9998' resolves to 0 bean
 files`; all three are in the fence above, where a fenced block keeps the reference itself from
 resolving. The run is red either way; what the trap adds there is a second record for a defect
-already named, which is noise on a red run and not a red run of its own. **If one of those
-sites ever fires on a green corpus the gate goes red on a clean tree**, which is the risk this
-audit exists to bound — and the CI run above is what that risk looks like when the bound is
-taken on one interpreter only.
+already named, which is noise on a red run and not a red run of its own.
+
+**The sentence that followed here was the mistake this whole change turns on, and it is struck
+rather than dropped.** It read: *every one of them is a line whose next few lines report the
+same defect on stdout*, and it was then generalised from these seven sites to every site not
+in the opt-out. It is **false at check 5's site**, which is one of the seven: line 301 fires
+when a document declares **no anchor at all**, and check 5 reports only a **promised** anchor
+that no heading declares. Those are different conditions, and one of them is legal. The
+generalisation was an inference from what one planted corpus happened to exercise, offered
+where a statement about the command's semantics was needed. Blockers 1 and 2 are what it cost,
+and the rule the opt-out is derived from now is above.
+
+**If one of those sites ever fires on a green corpus the gate goes red on a clean tree**,
+which is the risk this audit exists to bound — and the CI run above is what that risk looks
+like when the bound is taken on one interpreter only, as the two clean trees are what it looks
+like when the bound is taken from one corpus only.
+
+## What bounds the trap's EXTENT — the one-line disarm the suite could not see
+
+Every plant this bean shipped with sat between lines 147 and 681 of an 848-line file, so
+check 14, the record-file guard, `n_fail` and the counts line were covered by nothing. The
+mutation that shows it is one line, `trap - ERR`, and it is **not a no-op**:
+
+```
+head:     688f3ba; the gate under probe is `git show 688f3ba:tools/docs-lint.sh`, copied to
+          tools/.docs-lint-d1.sh and tools/.docs-lint-d2.sh, both deleted after
+method:   one `false __probe_below_the_disarm__` planted after the `KINDS=` line in BOTH
+          copies; d1 additionally has `trap - ERR` planted immediately BEFORE that line
+interpreter: /bin/bash (GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25))
+--- d2, trap ARMED:
+diff:  742a743
+       > false __probe_below_the_disarm__
+exit:   1
+stdout: docs-lint: 1 failure(s).
+stderr: FAIL check -  line 743: a command exited 1 and nothing checked it: 'false __probe_below_the_disarm__'
+--- d1, trap DISARMED one line above the plant:
+diff:  741a742
+       > trap - ERR
+       742a744
+       > false __probe_below_the_disarm__
+exit:   0
+stdout: docs-lint: OK — 19 documents, 111 anchors, 1737 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+stderr: (empty)
+--- (end)
+```
+
+**A plant per region is the wrong shape for the answer.** It is an enumeration of the places
+somebody thought to look, which is what `bean:0123` learned bounds nothing — a lexical list of
+`awk` bypass spellings that left twenty-one of twenty-two call sites unguarded and scored a
+clean sheet. Regions are the same list with different words in it.
+
+**What bounds it is behavioural, and it lives in the gate rather than in the suite.** At its
+last statement before the count, `tools/docs-lint.sh` asks the SHELL what handler it is
+holding:
+
+```sh
+case "$(trap -p ERR)" in
+  *docs_lint_err*) ;;
+  *) fail - "the ERR trap was not armed at the end of the run; …" ;;
+esac
+```
+
+`trap - ERR`, `trap '' ERR`, a re-trap to some other handler and deleting the arming line
+altogether are all caught by the same three lines, because none of them leaves `docs_lint_err`
+in the shell's ERR slot. No list of spellings is involved. `trap -p ERR` prints the handler
+identically under 3.2.57 and 5.3.9 and prints nothing at all once disarmed — measured, both.
+
+```
+head:     this branch's working tree; the gate under probe is a COPY at
+          tools/.docs-lint-disarm.sh, deleted after
+method:   `trap - ERR` planted immediately before the `KINDS=` line; one line differs
+interpreter: /bin/bash 3.2.57
+exit: 1
+stdout:
+FAIL check -  the ERR trap was not armed at the end of the run; it is armed once, near the top of this file, and nothing below may disarm it — every runtime failure between the disarm and here went unrecorded
+docs-lint: 1 failure(s).
+```
+
+**And two plants were added anyway, because the invariant needs a positive control.** The
+armed check says the handler is still in the slot at the last line; it does not say the trap
+records anything down there. So the planted table now runs to check 14's preamble and to the
+last statement the gate executes before it counts — `false __probe_check14__` and
+`cat /no/such/file/__probe_last_statement__` — and both produce a distinct record in every run
+of the suite, under every interpreter. The residual is stated rather than implied: **a disarm
+that re-arms before the last line passes**, and that needs two edits.
+
+## Both interpreters, in the suite — not in a transcript
+
+`tools/docs-lint-gate-test.sh` ran `SHELL_BIN="${BASH:-/bin/bash}"` — one interpreter,
+whichever invoked the file. That is 3.2.57 here and bash 5 on the runner, and **nothing in the
+repository ever ran both**, while this change's `after:` clause claimed the opt-out had been
+read off a green run under both. The claim was true of two hand-run transcripts pasted into
+this bean and false of anything that re-runs.
+
+The suite now discovers every distinct bash MAJOR version on the host — the pinned `$BASH`
+first, then a candidate list of paths — and repeats every gate run and every run assertion
+once per interpreter, tagging each assertion with the version that produced it. The candidate
+list is a list of PATHS, so a bash it does not name costs coverage and never correctness; what
+would fail open is asserting a bash-5-only property while running 3.2, and the banner refuses
+to let that pass in silence:
+
+```
+head:     this branch's working tree
+cmd:      /bin/bash tools/docs-lint-gate-test.sh
+docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
+docs-lint-gate-test: analyser awk — awk version 20200816
+docs-lint-gate-test: exercising /bin/bash (bash 3.2.57(1)-release)
+docs-lint-gate-test: exercising /opt/homebrew/bin/bash (bash 5.3.9(1)-release)
+[...] the ten-shape ERR-trap table under each interpreter, quoted in full above; then every
+      plant assertion once, and every run assertion twice — once per interpreter, each row
+      tagged `[bash 3.2.57(1)-release]` or `[bash 5.3.9(1)-release]`
+docs-lint-gate-test: 110 passed, 0 failed, over 2 bash major version(s).
+exit:     0
+```
+
+On a host with one bash major version — which the CI runner is — the suite prints, in five
+lines it cannot be read past, that it exercised one, and names the claims that are therefore
+unverified there: which pipeline shapes reach the trap, which element `$BASH_COMMAND` names,
+and what `$LINENO` holds inside a loop body. The cost is one extra set of six backgrounded
+gate runs per interpreter; on the runner there is one interpreter and the cost is nothing.
 
 ## What changed, and why this mechanism and not the other three
 
@@ -368,10 +686,19 @@ taken on one interpreter only.
 now arms `trap 'docs_lint_err $? "$BASH_COMMAND" "$LINENO" "${PIPESTATUS[*]}"' ERR` as soon
 as the file every record is written into exists, and the handler appends one line through
 the same `fail` every check uses. The run continues; the exit status changes, because
-`docs-lint: N failure(s).` is a count of that file's lines. Two commands whose non-zero
-status is an **answer** rather than a failure — `grep` reporting no match — go through an
-`absent_ok` wrapper that tolerates status 1 and nothing above it. There turned out to be
-three, and the third was found by the runner rather than by this machine.
+`docs-lint: N failure(s).` is a count of that file's lines. Commands whose non-zero status is
+an **answer** rather than a failure — `grep` reporting no match, `grep -c` restating a count
+of 0 — go through an `absent_ok` wrapper that tolerates status 1 and nothing above it, and
+names the command when it refuses. **Which commands those are is settled by the rule stated
+above and not by a list of sites a run was seen firing at**; the list version was wrong three
+times — twice on trees that break no rule, once on the runner.
+
+**Plus two things the first version did not have.** `glob_lines` replaces `ls <glob>
+2>/dev/null` where "no such file" is an answer, because `ls` says it with a status that
+differs by implementation and so cannot be tolerated by a single number. And at its last
+statement before the count the gate asks the shell whether `docs_lint_err` is still in the
+ERR slot, which is what bounds the RANGE the trap is armed over rather than the shapes it
+catches.
 
 Three alternatives were weighed, and the reasons are measurements.
 
@@ -424,29 +751,91 @@ call site, which `bean:0123`'s wrapper cannot name.
 
 **Does not catch**, named because the assertions would otherwise imply it:
 
-- **A failure whose status an enclosing subshell discards.** In this file that is a non-final
-  command inside a `printf … | while read` body: the loop runs in a subshell of its own and
-  its status is the last command's. The loops of that shape are check 7's over `read_when`,
-  check 2's over `provides`, check 5's two over `comm`, and check 10's over a `grep -noE` —
-  named rather than counted, since the count moves with the next check anyone writes.
-  Measured as the fourth plant point of the table below, where every row reaches `OK` at exit
-  0 exactly as it did before the change. `set -E` closes it, at the price stated above; that price is the one thing in this
-  work item a reviewer could reasonably reverse.
-- **A pipeline whose last element is a compound command, under bash 3.2 only.** The trap does
-  not reach it there and does reach it under bash 5, which is how a success-path site got past
-  the audit and turned the runner red. Measured in the audit section above. It is a difference
-  in what the trap SEES, not in what the gate does, and it means the audit is only as complete
-  as the set of interpreters it was run under — here, 3.2.57 and 5.3.9.
+- **A failure whose status an enclosing subshell discards.** In this file that is a command
+  inside a `while read` body whose enclosing loop is a pipeline element: the loop runs in a
+  subshell of its own and its status is the last command's. The loops of that shape are check
+  7's over `read_when` and check 2's over `provides`, both fed by `printf`; check 5's two, fed
+  by `comm`; and check 10's, fed by a `grep` — named rather than counted, since the count moves
+  with the next check anyone writes. **Two of the five are `comm`-fed, and an earlier revision
+  of this bullet and of the gate's own comment said `printf … | while read` as though all of
+  them were.** Measured as the fourth plant point of the table below, where every row reaches
+  `OK` at exit 0 exactly as it did before the change. `set -E` closes it, at the price stated
+  above; that price is the one thing in this work item a reviewer could reasonably reverse.
+- **Under the pinned bash 3.2.57 the residual is bigger than that, and this bean stated the
+  two halves separately without ever joining them.** 3.2 does not reach the trap AT ALL for a
+  pipeline whose last element is a compound command, so what is unseen there is not the loop
+  body but the WHOLE PIPELINE, its final command included. Under bash 5 the pipeline is seen
+  and the body is not. The eight shapes, distinguished only by their last element:
+
+  ```
+  head:     this branch's working tree
+  cmd:      /bin/bash <scratch>/shapes.sh   and   /opt/homebrew/bin/bash <scratch>/shapes.sh
+            — one file, `set -uo pipefail`, a counting ERR trap, ten pipelines `false | <shape>`
+  last element of the pipeline        3.2.57  5.3.9   $BASH_COMMAND under 5.3.9
+  while                                0       1      false   (the FIRST element)
+  for                                  0       1      false
+  until                                0       1      false
+  if                                   0       1      false
+  case                                 0       1      false
+  brace group  { …; }                  0       1      false
+  redirected group  { …; } > /dev/null 0       1      false
+  subshell  ( … )                      0       2      ( : )
+  simple command                       1       1      cat     (the LAST element)
+  function                             1       1      fn      (the LAST element)
+  ```
+
+  Three consequences this bean did not carry. The subshell case fires **twice** under bash 5.
+  `$BASH_COMMAND` holds the **first** element under bash 5 for every compound shape, where
+  `tools/docs-lint.sh`'s comment said "the LAST element" unconditionally; the comment now says
+  which, and why the statuses beside it are what the record is read on. And the divergence is
+  not a curiosity — one line, one tree, two verdicts:
+
+  ```
+  head:     this branch's working tree; the gate under probe is a COPY at
+            tools/.docs-lint-last.sh, deleted after; `git status --porcelain` shows it gone
+  plant:    `      false __probe_last__` inserted as the LAST command of check 7's `while`
+            body, whose enclosing loop is the last element of `printf … | while read`
+  diff:     335a336
+            >       false __probe_last__
+  --- /bin/bash 3.2.57
+  exit: 0
+  docs-lint: OK — 19 documents, 111 anchors, 1737 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+  records naming __probe_last__: 0
+  --- /opt/homebrew/bin/bash 5.3.9
+  exit: 1
+  docs-lint: 16 failure(s).
+  records: 16, all one line:
+  FAIL check -  line 323: a command exited 1 and nothing checked it: 'printf '%s\n' "$rw_items"' (pipeline exited 0 1, left to right)
+  ```
+
+  Note what the bash 5 record NAMES: `printf`, the element that succeeded, with `0 1` beside it
+  saying the failure was at the other end. That is the `$BASH_COMMAND` row of the table above,
+  in the gate rather than in a probe. It is a difference in what the trap SEES, not in
+  what the gate does, and it means the audit is only as complete as the set of interpreters it
+  was run under. `tools/docs-lint-gate-test.sh` now prints this table under every interpreter
+  it finds, on every run, so the premise is measured rather than remembered.
 - **A failure in a tested context** — `if cmd`, `while cmd`, `cmd && …`, `cmd || …`. The
   status is consumed there, which is the same rule errexit uses, so a `grep` that could not
   look, at a site where the gate reads non-zero as "no match", is still read as an answer.
   The sites are enumerated by the red-corpus audit below rather than by reading.
 - **A command that runs, exits 0, and examines nothing.** That is `bean:0126`, and no trap
   can see it.
-- **`ROOT` coming out empty.** `cd ""` exits **0** under `/bin/bash` 3.2.57 — measured —
-  so `cd "$ROOT" || exit 2` would not fire if `ROOT="$(cd "$(dirname "$0")/.." && pwd)"`
-  produced nothing. It cannot while the directory the running script sits in exists, and it
-  is named here so the next reader does not re-derive it as an open gap.
+- **`ROOT` coming out empty.** `cd ""` exits **0** under `/bin/bash` 3.2.57 and **1** under
+  bash 5.3.9, which writes `cd: null directory` — both measured here, and the one-interpreter
+  version of this bullet stated the 3.2 half as a property of `cd`. So `cd "$ROOT" || exit 2`
+  would not fire on the pinned interpreter if `ROOT="$(cd "$(dirname "$0")/.." && pwd)"`
+  produced nothing, and would fire on the runner. The unreachability holds in practice — it
+  cannot be empty while the directory the running script sits in exists — but it holds *in
+  practice* and not by construction, which is a weaker statement than the one this bullet made.
+
+  ```
+  head:     this branch's working tree
+  cmd:      /bin/bash -c 'cd ""; echo "3.2.57 cd empty -> $?"'
+            /opt/homebrew/bin/bash -c 'cd ""; echo "5.3.9 cd empty -> $?"'
+  observed: 3.2.57 cd empty -> 0
+            /opt/homebrew/bin/bash: line 1: cd: null directory
+            5.3.9 cd empty -> 1
+  ```
 - **The diagnosis is on stderr only.** The trap's record does not reach stdout, for the
   reason `bean:0123`'s wrapper does not: a call site inside `$( )` has its stdout captured,
   and `bean:0123` measured what happens when it is not redirected — 908 stdout lines, 907 of
@@ -473,70 +862,83 @@ once per document and that figure is the corpus's
 (`doc:50-memory-and-evidence#corpus-figures`).
 
 ```
-head:     this branch's working tree; the gate under probe is a frozen copy of
-          tools/docs-lint.sh taken by the same script before the first plant
-method:   each row planted into a COPY at tools/.docs-lint-p-<point>-N.sh, the copy run, the
-          copy deleted; six copies at a time; no tracked file written (bean:0102). The anchor
-          and the planted line reach awk through the ENVIRONMENT and not `-v`, which processes
-          escapes: the `printf … | while read` anchor contains a backslash and an n, and with
-          `-v` it silently matched nothing — which is what the `lines added` column is for
+head:     688f3ba, working tree; the gate under probe is tools/docs-lint.sh itself
+cmd:      tools/docs-lint-boundary-probe.sh /bin/bash — the rig, committed, so this
+          table is re-derivable rather than re-created (doc:50-memory-and-evidence#evidence-kinds)
+interpreter:      /bin/bash (GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25))
+method:   each row planted into a COPY at tools/.docs-lint-bp-<pid>-N.sh, the copy run,
+          the copy deleted; the rows of one plant point run concurrently; no tracked file
+          written (bean:0102). The anchor and the planted line reach awk through the
+          ENVIRONMENT and not `-v`, which processes escapes: the a4 anchor contains a
+          backslash and an n, and with `-v` it silently matched nothing — which is what
+          the `lines added` column is for
+
 
 === plant point a1, immediately after: set -uo pipefail
+occurrences of that anchor in the gate: 1
 planted line                                   exit OK?  records distinct lines added
-echo "$__probe_unbound_top"                    1    no   0       0       1
-;;                                             2    no   0       0       1
-echo x | ;;                                    2    no   0       0       1
-false                                          0    yes  0       0       1
-/usr/bin/false                                 0    yes  0       0       1
-cat /no/such/file/anywhere                     0    yes  0       0       1
-cd /no/such/dir/anywhere                       0    yes  0       0       1
-false | cat                                    0    yes  0       0       1
-probe_x="$(echo "$__probe_unbound_sub")"       0    yes  0       0       1
-echo "$__probe_unbound_pipe" | cat             0    yes  0       0       1
-probe_y="$( ;; )"                              0    yes  0       0       1
-awk "BEGIN { x = = 1 }" /dev/null | cat        0    yes  0       0       1
-probe_z="$(awk "BEGIN { x = = 1 }" /dev/null)" 0    yes  0       0       1
+echo "$__probe_unbound_top"                    1    no   0       0        1
+;;                                             2    no   0       0        1
+echo x | ;;                                    2    no   0       0        1
+awk "BEGIN { x = = 1 }" /dev/null | cat        0    yes  0       0        1
+probe_z="$(awk "BEGIN { x = = 1 }" /dev/null)" 0    yes  0       0        1
+false                                          0    yes  0       0        1
+/usr/bin/false                                 0    yes  0       0        1
+cat /no/such/file/anywhere                     0    yes  0       0        1
+cd /no/such/dir/anywhere                       0    yes  0       0        1
+false | cat                                    0    yes  0       0        1
+probe_x="$(echo "$__probe_unbound_sub")"       0    yes  0       0        1
+echo "$__probe_unbound_pipe" | cat             0    yes  0       0        1
+probe_y="$( ;; )"                              0    yes  0       0        1
 
 === plant point a2, immediately after: FM_FILES="$(ls documentation/*.md documentation/adr/*.md)"
+occurrences of that anchor in the gate: 1
 planted line                                   exit OK?  records distinct lines added
-echo "$__probe_unbound_top"                    1    no   0       0       1
-;;                                             2    no   0       0       1
-echo x | ;;                                    2    no   0       0       1
-false                                          1    no   1       1       1
-/usr/bin/false                                 1    no   1       1       1
-cat /no/such/file/anywhere                     1    no   1       1       1
-cd /no/such/dir/anywhere                       1    no   1       1       1
-false | cat                                    1    no   1       1       1
-probe_x="$(echo "$__probe_unbound_sub")"       1    no   1       1       1
-echo "$__probe_unbound_pipe" | cat             2    no   878     43      1
-probe_y="$( ;; )"                              1    no   1       1       1
-awk "BEGIN { x = = 1 }" /dev/null | cat        1    no   1       1       1
-probe_z="$(awk "BEGIN { x = = 1 }" /dev/null)" 1    no   1       1       1
+echo "$__probe_unbound_top"                    1    no   0       0        1
+;;                                             2    no   0       0        1
+echo x | ;;                                    2    no   0       0        1
+awk "BEGIN { x = = 1 }" /dev/null | cat        1    no   2       2        1
+probe_z="$(awk "BEGIN { x = = 1 }" /dev/null)" 1    no   2       2        1
+false                                          1    no   1       1        1
+/usr/bin/false                                 1    no   1       1        1
+cat /no/such/file/anywhere                     1    no   1       1        1
+cd /no/such/dir/anywhere                       1    no   1       1        1
+false | cat                                    1    no   1       1        1
+probe_x="$(echo "$__probe_unbound_sub")"       1    no   1       1        1
+echo "$__probe_unbound_pipe" | cat             2    no   1322    59       1
+probe_y="$( ;; )"                              1    no   1       1        1
 
 === plant point a3, immediately after:   id="$(field "$f" S id)"
+occurrences of that anchor in the gate: 1
 planted line                                   exit OK?  records distinct lines added
-false                                          1    no   19      1       1
-/usr/bin/false                                 1    no   19      1       1
-cat /no/such/file/anywhere                     1    no   19      1       1
-cd /no/such/dir/anywhere                       1    no   19      1       1
-false | cat                                    1    no   19      1       1
-probe_x="$(echo "$__probe_unbound_sub")"       1    no   19      1       1
-echo "$__probe_unbound_pipe" | cat             2    no   858     39      1
-probe_y="$( ;; )"                              1    no   19      1       1
+false                                          1    no   19      1        1
+/usr/bin/false                                 1    no   19      1        1
+cat /no/such/file/anywhere                     1    no   19      1        1
+cd /no/such/dir/anywhere                       1    no   19      1        1
+false | cat                                    1    no   19      1        1
+probe_x="$(echo "$__probe_unbound_sub")"       1    no   19      1        1
+echo "$__probe_unbound_pipe" | cat             2    no   1289    55       1
+probe_y="$( ;; )"                              1    no   19      1        1
 
 === plant point a4, immediately after:     printf '%s\n' "$prov" | while IFS= read -r a; do
+occurrences of that anchor in the gate: 1
 planted line                                   exit OK?  records distinct lines added
-false                                          0    yes  0       0       1
-/usr/bin/false                                 0    yes  0       0       1
-cat /no/such/file/anywhere                     0    yes  0       0       1
-cd /no/such/dir/anywhere                       0    yes  0       0       1
-false | cat                                    0    yes  0       0       1
-probe_x="$(echo "$__probe_unbound_sub")"       0    yes  0       0       1
-echo "$__probe_unbound_pipe" | cat             0    yes  0       0       1
-probe_y="$( ;; )"                              0    yes  0       0       1
+false                                          0    yes  0       0        1
+/usr/bin/false                                 0    yes  0       0        1
+cat /no/such/file/anywhere                     0    yes  0       0        1
+cd /no/such/dir/anywhere                       0    yes  0       0        1
+false | cat                                    0    yes  0       0        1
+probe_x="$(echo "$__probe_unbound_sub")"       0    yes  0       0        1
+echo "$__probe_unbound_pipe" | cat             0    yes  0       0        1
+probe_y="$( ;; )"                              0    yes  0       0        1
 
 --- git status --porcelain after every probe was removed:
+ M .beans/modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md
+ M .beans/modus-0124--the-non-analyser-fail-open-boundary-in-docs-lint.md
+ M build.gradle.kts
+ M tools/docs-lint-gate-test.sh
  M tools/docs-lint.sh
+?? tools/docs-lint-boundary-probe.sh
 --- (end)
 ```
 
@@ -552,6 +954,35 @@ twice:
 - **`a4` is a subshell whose status is discarded**, which is the errtrace residual named
   above. This is the row where a reviewer could reasonably ask for `set -E` and the price
   paid instead.
+
+**And the same table under bash 5.3.9**, which "Not verified here" carried as unmeasured until
+the rig was committed. One command, `tools/docs-lint-boundary-probe.sh /opt/homebrew/bin/bash`;
+every row identical to the 3.2.57 table except two, and both differences are `probe_y="$( ;; )"`:
+
+```
+head:     688f3ba, working tree; the gate under probe is tools/docs-lint.sh itself
+cmd:      tools/docs-lint-boundary-probe.sh /opt/homebrew/bin/bash
+interpreter:      /opt/homebrew/bin/bash (GNU bash, version 5.3.9(1)-release (aarch64-apple-darwin25.1.0))
+[...] a1 identical to the 3.2.57 table; a2 and a3 identical except the row below; the
+      record COUNTS of the `echo "$__probe_unbound_pipe" | cat` row differ (1358/66 at a2,
+      1347/62 at a3, against 1322/59 and 1289/55), which is a figure of the corpus and of
+      how far the run got before its scratch directory went
+row                                            plant point  exit OK?  records distinct
+probe_y="$( ;; )"                              a2           2    no   0       0
+probe_y="$( ;; )"                              a3           2    no   0       0
+probe_y="$( ;; )"                              a4           2    no   0       0
+--- against 3.2.57, same rows:
+probe_y="$( ;; )"                              a2           1    no   1       1
+probe_y="$( ;; )"                              a3           1    no   19      1
+probe_y="$( ;; )"                              a4           0    yes  0       0
+--- (end)
+```
+
+**A bash syntax error inside `$( )` is FAIL-CLOSED under bash 5 and is not under 3.2.57**, and
+at `a4` that is the one row of the residual bash 5 closes on its own: the plant that reaches
+`docs-lint: OK` at exit 0 on the pinned interpreter stops the run at exit 2 on the runner's.
+It is recorded as a difference, not as coverage — the residual is what the PINNED interpreter
+does, because that is what `build.gradle.kts` runs the gate under.
 
 The scratch-directory row is not in `bean:0118`'s table and is new here. It is the same class
 — a runtime failure the gate reports `OK` through — and it is the sharpest instance in the
@@ -588,32 +1019,12 @@ stderr lines: 1   first: mktemp: mkdtemp failed on /no/such/dir/anywhere/e0edac:
 ```
 
 And the analyser row, which `bean:0123` closed, now carries a second record naming the call
-site that `bean:0123`'s wrapper cannot name. One dead analyser, two records, both true:
-
-```
-head:     this branch's working tree
-method:   bean:0123's own plant — check 12's acyclicity analyser, one line replaced by a
-          syntax error — in a COPY at tools/.docs-lint-c12.sh, deleted after
---- diff:
-573c573
-<     removed = 1
----
->     removed = = 1
---- run:
-exit: 1
-stdout:
-docs-lint: 2 failure(s).
-stderr:
-awk: syntax error at source line 4
- context is
-	    removed = >>>  = <<<  1
-awk: illegal statement at source line 4
-awk: illegal statement at source line 4
-FAIL check -  an analyser exited 2 and examined nothing; its last argument was '[...]/tmp.tyriBZxLp3/bean-edges.uniq'
-FAIL check -  line 588: a command exited 2 and nothing checked it: 'cycle="$(awk -F'\t' '   { from[NR] = $1; to[NR] = $2; n = NR }   END {     removed = = 1     while (removed) {       ...'
---- git status:
- M tools/docs-lint.sh
-```
+site that `bean:0123`'s wrapper cannot name. One dead analyser, two records, both true. That
+capture is not repeated here: it is `tools/docs-lint-gate-test.sh`'s first plant, which runs
+on every build and prints the mutated run's stderr verbatim, and it is quoted under criterion
+4 below from a run of the suite rather than from a hand-driven copy. A capture that a
+committed harness re-takes on every run belongs where the harness prints it, and a second
+transcript of it here would be the one that goes stale (`doc:05-authoring-for-agents#one-fact-one-place`).
 
 ### Criterion 2 · the harness produces a red run and a green run on the same tree
 
@@ -624,51 +1035,97 @@ harness that had stopped planting would report every row `exit 0 / OK`, and `a2`
 it did not stop. The second, independent pair is `tools/docs-lint-gate-test.sh`'s own control,
 which runs an unmutated copy of the gate at the same path as every mutant and requires it to
 exit 0, print the `OK` line and write nothing at all to stderr — quoted whole under criterion
-4 below.
+4 below. The harness is `tools/docs-lint-boundary-probe.sh` and is committed, so both halves
+re-run from the repository rather than from a scratch directory that no longer exists.
+
+The third pair is the audit and its control, in the audit section above: the same recording
+trap, at the same insertion point, logs nothing on the clean tree and logs exactly one firing —
+naming blocker 1 — on a tree carrying one legal-tree defect. An instrument observed silent and
+never observed firing measures nothing (`doc:50-memory-and-evidence#evidence-kinds`), and that
+is what the pair of "after" audits this change shipped with amounted to.
 
 ### Criterion 3 · silent on the unmodified tree, byte-identical stdout
 
 The control is `tools/docs-lint.sh` **as `main` has it**, run on **this** tree — not the
-capture taken on `main`'s tree, whose corpus differs by this bean's own `status:` line
-(`doc:50-memory-and-evidence#corpus-figures`).
+capture taken on `main`'s tree, whose corpus differs by this bean's own text
+(`doc:50-memory-and-evidence#corpus-figures`) — and now under both interpreters, since the
+opt-out this change re-derives is exercised by every check on a green run and 3.2.57 and 5.3.9
+do not reach the trap at the same places.
 
 ```
-head:     this branch's working tree
-method:   main's gate copied to tools/.docs-lint-baseline.sh and run there, then the gate
-          this ships, then `cmp` on the two stdouts; the copy deleted after
---- head, and what the two runs are:
-dd64b8f4ef3ace2c3f0db5b97f158e2bc6f74083
-before: tools/docs-lint.sh at 277c4d5, copied to [...]/tools/.docs-lint-baseline.sh
-after:  tools/docs-lint.sh in the working tree
+head:     688f3ba3a03ad03915e4bd730bdd3246b6266821
+method:   main's gate copied to tools/.docs-lint-baseline.sh and run there, then the
+          gate this ships; `cmp` on the two stdouts, under each interpreter. Copy deleted after
+before:   tools/docs-lint.sh at 277c4d5
+after:    tools/docs-lint.sh in the working tree
 
---- before:
-exit: 0
-docs-lint: OK — 19 documents, 111 anchors, 1736 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
-stderr bytes: 0
+=== /bin/bash (GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25))
+--- before: exit 0, stderr bytes 0
+docs-lint: OK — 19 documents, 111 anchors, 1738 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+--- after:  exit 0, stderr bytes 0
+docs-lint: OK — 19 documents, 111 anchors, 1738 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+--- cmp before.out after.out: exit 0
 
---- after:
-exit: 0
-docs-lint: OK — 19 documents, 111 anchors, 1736 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
-stderr bytes: 0
+=== /opt/homebrew/bin/bash (GNU bash, version 5.3.9(1)-release (aarch64-apple-darwin25.1.0))
+--- before: exit 0, stderr bytes 0
+docs-lint: OK — 19 documents, 111 anchors, 1738 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+--- after:  exit 0, stderr bytes 0
+docs-lint: OK — 19 documents, 111 anchors, 1738 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+--- cmp before.out after.out: exit 0
 
---- cmp before.out after.out:
-cmp exit: 0
 --- git status --porcelain:
+ M .beans/modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md
+ M .beans/modus-0124--the-non-analyser-fail-open-boundary-in-docs-lint.md
+ M build.gradle.kts
+ M tools/docs-lint-gate-test.sh
  M tools/docs-lint.sh
+?? tools/docs-lint-boundary-probe.sh
 --- (end)
 ```
 
 ### Criterion 4 · the proof runs in `qualityCheck`, and `qualityCheck` is green
 
-`tools/docs-lint-gate-test.sh` gains three plants and keeps the one it had. It is registered
-as `docsLintGateTest` and is already a `qualityCheck` dependency, so nothing in
-`build.gradle.kts` changes.
+`tools/docs-lint-gate-test.sh` gains four plants and keeps the one it had, and repeats every
+run assertion once per bash major version on the host. It is registered as `docsLintGateTest`
+and is already a `qualityCheck` dependency; the only change in `build.gradle.kts` is the
+comment above that registration, which said the suite runs the gate twice.
 
 ```
-head:     this branch's working tree
+head:     688f3ba, working tree
 cmd:      /bin/bash tools/docs-lint-gate-test.sh > [...]/gate-test-final.txt 2>&1
+          (the redirect is 220 lines; every line below is from it)
 docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
 docs-lint-gate-test: analyser awk — awk version 20200816
+docs-lint-gate-test: exercising /bin/bash (bash 3.2.57(1)-release)
+docs-lint-gate-test: exercising /opt/homebrew/bin/bash (bash 5.3.9(1)-release)
+
+--- what an ERR trap can see, per interpreter
+     /bin/bash (bash 3.2.57(1)-release) — firings per shape
+       while             	0
+       for               	0
+       until             	0
+       if                	0
+       case              	0
+       brace group       	0
+       redirected group  	0
+       subshell          	0
+       simple command    	1
+       function          	1
+ok   a pipeline ending in a simple command reaches the trap under bash 3.2.57(1)-release
+ok   and one ending in a function does too, under bash 3.2.57(1)-release
+     /opt/homebrew/bin/bash (bash 5.3.9(1)-release) — firings per shape
+       while             	1
+       for               	1
+       until             	1
+       if                	1
+       case              	1
+       brace group       	1
+       redirected group  	1
+       subshell          	2
+       simple command    	1
+       function          	1
+ok   a pipeline ending in a simple command reaches the trap under bash 5.3.9(1)-release
+ok   and one ending in a function does too, under bash 5.3.9(1)-release
 
 --- the plant: check 12's acyclicity analyser, destroyed
 ok   the mutation site occurs exactly once in the gate
@@ -676,10 +1133,13 @@ ok   the copy differs from the gate on exactly one line (one '<', one '>')
 ok   and the line it differs on is the planted syntax error
 ok   the control copy is identical to the gate
 
---- the second plant: five runtime failures that are not an analyser
+--- the second plant: eight runtime failures that are not an analyser
 ok   the plant point for a silent non-zero exit occurs exactly once in the gate
 ok   and a silent non-zero exit is planted exactly once in the copy
 ok   and a silent non-zero exit's marker occurs nowhere in the gate itself
+ok   the plant point for a grep that could not look, at an opted-out site occurs exactly once in the gate
+ok   and a grep that could not look, at an opted-out site is planted exactly once in the copy
+ok   and a grep that could not look, at an opted-out site's marker occurs nowhere in the gate itself
 ok   the plant point for a missing file occurs exactly once in the gate
 ok   and a missing file is planted exactly once in the copy
 ok   and a missing file's marker occurs nowhere in the gate itself
@@ -692,7 +1152,13 @@ ok   and an unbound variable inside $( )'s marker occurs nowhere in the gate its
 ok   the plant point for a failed cd occurs exactly once in the gate
 ok   and a failed cd is planted exactly once in the copy
 ok   and a failed cd's marker occurs nowhere in the gate itself
-ok   five classes were planted, one line each
+ok   the plant point for a silent non-zero exit in check 14's preamble occurs exactly once in the gate
+ok   and a silent non-zero exit in check 14's preamble is planted exactly once in the copy
+ok   and a silent non-zero exit in check 14's preamble's marker occurs nowhere in the gate itself
+ok   the plant point for a missing file at the last statement before the count occurs exactly once in the gate
+ok   and a missing file at the last statement before the count is planted exactly once in the copy
+ok   and a missing file at the last statement before the count's marker occurs nowhere in the gate itself
+ok   eight points were planted, one line each
 
 --- the third plant: the gate's own scratch directory, which every record is written into
 ok   the scratch-directory line occurs exactly once in the gate
@@ -702,101 +1168,132 @@ ok   and the copy differs from the gate on exactly one line (one '<', one '>')
 ok   the plant point for the vanishing record file occurs exactly once in the gate
 ok   and the copy differs from the gate on exactly one line (one '>')
 
---- the runs: both halves, over the whole corpus
-ok   a destroyed analyser makes the gate exit non-zero
-ok   and the gate says it failed rather than printing OK
-ok   and the trap names the call site the analyser died at
-ok   and attributes it to an analyser that examined nothing
-     (this awk exited 2 on the planted syntax error)
-ok   the negative control: the same copy unmutated exits 0
-ok   and prints the OK line
-ok   and writes nothing at all to stderr
+--- the fifth plant: the ERR trap disarmed mid-file, which nothing below it can see
+ok   the plant point for the disarmed trap occurs exactly once in the gate
+ok   and the copy differs from the gate on exactly one line (one '>')
+ok   and the disarm is planted exactly once in the copy
+ok   and the gate itself disarms nothing
 
---- the mutated run's stderr: 7 line(s), at most 20 shown
+--- the runs under /bin/bash (bash 3.2.57(1)-release): both halves, over the whole corpus
+ok   a destroyed analyser makes the gate exit non-zero [bash 3.2.57(1)-release]
+ok   and the gate says it failed rather than printing OK [bash 3.2.57(1)-release]
+ok   and the trap names the call site the analyser died at [bash 3.2.57(1)-release]
+ok   and attributes it to an analyser that examined nothing [bash 3.2.57(1)-release]
+     (this awk exited 2 on the planted syntax error)
+ok   the negative control: the same copy unmutated exits 0 [bash 3.2.57(1)-release]
+ok   and prints the OK line [bash 3.2.57(1)-release]
+ok   and writes nothing at all to stderr [bash 3.2.57(1)-release]
+
+--- the mutated run's stderr under bash 3.2.57(1)-release: 7 line(s), at most 20 shown
      awk: syntax error at source line 4
       context is
      	    removed = >>>  = <<<  1
      awk: illegal statement at source line 4
      awk: illegal statement at source line 4
-     FAIL check -  an analyser exited 2 and examined nothing; its last argument was '[...]/tmp.ypIlujLE7u/bean-edges.uniq'
-     FAIL check -  line 588: a command exited 2 and nothing checked it: 'cycle="$(awk -F'\t' '   { from[NR] = $1; to[NR] = $2; n = NR }   END {     removed = = 1     while (removed) {       ...'
+     FAIL check -  an analyser exited 2 and examined nothing; its last argument was '/var/folders/mg/c8xtgk197f74w3r78q7_9sfc0000gn/T/tmp.2IH9aPyhEs/bean-edges.uniq'
+     FAIL check -  line 655: a command exited 2 and nothing checked it: 'cycle="$(awk -F'\t' '   { from[NR] = $1; to[NR] = $2; n = NR }   END {     removed = = 1     while (removed) {       ...'
 
---- the runtime failure path: one class per plant, all five in one run
-ok   an unchecked non-zero exit makes the gate exit non-zero
-ok   and the gate says it failed rather than printing OK
-ok   and records a silent non-zero exit, once and distinctly
-ok   and records a missing file, once and distinctly
-ok   and records a failed pipeline element, once and distinctly
-ok   and records an unbound variable inside $( ), once and distinctly
-ok   and records a failed cd, once and distinctly
-ok   and the pipeline record carries the statuses that say which end failed
-ok   and records nothing else: five plants, five distinct records
+--- the runtime failure path under bash 3.2.57(1)-release: one record per plant, all eight in one run
+ok   an unchecked non-zero exit makes the gate exit non-zero [bash 3.2.57(1)-release]
+ok   and the gate says it failed rather than printing OK [bash 3.2.57(1)-release]
+ok   and records a silent non-zero exit, once and distinctly [bash 3.2.57(1)-release]
+ok   and records a grep that could not look, at an opted-out site, once and distinctly [bash 3.2.57(1)-release]
+ok   and records a missing file, once and distinctly [bash 3.2.57(1)-release]
+ok   and records a failed pipeline element, once and distinctly [bash 3.2.57(1)-release]
+ok   and records an unbound variable inside $( ), once and distinctly [bash 3.2.57(1)-release]
+ok   and records a failed cd, once and distinctly [bash 3.2.57(1)-release]
+ok   and records a silent non-zero exit in check 14's preamble, once and distinctly [bash 3.2.57(1)-release]
+ok   and records a missing file at the last statement before the count, once and distinctly [bash 3.2.57(1)-release]
+ok   and the pipeline record carries the statuses that say which end failed [bash 3.2.57(1)-release]
+ok   and records nothing else: eight plants, nine distinct records [bash 3.2.57(1)-release]
 
---- the five records, and the 23 firings they came from
-     FAIL check -  line 147: a command exited 1 and nothing checked it: 'false __probe_silent__'
-     FAIL check -  line 207: a command exited 1 and nothing checked it: 'cat /no/such/file/__probe_missing_file__'
-     FAIL check -  line 337: a command exited 1 and nothing checked it: 'sed -n 's/__probe_pipeline__//p'' (pipeline exited 1 0, left to right)
-     FAIL check -  line 505: a command exited 1 and nothing checked it: 'probe="$(echo "${__probe_unbound_subst}")"'
-     FAIL check -  line 681: a command exited 1 and nothing checked it: 'cd /no/such/dir/__probe_failed_cd__'
+--- the records under bash 3.2.57(1)-release, and the 27 firings they came from
+     FAIL check -  an opted-out command exited 2 and could not look, which is not 'no match': grep -c . /no/such/file/__probe_cannot_look__
+     FAIL check -  line 205: a command exited 1 and nothing checked it: 'false __probe_silent__'
+     FAIL check -  line 208: a command exited 2 and nothing checked it: 'return "$ec"'
+     FAIL check -  line 271: a command exited 1 and nothing checked it: 'cat /no/such/file/__probe_missing_file__'
+     FAIL check -  line 401: a command exited 1 and nothing checked it: 'sed -n 's/__probe_pipeline__//p'' (pipeline exited 1 0, left to right)
+     FAIL check -  line 573: a command exited 1 and nothing checked it: 'probe="$(echo "${__probe_unbound_subst}")"'
+     FAIL check -  line 750: a command exited 1 and nothing checked it: 'cd /no/such/dir/__probe_failed_cd__'
+     FAIL check -  line 818: a command exited 1 and nothing checked it: 'false __probe_check14__'
+     FAIL check -  line 894: a command exited 1 and nothing checked it: 'cat /no/such/file/__probe_last_statement__'
 
---- the opt-out: what the trap is told not to look at
-ok   the opt-out is one function, cut whole out of the gate
-ok   and it tolerates grep's 'no match', which is an answer
-ok   and does not tolerate a grep that could not look, which is a failure
+--- and with no scratch directory, the gate stops instead of reporting [bash 3.2.57(1)-release]
+ok   a gate that cannot create its record file exits 2 [bash 3.2.57(1)-release]
+ok   and prints nothing at all on stdout, so there is no OK line to misread [bash 3.2.57(1)-release]
+     (it wrote 1 line(s) to stderr; the first is: mktemp: mkdtemp failed on /no/such/dir/__probe_no_tmpdir__/UX4b3N: No such file or directory)
 
---- and with no scratch directory, the gate stops instead of reporting
-ok   a gate that cannot create its record file exits 2
-ok   and prints nothing at all on stdout, so there is no OK line to misread
-     (it wrote 1 line(s) to stderr; the first is: mktemp: mkdtemp failed on /no/such/dir/__probe_no_tmpdir__/M8YRso: No such file or directory)
+--- and with the record file removed under it mid-run, likewise [bash 3.2.57(1)-release]
+ok   a gate whose record file vanished exits 2 [bash 3.2.57(1)-release]
+ok   and says so on the line it stops at [bash 3.2.57(1)-release]
+ok   and never reaches the OK line [bash 3.2.57(1)-release]
 
---- and with the record file removed under it mid-run, likewise
-ok   a gate whose record file vanished exits 2
-ok   and says so on the line it stops at
-ok   and never reaches the OK line
+--- and with the ERR trap disarmed below every plant, the gate says so [bash 3.2.57(1)-release]
+ok   a gate whose ERR trap was disarmed mid-file exits non-zero [bash 3.2.57(1)-release]
+ok   and names the disarm rather than reporting OK [bash 3.2.57(1)-release]
+ok   and never reaches the OK line [bash 3.2.57(1)-release]
+
+--- the opt-out under bash 3.2.57(1)-release: what the trap is told not to look at
+ok   the opt-out is one function, cut whole out of the gate [bash 3.2.57(1)-release]
+ok   and it tolerates grep's 'no match', which is an answer [bash 3.2.57(1)-release]
+ok   and does not tolerate a grep that could not look, which is a failure [bash 3.2.57(1)-release]
+ok   and names the command it refused to tolerate [bash 3.2.57(1)-release]
+ok   the glob helper is one function, cut whole out of the gate [bash 3.2.57(1)-release]
+ok   and it prints nothing, at exit 0, for a glob that matches nothing [bash 3.2.57(1)-release]
+ok   and prints the one file a glob that matches one does [bash 3.2.57(1)-release]
+
+[...] the same rows again under /opt/homebrew/bin/bash (bash 5.3.9(1)-release), every one
+      tagged [bash 5.3.9(1)-release] and every one `ok`. Two things differ and neither is
+      asserted on: the $LINENO in the record for the plant inside check 2's loop reads 290
+      there and 271 here, which is the loop-header difference measured elsewhere in this
+      bean; and the scratch directory names, which mktemp chooses per run. The analyser's
+      exit status is 2 under both, because it is the same awk either way — the interpreter
+      that differs is the shell.
 
 --- the guard covers every call site, because no call site opts in
 ok   the guard's own call is the only site that bypasses it
 
-docs-lint-gate-test: 49 passed, 0 failed.
+docs-lint-gate-test: 110 passed, 0 failed, over 2 bash major version(s).
 gate test exit: 0
 ```
 
 What that costs. Both `Exec` tasks declare no inputs, so neither is ever up to date and every
-figure here is a real run. The gate test's five gate runs are backgrounded against each other,
-so five full passes over the corpus cost about one and a half — 28 s against the 17 s a single
-gate run takes, where `bean:0123` measured 19 s for the two runs it shipped:
+figure here is a real run. The gate test's six gate runs are backgrounded against each other
+within an interpreter and the interpreters run one after another, so on this machine it is
+twelve full passes over the corpus; on the CI runner, which has one bash major version, it is
+six and the second interpreter costs nothing. Measured here, alone on the machine:
 
 ```
-head:     this branch's working tree
-cmd:      /bin/bash tools/docs-lint.sh and /bin/bash tools/docs-lint-gate-test.sh, timed with
-          `date +%s` around each, twice per shape
-pass 1  rc=0  tools/docs-lint.sh               17 s
-pass 1  rc=0  tools/docs-lint-gate-test.sh     28 s
-pass 2  rc=0  tools/docs-lint.sh               18 s
-pass 2  rc=0  tools/docs-lint-gate-test.sh     28 s
+head:     688f3ba
+cmd:      /bin/bash tools/docs-lint.sh and /bin/bash tools/docs-lint-gate-test.sh, timed
+          with `date +%s` around each, twice per shape, nothing else running
+pass 1  rc=0  tools/docs-lint.sh             17 s
+pass 1  rc=0  tools/docs-lint-gate-test.sh   52 s
+pass 2  rc=0  tools/docs-lint.sh             16 s
+pass 2  rc=0  tools/docs-lint-gate-test.sh   62 s
 ```
 
 ```
-head:     this branch's working tree
-cmd:      ./gradlew ktlintFormat, then ./gradlew qualityCheck > [...]/quality.txt
-[...] lines 1-346: Gradle's own task banners and the output of the tasks between
+head:     688f3ba, working tree
+cmd:      ./gradlew ktlintFormat, then ./gradlew qualityCheck > [...]/quality.txt 2>&1
+[...] lines 1-266: Gradle's own task banners and the output of the tasks between
 bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
-bash-compat: OK — 4 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
-[...] lines 349-350: Gradle's own task banners and the output of the tasks between
+bash-compat: OK — 5 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+[...] lines 268-439: Gradle's own task banners and the output of the tasks between
+docs-lint-test: 76 passed, 0 failed.
+[...] lines 441-442: Gradle's own task banners and the output of the tasks between
 docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
 docs-lint-gate-test: analyser awk — awk version 20200816
-[...] lines 353-472: Gradle's own task banners and the output of the tasks between
-docs-lint-test: 76 passed, 0 failed.
-[...] lines 474-511: Gradle's own task banners and the output of the tasks between
-docs-lint: OK — 19 documents, 111 anchors, 1736 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
-[...] lines 513-568: Gradle's own task banners and the output of the tasks between
-docs-lint-gate-test: 49 passed, 0 failed.
-[...] lines 570-572: Gradle's own task banners and the output of the tasks between
-BUILD SUCCESSFUL in 1m 17s
-161 actionable tasks: 7 executed, 154 up-to-date
-Configuration cache entry reused.
+[...] lines 445-600: the gate test's own output, quoted whole above, and the banners between
+docs-lint: OK — 19 documents, 111 anchors, 1738 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+[...] lines 602-741: the rest of the gate test's output
+docs-lint-gate-test: 110 passed, 0 failed, over 2 bash major version(s).
+[...] lines 743-753: Gradle's own task banners and its deprecation notice
+BUILD SUCCESSFUL in 3m 39s
+170 actionable tasks: 56 executed, 94 from cache, 20 up-to-date
+Configuration cache entry stored.
 qualityCheck exit: 0
-(the redirect is 576 lines; the quoted lines are 347, 348, 351, 352, 473, 512, 569, 573, 574, 575, 576)
+(the redirect is 756 lines; the quoted lines are 266, 267, 440, 443, 444, 601, 742, 754, 755, 756)
 ```
 
 ### The runner, where `bean:0118` said the boundary had never been measured
@@ -839,38 +1336,84 @@ measurement and not a requirement.
 
 ## Can the suite tell this change from its absence, and from its deletion?
 
-Ten mutations of the change, each run against `tools/docs-lint-gate-test.sh` **unaltered**.
+Twelve mutations of the change, each run against `tools/docs-lint-gate-test.sh` **unaltered**.
 Each mutant is a copy of the gate at `tools/.docs-lint-mut-<tag>.sh` and each is run by a copy
-of the gate test with its one `GATE=` line repointed at that copy, so nothing tracked is
-written, there is no restore step to skip, and no `git` operation runs anywhere near `.beans`
-or `tools` (`bean:0102`). The **control** is an unmutated copy through the same harness, which
-is what says the copying is not what any row below is measuring.
+of the gate test with its one `GATE=` line repointed at that copy — the repoint is asserted to
+have landed exactly once per row — so nothing tracked is written, there is no restore step to
+skip, and no `git` operation runs anywhere near `.beans` or `tools` (`bean:0102`). The
+**control** is an unmutated copy through the same harness, which is what says the copying is
+not what any row below is measuring. Every row is scored over both interpreters, because that
+is what the suite now does.
 
-| mutation | edit | result |
-|---|---|---|
-| the control | a copy of the gate, unmutated | 49 passed, 0 failed |
-| the fix is absent | `tools/docs-lint.sh` as `main` has it | 28 passed, 21 failed |
-| the trap is deleted | the `trap … ERR` line removed; the handler and `absent_ok` stay | 38 passed, 11 failed |
-| the trap is neutered | the handler records nothing | 38 passed, 11 failed |
-| the trap is narrowed to one class | the handler returns early unless the command names one plant | 40 passed, 9 failed |
-| the record is not flattened | one record spans the lines of the command it names | 48 passed, 1 failed |
-| the scratch-directory guard removed | `TMP="$(mktemp -d)" || exit 2` loses its guard | 45 passed, 4 failed |
-| the vanished-record guard removed | the `[ ! -f "$TMP/fails.txt" ]` block removed | 46 passed, 3 failed |
-| the opt-out is widened | `absent_ok` tolerates every status up to 9 | 48 passed, 1 failed |
-| the opt-out is removed | `absent_ok` tolerates nothing, so the trap fires on the success path | 43 passed, 6 failed |
+```
+head:     688f3ba, working tree; the gate under mutation is tools/docs-lint.sh as this ships
+suite:    tools/docs-lint-gate-test.sh, UNALTERED, run under /bin/bash (GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25))
+method:   mutant at tools/.docs-lint-mut-<tag>.sh; a copy of the suite at
+          tools/.docs-lint-gt-<tag>.sh with its GATE= line repointed at it
 
-The matrix is taken under `/bin/bash` 3.2.57. Every assertion it scores is a pass/fail count
-and not a figure of the corpus, and the same ten rows were scored twice — once before this
-section existed and once after — with the same ten results.
+mutation                   result
+absent                     docs-lint-gate-test: 50 passed, 60 failed, over 2 bash major version(s). (repointed=1, rc=1)
+armed-check-removed        docs-lint-gate-test: 104 passed, 6 failed, over 2 bash major version(s). (repointed=1, rc=1)
+control                    docs-lint-gate-test: 110 passed, 0 failed, over 2 bash major version(s). (repointed=1, rc=0)
+optout-removed             docs-lint-gate-test: 97 passed, 13 failed, over 2 bash major version(s). (repointed=1, rc=1)
+optout-widened             docs-lint-gate-test: 102 passed, 8 failed, over 2 bash major version(s). (repointed=1, rc=1)
+record-not-flattened       docs-lint-gate-test: 108 passed, 2 failed, over 2 bash major version(s). (repointed=1, rc=1)
+scratch-guard-removed      docs-lint-gate-test: 104 passed, 6 failed, over 2 bash major version(s). (repointed=1, rc=1)
+trap-deleted               docs-lint-gate-test: 82 passed, 28 failed, over 2 bash major version(s). (repointed=1, rc=1)
+trap-disarmed              docs-lint-gate-test: 94 passed, 16 failed, over 2 bash major version(s). (repointed=1, rc=1)
+trap-narrowed              docs-lint-gate-test: 89 passed, 21 failed, over 2 bash major version(s). (repointed=1, rc=1)
+trap-neutered              docs-lint-gate-test: 88 passed, 22 failed, over 2 bash major version(s). (repointed=1, rc=1)
+vanished-guard-removed     docs-lint-gate-test: 104 passed, 6 failed, over 2 bash major version(s). (repointed=1, rc=1)
 
-**Deletion and neutering score identically, and that is the right answer rather than a blind
-spot.** The two mutants differ in whether `docs_lint_err` is defined-and-never-called or
-called-and-does-nothing; at the gate's interface they are the same program, and their failing
-rows are the same rows — `diff` over the two `FAIL` lists is empty. `bean:0123` separated its
-equivalent pair with a lexical assertion, and that assertion is the one `bean:0123` itself
-records as bounding nothing. This suite separates **absence** from **deletion** instead, which
-is a real difference: the absent gate has no scratch-directory guard, no vanished-record guard
-and no `absent_ok` either, and it fails ten more rows than the deletion does.
+--- git status --porcelain:
+ M .beans/modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md
+ M .beans/modus-0124--the-non-analyser-fail-open-boundary-in-docs-lint.md
+ M build.gradle.kts
+ M tools/docs-lint-gate-test.sh
+ M tools/docs-lint.sh
+?? tools/docs-lint-boundary-probe.sh
+--- (end)
+```
+
+What each row edits, beside the score above:
+
+| mutation | edit |
+|---|---|
+| `control` | a copy of the gate, unmutated |
+| `absent` | `tools/docs-lint.sh` as `main` has it |
+| `trap-deleted` | the `trap … ERR` line removed; the handler and `absent_ok` stay |
+| `trap-neutered` | the handler records nothing |
+| `trap-narrowed` | the handler returns early unless the command names one plant |
+| `trap-disarmed` | `trap - ERR` planted below every plant this suite carries |
+| `armed-check-removed` | the `case "$(trap -p ERR)"` block removed |
+| `record-not-flattened` | one record spans the lines of the command it names |
+| `scratch-guard-removed` | `TMP="$(mktemp -d)" \|\| exit 2` loses its guard |
+| `vanished-guard-removed` | the `[ ! -f "$TMP/fails.txt" ]` block removed |
+| `optout-widened` | `absent_ok` tolerates every status up to 9 |
+| `optout-removed` | `absent_ok` tolerates nothing, so the trap fires on the success path |
+
+The matrix is driven under `/bin/bash` 3.2.57 and each row's suite then exercises both. Every
+figure it scores is a pass/fail count and not a figure of the corpus. `repointed=1` is the
+harness asserting on itself: a copy whose `GATE=` line did not move would score the unmutated
+gate and every row would read like the control.
+
+**Two rows are new, and one of them is the reason this section was rewritten.** `trap - ERR`
+planted below every plant scored **49 passed, 0 failed** against the previous suite: a
+one-line edit that silences the last hundred lines of the gate, invisible to a clean sheet of
+assertions. Removing the armed-at-exit check that now catches it is the twelfth row, so the
+catcher is itself mutation-scored rather than trusted.
+
+**Deletion and neutering no longer score identically, and the difference is the armed check.**
+The two mutants differ in whether `docs_lint_err` is defined-and-never-called or
+called-and-does-nothing; against the previous suite they were the same program at the gate's
+interface and both scored 38/11. They are not the same program to a gate that asks the shell
+what handler it holds: deletion leaves the ERR slot empty and is reported as a disarm on every
+run, neutering leaves the handler installed and is caught only by the records it stops
+producing. `bean:0123` separated its equivalent pair with a lexical assertion, and that
+assertion is the one `bean:0123` itself records as bounding nothing; this pair is separated by
+what the shell holds at runtime. **Absence** is separated from **deletion** as well: the absent
+gate has no scratch-directory guard, no vanished-record guard, no `absent_ok` and no armed
+check, and it fails many more rows than the deletion does.
 
 **The narrowing is the sharp one.** `bean:0123`'s two narrowing mutants left the guard covering
 one call site out of twenty-two and scored a clean sheet against its whole suite. The
@@ -881,13 +1424,31 @@ one that is an artefact of the mutation rather than a signal, since writing a pl
 into the handler makes that marker occur in the gate. Each class is asserted by the record it
 produces and not by the run going red, which is what makes eight of the nine real.
 
-**One mutation scored a clean sheet in the first matrix, and the assertion that now catches it
-was written because of that.** Widening `absent_ok` from "status 1" to "every status up to 9"
-makes the opt-out swallow a `grep` that could not look, which is fail-open at exactly the two
-sites the opt-out exists for — and every assertion in the suite passed. The three rows under
-`--- the opt-out` are the repair: the function is cut out of the gate by a `sed` range whose
-two ends are asserted and **run**, once on an empty file, where `grep` says "no match", and
-once on a file that is not there, where it says it could not look.
+**One mutation scored a clean sheet in the first matrix, and the repair for it was overstated
+twice before it was measured.** Widening `absent_ok` from "status 1" to "every status up to 9"
+makes the opt-out swallow a `grep` that could not look, which is fail-open at exactly the sites
+the opt-out exists for — and every assertion in the first suite passed. The repair was then
+described here as three assertions. It was **one**: of the three rows under `--- the opt-out`,
+only "and does not tolerate a grep that could not look" changes its answer under the widening,
+and it is a unit test of the function's text cut out with `sed` and run in isolation — not an
+observation of the gate over any tree. The other two pass under the widened function as
+readily as under the correct one.
+
+The repair now has a gate-level half. The planted table carries an eighth point,
+`absent_ok grep -c . /no/such/file/__probe_cannot_look__`, planted into the gate and run over
+the whole corpus, and `absent_ok` names the command it refuses rather than leaving the trap to
+record `return "$ec"`. Under the widened mutant, four rows change their answer per interpreter
+— eight over the two — and two of the four are observations of the gate:
+
+```
+head:     this branch's working tree
+cmd:      the mutation matrix below, row `optout-widened`, scored against the suite UNALTERED
+FAIL and records a grep that could not look, at an opted-out site, once and distinctly [bash 3.2.57(1)-release]
+FAIL and records nothing else: eight plants, nine distinct records [bash 3.2.57(1)-release]
+FAIL and does not tolerate a grep that could not look, which is a failure [bash 3.2.57(1)-release]
+FAIL and names the command it refused to tolerate [bash 3.2.57(1)-release]
+[...] the same four rows again, tagged [bash 5.3.9(1)-release]
+```
 
 **The mutation that is missing, and why.** "Fires on every input" has no one-line edit here:
 the `ERR` trap fires on a non-zero status by construction, and the nearest mutation is
@@ -897,22 +1458,34 @@ gate run executes in its top-level shell alone, each of which would otherwise ha
 record through a `printf | tee`:
 
 ```
-head:     this branch's working tree
-method:   a COPY of the gate with a DEBUG trap that only increments a counter and an EXIT
-          trap that prints it; deleted after
---- the three lines inserted:
+head:     this branch's working tree, re-measured after the opt-out was re-derived
+method:   a COPY of each gate with a DEBUG trap that only increments a counter and an EXIT
+          trap that prints it; each copy at tools/.docs-lint-dbg*.sh, deleted after
+interpreter: /bin/bash (GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25))
+--- the three lines inserted, against the gate this ships:
 32a33,34
 > __dbg=0
 > trap '__dbg=$((__dbg + 1))' DEBUG
 44a47
 > trap 'printf "commands executed in the top-level shell: %s\n" "$__dbg" >&2' EXIT
---- the run:
+--- the run, against the gate this ships:
 exit: 0
 docs-lint: OK — 19 documents, 111 anchors, 1736 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
-commands executed in the top-level shell: 31184
---- git status:
- M tools/docs-lint.sh
+commands executed in the top-level shell: 31185
+--- the same three lines against `git show 277c4d5:tools/docs-lint.sh`, on the SAME tree:
+exit: 0
+commands executed in the top-level shell: 31182
 ```
+
+**That figure is expired the moment anything in this bean is written, and both earlier
+statements of it are already wrong.** This bean recorded `31184`; a reader relaying it recorded
+`31079`; neither is what either gate prints on this tree today. Nothing was miscounted — the
+counter walks `.beans/`, and `.beans/modus-0124--*.md` is one of the files it walks, so a
+record measuring a corpus it belongs to changes that corpus with every edit
+(`doc:50-memory-and-evidence#corpus-figures`). What the number is for is the order of
+magnitude — thirty-one thousand records through a `printf | tee`, which is why the `ERR` →
+`DEBUG` mutant was abandoned — and that survives the drift. The exact digits do not, and are
+kept only with the two commands and the two gates that produced them.
 
 The over-firing shape that *can* be scored is the last row of the matrix, and it is the one
 `doc:00-constitution#observed-failing`'s negative half is about: with the opt-out removed the
@@ -926,11 +1499,19 @@ after an existing line**, so a defect that needed an existing line *changed* —
 plant's shape — is reached only by the first plant, which is `bean:0123`'s and does change a
 line. What they deliberately do not share:
 
-- **plant point** — five points running from just under the trap to check 13c, one of them
-  inside a loop body rather than at the top level, and the boundary table adds a sixth inside
-  a subshell to measure the residual;
+- **plant point** — eight points running from just under the trap to the last statement the
+  gate executes before it counts its records, one of them inside a loop body rather than at
+  the top level, and the boundary table adds a ninth inside a subshell to measure the
+  residual. **The last two were added because the eight were once five, all above line 681 of
+  an 848-line file, and `trap - ERR` planted at 742 passed the whole suite.** Position is a
+  dimension the fixtures vary in, not a property they happen to have;
 - **how the status arises** — a command that exits non-zero, a missing file, a builtin
-  failing, a pipeline element failing under `pipefail`, and the shell itself under `set -u`;
+  failing, a pipeline element failing under `pipefail`, the shell itself under `set -u`, and a
+  `grep` that could not look at a site the opt-out tolerates "no match" at, which is the one
+  status the opt-out must let through;
+- **which mechanism records it** — seven of the eight are recorded by the trap and the eighth
+  by `absent_ok` itself, in different words, so a suite matching one phrase would miss it;
+- **interpreter** — every run assertion is made once per bash major version on the host;
 - **whether a diagnostic exists at all** — `false __probe_silent__` writes nothing to stderr,
   which is the row a reader could not have noticed by any other means, and `cat` and the
   unbound variable write one;
@@ -941,20 +1522,31 @@ line. What they deliberately do not share:
 The trap PR #79 found was a suite whose every fixture put its column last, so a defect
 involving a middle column was invisible to all of them at once. The equivalent here would be
 every plant at the top of the file, where a mechanism armed only at the top would pass
-everything; `a3`, `a4` and the check-13c plant are the answer to it, and `a4` is the one that
-comes back negative and is reported as the residual rather than dropped.
+everything; `a3`, `a4`, the check-13c plant and the two below it are the answer to it, and
+`a4` is the one that comes back negative and is reported as the residual rather than dropped.
+**The first revision of this section claimed the answer and did not have it**: the five plants
+it named stopped at line 681, so a mechanism armed only over the first 80% of the file would
+have passed everything, and one did.
 
 ## Not verified here
 
-- **The runner, for the boundary table.** Every row of it is `/bin/bash` 3.2.57 on macOS.
-  `bean:0118` named the CI image as the figure most likely to be wrong, and it was: the first
-  CI run of this branch found a success-path site that no run here could see, and the audit
-  and the suite are now taken under bash 5.3.9 as well. What is still only reasoning is the
-  boundary TABLE under bash 5 — the plants themselves have not been run there, only the audit
-  and the forty-nine assertions.
-- **That the trap reaches every statement in the file.** Six points are made to fail, not
-  every point. Nothing here bounds the set of shapes it catches; the residuals are named above
-  and the fail-closed harness is `bean:0126`.
+- **The runner itself, for the boundary table.** `bean:0118` named the CI image as the figure
+  most likely to be wrong, and it was: the first CI run of this branch found a success-path
+  site that no run here could see. The audit, the suite and — now that the rig is committed —
+  the boundary table are all taken under 3.2.57 and 5.3.9, which is the row this bullet used
+  to hold. What is still unmeasured is the runner's own image: bash 5.2.21 and a gawk, where
+  the suite runs but the boundary probe does not, because it is not in `qualityCheck`.
+  `tools/docs-lint-boundary-probe.sh` is the rig; taking it there is one command and a job.
+- **That the trap reaches every statement in the file.** Eight points are made to fail, not
+  every point. Nothing here bounds the set of SHAPES it catches; what is bounded now is the
+  RANGE the handler is armed over, by the gate asking the shell at its last statement whether
+  `docs_lint_err` is still in the ERR slot — and that bound has a hole of its own, a disarm
+  that re-arms before that line. The residuals are named above and the fail-closed harness is
+  `bean:0126`.
+- **Every bash there is.** The suite exercises one interpreter per MAJOR version found on the
+  host, from a candidate list of paths. Here that is 3.2.57 and 5.3.9; on the runner it is
+  5.2.21 alone, and the suite says so in five lines rather than leaving it inferred. A bash 4
+  is on neither machine, and the row of the shape table it would fill is unmeasured.
 - **A check that runs, exits 0 and examines nothing.** No trap can see it. `bean:0126`.
 - **`tools/docs-lint-test.sh` and `tools/bash-compat-lint.sh`**, which have the same shape and
   are `bean:0125`'s.

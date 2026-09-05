@@ -37,9 +37,11 @@ cd "$ROOT" || exit 2
 # Both statuses are checked because EVERY failure record in this file is a line of
 # $TMP/fails.txt and the exit status is that file's line count: a $TMP that was never
 # created makes every record vanish into a directory that is not there, and the gate then
-# prints `docs-lint: OK` at exit 0 with 287 `FAIL check` lines above it on its own stdout.
-# Measured, by making mktemp fail: bean:0124. These two lines are above the ERR trap
-# because the trap cannot record before the file it records into exists.
+# prints `docs-lint: OK` at exit 0 with a `FAIL check` line for every lost record above it on
+# its own stdout — 287 of them on the corpus at the head bean:0124 records, which is a figure
+# of that corpus and moves with it (doc:50-memory-and-evidence#corpus-figures). Measured, by
+# making mktemp fail: bean:0124. These two lines are above the ERR trap because the trap
+# cannot record before the file it records into exists.
 TMP="$(mktemp -d)" || exit 2
 trap 'rm -rf "$TMP"' EXIT
 : > "$TMP/fails.txt" || exit 2
@@ -64,24 +66,42 @@ TAB="$(printf '\t')"
 # inside one is recorded once, at the enclosing statement whose status it makes non-zero.
 # With errtrace the same failure records three and four times, at a depth that is bash's
 # business and not this gate's — and bean:0123 already had to stop asserting on one number
-# that varied by interpreter. WHAT IT COSTS is a failure whose status an enclosing construct
-# then discards: a non-final command inside a `printf … | while read` body, which runs in a
-# subshell of its own. Measured and named in bean:0124, not closed here.
+# that varied by interpreter.
+#
+# WHAT IT COSTS is a failure whose status an enclosing construct then discards: a command in
+# the body of a `while read` loop that is itself the last element of a pipeline, that body
+# running in a subshell of its own. The loops of that shape here are check 7's over
+# `read_when` and check 2's over `provides`, both fed by `printf`; check 5's two, fed by
+# `comm`; and check 10's, fed by a `grep`. Named rather than counted, since the count moves
+# with the next check anyone writes.
+#
+# UNDER THE PINNED /bin/bash 3.2.57 THAT RESIDUAL IS LARGER, and the two halves are one fact
+# rather than two: 3.2 does not reach the trap AT ALL for a pipeline whose last element is a
+# compound command, so there it is not only the body that is unseen but the whole pipeline,
+# its final command included. Under bash 5 the pipeline is seen and the body is not. Both
+# measured in bean:0124, and tools/docs-lint-gate-test.sh prints the ten-shape table it was
+# measured with on every run. Closed by neither this change nor bean:0123.
 #
 # Redirected to stderr for the reason the awk wrapper is: a call site inside `$( )` has its
 # stdout captured, and a record on stdout becomes part of the value the caller parses.
 #
 # Every field is passed in rather than read inside the handler, where `$BASH_COMMAND` names
-# the handler and `$LINENO` names its own line. `$BASH_COMMAND` on a failing PIPELINE holds
-# the LAST element, which under `pipefail` is very often the one that succeeded, so the
-# statuses go in beside it: `false | cat` reports `'cat'` and `1 0`, and the `1` is what
-# says which end broke.
+# the handler and `$LINENO` names its own line. `$BASH_COMMAND` on a failing PIPELINE holds an
+# element that is very often NOT the one that failed, and WHICH element differs by
+# interpreter: the LAST under both when the pipeline ends in a simple command or a function,
+# and the FIRST under bash 5 when it ends in a compound command, where 3.2.57 does not reach
+# the trap at all. So the statuses go in beside it and are what the record is read on:
+# `false | cat` reports `'cat'` and `1 0`, and the `1` is what says which end broke.
 #
 # ONE RECORD IS ONE LINE, which is why the command is flattened and clipped here.
 # `docs-lint: N failure(s).` is a count of the LINES of $TMP/fails.txt, so a record
 # carrying a nineteen-line awk program verbatim reported `20 failure(s).` for two records —
-# measured, on check 12's analyser, in bean:0124. The line number is where the command
-# ENDS, which is what `$LINENO` holds for a multi-line command.
+# measured, on check 12's analyser, in bean:0124. The line number is where the command ENDS,
+# which is what `$LINENO` holds for a multi-line command AT THE TOP LEVEL — and only there.
+# Inside a `for` or `while` body under 3.2.57 it is the LOOP HEADER instead: this file's own
+# check 5 record reads `line 301` under 3.2.57 and `line 303` under 5.3.9 for one command, and
+# the runner reported `226` where 3.2.57 reported `207`. Both measured in bean:0124; neither
+# is asserted on, for the reason bean:0123 gives about numbers the interpreter chooses.
 docs_lint_err() { # <status> <command> <line> <PIPESTATUS as one word-separated string>
   local cmd="$2"
   local extra=""
@@ -92,20 +112,58 @@ docs_lint_err() { # <status> <command> <line> <PIPESTATUS as one word-separated 
 }
 trap 'docs_lint_err $? "$BASH_COMMAND" "$LINENO" "${PIPESTATUS[*]}"' ERR
 
-# `grep` exits 1 when the pattern is ABSENT — an answer about the input — and 2 or more
-# when it could not look, which is a failure. The sites where absence is legal on a GREEN
-# run go through this, so the trap sees the second and not the first: a mechanism that
-# fires on a clean tree is worse than the gap, because it gets removed
-# (doc:00-constitution#observed-failing). Which sites those are is measured, not guessed —
-# bean:0124 runs this file under a recording trap and reads the list off a green run, under
-# BOTH interpreters: bash 3.2 does not reach the trap for a pipeline whose last element is a
-# compound command and bash 5 does, so the audit under the pinned interpreter alone missed a
-# site and the runner found it by going red on a clean tree. The command below runs inside an
-# `||` list, the one context errexit and the ERR trap both exempt.
+# `grep` exits 1 when the pattern is ABSENT — an answer about the input — and 2 or more when
+# it could not look, which is a failure. `grep -c` says the same thing twice: it exits 1
+# whenever the count it has just printed is 0. So WHEREVER THIS FILE READS THE OUTPUT — the
+# count, the matching lines, the file they were written into — the status restates something
+# the gate already holds, and a trap armed on it turns a CLEAN TREE red. That is worse than
+# the gap, because it gets removed rather than fixed (doc:00-constitution#observed-failing).
+#
+# WHICH SITES: derived from the sentence above, not from what one corpus happens to exercise.
+# The first version of this opt-out held the two sites a red-corpus run was seen firing at,
+# and inferred from that run that every other site was "already reported by the check beside
+# it". Two were not, and both made the gate red on a tree that breaks no documented rule: a
+# `status: draft` document declaring no anchor at all, which doc:05-authoring-for-agents §2's
+# front-matter table permits in as many words, and an `AGENTS.md` carrying no `derived` row,
+# which nothing requires. A site belongs here when its "nothing found" is a legal state of a
+# LEGAL tree, or is a defect the check beside it already names in full. It stays ARMED when
+# "nothing found" means the tree is broken and no check says so — `.beans.yml` with no
+# `prefix:` is the only such site left in this file, and the comment on it says why.
+#
+# `ls` is deliberately NOT routed through this. Its "no such file" is status 1 on the BSD `ls`
+# macOS ships and 2 on GNU coreutils, so tolerating it here would mean tolerating 2 — exactly
+# the widening this opt-out exists to refuse, and the one tools/docs-lint-gate-test.sh now
+# plants a `grep` that could not look to catch. `glob_lines` below answers the same question
+# with the shell, which cannot fail, so there is no status left to tolerate.
+#
+# What the trap SEES is separately the interpreter's business: under bash 3.2 a pipeline whose
+# last element is a compound command does not reach the trap and under bash 5 it does, so an
+# audit taken under the pinned interpreter alone is incomplete — measured in bean:0124, after
+# the runner went red on a clean tree at a site this machine could not see. The command below
+# runs inside an `||` list, the one context errexit and the ERR trap both exempt.
 absent_ok() { # absent_ok <command…> — status 1 is "no match"; 2 and above still record
   local ec=0
   "$@" || ec=$?
-  [ "$ec" -le 1 ] || return "$ec"
+  [ "$ec" -le 1 ] && return 0
+  # THE SITE NAMES ITSELF, because the trap cannot name it. The ERR trap fires at the caller
+  # for this function's non-zero return, and `$BASH_COMMAND` there holds `return "$ec"` — the
+  # last command THIS function ran — under both 3.2.57 and 5.3.9, measured in bean:0124. So a
+  # `grep` that could not look would otherwise be recorded as a `return`. One such failure is
+  # two records, this one and the trap's, exactly as one dead analyser is two.
+  fail - "an opted-out command exited $ec and could not look, which is not 'no match': $*" >&2
+  return "$ec"
+}
+
+# The members of a glob that exist, one per line: `ls <glob> 2>/dev/null` without the status.
+# In the `ls … | grep -c .` this replaces BOTH elements report "none" with a non-zero status
+# that is not a failure, and `ls`'s number differs by implementation, so there is no single
+# status to tolerate. Answering with the shell's own test leaves nothing to opt out of.
+glob_lines() { # glob_lines <path…> — the ones that exist, one per line
+  local p
+  for p in "$@"; do
+    [ -e "$p" ] && printf '%s\n' "$p"
+  done
+  return 0
 }
 
 # Every analyser in this file runs through this wrapper, which shadows the name rather
@@ -144,12 +202,17 @@ awk() {
 }
 
 FM_FILES="$(ls documentation/*.md documentation/adr/*.md)"
-REF_FILES="$FM_FILES $(ls .beans/*.md 2>/dev/null) AGENTS.md CLAUDE.md .github/pull_request_template.md"
+REF_FILES="$FM_FILES $(glob_lines .beans/*.md) AGENTS.md CLAUDE.md .github/pull_request_template.md"
 REQUIRED_KEYS="id title status superseded_by read_when provides depends_on"
 
 # Beans live under .beans/<prefix><id>--<slug>.md (the hmans/beans on-disk convention);
 # .beans.yml's beans.prefix is the one source of that prefix, read here rather than
 # duplicated as a second hard-coded copy (doc:05-authoring-for-agents#one-fact-one-place).
+#
+# NOT `absent_ok`, and this is the one grep in the file that is deliberately left armed. A
+# `.beans.yml` with no `prefix:` is not a legal tree — every bean path checks 6, 12 and 13
+# build comes from this value — and unlike `id_length:` below, no check reports its absence.
+# The trap's record is the only signal there is, so the site keeps it (bean:0124).
 BEAN_PREFIX="$(grep -E '^ *prefix:' .beans.yml | head -1 | sed -E 's/^ *prefix: *"?([^"[:space:]]*)"?.*/\1/')"
 
 # ------------------------------------------------------------------ parse ---
@@ -217,7 +280,7 @@ for f in $FM_FILES; do
     esac
   done
   for k in $REQUIRED_KEYS; do
-    n="$(keys "$f" | grep -cx "$k")"
+    n="$(keys "$f" | absent_ok grep -cx "$k")"
     [ "$n" = "1" ] || fail 2 "$f: key '$k' appears $n times, expected once"
   done
 
@@ -299,7 +362,7 @@ done < "$TMP/dupes.txt"
 
 # ----------------------------------------------------------------- check 5 ---
 for f in $FM_FILES; do
-  grep -oE '^#+ .*<a id="[a-z0-9-]+">' "$f" |
+  absent_ok grep -oE '^#+ .*<a id="[a-z0-9-]+">' "$f" |
     sed -E 's/.*<a id="([a-z0-9-]+)">.*/\1/' | sort -u > "$TMP/declared.txt"
   awk -F'\t' -v f="$f" '$2 == f { print $1 }' "$TMP/provides.tsv" |
     sed -E 's/^[^#]*#//' | sort -u > "$TMP/promised.txt"
@@ -343,51 +406,55 @@ while IFS="$TAB" read -r src ref; do
     tool="${rest%%/*}"
     ident="${rest#*/}"
     case "$tool" in
-      ci) n="$(ci_jobs | grep -cx "$ident")" ;;
-      archunit) n="$(grep -rhoE "(val|fun) $ident\b" architecture-tests | grep -c .)" ;;
-      detekt) n="$(grep -cE "^[[:space:]]+$ident:" config/detekt/detekt.yml)" ;;
+      ci) n="$(ci_jobs | absent_ok grep -cx "$ident")" ;;
+      archunit) n="$(absent_ok grep -rhoE "(val|fun) $ident\b" architecture-tests |
+        absent_ok grep -c .)" ;;
+      detekt) n="$(absent_ok grep -cE "^[[:space:]]+$ident:" config/detekt/detekt.yml)" ;;
       *) n=0 ;;
     esac
     [ "$n" = "1" ] || fail 6 "$src: '$ref' resolves to $n targets, expected exactly 1"
     continue
   fi
   case "$kind" in
-    doc) target="$(ls documentation/"$rest"*.md 2>/dev/null)" ;;
-    adr) target="$(ls documentation/adr/"$rest"*.md 2>/dev/null)" ;;
-    bean) target="$(ls .beans/"${BEAN_PREFIX}${rest}"*.md 2>/dev/null)" ;;
+    doc) target="$(glob_lines documentation/"$rest"*.md)" ;;
+    adr) target="$(glob_lines documentation/adr/"$rest"*.md)" ;;
+    bean) target="$(glob_lines .beans/"${BEAN_PREFIX}${rest}"*.md)" ;;
     *) target="" ;;
   esac
-  n="$(printf '%s' "$target" | grep -c .)"
+  n="$(printf '%s' "$target" | absent_ok grep -c .)"
   if [ "$n" != "1" ]; then
     fail 6 "$src: '$ref' resolves to $n files, expected exactly 1"
     continue
   fi
   [ -n "$anchor" ] || continue
   tid="$(field "$target" S id)"
-  found="$(awk -F'\t' -v a="$tid#$anchor" -v f="$target" '$1 == a && $2 == f' "$TMP/provides.tsv" | grep -c .)"
+  found="$(awk -F'\t' -v a="$tid#$anchor" -v f="$target" '$1 == a && $2 == f' "$TMP/provides.tsv" |
+    absent_ok grep -c .)"
   [ "$found" = "1" ] || fail 6 "$src: '$ref' — $target does not provide '#$anchor'"
 done < "$TMP/refs.uniq"
 
 # ----------------------------------------------------------------- check 8 ---
 # Both bounds live in doc:README#changing-this-package; this reads them there.
-max_lines="$(grep -oE 'max_lines: [0-9]+' documentation/README.md | head -1 | grep -oE '[0-9]+')"
-min_lines="$(grep -oE 'min_lines: (none|[0-9]+)' documentation/README.md | head -1 | sed 's/min_lines: //')"
+max_lines="$(absent_ok grep -oE 'max_lines: [0-9]+' documentation/README.md |
+  head -1 | absent_ok grep -oE '[0-9]+')"
+min_lines="$(absent_ok grep -oE 'min_lines: (none|[0-9]+)' documentation/README.md |
+  head -1 | sed 's/min_lines: //')"
 if [ -z "$max_lines" ] || [ -z "$min_lines" ]; then
   fail 8 "documentation/README.md states no 'max_lines:'/'min_lines:' budget for docs-lint to read"
 else
   for f in documentation/*.md; do
-    n="$(grep -c '' "$f")"
+    n="$(absent_ok grep -c '' "$f")"
     [ "$n" -le "$max_lines" ] || fail 8 "$f: $n lines, over the $max_lines ceiling"
     if [ "$min_lines" != none ] && [ "$n" -lt "$min_lines" ]; then
       fail 8 "$f: $n lines, under the $min_lines floor"
     fi
   done
 fi
-agents_lines="$(grep -c '' AGENTS.md)"
+agents_lines="$(absent_ok grep -c '' AGENTS.md)"
 [ "$agents_lines" -le 120 ] || fail 8 "AGENTS.md: $agents_lines lines, over the 120 ceiling"
 
 # ----------------------------------------------------------------- check 9 ---
-grep -nE '^\|.*derived' AGENTS.md > "$TMP/derived.txt"
+absent_ok grep -nE '^\|.*derived' AGENTS.md > "$TMP/derived.txt"
 while IFS= read -r row; do
   [ -n "$row" ] || continue
   ln="${row%%:*}"
@@ -451,7 +518,7 @@ if [ -n "$BASE" ]; then
     fi
 
     # The base content must survive verbatim as the head of the new file.
-    old_n="$(git show "$BASE:$f" | grep -c '')"
+    old_n="$(git show "$BASE:$f" | absent_ok grep -c '')"
     if ! git show "$BASE:$f" | diff -q - <(head -n "$old_n" "$f") >/dev/null 2>&1; then
       fail 11 "$f: completed bean edited in place; it may only gain '## Amendments' entries (adr:0005#amendments)"
       continue
@@ -459,7 +526,7 @@ if [ -n "$BASE" ]; then
 
     # Anything appended must belong to an Amendments section.
     if ! git show "$BASE:$f" | grep -q '^## Amendments'; then
-      first_new="$(tail -n +"$((old_n + 1))" "$f" | grep -m1 '[^[:space:]]' || true)"
+      first_new="$(tail -n +"$((old_n + 1))" "$f" | absent_ok grep -m1 '[^[:space:]]')"
       if [ -n "$first_new" ] && [ "$first_new" != "## Amendments" ]; then
         fail 11 "$f: appended '$first_new'; a completed bean may only gain a '## Amendments' section (adr:0005#amendments)"
         continue
@@ -470,7 +537,7 @@ if [ -n "$BASE" ]; then
     # the evidence. An amendment that only asserts a correction is the thing
     # doc:00-constitution#evidence-rule forbids everywhere else.
     if grep -q '^## Amendments' "$f"; then
-      sed -n '/^## Amendments/,$p' "$f" | grep '^### ' > "$TMP/amend-heads.txt" || :
+      sed -n '/^## Amendments/,$p' "$f" | absent_ok grep '^### ' > "$TMP/amend-heads.txt"
       while IFS= read -r h; do
         [ -n "$h" ] || continue
         case "$h" in
@@ -478,9 +545,9 @@ if [ -n "$BASE" ]; then
           *) fail 11 "$f: amendment heading '$h' is not '### YYYY-MM-DD · bean:NNNN'" ;;
         esac
       done < "$TMP/amend-heads.txt"
-      n_amend="$(grep -c . "$TMP/amend-heads.txt" || true)"
+      n_amend="$(absent_ok grep -c . "$TMP/amend-heads.txt")"
       for k in Claimed Found Evidence; do
-        n_k="$(sed -n '/^## Amendments/,$p' "$f" | grep -c "\*\*$k:\*\*" || true)"
+        n_k="$(sed -n '/^## Amendments/,$p' "$f" | absent_ok grep -c "\*\*$k:\*\*")"
         if [ "$n_amend" != "$n_k" ]; then
           fail 11 "$f: $n_amend amendment(s) but $n_k '**$k:**' line(s) (adr:0005#amendments)"
         fi
@@ -499,7 +566,7 @@ fi
 # whitespace, so `read` collapses runs of them and one empty middle field would
 # shift every field after it.
 : > "$TMP/beans.tsv"
-for f in $(ls .beans/*.md 2>/dev/null); do
+for f in $(glob_lines .beans/*.md); do
   bid="${f#.beans/}"
   bid="${bid%%--*}"
   awk -v file="$f" -v id="$bid" '
@@ -528,7 +595,7 @@ while IFS="$TAB" read -r id file status type priority order parent blocked; do
   [ -n "$id" ] || continue
 
   if [ "$parent" != "-" ]; then
-    n="$(ls .beans/"$parent"--*.md 2>/dev/null | grep -c .)"
+    n="$(glob_lines .beans/"$parent"--*.md | absent_ok grep -c .)"
     [ "$n" = "1" ] || fail 12 "$file: parent '$parent' resolves to $n bean files, expected exactly 1"
   fi
 
@@ -543,7 +610,7 @@ while IFS="$TAB" read -r id file status type priority order parent blocked; do
   # condition AGENTS.md step 1 selects on. An unresolvable edge is not satisfied.
   ready=1
   for dep in $deps; do
-    dn="$(ls .beans/"$dep"--*.md 2>/dev/null | grep -c .)"
+    dn="$(glob_lines .beans/"$dep"--*.md | absent_ok grep -c .)"
     if [ "$dn" != "1" ]; then
       fail 12 "$file: blocked_by '$dep' resolves to $dn bean files, expected exactly 1"
       ready=0
@@ -598,7 +665,7 @@ while IFS="$TAB" read -r pri ord; do
   fail 12 "priority '$pri' order '$ord' is shared by selectable beans: ${ids% }"
 done < "$TMP/order-dupes.tsv"
 
-n_ready="$(grep -c . "$TMP/bean-ready.tsv")"
+n_ready="$(absent_ok grep -c . "$TMP/bean-ready.tsv")"
 [ "$n_ready" -gt 0 ] || fail 12 "no bean is selectable: every non-epic 'status: todo' bean has an unsatisfied blocked_by edge, so AGENTS.md step 1 returns nothing"
 
 # ---------------------------------------------------------------- check 13 ---
@@ -622,7 +689,8 @@ n_ready="$(grep -c . "$TMP/bean-ready.tsv")"
 # time (doc:05-authoring-for-agents#one-fact-one-place). Check 6's reference regex
 # resolves `bean:` at exactly this width, so a bean of any other width is
 # unreferenceable and 13b is what says so.
-BEAN_ID_LEN="$(grep -E '^ *id_length:' .beans.yml | head -1 | sed -E 's/[^0-9]*([0-9]+).*/\1/')"
+BEAN_ID_LEN="$(absent_ok grep -E '^ *id_length:' .beans.yml |
+  head -1 | sed -E 's/[^0-9]*([0-9]+).*/\1/')"
 [ -n "$BEAN_ID_LEN" ] || fail 13 ".beans.yml states no 'id_length:' for docs-lint to read"
 
 # 13a — every bean id appears in exactly one file. Reuses check 12's parse; the
@@ -641,7 +709,7 @@ done < "$TMP/bean-id-dupes.txt"
 # directory rather than the parse, so a bean file that produced no front-matter
 # row is still seen.
 n_bean_files=0
-for f in $(ls .beans/*.md 2>/dev/null); do
+for f in $(glob_lines .beans/*.md); do
   n_bean_files=$((n_bean_files + 1))
   base="$(basename "$f" .md)"
   if ! printf '%s' "$base" | grep -qE "^${BEAN_PREFIX}[0-9]{${BEAN_ID_LEN}}--.+$"; then
@@ -656,7 +724,7 @@ for f in $(ls .beans/*.md 2>/dev/null); do
     $0 == "---" { exit }
     index($0, "# " p) == 1 { print }
   ' "$f")"
-  n_marker="$(printf '%s' "$marker" | grep -c .)"
+  n_marker="$(printf '%s' "$marker" | absent_ok grep -c .)"
   if [ "$n_marker" != "1" ]; then
     fail 13 "$f: front-matter carries $n_marker '# ${BEAN_PREFIX}…' id markers, expected exactly 1"
   elif [ "$marker" != "# $bid" ]; then
@@ -674,7 +742,7 @@ done
 # No base means no diff to judge, exactly as in check 11; the counts on the OK
 # line report `-` so an inert run is visible rather than silently green.
 awk -F'\t' '{ print $1 }' "$TMP/beans.tsv" | sort -u > "$TMP/bean-ids-tree.txt"
-n_bean_ids="$(grep -c . "$TMP/bean-ids-tree.txt" || true)"
+n_bean_ids="$(absent_ok grep -c . "$TMP/bean-ids-tree.txt")"
 n_introduced="-"
 n_main_ids="-"
 if [ -n "$BASE" ]; then
@@ -685,13 +753,14 @@ if [ -n "$BASE" ]; then
   bean_ids_of "$BASE" > "$TMP/bean-ids-base.txt"
   bean_ids_of origin/main > "$TMP/bean-ids-main.txt"
   comm -23 "$TMP/bean-ids-tree.txt" "$TMP/bean-ids-base.txt" > "$TMP/bean-ids-new.txt"
-  n_introduced="$(grep -c . "$TMP/bean-ids-new.txt" || true)"
-  n_main_ids="$(grep -c . "$TMP/bean-ids-main.txt" || true)"
+  n_introduced="$(absent_ok grep -c . "$TMP/bean-ids-new.txt")"
+  n_main_ids="$(absent_ok grep -c . "$TMP/bean-ids-main.txt")"
   while IFS= read -r nid; do
     [ -n "$nid" ] || continue
     grep -qx "$nid" "$TMP/bean-ids-main.txt" || continue
     here="$(awk -F'\t' -v d="$nid" '$1 == d { printf "%s ", $2 }' "$TMP/beans.tsv")"
-    there="$(git ls-tree -r --name-only origin/main -- .beans | grep "^\.beans/$nid--" | tr '\n' ' ')"
+    there="$(git ls-tree -r --name-only origin/main -- .beans |
+      absent_ok grep "^\.beans/$nid--" | tr '\n' ' ')"
     fail 13 "bean id '$nid' is introduced by this branch (${here% }) but already exists on origin/main (${there% }); a sibling branch allocated it first — take the next id free on origin/main, not the next free in this worktree (bean:0051)"
   done < "$TMP/bean-ids-new.txt"
 fi
@@ -699,7 +768,7 @@ fi
 # Non-vacuity for checks 12 and 13. Both read `.beans/`; a run that parsed no
 # beans, or that parsed fewer files than are on disk, examined less than it
 # claims and must say so rather than exit 0 (doc:00-constitution#observed-failing).
-n_beans="$(grep -c . "$TMP/beans.tsv" || true)"
+n_beans="$(absent_ok grep -c . "$TMP/beans.tsv")"
 [ "$n_bean_files" -gt 0 ] || fail 13 ".beans/ holds no bean files; checks 12 and 13 examined nothing"
 if [ "$n_beans" != "$n_bean_files" ]; then
   fail 13 "$n_bean_files bean file(s) on disk but $n_beans parsed; a bean with no front-matter block is invisible to checks 12 and 13"
@@ -826,6 +895,21 @@ if [ ! -f "$TMP/fails.txt" ]; then
   printf 'docs-lint: the failure record %s vanished mid-run; nothing above this line can be trusted.\n' "$TMP/fails.txt"
   exit 2
 fi
+
+# AND THE TRAP HAS TO STILL BE ARMED. `trap - ERR` inserted anywhere between the `trap … ERR`
+# above and here silences every record below it and the run reports OK at exit 0 — and against that
+# one-line edit tools/docs-lint-gate-test.sh scored a clean sheet, because every plant it
+# carried sat above the disarm. The suite could not tell this file covered to its last line
+# from covered to its middle (bean:0123's "22 sites or 1 site", moved from call sites to line
+# ranges). This asks the SHELL what handler it is holding rather than asking the file what it
+# says, so `trap - ERR`, `trap '' ERR` and a re-trap to some other handler are all caught by
+# the same three lines — no list of spellings, which would fail open
+# (doc:00-constitution#observed-failing). What it does not catch is a disarm that re-arms
+# before this line; that needs two edits, and it is named here rather than left implied.
+case "$(trap -p ERR)" in
+  *docs_lint_err*) ;;
+  *) fail - "the ERR trap was not armed at the end of the run; it is armed once, near the top of this file, and nothing below may disarm it — every runtime failure between the disarm and here went unrecorded" ;;
+esac
 n_fail="$(absent_ok grep -c . "$TMP/fails.txt")"
 if [ "$n_fail" -gt 0 ]; then
   echo "docs-lint: $n_fail failure(s)."
@@ -834,11 +918,11 @@ fi
 # The counts are the vacuity assertion: a check that silently examined nothing
 # reports zero here, where check 11 shipping inert went unnoticed for four plants.
 printf 'docs-lint: OK — %s documents, %s anchors, %s references, %s beans, %s graph edges, %s selectable, %s bean ids, %s introduced, %s on origin/main, %s closing transitions, %s criteria checked, %s unnumbered.\n' \
-  "$(printf '%s\n' $FM_FILES | grep -c .)" \
-  "$(grep -c . "$TMP/provides.tsv")" \
-  "$(grep -c . "$TMP/refs.uniq")" \
+  "$(printf '%s\n' $FM_FILES | absent_ok grep -c .)" \
+  "$(absent_ok grep -c . "$TMP/provides.tsv")" \
+  "$(absent_ok grep -c . "$TMP/refs.uniq")" \
   "$n_beans" \
-  "$(grep -c . "$TMP/bean-edges.uniq")" \
+  "$(absent_ok grep -c . "$TMP/bean-edges.uniq")" \
   "$n_ready" \
   "$n_bean_ids" \
   "$n_introduced" \
