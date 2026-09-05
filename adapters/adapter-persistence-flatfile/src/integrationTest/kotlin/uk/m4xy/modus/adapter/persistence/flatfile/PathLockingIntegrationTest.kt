@@ -144,7 +144,12 @@ class PathLockingIntegrationTest {
 
     @Test
     fun `the multi-lock helper acquires in canonical order, whatever order it was given`() {
-        val locks = PathLocks(LONG_TIMEOUT)
+        // The probe timeout must be far SHORTER than how long the holder keeps `alice`, and
+        // this is load-bearing rather than tuning. With the two equal, the first version of
+        // this test passed against the unordered mutation by 250 ms: the holder's own await
+        // expired, it released `alice`, the mutated helper finished, and the probe acquired
+        // `bob` just inside its window. The mutation survived a test written to kill it.
+        val locks = PathLocks(PROBE_TIMEOUT)
         // "alice.md" sorts before "bob.md", so canonical order is alice-then-bob.
         val alice = root.resolve("alice.md")
         val bob = root.resolve("bob.md")
@@ -244,8 +249,15 @@ class PathLockingIntegrationTest {
     private companion object {
         val SHORT_TIMEOUT: Duration = Duration.ofMillis(250)
         val MEDIUM_TIMEOUT: Duration = Duration.ofSeconds(2)
-        val LONG_TIMEOUT: Duration = Duration.ofSeconds(10)
-        const val AWAIT_SECONDS = 10L
+
+        /**
+         * The lock timeout of the ordered-acquisition test, deliberately far shorter than
+         * [AWAIT_SECONDS]: the probe has to give up while the other path is still held.
+         */
+        val PROBE_TIMEOUT: Duration = Duration.ofSeconds(5)
+
+        /** How long a thread holds a lock for another thread to observe. */
+        const val AWAIT_SECONDS = 60L
         const val SETTLE_MILLIS = 250L
         const val ROUNDS = 200
     }
