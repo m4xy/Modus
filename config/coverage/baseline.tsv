@@ -10,11 +10,11 @@
 # REGRESSION accepted with -Pcoverage.regress: GrantIssued stores its capabilities as a Set rather than a List, so three toSet() calls disappear from equals, hashCode and the field initialiser; six instructions leave the source, none become uncovered (missed instructions stay 0)
 #   :core-domain: covered instructions 1549 -> 1543
 # Restored by hand in bean:0032, bean:0030, twice in bean:0036, again in bean:0065 and
-# again in bean:0130 after coverageBaselineWrite erased it; it also erases a PREVIOUS
+# again in bean:0147 after coverageBaselineWrite erased it; it also erases a PREVIOUS
 # regression block when recording a new one. bean:0065 is the cleanest instance yet: the
 # writer destroyed all six lines on a run in which NO figure changed, because it rebuilds
 # the file from a constant header plus rows and the note it composes is empty unless THIS
-# run regressed. bean:0130's run did not regress either — it only raised covered counts on
+# run regressed. bean:0147's run did not regress either — it only raised covered counts on
 # one module — and the block went the same way. bean:0033 makes it survive.
 :adapter-agent-claude          33	0	0	0
 :adapter-persistence-flatfile  33	0	780	18

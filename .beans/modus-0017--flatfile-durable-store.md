@@ -1,7 +1,7 @@
 ---
 # modus-0017
 title: The flat-file durable store adapter
-status: todo
+status: in-progress
 type: epic
 priority: high
 order: C
@@ -42,10 +42,10 @@ green. So this bean becomes the epic and the work is its children:
 
 | child | the bullet it owns |
 |---|---|
-| `bean:0130` | atomic document write, locking, and the optimistic-concurrency check — bullet 1 |
-| `bean:0131` | the append-only NDJSON log — bullet 2 |
-| `bean:0132` | the Markdown/YAML document codec and the two identity repositories — bullet 3 |
-| `bean:0133` | the startup recovery pass, quarantine, derived indexes, and the write-path enforcement rules |
+| `bean:0147` | atomic document write, locking, and the optimistic-concurrency check — bullet 1 |
+| `bean:0148` | the append-only NDJSON log — bullet 2 |
+| `bean:0149` | the Markdown/YAML document codec and the two identity repositories — bullet 3 |
+| `bean:0150` | the startup recovery pass, quarantine, derived indexes, and the write-path enforcement rules |
 
 Bullet 4 is not a fifth child: "integration tests only, every failure path observed" is a
 standard on each of the four, not work of its own, and a child that deferred its own

@@ -1,5 +1,5 @@
 ---
-# modus-0132
+# modus-0149
 title: The Markdown document codec and the two identity repositories
 status: todo
 type: feature
@@ -7,12 +7,12 @@ priority: high
 order: CG
 created_at: 2026-09-05T00:00:00Z
 parent: modus-0017
-blocked_by: [modus-0130]
+blocked_by: [modus-0147]
 ---
 
 # The Markdown document codec and the two identity repositories
 
-The third child of `bean:0017`: bullet 3, plus the codec it needs. `bean:0130` writes bytes
+The third child of `bean:0017`: bullet 3, plus the codec it needs. `bean:0147` writes bytes
 atomically; this bean decides what bytes a document is, and makes `ActorRepository` and
 `PermissionGrantRepository` real. It is the first implementation of a declared port in this
 repository, which is what `doc:15-repository-layout` §4.3 says makes `AdaptersImplementPorts`

@@ -27,7 +27,7 @@ import kotlin.test.Test
  * against what state of the directory — the **sequence**, which is the part Modus controls.
  * That the platform then honours a force is the platform's guarantee; no test on this side
  * of the syscall establishes it, and the `SIGKILL` test `doc:40-durability` §5 asks for is
- * `bean:0133`.
+ * `bean:0150`.
  */
 class AtomicWriteIntegrationTest {
     @TempDir
@@ -125,7 +125,7 @@ class AtomicWriteIntegrationTest {
         }
 
         // doc:40-durability §4.1: the previous version is intact, and the evidence of the
-        // failed write is an orphan `.tmp` BESIDE the target. Sweeping it is bean:0133;
+        // failed write is an orphan `.tmp` BESIDE the target. Sweeping it is bean:0150;
         // producing it is the property this asserts.
         Files.readString(target) shouldBe "first"
         val orphans = tempFilesIn(directory)
