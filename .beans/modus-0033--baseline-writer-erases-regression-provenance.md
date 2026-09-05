@@ -233,39 +233,38 @@ severity and the framing:
   Recorded at this length because a future fixer reading the original text would have
   concluded criterion 1 needed no strengthening, and it does.
 
-## Further instances, from `bean:0152`
+## Six further instances, from `bean:0152`
 
-Two more, both on **upward-only** writes, bringing the count to seven. They are recorded
-here because they are the direct evidence for this bean's title clause *"including one that
-changes nothing"* — the failure is not conditional on a regression, and now three of the
-seven instances had none.
+Numbered per bean rather than by position, as the baseline's own enumeration now is:
+`bean:0152 (6)`, taking the running total to 16. A bare ordinal was wrong twice in this bean
+already, because two branches in flight each thought they held the next number.
 
-| write | figures | regressed? | provenance |
+`bean:0152` is the largest single contribution so far, and that is a fact about the *cost*
+rather than about the branch: it was six because the branch wrote the baseline six times, and
+every write erases. Five were during development; the sixth was the rebase onto `36581a6`,
+which is the shape worth noticing — **a restoration does not survive a rebase either**, so
+the price is once per write *and* once per rebase, not once per regression.
+
+| # | write | what the writer printed | what it erased |
 |---|---|---|---|
-| `:core-domain` gains the `work` context | `0 0 1543 130` -> `0 0 2505 216` | no — both covered counts rose, both missed counts stayed 0 | all eleven comment lines erased |
-| `:core-domain` gains `WorkItemSpecification` | `0 0 2505 216` -> `0 0 2654 238` | no — same | erased again, including the line recording the previous erasure |
+| 1 | `:core-domain` gains the `work` context | `0 0 1543 130` -> `0 0 2505 216` | the whole block; upward-only, no regression in it |
+| 2 | `:core-domain` gains `WorkItemSpecification` | `0 0 2505 216` -> `0 0 2654 238` | the whole block **including the note added by hand after erasure 1** |
+| 3 | nothing changed | `:core-domain 0 0 2654 238 (unchanged)` | the whole block — the `bean:0065` no-op shape, reproduced deliberately |
+| 4 | `successCriteria` deleted, with `-Pcoverage.regress` | the new `# REGRESSION accepted` pair | **both** regression blocks then on `main`, while recording the third |
+| 5 | rebase onto `99212fc`, row re-derived | the new figures | the whole block, restored from the post-PR-83 `main` |
+| 6 | rebase onto `36581a6`, row re-derived | the new figures | 33 comment lines and **all four** `REGRESSION` blocks, down to 7 lines and none |
 
-The second is the sharper of the two: the note added by hand after the *first* erasure was
-itself erased by the very next write. So a hand restoration does not survive the next run
-either, which means the current mitigation — "check the diff and restore by hand" — costs
-once per baseline write, not once per regression.
+Erasure 2 is the one that sets the mitigation's price: the note written by hand to record
+erasure 1 was itself erased by the very next write. Erasure 4 is the one worth having — it is
+the "erases a PREVIOUS regression block when recording a new one" clause, which `bean:0147`
+found independently the same week, so it is now observed twice rather than inferred once.
 
-Two more followed in the same bean, bringing it to four erasures and instances six to nine.
-Between them they reproduce **every shape this bean describes**:
+Erasure 6 says something the other five do not. The branch was green, the row was correct,
+and the only reason the baseline was touched at all was that `main` had moved. A contributor
+who rebases and re-runs the writer — which `AGENTS.md` tells them to do, in preference to
+hand-merging the numbers — destroys the file's history as a *direct consequence of following
+the documented procedure*.
 
-| write | what the writer printed | what it erased |
-|---|---|---|
-| `0 0 2505 216` -> `0 0 2654 238` | the new figures | the whole block, including the note added by hand after the previous erasure |
-| no change at all | `:core-domain  0 0 2654 238  (unchanged)` | the whole block — the `bean:0065` no-op shape, reproduced deliberately |
-| `2654 -> 2653` covered instructions, with `-Pcoverage.regress` | the new `# REGRESSION accepted` pair | **both** regression blocks already on `main`, while recording the third — the "erases a PREVIOUS regression block when recording a new one" clause |
-
-The last is the one worth having: it is the clause of this bean's title that had no recorded
-instance, and it is now observed rather than inferred. It also means the file cannot
-accumulate provenance at all — a module with two accepted regressions in its history can
-only ever show the most recent one, so "the reason is recorded below" is true of exactly one
-reason.
-
-All restored with `git show origin/main:config/coverage/baseline.tsv`, per `AGENTS.md`'s
-rule against restoring from a `cp` taken earlier — which matters here, because a `cp` taken
-before the first erasure would have restored a block that was already missing the entry the
-second write added.
+All six restored with `git show origin/main:config/coverage/baseline.tsv`, per `AGENTS.md`'s
+rule against restoring from a `cp` taken earlier — which matters here, because a copy taken
+before erasure 1 would have restored a block already missing what erasure 2 removed.

@@ -221,6 +221,22 @@ public class WorkItem private constructor(
      * case's — load the process for [domainId], never accept one from the caller — which is
      * `bean:0153`'s to discharge and `bean:0157`'s to state.
      *
+     * **The two call sites differ in kind, and whoever answers `bean:0157`'s criterion 4 —
+     * keep this check or remove it, with a stated reason — must know the answer may differ
+     * between them.**
+     *
+     * In [transitionTo] it is **diagnostic and provably dead**. `ProcessDefinition.of`
+     * requires `moves.all { it.from in s }`, so `allows(from, to) == true` entails
+     * `from in process.states`: every case this check could refuse is already refused by
+     * `allows`, and removing it changes only which exception is thrown. That was confirmed
+     * by planting it away and observing the case still refused.
+     *
+     * In [recordEvidence] it is **substantive**, because there is no `allows` in front of
+     * it. Nothing else there constrains the process at all, so this is the only thing
+     * standing between a caller and recording evidence against an item whose own domain
+     * considers it closed, by supplying a process under which it is not. Remove it there and
+     * a guard disappears; remove it in [transitionTo] and only a message changes.
+     *
      * A `require`, not a domain exception: handing an aggregate a process that cannot
      * describe it is a programming error rather than a business rule a caller is expected to
      * surface (`doc:20-ddd-practices#invariants` §7.2).

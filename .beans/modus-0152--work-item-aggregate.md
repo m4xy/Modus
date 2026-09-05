@@ -143,7 +143,7 @@ need `bean:0066` merged (`bean:0153`); persistence (`bean:0017`); any REST surfa
 
 ## Evidence
 
-`./gradlew qualityCheck` green on the head rebased onto `99212fc`. `:core-domain` goes
+`./gradlew qualityCheck` green on the head rebased onto `36581a6`. `:core-domain` goes
 119 -> 191 tests; the coverage row moves `0 0 1573 130` -> `0 0 2714 240`, so nothing new is
 uncovered in either half. The coverage figures are re-derived by a `coverageBaselineWrite`
 run on the rebased head, not carried over from before it. The test counts are `@Test`
@@ -329,9 +329,17 @@ above are the observation as taken; the flag is not carried forward because it w
 recording a regression against a baseline nobody will ever hold again. Re-derived by
 `coverageBaselineWrite` on the rebased head rather than hand-merged (`AGENTS.md`).
 
-Five erasures in this bean, instances six to ten, the last on the post-rebase write. Between
-them they reproduce every shape `bean:0033` describes — the no-op write, the upward write,
-and the erasure of a previous regression block — so none of those clauses is now inferred.
+**Six** erasures in this bean, the last on the rebase onto `36581a6`, which cut 33 comment
+lines and all four `REGRESSION` blocks to seven lines and none. Recorded in `bean:0033` as
+`bean:0152 (6)`, per that file's own per-bean enumeration — a running total of 16 — rather
+than as ordinals, because two branches in flight each thought they held the next number and
+that has been wrong twice already.
+
+Between them they reproduce every shape `bean:0033` describes, so none of its clauses is now
+inferred. The sixth adds one the others do not: the branch was green and the row was correct,
+and the baseline was rewritten only because `main` had moved. **Following `AGENTS.md`'s own
+instruction — re-run the writer on rebase rather than hand-merge — is what destroys the
+file's history.**
 
 ### Criterion 15 — `process.initial` is load-bearing, which it was not
 
@@ -359,6 +367,21 @@ reverted: yes — the unmodified source passes
 ```
 
 ### Criterion 16 — the process guard, and the bypass it does **not** close
+
+**Verified independently, and the refutation is now a proof rather than an observation.**
+Review re-ran the round-one probe verbatim against the shipped guard and reproduced
+`SUCCEEDED state=shipped closed=false`, then derived the reason from `ProcessDefinition.of`
+directly: it requires `moves.all { it.from in s }`, so `allows(from, to) == true` **entails**
+`from in process.states`. The membership check is not merely unlikely to fire in
+`transitionTo` — it is strictly implied by the move being permitted, and is dead code there.
+
+**But it is not dead in `recordEvidence`, and nothing said so until now.** That call site has
+no `allows` in front of it, so the check is the only thing preventing evidence being recorded
+against an item whose own domain considers it closed, by supplying a process under which it is
+not. The two sites differ in kind — diagnostic in one, substantive in the other — and
+`bean:0157`'s criterion 4 now asks for a reason **per call site** rather than one verdict on
+the check. `requireGoverning`'s KDoc carries the same split, so whoever answers it cannot
+miss it.
 
 Review found a genuine bypass of the evidence guard and proposed
 `require(currentState.asStateName() in process.states)`. The guard shipped. **It does not
