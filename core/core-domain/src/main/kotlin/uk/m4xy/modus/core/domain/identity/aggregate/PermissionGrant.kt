@@ -2,6 +2,7 @@ package uk.m4xy.modus.core.domain.identity.aggregate
 
 import uk.m4xy.modus.core.domain.DomainEvent
 import uk.m4xy.modus.core.domain.DomainId
+import uk.m4xy.modus.core.domain.aggregate.RaisesDomainEvents
 import uk.m4xy.modus.core.domain.identity.event.GrantIssued
 import uk.m4xy.modus.core.domain.identity.event.GrantRevoked
 import uk.m4xy.modus.core.domain.identity.published.ActorId
@@ -35,9 +36,24 @@ public class PermissionGrant private constructor(
     // answering `permits` after the grant is gone.
     private var revoked: Boolean,
     private val events: MutableList<DomainEvent>,
-) {
-    /** Raised, not dispatched: the application layer drains these after the write. */
+) : RaisesDomainEvents {
+    /** Inspection only. A read, never a handover: see [RaisesDomainEvents.drainEvents]. */
     public val pendingEvents: List<DomainEvent> get() = events.toList()
+
+    /**
+     * See [RaisesDomainEvents.drainEvents].
+     *
+     * A grant raises at most two events over its whole life — [issue] raises `GrantIssued`
+     * and [revoke] raises `GrantRevoked` once, because `revoke` opens with `check(!revoked)`.
+     * So this root never accumulated without bound; what it did do, before this drain, was
+     * re-publish both on every subsequent write. Revoking access is not an idempotent fact
+     * to a consumer that closes an actor's open runs on each delivery.
+     */
+    override fun drainEvents(): List<DomainEvent> {
+        val drained = events.toList()
+        events.clear()
+        return drained
+    }
 
     /** A fresh copy every read, symmetric with [pendingEvents]: mutating it changes nothing. */
     public val capabilities: Set<Capability> get() = granted.toSet()
