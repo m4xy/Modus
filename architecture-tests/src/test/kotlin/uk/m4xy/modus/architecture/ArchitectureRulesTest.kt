@@ -471,7 +471,7 @@ class ArchitectureRulesTest {
          * Written out so that the glob's reach is asserted rather than assumed, and so that a
          * new context's port package is a deliberate edit here.
          */
-        private val PORT_PACKAGES = sortedSetOf("domainmgmt.port", "identity.port", "port")
+        private val PORT_PACKAGES = sortedSetOf("domainmgmt.port", "identity.port", "port", "work.port")
 
         private const val PUBLISHED_LANGUAGE = "$DOMAIN_ROOT.*.published.."
         private const val DOMAIN_EVENTS = "$DOMAIN_ROOT.*.event.."
