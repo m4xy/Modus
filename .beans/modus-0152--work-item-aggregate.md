@@ -94,6 +94,17 @@ moves onto it, which is where a structural property of a value belongs
 (`doc:20-ddd-practices#invariants` §7.1). `epicId` keeps its default: absence there is
 meaningful, and omitting it cannot weaken a guard.
 
+**Empty success criteria stay legal at the aggregate, and this is a decision rather than
+an omission.** `WorkItemSpecification.of` requires the criteria argument, so a caller reaches
+an item that owes nothing by writing `emptyList()` deliberately — but it may still write it,
+and such an item closes freely. Requiring at least one criterion is a **definition-of-done
+policy**, and `doc:00-constitution#domain-scoping` makes the definition of done per-domain
+data. Hardcoding a minimum into the aggregate would be precisely the defect this bean exists
+to avoid — a status enum one level up, a single process imposed on every domain by code.
+`ProcessDefinition` has nowhere to carry the policy today; `bean:0156` gives it one. It also
+spares a rewrite: nine of the ten state-machine tests run on `NO_CRITERIA`, and forcing
+non-empty would obscure what those tests exist to prove.
+
 **A per-context sealed exception root, not a repository-wide `DomainException`.**
 `doc:20-ddd-practices#invariants` §7.2 names a sealed `DomainException` hierarchy; a root
 spanning every context would be a third shared-kernel member and needs an ADR. `WorkException`
@@ -109,7 +120,7 @@ context. `bean:0154` carries the wider question.
 | 2 | `WorkItemCreated`, `WorkItemTransitioned` and `WorkItemClosed` are raised by the root, never dispatched, and accumulate on `pendingEvents`; `drainEvents` hands them over exactly once | test-run |
 | 3 | The state machine is data, not code: two processes with disjoint state vocabularies drive the same aggregate, a state terminal in one is a legal intermediate in the other, and `src/main` under `..domain.work` contains no enum and no state literal | test-run + `grep` over `src/main` |
 | 4 | A transition the domain's process does not permit is refused with `WorkItemTransitionNotPermittedException`, and every transition it does permit is allowed | test-run, rejecting **and** accepting case |
-| 5 | A transition into a terminal state is refused with `WorkItemNotClosableException` naming every criterion with no evidence record; with an evidence record per criterion it succeeds | test-run, rejecting **and** accepting case |
+| 5 | A transition into a terminal state **of the process supplied** is refused with `WorkItemNotClosableException` naming every criterion with no evidence; with an evidence record per criterion it succeeds. **Amended in review:** the refusal is not unconditional — a caller supplying a foreign process that declares the item's state can still reach a state its own domain calls terminal without it. `bean:0157` carries closing that; this criterion is met as now worded and was overstated as first worded | test-run, rejecting **and** accepting case |
 | 6 | An item with no success criteria closes, and an item whose criteria are partly evidenced does not — the guard is per criterion, not "any evidence at all" | test-run |
 | 7 | `WorkItemState` accepts exactly what `domainmgmt`'s `StateName` accepts, so the mapping `work` performs is total | test-run over one corpus, both types |
 | 8 | Every published type in `..work.published` and `..work.event` is leaf-safe | `rule:archunit/publishedLanguageIsLeaf`, observed failing on a planted violation |
@@ -119,9 +130,11 @@ context. `bean:0154` carries the wider question.
 | 12 | Each test is load-bearing: broken subject, observed assertion recorded verbatim, reverted | test-run, per `doc:35-testing#load-bearing-evidence` |
 | 13 | Fixtures vary collection size across 0, 1 and 2-or-more wherever a collection is accepted | citation, per `doc:35-testing#fixture-variation` |
 | 14 | The `WorkContext` marker is gone and `BoundedContexts` names `work` as a literal | `git diff`; `BoundedContextsTest` still asserts six |
-| 15 | `./gradlew qualityCheck` is green | test-run |
+| 15 | `WorkItem.create` reads `process.initial`, provably: a fixture whose process cycles back into its initial state kills a structural derivation | test-run |
+| 16 | A process that does not declare the state an item is in is refused, and the residual bypass it does not cover is recorded rather than implied | test-run + `bean:0157` |
+| 17 | `./gradlew qualityCheck` is green | test-run |
 
-Criterion count is 16 with 1b; the table is the authority, not this sentence.
+Eighteen criteria, counting 1b. The table is the authority, not this sentence.
 
 Out of scope, explicitly: consuming `ProcessDefinitionChanged` and every use case
 (`bean:0153`); implementing `RaisesDomainEvents` and adding a `DrainEventsTest` case, which
@@ -130,8 +143,8 @@ need `bean:0066` merged (`bean:0153`); persistence (`bean:0017`); any REST surfa
 
 ## Evidence
 
-`./gradlew qualityCheck` green. `:core-domain` goes 130 -> 176 tests; the coverage row moves
-`0 0 1543 130` -> `0 0 2653 238`, so nothing new is uncovered in either half; the single covered instruction below 2654 is the deleted `successCriteria` accessor, recorded with `-Pcoverage.regress` and explained below. Every figure
+`./gradlew qualityCheck` green on the head rebased onto `99212fc`. `:core-domain` goes
+137 -> 191 tests; the coverage row moves `0 0 1573 130` -> `0 0 2714 240`, so nothing new is uncovered in either half. Both figures are re-derived by a `coverageBaselineWrite` run on the rebased head, not carried over from before it. Every figure
 here is from `./gradlew :core-domain:test` unfiltered unless a `--tests` selector is named.
 
 ### Criterion 1b — criteria cannot be omitted
@@ -293,17 +306,99 @@ in two places with the spec as the only authority.
 This is recorded as a **cost of the gate**, not a complaint about it. It removed a public
 accessor and one covered instruction, and it is the shape `bean:0064` is about.
 
-### Criterion 11, third half — a `-Pcoverage.regress` write, and the ninth erasure
+### Criterion 11, third half — a `-Pcoverage.regress` write, and five erasures
 
 Deleting `successCriteria` shrank fully-covered production code: `2654 -> 2653` covered
 instructions, with missed staying 0. `doc:35-testing#coverage` §8.1 names exactly this case,
-and `coverageBaselineWrite` correctly refused until given a reason. The reason is in the
-baseline and in the pull-request body.
+and `coverageBaselineWrite` correctly refused until given a reason. That write then erased
+**both** regression blocks then on `main` while recording the new one — the "it also erases a
+PREVIOUS regression block when recording a new one" clause of `bean:0033`, reproduced
+cleanly.
 
-That write then erased **both** regression blocks already on `main` while recording the new
-one — the "it also erases a PREVIOUS regression block when recording a new one" clause of
-`bean:0033`, reproduced cleanly. All three are restored by hand. Four erasures in this bean,
-instances six to nine, and between them they reproduce every shape `bean:0033` describes.
+**That entry is no longer in the baseline, and the reason is worth stating rather than
+quietly dropping.** The rebase onto `99212fc` moved `:core-domain`'s row from `0 0 1543 130`
+to `0 0 1573 130`, so the comparison this branch regressed against no longer exists: measured
+against the new `main`, both counts rise and no `-Pcoverage.regress` is needed. The figures
+above are the observation as taken; the flag is not carried forward because it would be
+recording a regression against a baseline nobody will ever hold again. Re-derived by
+`coverageBaselineWrite` on the rebased head rather than hand-merged (`AGENTS.md`).
+
+Five erasures in this bean, instances six to ten, the last on the post-rebase write. Between
+them they reproduce every shape `bean:0033` describes — the no-op write, the upward write,
+and the erasure of a previous regression block — so none of those clauses is now inferred.
+
+### Criterion 15 — `process.initial` is load-bearing, which it was not
+
+Independent review found that replacing the read of `process.initial` with a structural
+derivation — *the state no transition points into* — passed the whole suite. `ENGINEERING`,
+`RESEARCH` and `EDITORIAL` are each acyclic with exactly one source state, so **all three
+fixtures were blind together on this point**: the same failure as `EDITORIAL` once starting
+at `shipped`, one read of the process later, and the second time a fixture set sharing a
+structural assumption hid a defect in this bean.
+
+`WorkFixture.REWORK` adds `backlog -> doing -> backlog` with `doing -> shipped`, legal under
+every `ProcessDefinition` invariant. Rework loops are not exotic — this repository's own bean
+lifecycle has one, since a bean under review returns to `in-progress`.
+
+```
+planted:  val initial = WorkItemState(
+              process.states.single { s -> process.transitions.none { it.to == s } }.value)
+observed: WorkItemStateMachineTest > a work item starts wherever its own domain's process
+            says work begins() FAILED
+          java.util.NoSuchElementException: Collection contains no element matching the predicate.
+          WorkItemStateMachineTest > a process may cycle back into the state it starts in() FAILED
+            (same exception)
+          180 tests completed, 2 failed
+reverted: yes — the unmodified source passes
+```
+
+### Criterion 16 — the process guard, and the bypass it does **not** close
+
+Review found a genuine bypass of the evidence guard and proposed
+`require(currentState.asStateName() in process.states)`. The guard shipped. **It does not
+close the bypass**, and that was established by running the probe against it rather than by
+reasoning about it:
+
+```
+probe:    an ENGINEERING item at `doing`, three criteria, none evidenced,
+          moved to `shipped` under a process declaring doing -> shipped with
+          `shipped` an ordinary intermediate (WorkFixture.HANDOVER)
+observed: SUCCEEDED state=shipped closed=false
+```
+
+Any process permitting a move out of `doing` must declare `doing` — `ProcessDefinition`
+refuses a transition naming an undeclared state — so membership is **implied by the move
+being permitted**, and the check can never fire on the shape it was meant to catch.
+
+What the guard does close is a process that cannot describe the item at all, and it is kept
+for that:
+
+```
+planted:  requireGoverning(process) removed from transitionTo
+observed: WorkItemStateMachineTest > refuses a process that does not declare the state this
+            item is in() FAILED
+          Expected exception java.lang.IllegalArgumentException but a
+            WorkItemTransitionNotPermittedException was thrown instead.
+reverted: yes
+```
+
+`bean:0157` carries the real fix, which is not available inside the aggregate: binding an
+item to its domain's process means caching another aggregate's state, stale the moment
+`Domain.adoptProcess` runs. The obligation is the use case's. The surviving bypass is pinned
+by `WorkItemEvidenceGuardTest > a foreign process declaring this item's state still bypasses
+the close guard - bean 0157`, a characterisation test that must be rewritten when `bean:0157`
+closes — so the gap is mechanically visible rather than only written down.
+
+Criterion 5 is amended above to say what the guard actually promises. As first written it
+stated the refusal unconditionally, and that was overstated.
+
+### Criterion 12 — a KDoc that overclaimed
+
+`drainEvents leaves the root carrying none` claimed "nothing else in this file fails when it
+is removed". Removing `events.clear()` also fails `a mutation of the drained list puts
+nothing back into the root` in the same file and `reaching a terminal state raises the
+transition and then the close` in `WorkItemStateMachineTest`. Corrected: the test is the one
+whose **name** describes the emptying, not the only one that notices.
 
 ### Criterion 8 — `rule:archunit/publishedLanguageIsLeaf`
 
@@ -377,11 +472,14 @@ labelled as such rather than reported as suite runs.
 
 ## Not met, stated plainly
 
-- **`RaisesDomainEvents` is not implemented.** `WorkItem.drainEvents` has the contract's
-  exact signature and the three-line body the other roots use, and both halves are proved
-  independently above — but the interface does not exist on `main`, and this branch is cut
-  from `main`. No `DrainEventsTest` case is added, for the same reason. `bean:0153` carries
-  both, `blocked_by: [modus-0066]`.
+- **`RaisesDomainEvents` is not implemented, and the reason is no longer that it is
+  absent.** It arrived on `main` with `bean:0066` (PR #83, merged at `99212fc`) while this
+  branch was in review. `WorkItem.drainEvents` has the contract's exact signature and the
+  three-line body the other roots use, and both halves are proved independently above.
+  Adopting the interface, and adding the `DrainEventsTest` case, is `bean:0153`'s: the
+  consumer of `ProcessDefinitionChanged` is a use case, and widening this bean now to take on
+  an interface that landed after the split would undo the split for a reason that is not the
+  split's. This item is a **deferral to a named bean**, not a blocked one.
 - **Nothing forces a write through `WriteThenDispatch`,** and `pendingEvents` stays public
   here as it is on the other three roots. `bean:0066`'s review established that
   `RaisesDomainEvents` does not make a drain correct; that is why the drain has three

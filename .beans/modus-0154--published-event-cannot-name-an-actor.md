@@ -25,8 +25,11 @@ data class WorkItemTransitioned(
 ) : DomainEvent
 ```
 
-`ActorId` is `identity.published.ActorId`. `rule:archunit/publishedLanguageIsLeaf` — which
-exists, runs, and has been observed rejecting exactly this shape (`adr:0004-domain-id-shared-kernel`)
+`ActorId` is `identity.published.ActorId`. **Two** gates refuse it, not one:
+`rule:archunit/publishedLanguageIsLeaf` and `PublishedLanguageSourceTest > no published or
+event source references another context` — the second verified independently in review of
+`bean:0152`. The first — which exists, runs, and has been observed rejecting exactly this
+shape (`adr:0004-domain-id-shared-kernel`)
 — permits a type in `..domain.<ctx>.event..` to reference only the Kotlin stdlib,
 `java.time`, **its own** context's `..published..` and the shared kernel. So the most-copied
 event example in the package cannot be built. `doc:20-ddd-practices#aggregates` §2.2's
