@@ -980,9 +980,11 @@ n_edges="$(absent_ok grep -c . "$TMP/bean-edges.uniq")"
 #   docs_lint_err() { :; }       — redefined anywhere below the arming line. `trap -p ERR` is
 #                                  byte-identical, the `case` matches, every record is dropped.
 #                                  This is the more plausible accident of the two.
-# Firing the path answers all three shapes and every shape nobody has thought of, because it
-# asks the question the records depend on — does a failing command at the top level of this
-# file end up as a LINE OF $TMP/fails.txt — rather than a proxy for it. A `false` that records
+# Firing the path answers those two, the disarm, and any other way of breaking it that is still
+# broken AT THIS LINE — which is a bound on WHEN and not a list of HOW, because it asks the
+# question the records depend on: does a failing command at the top level of this file end up
+# as a LINE OF $TMP/fails.txt. That is not completeness, and the paragraph below says what it
+# leaves out; it is the difference between a proxy and the thing. A `false` that records
 # is the whole contract; `{ … } 2>/dev/null` keeps the probe's own record off stderr, and that
 # it still reaches the file through the group's redirection is measured under both
 # interpreters (bean:0124). The marker is filtered out of `n_fail` below rather than deleted
