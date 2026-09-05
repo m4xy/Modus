@@ -25,12 +25,25 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
  * The key is the absolute, normalised path rather than `toRealPath()`: a document that does
  * not exist yet has no real path, and the write that creates it must be serialised against
  * the read that will follow it.
+ *
+ * **The stripes are JVM-wide, and that is a correctness requirement rather than a cache.**
+ * This lock exists to reduce the process to one contender before [CrossProcessLock] asks the
+ * operating system for a `FileLock`, and a `FileLock` is held by the **JVM**. Two locks can
+ * only be ordered if they have the same scope: with a stripe map per instance, two
+ * [DocumentStore]s over one root are two disjoint sets of stripes, both writers reach
+ * `tryLock` on one sidecar, and the JVM refuses its own process with
+ * [java.nio.channels.OverlappingFileLockException] — the failure this class is ordered ahead
+ * of `FileLock` to prevent. That was the shipped behaviour until it was found in review, and
+ * it was reachable by accident: constructing a second `DocumentStore(root)` was enough.
+ *
+ * A mandatory constructor argument was the alternative. It is rejected because it moves the
+ * hazard into the wiring rather than removing it — every future call site would have to know
+ * to share one instance, and `doc:00-constitution` §9 says a rule anyone has to remember is
+ * eventually broken. The timeout stays per-instance: it is a policy, not a scope.
  */
 public class PathLocks(
     private val timeout: Duration = DEFAULT_TIMEOUT,
 ) {
-    private val stripes = ConcurrentHashMap<Path, ReentrantReadWriteLock>()
-
     /** Runs [action] holding the write lock for [path], and nothing else. */
     public fun <T> exclusive(
         path: Path,
@@ -92,9 +105,22 @@ public class PathLocks(
         }
     }
 
-    private fun stripeFor(path: Path): ReentrantReadWriteLock = stripes.computeIfAbsent(canonical(path)) { ReentrantReadWriteLock() }
+    private fun stripeFor(path: Path): ReentrantReadWriteLock = STRIPES.computeIfAbsent(canonical(path)) { ReentrantReadWriteLock() }
 
     public companion object {
+        /**
+         * One stripe per canonical path, for the whole JVM. See the class KDoc: the scope
+         * is what makes this lock orderable against a `FileLock`, which is JVM-held.
+         *
+         * It never evicts, so it grows with the number of distinct paths a process has ever
+         * touched. That is bounded by the store's document count in a long-lived server and
+         * is `bean:0152`, which is a memory question and not a correctness one — a stripe
+         * that is dropped while nobody holds it and recreated on the next acquisition is
+         * still the same lock to every acquirer, so eviction is safe and simply not yet
+         * needed.
+         */
+        private val STRIPES = ConcurrentHashMap<Path, ReentrantReadWriteLock>()
+
         /** §6.2: "Lock acquisition has a timeout (default 10 s)." */
         public val DEFAULT_TIMEOUT: Duration = Duration.ofSeconds(10)
 

@@ -17,9 +17,21 @@ import java.security.MessageDigest
  * the thread, so two threads of one process asking for the same region get
  * [java.nio.channels.OverlappingFileLockException] rather than one waiting for the other.
  * [DocumentStore] therefore takes [PathLocks] first, which reduces this process to a single
- * contender before it ever gets here. That exception is deliberately not caught and not
- * translated: it means the ordering was inverted, which is a defect in Modus rather than
- * contention with another process, and the two must not report as the same thing.
+ * contender before it ever gets here.
+ *
+ * That exception is deliberately not caught and not translated. It always means the same
+ * thing — **this process reached `tryLock` twice at once** — and that is a defect in Modus
+ * rather than contention with another process, so the two must not report as the same
+ * thing. It has more than one cause, and an earlier version of this KDoc named only the
+ * first:
+ *
+ * 1. [DocumentStore] took the two locks in the wrong order.
+ * 2. Two [PathLocks] instances did not share their stripes, so neither writer was excluded
+ *    before reaching here. That was a real defect until the stripes became JVM-wide; see
+ *    [PathLocks]'s own KDoc for why the scope is a correctness requirement.
+ * 3. Something called this class directly without taking [PathLocks] first — which the
+ *    integration suite does on purpose, to establish that the failure is reachable at all.
+ *
  *
  * Breaking a lock whose holder is dead is a startup-recovery action (§6.3, §7) and belongs
  * to `bean:0150`. This class refuses a held lock and never breaks one.

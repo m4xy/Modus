@@ -130,6 +130,50 @@ class CrossProcessLockIntegrationTest {
         survived.startsWith("writer ") shouldBe true
     }
 
+    @Test
+    fun `two DocumentStore instances over one root serialise each other`() {
+        // The same assertion as the test above, with the one difference that matters: a
+        // fresh DocumentStore per thread rather than one shared between them. It found a
+        // real defect. PathLocks held its stripes per INSTANCE, so two stores over one root
+        // were two disjoint sets of locks, neither writer excluded the other, and both
+        // reached tryLock on one sidecar — OverlappingFileLockException, which criterion 8
+        // records as impossible.
+        //
+        // It was reachable by accident rather than by contrivance:
+        // OptimisticConcurrencyIntegrationTest builds a store on every property access, and
+        // `bean:0149` puts two repositories on this class. The stripes are now JVM-wide.
+        val target = root.resolve("actor.md")
+        DocumentStore(root).write(target, DocumentVersion.ABSENT, "first".toByteArray())
+
+        val start = CyclicBarrier(WRITERS)
+        val unexpected = AtomicReference<Throwable?>()
+        val writers =
+            (1..WRITERS).map { writer ->
+                Thread {
+                    val ownStore = DocumentStore(root)
+                    start.await(AWAIT_SECONDS, TimeUnit.SECONDS)
+                    repeat(ROUNDS) { round ->
+                        try {
+                            val current = ownStore.read(target)!!.version
+                            ownStore.write(target, current, "writer $writer round $round".toByteArray())
+                        } catch (expected: StaleWriteException) {
+                            check(expected.path == target)
+                        }
+                    }
+                }
+            }
+        writers.forEach { thread -> thread.setUncaughtExceptionHandler { _, thrown -> unexpected.set(thrown) } }
+        writers.forEach { it.start() }
+        writers.forEach { it.join() }
+
+        unexpected.get() shouldBe null
+        DocumentStore(root)
+            .read(target)!!
+            .bytes
+            .decodeToString()
+            .startsWith("writer ") shouldBe true
+    }
+
     private fun startLockHolder(target: Path): LockHolder {
         val java =
             ProcessHandle
