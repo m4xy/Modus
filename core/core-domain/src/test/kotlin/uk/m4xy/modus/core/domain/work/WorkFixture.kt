@@ -144,6 +144,32 @@ object WorkFixture {
                 ),
         )
 
+    // ---- HANDOVER: the process the evidence guard was laundered through -----------------
+    val ARCHIVED: WorkItemState = WorkItemState("archived")
+
+    /**
+     * doing -> shipped -> archived. Legal under every `ProcessDefinition` invariant.
+     *
+     * It shares `doing` and `shipped` with [ENGINEERING] and disagrees with it about both:
+     * `doing -> shipped` is a legal move here as it is there, but `shipped` is an **ordinary
+     * intermediate** rather than the end of the work. That combination is what made the
+     * evidence guard bypassable before `requireGoverning` — the move is permitted, the
+     * target is not terminal, so no evidence is owed — and it is the only shape that
+     * reproduces it. A process that merely fails to declare the item's current state is
+     * refused by `allows` anyway, so a probe built from [EDITORIAL] proves nothing here.
+     */
+    val HANDOVER: ProcessDefinition =
+        ProcessDefinition.of(
+            states = setOf(name(DOING), name(SHIPPED), name(ARCHIVED)),
+            initial = name(DOING),
+            terminal = setOf(name(ARCHIVED)),
+            transitions =
+                setOf(
+                    StateTransition(name(DOING), name(SHIPPED)),
+                    StateTransition(name(SHIPPED), name(ARCHIVED)),
+                ),
+        )
+
     // ---- criteria, at sizes 0, 1 and 3 -------------------------------------------------
     val FIRST: SuccessCriterionId = SuccessCriterionId("c1")
     val SECOND: SuccessCriterionId = SuccessCriterionId("c2")

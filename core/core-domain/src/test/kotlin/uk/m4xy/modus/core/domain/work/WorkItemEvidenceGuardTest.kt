@@ -177,6 +177,39 @@ class WorkItemEvidenceGuardTest {
         subject.evidenceRecords shouldBe emptyList()
     }
 
+    /**
+     * **A characterisation test: it pins a defect, and it is named so nobody mistakes it for
+     * a guarantee.** `bean:0157` carries closing it.
+     *
+     * The close guard can still be bypassed by supplying a process that declares this item's
+     * state and disagrees about what that state means. `HANDOVER` permits `doing -> shipped`
+     * and calls `shipped` an ordinary intermediate, so nothing is owed and no
+     * `WorkItemClosed` is raised — and the item is left in `shipped`, which its **own**
+     * domain's process calls terminal and permits no exit from. Closed, with three criteria
+     * unproved.
+     *
+     * `requireGoverning` cannot catch it: any process permitting a move out of `doing` must
+     * declare `doing`. Nothing in this aggregate can, because nothing binds a work item to
+     * its domain's process — that is the use case's obligation (`bean:0153`), and caching the
+     * process here would cache another aggregate's state and go stale on the next
+     * `Domain.adoptProcess`.
+     *
+     * When `bean:0157` closes, this test must be rewritten to assert the refusal. That is
+     * the point of writing it down rather than leaving the gap in prose only.
+     */
+    @Test
+    fun `a foreign process declaring this item's state still bypasses the close guard - bean 0157`() {
+        val subject = item(criteria = THREE_CRITERIA).transitionTo(DOING, ENGINEERING, AT)
+
+        subject.transitionTo(SHIPPED, WorkFixture.HANDOVER, LATER)
+
+        subject.state shouldBe SHIPPED
+        subject.evidenceRecords shouldBe emptyList()
+        subject.pendingEvents.none { it is WorkItemClosed } shouldBe true
+        // And the item is now stuck: its own domain's process permits no exit from `shipped`.
+        shouldThrow<WorkItemTransitionNotPermittedException> { subject.transitionTo(ABANDONED, ENGINEERING, LATER) }
+    }
+
     // ---- recording evidence ------------------------------------------------------------
 
     @Test

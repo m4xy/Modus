@@ -206,23 +206,24 @@ public class WorkItem private constructor(
     /**
      * Refuses a process that does not govern this item, before any guard reads it.
      *
-     * **Without this the evidence guard has a bypass, and it is a strictly easier one than
-     * the separate `close()` method this aggregate refuses to have.** An item at `doing`
-     * with three unevidenced criteria could be moved to `shipped` under a *different*,
-     * perfectly legal process in which `shipped` is an ordinary intermediate state: the
-     * move is permitted, the target is not terminal, so no evidence is owed and no
-     * [WorkItemClosed] is raised. The item then sits in a state its own domain's process
-     * calls terminal and permits no exit from — closed, with nothing proved. Found in review
-     * of `bean:0152`.
+     * **A partial check, and the part it does not cover is `bean:0157`.** It refuses a
+     * process that cannot describe this item at all. It does **not** refuse one that
+     * declares the item's state and disagrees about what that state means: an item at
+     * `doing` with unevidenced criteria can still be moved to `shipped` under a legally
+     * constructible process in which `shipped` is an ordinary intermediate, landing in a
+     * state its own domain calls terminal with nothing proved and no [WorkItemClosed]
+     * raised. Membership cannot catch that — any process permitting a move out of `doing`
+     * must declare `doing`, so the check is implied by the move being permitted.
      *
-     * A `require`, not a domain exception: handing an aggregate another domain's process is
-     * a programming error rather than a business rule a caller is expected to surface
-     * (`doc:20-ddd-practices#invariants` §7.2).
+     * Closing it needs something binding this item to *its* domain's process, and nothing
+     * here can be that: caching the process would be caching another aggregate's state, and
+     * it would go stale the moment the domain adopts a new one. The obligation is the use
+     * case's — load the process for [domainId], never accept one from the caller — which is
+     * `bean:0153`'s to discharge and `bean:0157`'s to state.
      *
-     * It checks membership of the current state only. The target is checked by
-     * [ProcessDefinition.allows], which is false for any state the process does not declare,
-     * and re-checking it here would be a second answer to a question the process already
-     * owns.
+     * A `require`, not a domain exception: handing an aggregate a process that cannot
+     * describe it is a programming error rather than a business rule a caller is expected to
+     * surface (`doc:20-ddd-practices#invariants` §7.2).
      */
     private fun requireGoverning(process: ProcessDefinition) {
         require(currentState.asStateName() in process.states) {

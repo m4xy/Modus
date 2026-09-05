@@ -156,22 +156,21 @@ class WorkItemStateMachineTest {
     }
 
     /**
-     * **The bypass this guard exists to close, found in review of `bean:0152`.**
+     * A process that does not declare the state this item is in is refused as a bad
+     * argument, rather than answered as if it were this item's process.
      *
-     * Before it, an item at `doing` with three unevidenced criteria could be moved to
-     * `shipped` under `EDITORIAL`, where `shipped` is an ordinary intermediate: the move is
-     * permitted, the target is not terminal, so no evidence is owed and no `WorkItemClosed`
-     * is raised. The item then sat in `shipped` — terminal under its **own** domain's
-     * process, which permits no exit — closed, with nothing proved.
-     *
-     * That is a strictly easier opt-out than the separate `close()` method this aggregate
-     * refuses to have, and both are refused for the same reason.
+     * **This is a partial check and its limit is `bean:0157`, stated rather than hidden.**
+     * It catches a process that cannot describe this item at all. It does **not** catch one
+     * that declares the item's state and disagrees about what that state means — and it
+     * cannot, because any process permitting a move out of `doing` must declare `doing`, so
+     * membership is implied by the move being permitted at all. `WorkFixture.HANDOVER` is
+     * that shape, and against it the move still succeeds.
      */
     @Test
-    fun `refuses a process that does not govern this item, so a close cannot be laundered through another`() {
+    fun `refuses a process that does not declare the state this item is in`() {
         val subject = item(criteria = THREE_CRITERIA).transitionTo(DOING, ENGINEERING, AT)
 
-        val thrown = shouldThrow<IllegalArgumentException> { subject.transitionTo(SHIPPED, EDITORIAL, LATER) }
+        val thrown = shouldThrow<IllegalArgumentException> { subject.transitionTo(SUBEDIT, EDITORIAL, LATER) }
 
         thrown.message shouldBe
             "work item 'modus-0152' is in state 'doing', which the process supplied does not declare: " +
