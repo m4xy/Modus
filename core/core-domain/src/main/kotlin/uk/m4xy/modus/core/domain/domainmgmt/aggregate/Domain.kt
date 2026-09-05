@@ -2,6 +2,7 @@ package uk.m4xy.modus.core.domain.domainmgmt.aggregate
 
 import uk.m4xy.modus.core.domain.DomainEvent
 import uk.m4xy.modus.core.domain.DomainId
+import uk.m4xy.modus.core.domain.aggregate.RaisesDomainEvents
 import uk.m4xy.modus.core.domain.domainmgmt.event.DomainCreated
 import uk.m4xy.modus.core.domain.domainmgmt.event.ProcessDefinitionChanged
 import uk.m4xy.modus.core.domain.domainmgmt.published.DomainName
@@ -30,9 +31,29 @@ public class Domain private constructor(
     // answering with a process the domain has replaced.
     private var process: ProcessDefinition,
     private val events: MutableList<DomainEvent>,
-) {
-    /** Raised, not dispatched: the application layer drains these after the write. */
+) : RaisesDomainEvents {
+    /**
+     * Raised, not dispatched: the application layer drains these after the write.
+     *
+     * A read, not a handover — it leaves the events where they are. [drainEvents] is the
+     * handover, and the only thing a use case may call.
+     */
     public val pendingEvents: List<DomainEvent> get() = events.toList()
+
+    /**
+     * See [RaisesDomainEvents.drainEvents].
+     *
+     * This is the one root that also grew without bound. [adoptProcess] mutates and returns
+     * `this`, so a long-lived instance adopting a different process n times held n + 1
+     * events and re-published all of them on every write. `work` guards a transition with
+     * whichever `ProcessDefinitionChanged` it saw last, so a redelivered older one moves the
+     * whole domain's work back onto a process it has left.
+     */
+    override fun drainEvents(): List<DomainEvent> {
+        val drained = events.toList()
+        events.clear()
+        return drained
+    }
 
     /** The process this domain imposes right now. A value object, so handing it out is safe. */
     public val processDefinition: ProcessDefinition get() = process

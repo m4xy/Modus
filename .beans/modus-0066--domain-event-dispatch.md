@@ -1,7 +1,7 @@
 ---
 # modus-0066
 title: Domain event dispatch — nothing drains pendingEvents
-status: todo
+status: in-progress
 type: feature
 priority: high
 order: AQ
