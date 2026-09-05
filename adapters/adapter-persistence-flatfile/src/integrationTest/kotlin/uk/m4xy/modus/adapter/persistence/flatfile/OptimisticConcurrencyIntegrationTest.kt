@@ -16,6 +16,20 @@ class OptimisticConcurrencyIntegrationTest {
     @TempDir
     lateinit var root: Path
 
+    /**
+     * Somewhere the store does not own, and which this test does.
+     *
+     * Not `root.parent`, which is the shared system temp directory. The escape tests below
+     * assert that nothing was written to the outside path, so a run in which the guard is
+     * broken *does* write there — and a write into the shared directory outlives the test,
+     * the JVM and the build, and makes the same assertion fail in every later run for a
+     * reason that has nothing to do with the code under test. It did: five unrelated
+     * planted mutations all reported these two tests red because one earlier plant had left
+     * a file behind. A second `@TempDir` is deleted with the first.
+     */
+    @TempDir
+    lateinit var elsewhere: Path
+
     private val store: DocumentStore get() = DocumentStore(root)
 
     @Test
@@ -120,7 +134,7 @@ class OptimisticConcurrencyIntegrationTest {
 
     @Test
     fun `a target outside the store root is refused rather than written`() {
-        val outside = root.parent.resolve("escaped.md")
+        val outside = elsewhere.resolve("escaped.md")
 
         val refused =
             shouldThrow<PathOutsideStoreException> {
@@ -137,14 +151,20 @@ class OptimisticConcurrencyIntegrationTest {
 
     @Test
     fun `a traversal that only leaves the root once resolved is refused`() {
-        // `root/../escaped.md` starts with the root as a string and is outside it as a path.
-        // An identifier arrives here authorised to be a path segment unencoded
-        // (bean:0009 review thread 6), so the check has to be on the resolved path.
-        val traversal = root.resolve("..").resolve("escaped.md")
+        // `root/../<elsewhere>/escaped.md` starts with the root element-wise and is outside
+        // it once resolved. An identifier arrives here authorised to be a path segment
+        // unencoded (bean:0009 review thread 6), so the check has to be on the resolved
+        // path — a `startsWith` on the path as given accepts this.
+        val traversal =
+            root
+                .resolve("..")
+                .resolve(elsewhere.fileName)
+                .resolve("escaped.md")
 
         shouldThrow<PathOutsideStoreException> {
             store.write(traversal, DocumentVersion.ABSENT, "content".toByteArray())
         }
+        PathLocks.canonical(traversal) shouldBe elsewhere.resolve("escaped.md")
         Files.exists(PathLocks.canonical(traversal)) shouldBe false
     }
 
