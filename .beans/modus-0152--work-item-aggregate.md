@@ -484,5 +484,20 @@ labelled as such rather than reported as suite runs.
   here as it is on the other three roots. `bean:0066`'s review established that
   `RaisesDomainEvents` does not make a drain correct; that is why the drain has three
   independent plants above rather than a claim of conformance.
+- **The close guard is bypassable by supplying a foreign process, and this PR does not close
+  it.** An item at `doing` with unevidenced criteria, moved to `shipped` under a legally
+  constructible process where `shipped` is an intermediate, gives `SUCCEEDED state=shipped
+  closed=false` — and lands in a state its own domain calls terminal, with nothing proved.
+  The guard that shipped catches a smaller case and is described as such; the membership
+  check proposed in review cannot catch this one, because any process permitting the move
+  must declare the state it moves from. Nothing inside the aggregate can close it. Criterion
+  5 is amended to say what the guard promises rather than to describe this away, the bypass
+  is pinned by a characterisation test named for the bean, and `bean:0157` carries the fix as
+  a constraint on `bean:0153`'s use cases.
 - **`Epic` is thin** — identity, domain and title, with no state and no event. The reason is
   in its KDoc and in `bean:0013`: it is a deferral with a named question, not an oversight.
+- **Empty success criteria remain legal**, so an item that states nothing closes freely.
+  Ruled correct in review: a minimum is a definition-of-done policy and therefore per-domain
+  data (`doc:00-constitution#domain-scoping`), and `ProcessDefinition` has nowhere to carry
+  one. `bean:0156` gives it somewhere. Listed here because it is a real gap in what a reader
+  might expect this bean to guarantee, not because the decision is in doubt.
