@@ -145,15 +145,217 @@ ArchUnit rule that would stop a handler importing another context's internals is
 
 | # | criterion | evidence |
 |---|---|---|
-| 1 | Each of `Domain`, `Actor` and `PermissionGrant` gains a drain operation that returns the accumulated events **and** leaves the aggregate with none; draining twice yields the second call an empty list | |
-| 2 | The drain returns a copy, so `bean:0036`'s gate stays green and the returned list cannot be mutated back into the aggregate. Asserted with a collection of two or more, per `doc:35-testing#fixture-variation` | |
-| 3 | A dispatch port is declared in `core-application` and nothing in `core-domain` references it; `rule:archunit/domainDependsOnNoOuterLayer` and `rule:archunit/domainIsFrameworkFree` stay green | |
-| 4 | `core-application` remains framework-free: `rule:archunit/applicationDependsOnDomainOnly` and `rule:archunit/applicationIsFreeOfDeliveryConcerns` stay green with the port and handler contract added | |
-| 5 | Edge 1 works end to end: revoking a `PermissionGrant` causes `domainmgmt` to observe `GrantRevoked`, through the dispatcher, with no import of `identity`'s aggregates or ports on the consuming side | |
-| 6 | Dispatch happens **after** the write, not before or during. Observed by a test in which the repository write fails and no event is delivered | |
-| 7 | A handler that throws does not silently swallow the event: the behaviour on handler failure is stated and asserted, rather than left to whatever the implementation happens to do | |
-| 8 | The test doubles are exercised on their own input surface, not only through the verdict: a test asserts which events the dispatcher was **given** separately from what a handler concluded, so a fixture that hands a well-formed event to a handler cannot stand in for testing the code that drains and routes it | |
-| 9 | `./gradlew qualityCheck` green | |
+| 1 | Each of `Domain`, `Actor` and `PermissionGrant` gains a drain operation that returns the accumulated events **and** leaves the aggregate with none; draining twice yields the second call an empty list | **MET.** `RaisesDomainEvents.drainEvents()`, implemented by all three. `DrainEventsTest`, 10 tests. Plant A below removes `events.clear()` from all three roots and 9 tests go red across both modules; plant C returns the backing list and 6 more do |
+| 2 | The drain returns a copy, so `bean:0036`'s gate stays green and the returned list cannot be mutated back into the aggregate. Asserted with a collection of two or more, per `doc:35-testing#fixture-variation` | **MET as a test; NOT met as a gate, and stated as such.** Plant C. `bean:0036`'s gate is green and **does not examine `drainEvents` at all** — a copy hoisted into a local is invisible to it, observed in `bean:0131`, which carries the fix. The two properties are also not independently plantable, for the reason below |
+| 3 | A dispatch port is declared in `core-application` and nothing in `core-domain` references it; `rule:archunit/domainDependsOnNoOuterLayer` and `rule:archunit/domainIsFrameworkFree` stay green | **MET.** `core.application.event.DomainEventDispatchPort`. Both rules green in the `:architecture-tests:test` run below. Plant H: the reference is refused one step earlier than ArchUnit, by the Gradle module boundary |
+| 4 | `core-application` remains framework-free: `rule:archunit/applicationDependsOnDomainOnly` and `rule:archunit/applicationIsFreeOfDeliveryConcerns` stay green with the port and handler contract added | **MET.** Both green in the same run. `core-application`'s only dependency is still `api(project(":core-domain"))`; nothing was added to its `build.gradle.kts` |
+| 5 | Edge 1 works end to end: revoking a `PermissionGrant` causes `domainmgmt` to observe `GrantRevoked`, through the dispatcher, with no import of `identity`'s aggregates or ports on the consuming side | **MET.** `RevokeGrantUseCaseTest`, real use case, real `WriteThenDispatch`, real `SynchronousDomainEventDispatch`, real `ObserveGrantRevokedUseCase`. Plants D and E below. The consuming side's whole import list is `identity.event.GrantRevoked`, the shared kernel's `DomainId` and `domainmgmt`'s own port |
+| 6 | Dispatch happens **after** the write, not before or during. Observed by a test in which the repository write fails and no event is delivered | **MET.** Plant B swaps the two lines in `WriteThenDispatch.write` and 5 tests go red, including the direct ordering assertion |
+| 7 | A handler that throws does not silently swallow the event: the behaviour on handler failure is stated and asserted, rather than left to whatever the implementation happens to do | **MET.** Stated in `SynchronousDomainEventDispatch`'s KDoc: propagate, and delivery stops at the failure. Three tests pin both halves; plant F swallows and all three go red |
+| 8 | The test doubles are exercised on their own input surface, not only through the verdict: a test asserts which events the dispatcher was **given** separately from what a handler concluded, so a fixture that hands a well-formed event to a handler cannot stand in for testing the code that drains and routes it | **MET.** `RecordingDispatch.calls` records one entry per call, not a flattened stream, so "drained twice, once each" is distinguishable from "drained once, two events". `EventSubscription.deliver` reports its own routing decision. Plant D makes routing report success while delivering nothing, and 10 tests go red |
+| 9 | `./gradlew qualityCheck` green | **MET.** Transcript below |
+
+## Verification
+
+Eight plants, each observed failing on the branch and reverted
+(`doc:00-constitution#observed-failing`, `doc:35-testing#load-bearing-evidence`). The healthy
+run is recorded beside each, because a guard that fires on every input scores identically to
+a correct one. Green baseline for every plant: `:core-domain:test` 119 tests, 0 failed;
+`:core-application:test` 34 tests, 0 failed; `:architecture-tests:test` 34 tests, 0 failed.
+
+### Plant A — `events.clear()` removed from all three drains
+
+The defect this bean was raised for, reintroduced. `sed -i '' '/^        events.clear()$/d'`
+over `Domain.kt`, `Actor.kt`, `PermissionGrant.kt`.
+
+```
+> Task :core-application:test FAILED
+WriteThenDispatchTest > a second write dispatches only what the second command raised() FAILED
+WriteThenDispatchTest > a second write of the same aggregate dispatches nothing() FAILED
+    expected:<[]> but was:<[DomainCreated(domainId=DomainId(value=modus-core), …)]>
+WriteThenDispatchTest > a write that raised nothing dispatches an empty list rather than skipping the call() FAILED
+RevokeGrantUseCaseTest > re-writing the same grant in a second transaction publishes nothing() FAILED
+    expected:<[]> but was:<[GrantIssued(grantId=GrantId(value=g1), …), GrantRevoked(grantId=GrantId(value=g1), …)]>
+34 tests completed, 4 failed
+> Task :core-domain:test FAILED
+DrainEventsTest > the list Domain hands over cannot be mutated back into it() FAILED
+DrainEventsTest > a second drain of Domain yields nothing() FAILED
+DrainEventsTest > a second drain of Actor yields nothing() FAILED
+    expected:<[]> but was:<[ActorRegistered(actorId=ActorId(value=alice), kind=HUMAN, occurredAt=2026-08-29T00:00:00Z)]>
+DrainEventsTest > the list PermissionGrant hands over cannot be mutated back into it() FAILED
+DrainEventsTest > PermissionGrant hands over everything it raised and keeps none of it() FAILED
+DrainEventsTest > Actor hands over the one event it raises and keeps none of it() FAILED
+DrainEventsTest > Domain hands over everything it raised and keeps none of it() FAILED
+DrainEventsTest > a second drain of PermissionGrant yields nothing() FAILED
+DrainEventsTest > a command raised after a drain hands over only what it raised() FAILED
+119 tests completed, 9 failed
+```
+
+Note the reach: the defect is caught in `core-domain`'s own unit tests **and** at the
+application layer that would have shipped it. Reverted; both suites green.
+
+### Plant B — dispatch moved before the write in `WriteThenDispatch.write`
+
+```
+> Task :core-application:test FAILED
+WriteThenDispatchTest > writes before it dispatches() FAILED
+    expected:<["save", "dispatch(2)"]> but was:<["dispatch(2)", "save"]>
+WriteThenDispatchTest > dispatches nothing when the write fails, and leaves the events on the aggregate() FAILED
+RevokeGrantUseCaseTest > a failed write leaves the events on the aggregate for the retry to dispatch() FAILED
+RevokeGrantUseCaseTest > a failed write dispatches nothing and reaches no handler() FAILED
+    expected:<[]> but was:<[GrantRevoked(grantId=GrantId(value=g1), actorId=ActorId(value=alice), domainId=DomainId(value=modus-core), occurredAt=2026-08-30T00:00:00Z)]>
+RevokeGrantUseCaseTest > a handler that refuses surfaces to the caller, with the write already done() FAILED
+    expected:<[GrantId(value=g1)]> but was:<[]>
+34 tests completed, 5 failed
+```
+
+### Plant C — the drain returns the backing list instead of a copy
+
+`val drained: List<DomainEvent> = events` in place of `events.toList()`, in `Domain.kt` and
+`PermissionGrant.kt`.
+
+```
+> Task :core-domain:test FAILED
+DrainEventsTest > the list Domain hands over cannot be mutated back into it() FAILED
+    org.opentest4j.AssertionFailedError: expected:<2> but was:<0>
+DrainEventsTest > the list PermissionGrant hands over cannot be mutated back into it() FAILED
+    org.opentest4j.AssertionFailedError: expected:<2> but was:<0>
+DrainEventsTest > PermissionGrant hands over everything it raised and keeps none of it() FAILED
+DrainEventsTest > pendingEvents still reads without draining, and the drain still finds them() FAILED
+DrainEventsTest > Domain hands over everything it raised and keeps none of it() FAILED
+DrainEventsTest > a command raised after a drain hands over only what it raised() FAILED
+10 tests completed, 6 failed
+```
+
+**Recorded honestly:** the failure the mutation-named tests report is `expected:<2> but
+was:<0>` — the size precondition — not the mutation assertion their names describe. The two
+properties cannot be planted independently here, and the reason is structural rather than a
+gap in the tests: `events` is a `val`, so an implementation that hands out the live list
+**cannot also clear it** without emptying what it just handed over. "Returns a copy" and
+"leaves the aggregate empty" are one property of this shape, and it fails in the two ways
+plants A and C record. `doc:35-testing#load-bearing-evidence` asks for the enabling condition
+to be planted as well as the claim; here the enabling condition is all there is to plant.
+
+### Plant D — `EventSubscription.deliver` reports success without calling the handler
+
+The routing half of criterion 8: `accepts(event) ?: return false; return true`.
+
+```
+> Task :core-application:test FAILED
+RevokeGrantUseCaseTest > revoking a grant reaches domainmgmt's handler through the dispatcher() FAILED
+    expected:<[DomainId(value=modus-core)]> but was:<[]>
+SynchronousDomainEventDispatchTest > a subscription reports that it accepted the event it is bound to() FAILED
+SynchronousDomainEventDispatchTest > delivers one event to every subscription that accepts it() FAILED
+SynchronousDomainEventDispatchTest > delivers each event only to the subscriptions that accept it() FAILED
+SynchronousDomainEventDispatchTest > delivers events in the order it was given them() FAILED
+SynchronousDomainEventDispatchTest > registering a subscription after construction changes nothing() FAILED
+SynchronousDomainEventDispatchTest > a handler that throws propagates, and is not swallowed() FAILED
+SynchronousDomainEventDispatchTest > delivery stops at the failing handler, and the subscription after it is not reached() FAILED
+SynchronousDomainEventDispatchTest > events after the failing one are not delivered() FAILED
+RevokeGrantUseCaseTest > a handler that refuses surfaces to the caller, with the write already done() FAILED
+34 tests completed, 10 failed
+```
+
+### Plant E — `ObserveGrantRevokedUseCase`'s guard inverted
+
+`if (domains.findById(event.domainId) != null) throw …`. Both directions fail, which is the
+point: the healthy case and the refusal are separately asserted.
+
+```
+> Task :core-application:test FAILED
+ObserveGrantRevokedUseCaseTest > resolves the domain the revoked grant names() FAILED
+    uk.m4xy.modus.core.application.domainmgmt.usecase.UnknownDomainOnGrantRevoked: GrantRevoked names domain modus-core, which domainmgmt does not hold
+ObserveGrantRevokedUseCaseTest > refuses an event naming a domain this context does not hold() FAILED
+    org.opentest4j.AssertionFailedError: Expected exception uk.m4xy.modus.core.application.domainmgmt.usecase.UnknownDomainOnGrantRevoked but no exception was thrown.
+ObserveGrantRevokedUseCaseTest > looks the domain up once per event, not once per handler construction() FAILED
+RevokeGrantUseCaseTest > revoking a grant reaches domainmgmt's handler through the dispatcher() FAILED
+RevokeGrantUseCaseTest > a handler that refuses surfaces to the caller, with the write already done() FAILED
+34 tests completed, 5 failed
+```
+
+### Plant F — the dispatcher swallows a handler failure
+
+`runCatching { subscription.deliver(event) }`.
+
+```
+> Task :core-application:test FAILED
+SynchronousDomainEventDispatchTest > a handler that throws propagates, and is not swallowed() FAILED
+    org.opentest4j.AssertionFailedError: Expected exception uk.m4xy.modus.core.application.HandlerRefused but no exception was thrown.
+SynchronousDomainEventDispatchTest > delivery stops at the failing handler, and the subscription after it is not reached() FAILED
+SynchronousDomainEventDispatchTest > events after the failing one are not delivered() FAILED
+RevokeGrantUseCaseTest > a handler that refuses surfaces to the caller, with the write already done() FAILED
+34 tests completed, 4 failed
+```
+
+### Plant G — the subscription list not copied on the way in
+
+`= subscriptions` in place of `= subscriptions.toList()`.
+
+```
+SynchronousDomainEventDispatchTest > registering a subscription after construction changes nothing() FAILED
+    org.opentest4j.AssertionFailedError: expected:<2> but was:<3>
+34 tests completed, 1 failed
+```
+
+Only one test moves, which is the intended reach: nothing else depends on the copy.
+
+### Plant H — `core-domain` referencing the dispatch port
+
+A file in `core.domain.aggregate` importing `DomainEventDispatchPort`. It is refused one
+layer earlier than the ArchUnit rule criterion 3 names, by the Gradle module boundary — which
+is the stronger guarantee, and the reason `rule:archunit/domainDependsOnNoOuterLayer` cannot
+be *made* to fail on this particular violation.
+
+```
+e: …/core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/aggregate/PlantedViolation.kt:3:27 Unresolved reference 'application'.
+e: …/core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/aggregate/PlantedViolation.kt:6:28 Unresolved reference 'DomainEventDispatchPort'.
+BUILD FAILED in 14s
+```
+
+### `config/coverage/baseline.tsv`
+
+```
+> Task :coverageBaselineWrite
+coverageBaselineWrite: missed instructions, missed branches, covered instructions, covered branches
+  :core-application              6 0 0 0 -> 6 0 199 10
+  :core-domain                   0 0 1543 130 -> 0 0 1573 130
+```
+
+No missed count rises, so no `-Pcoverage.regress` was needed. `:core-application`'s six
+missed instructions are unchanged and are still `ListBoundedContexts` and `UseCase`, which
+have no test; every line this bean added is covered. `:core-application` also gains the
+first branches recorded outside `:core-domain`.
+
+The writer erased the six-line regression-provenance block again, as `bean:0033` describes.
+It was restored by hand. **New fact for `bean:0033`:** this run moved two rows *upward* and
+the block was destroyed just the same, so the defect is not conditional on the direction of
+the write — `bean:0065` had observed it on a run where no figure changed at all.
+
+### `./gradlew qualityCheck`
+
+```
+docs-lint-gate-test: 168 passed, 0 failed, over 2 bash major version(s).
+
+> Task :qualityCheck
+
+BUILD SUCCESSFUL in 3m 31s
+174 actionable tasks: 21 executed, 19 from cache, 134 up-to-date
+```
+
+## What this bean did not do, and why
+
+Three things the bean's own "Where dispatch belongs" table names are **not** in this change.
+Each is stated here rather than left to be discovered.
+
+| not done | why |
+|---|---|
+| The in-process implementation in an adapter or module | It is in `core-application` instead. The port is the seam; the implementation is a `for` loop over a list of application-layer handlers and names no technology, and moving it outward would put the routing of application-layer types outside the application layer while everything it routes to stays inside. A reviewer should check this one specifically: it is a departure from `doc:00-constitution` §1.2's "the adapter implements it", it is flagged in `SynchronousDomainEventDispatch`'s KDoc, and the cost of reversing it is one file move |
+| The wiring in `app/modus-server` | There is nothing to wire. `PermissionGrantRepository` and `DomainRepository` have no implementation — `bean:0009` declared both and implemented neither, `bean:0017` builds the flat-file store — so a Spring configuration for edge 1 would bind a handler to a use case that cannot be constructed. It lands with the first real repository |
+| Durable, replayable or cross-process delivery, and delivery that survives one handler's failure | Out of scope by the bean's own "Not owned". The failure policy is the one the toolchain leaves reachable: running every handler and reporting failures afterwards needs a broad `catch`, which `TooGenericExceptionCaught` refuses outside two adapters, and the alternative is swallowing, which criterion 7 forbids. Retrying delivery is a property of a durable dispatcher, not of this one |
+
+Two beans were raised rather than absorbed: `bean:0130` (§5.1 has no row for the two packages
+this added, and no line budget left to add one) and `bean:0131` (`bean:0036`'s gate does not
+examine a copy hoisted into a local, so it does not examine `drainEvents`).
 
 ## Sequencing
 
