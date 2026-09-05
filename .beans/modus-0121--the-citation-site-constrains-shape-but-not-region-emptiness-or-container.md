@@ -1037,11 +1037,11 @@ a measurement whoever makes it and whichever direction it points.
 
 ### Criterion 9
 
-Taken at `cd8f3f9`, the last commit that changes any file this gate reads other than this
+Taken at `f65fb4a`, the last commit that changes any file this gate reads other than this
 paragraph. The figure that stood here was taken at `5a625fc`, five commits behind the head
 under review, which makes it a statement about a tree nobody would merge; it was re-taken at
-`2bcd9aa`, at `112e201`, and again here, because the bean's own prose is an input to `docs-lint`
-and its reference count moves whenever this file does.
+`2bcd9aa`, at `112e201`, at `cd8f3f9`, and again here, because the bean's own prose is an input
+to `docs-lint` and its reference count moves whenever this file does.
 
 ```
 $ ./gradlew qualityCheck
