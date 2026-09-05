@@ -75,6 +75,40 @@ class InstrumentedFileSystemIntegrationTest {
     }
 
     @Test
+    fun `every path-returning method on the wrapper is wrapped, including the ones no other test drives`() {
+        // Review of `bean:0174` found seven wrapped return values that no test constrained:
+        // leaking getName, subpath, relativize, toRealPath, readSymbolicLink, getPath(URI)
+        // and getRootDirectories ALL AT ONCE gave 41 tests and 0 failures. The class KDoc
+        // claimed "every operation that returns a path returns a wrapped one" and that was
+        // true by inspection only, which is the state this whole bean exists to refuse.
+        val watched = InstrumentedFileSystems.watching()
+        val root = watched.pathTo(directory)
+        val provider = root.fileSystem.provider()
+        val nested = root.resolve("identity").resolve("actors").resolve("alice.md")
+
+        nested.getName(0).fileSystem.provider() shouldBe provider
+        nested.subpath(0, 2).fileSystem.provider() shouldBe provider
+        root.relativize(nested).fileSystem.provider() shouldBe provider
+
+        Files.createDirectories(nested.parent)
+        Files.createFile(nested)
+        nested.toRealPath().fileSystem.provider() shouldBe provider
+
+        val link = root.resolve("alias.md")
+        Files.createSymbolicLink(link, nested)
+        Files.readSymbolicLink(link).fileSystem.provider() shouldBe provider
+
+        root.fileSystem
+            .provider()
+            .getPath(nested.toUri())
+            .fileSystem
+            .provider() shouldBe provider
+        root.fileSystem.rootDirectories
+            .map { it.fileSystem.provider() }
+            .toSet() shouldBe setOf(provider)
+    }
+
+    @Test
     fun `a channel opened on a wrapped path is intercepted, and one on a plain path is not`() {
         val watched = InstrumentedFileSystems.watching()
 
