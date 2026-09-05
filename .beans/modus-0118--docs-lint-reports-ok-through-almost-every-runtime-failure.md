@@ -118,7 +118,20 @@ from that copy after each, with no `git` operation involved, so nothing else in 
 could be discarded (`bean:0102`). `diff` against the pristine copy after the last restore
 reported the files identical.
 
-## What is not in scope
+**Correction: this table's plant point no longer measures the gate.** Every row above is
+planted immediately after `set -uo pipefail`, which was the top of `tools/docs-lint.sh` when
+the table was taken. Since `bean:0123` and `bean:0124` there are two mechanisms below that
+point — the `awk` shadow, a shell function defined further down, and an `ERR` trap armed
+further down still — so a plant at this anchor measures the PREFIX of the file where nothing
+is armed yet, and its `exit 0 / reached OK` is a fact about the anchor rather than about the
+gate. The table is left as it stands, because it is what was observed at the head it names;
+what is corrected is what it may be read as saying now.
+
+The same rows re-planted below the mechanisms are in `bean:0124`, at four plant points, and
+the harness that produces them is committed as `tools/docs-lint-boundary-probe.sh` — so this
+table can be re-derived from the repository at any head, under any interpreter, rather than
+re-created. Two of `bean:0124`'s four points come back negative and are the residual the gate
+names in its own comments; the point above the trap is this one.
 
 This is not a bash 3.2 problem and it is not `bean:0049`'s. `bean:0049` pinned the interpreter
 and made the compatibility claim falsifiable. `bean:0049`'s criterion 2 was reaching for this —
