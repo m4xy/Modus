@@ -3,15 +3,14 @@ package uk.m4xy.modus.core.domain
 import uk.m4xy.modus.core.domain.cost.CostContext
 import uk.m4xy.modus.core.domain.execution.ExecutionContext
 import uk.m4xy.modus.core.domain.memory.MemoryContext
-import uk.m4xy.modus.core.domain.work.WorkContext
 
 /**
  * Provisional index of the bounded contexts that make up the Modus domain.
  *
- * Replaced by real domain types in a later work item. `identity` and `domainmgmt` are
- * literals rather than marker references because their markers are gone: both contexts have
- * a real model, and an edge from here into either would close a package cycle back through
- * its `..event` package, which depends on [DomainEvent].
+ * Replaced by real domain types in a later work item. `identity`, `domainmgmt` and `work`
+ * are literals rather than marker references because their markers are gone: all three
+ * contexts have a real model, and an edge from here into any of them would close a package
+ * cycle back through its `..event` package, which depends on [DomainEvent].
  *
  * It stays for now, deliberately (`bean:0009`, review thread 8). It is not dead code: it
  * is read by `ListBoundedContexts`, by `BeansModule` and `CostModule`, and through the use
@@ -34,7 +33,7 @@ public object BoundedContexts {
         listOf(
             "identity",
             "domainmgmt",
-            WorkContext.NAME,
+            "work",
             MemoryContext.NAME,
             ExecutionContext.NAME,
             CostContext.NAME,

@@ -11,7 +11,7 @@
 #   :core-domain: covered instructions 1549 -> 1543
 # Restored by hand after coverageBaselineWrite erased it, one entry per bean and summed from
 # the list rather than counted beside it: bean:0032 (1), bean:0030 (1), bean:0036 (2),
-# bean:0065 (1), bean:0066 (2), bean:0147 (3) = 10. Written out per bean because a bare
+# bean:0065 (1), bean:0066 (2), bean:0147 (3), bean:0152 (6) = 16. Written out per bean because a bare
 # total beside the enumeration it summarises is made wrong by the next commit that extends
 # the enumeration, which happened here twice (bean:0033, bean:0173).
 # The writer also erases a PREVIOUS regression
@@ -28,6 +28,7 @@
 # RECORDED a regression erased the two blocks that preceded it, so recording a
 # regression costs every regression recorded before it. Both are written up in
 # bean:0033, observations seven and eight.
+# bean:0152's six: three upward-only writes, one where the writer printed '(unchanged)' for every module, one -Pcoverage.regress write that erased both blocks then on main while recording a third, and one on the rebase onto 36581a6 which cut 33 comment lines and all four REGRESSION blocks to 7 lines and none. Between them they instantiate every clause above, so none of them is now inferred. The count also says what the cost is: a hand restoration does not survive the next write, so this is paid once per write AND once per rebase.
 # bean:0033 makes it survive.
 # REGRESSION accepted with -Pcoverage.regress: InProcessDomainEventDispatch moved from core-application to the new adapter-events-inprocess module on the PR 83 review ruling; 39 covered instructions and 4 covered branches leave core-application with their class and reappear in the adapter's row, none become uncovered (missed instructions stay 6)
 #   :core-application: covered instructions 199 -> 160, covered branches 10 -> 6
@@ -37,7 +38,7 @@
 :adapter-rest                  3	0	0	0
 :adapter-vcs-git               33	0	0	0
 :core-application              6	0	160	6
-:core-domain                   0	0	1573	130
+:core-domain                   0	0	2714	240
 :module-beans                  6	0	0	0
 :module-cost                   6	0	0	0
 :modus-server                  9	0	3	0

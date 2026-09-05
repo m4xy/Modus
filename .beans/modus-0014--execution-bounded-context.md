@@ -6,7 +6,7 @@ type: feature
 priority: normal
 created_at: 2026-08-29T00:00:00Z
 parent: modus-0011
-blocked_by: [modus-0013]
+blocked_by: [modus-0153]
 ---
 
 # The execution bounded context

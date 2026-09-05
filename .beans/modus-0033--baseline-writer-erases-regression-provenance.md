@@ -232,3 +232,39 @@ severity and the framing:
 
   Recorded at this length because a future fixer reading the original text would have
   concluded criterion 1 needed no strengthening, and it does.
+
+## Six further instances, from `bean:0152`
+
+Numbered per bean rather than by position, as the baseline's own enumeration now is:
+`bean:0152 (6)`, taking the running total to 16. A bare ordinal was wrong twice in this bean
+already, because two branches in flight each thought they held the next number.
+
+`bean:0152` is the largest single contribution so far, and that is a fact about the *cost*
+rather than about the branch: it was six because the branch wrote the baseline six times, and
+every write erases. Five were during development; the sixth was the rebase onto `36581a6`,
+which is the shape worth noticing — **a restoration does not survive a rebase either**, so
+the price is once per write *and* once per rebase, not once per regression.
+
+| # | write | what the writer printed | what it erased |
+|---|---|---|---|
+| 1 | `:core-domain` gains the `work` context | `0 0 1543 130` -> `0 0 2505 216` | the whole block; upward-only, no regression in it |
+| 2 | `:core-domain` gains `WorkItemSpecification` | `0 0 2505 216` -> `0 0 2654 238` | the whole block **including the note added by hand after erasure 1** |
+| 3 | nothing changed | `:core-domain 0 0 2654 238 (unchanged)` | the whole block — the `bean:0065` no-op shape, reproduced deliberately |
+| 4 | `successCriteria` deleted, with `-Pcoverage.regress` | the new `# REGRESSION accepted` pair | **both** regression blocks then on `main`, while recording the third |
+| 5 | rebase onto `99212fc`, row re-derived | the new figures | the whole block, restored from the post-PR-83 `main` |
+| 6 | rebase onto `36581a6`, row re-derived | the new figures | 33 comment lines and **all four** `REGRESSION` blocks, down to 7 lines and none |
+
+Erasure 2 is the one that sets the mitigation's price: the note written by hand to record
+erasure 1 was itself erased by the very next write. Erasure 4 is the one worth having — it is
+the "erases a PREVIOUS regression block when recording a new one" clause, which `bean:0147`
+found independently the same week, so it is now observed twice rather than inferred once.
+
+Erasure 6 says something the other five do not. The branch was green, the row was correct,
+and the only reason the baseline was touched at all was that `main` had moved. A contributor
+who rebases and re-runs the writer — which `AGENTS.md` tells them to do, in preference to
+hand-merging the numbers — destroys the file's history as a *direct consequence of following
+the documented procedure*.
+
+All six restored with `git show origin/main:config/coverage/baseline.tsv`, per `AGENTS.md`'s
+rule against restoring from a `cp` taken earlier — which matters here, because a copy taken
+before erasure 1 would have restored a block already missing what erasure 2 removed.
