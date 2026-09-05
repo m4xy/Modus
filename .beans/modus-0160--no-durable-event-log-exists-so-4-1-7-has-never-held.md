@@ -5,7 +5,7 @@ status: todo
 type: feature
 priority: high
 created_at: 2026-09-05T00:00:00Z
-blocked_by: [modus-0147, modus-0148, modus-0149, modus-0150]
+blocked_by: [modus-0147, modus-0174, modus-0175, modus-0176, modus-0149, modus-0150]
 ---
 
 # No durable event log exists, so §4.1.7 has never held and dispatch loses events

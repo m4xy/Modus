@@ -7,7 +7,7 @@ priority: high
 order: CH
 created_at: 2026-09-05T00:00:00Z
 parent: modus-0017
-blocked_by: [modus-0147, modus-0148, modus-0149]
+blocked_by: [modus-0147, modus-0174, modus-0175, modus-0176, modus-0149]
 ---
 
 # Startup recovery, derived indexes, and the write-path gates
