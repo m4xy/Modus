@@ -26,9 +26,17 @@ implemented — able to fire for the first time. Written in plain backticks and 
 `Actor` and `PermissionGrant` have a private constructor and a named factory that **raises a
 domain event** (`bean:0009` §"Decisions the documents did not already settle"). So a
 repository reading one back off disk has no reconstitution path that does not also fabricate
-an `ActorRegistered` or a `GrantIssued` that never happened — and `bean:0066` is adding the
-drain that would then publish it. Reading a revoked grant is worse: `revoke` opens with
-`check(!revoked)`, so replaying it to restore the flag raises `GrantRevoked` a second time.
+an `ActorRegistered` or a `GrantIssued` that never happened. Reading a revoked grant is
+worse: `revoke` opens with `check(!revoked)`, so replaying it to restore the flag raises
+`GrantRevoked` a second time.
+
+**This got sharper while this bean sat unstarted, and the sentence that changed is worth
+seeing.** It read "`bean:0066` **is adding** the drain that would then publish it"; that bean
+has since merged, so the drain exists. `Actor` and `PermissionGrant` implement
+`RaisesDomainEvents.drainEvents()`, which hands the accumulated events over and empties the
+list. A fabricated `ActorRegistered` is therefore no longer a latent hazard waiting on
+another bean — it is an event a use case will drain and dispatch to real handlers the moment
+a repository reconstitutes an aggregate the naive way.
 
 This is a `core-domain` change and `core-domain` is outside this bean's scope, so it is a
 decision for the orchestrator rather than a unilateral edit. The three shapes, none chosen

@@ -100,11 +100,26 @@ because a mutation that a test lets through is the finding, not a step on the wa
 
 Review added three more, and **all three of those found something these thirteen had not**,
 which is the honest summary of this bean's evidence and is recorded here rather than buried
-in the criterion it belongs to. Two deleted an `fsync` and the suite stayed green (criterion
-1); one restored per-instance lock stripes and the suite stayed green (criterion 8). Sixteen
-mutations now, fifteen killed and one demoted to an admitted gap. The thirteen were chosen by
-the author of the code they were testing, and they were blind in exactly the direction that
-author was.
+in the criterion it belongs to. Two deleted an `fsync` and the suite stayed green; one
+restored per-instance lock stripes and the suite stayed green.
+
+The tally, by outcome rather than by round, because the previous version of this paragraph
+counted the stripes plant in both columns — calling it a survivor in one sentence and
+counting it among the killed in the next:
+
+| | plants | outcome |
+|---|---|---|
+| first submission | 13 | all killed |
+| review, `fsync` on the temp file and on the parent directory | 2 | **both survive** — criterion 1, demoted to an admitted gap owned by `bean:0150` |
+| review, per-instance lock stripes | 1 | killed, by a test written in response — criterion 8 |
+| **total** | **16** | **14 killed, 2 surviving under one stated gap** |
+
+Sixteen is also the number of `planted:` blocks in this file, which is the only reason those
+figures can be checked at all; `bean:0173` raises the check that would compare them
+mechanically instead of by eye.
+
+The thirteen were chosen by the author of the code they were testing, and they were blind in
+exactly the direction that author was.
 
 The suite:
 
@@ -200,12 +215,24 @@ Two things follow, and both are recorded rather than argued away:
   §5 asks for is the only thing in the four-bean plan that could detect a missing `fsync`,
   and `bean:0150` already carries it as criterion 7.
 
-**Not fixed here, deliberately.** The seam that would witness a force is a seam that could
-also suppress one, and a mechanism whose test can turn it off is a test of the seam
-(`doc:00-constitution#observed-failing`). Making the force witnessable without making it
-disableable needs the `FileSystemProvider` wrapper described under "What is not evidenced"
-below — the same seam the short-write loop needs — and it belongs with the bean that needs
-it for two reasons rather than one.
+**Not fixed here, deliberately — and the reason needs one clause more than it first
+carried.** The disqualifying property under `doc:00-constitution#observed-failing` is not
+"could a test double be written that skips the mechanism", which is true of every double in
+the repository and is a property of writing the double badly. It is **whether production can
+be configured into a state where the mechanism does not run.**
+
+That distinction decides the two seams differently, which is why it is worth stating:
+
+| seam | production configurable to skip the force? |
+|---|---|
+| `SyncObserver` promoted from observer to *strategy* — the writer asks a collaborator to force | **yes.** The mechanism moves into the seam, and a wiring that supplies a no-op collaborator is a production configuration in which no force happens. Disqualified |
+| a delegating `java.nio.file.spi.FileSystemProvider` whose `newFileChannel` returns a recording `FileChannel` | **no.** `AtomicFileWriter` is unchanged, gains no parameter, and still calls `force(true)` unconditionally; production always resolves the default filesystem. `FileChannel.open(Path, Set, FileAttribute…)` is specified to dispatch through `path.getFileSystem().provider().newFileChannel(…)`, so the seam is a JDK guarantee rather than a trick |
+
+So the second seam is legitimate and would close criterion 1's gap. It is not built here
+because it is ~200-250 lines serving two *future* beans — `bean:0148` needs the same
+provider to provoke a short write — and forcing it into this pull request would put the
+larger half of the work in the bean that needs it least. `bean:0150` carries the gap and
+inherits this argument; `bean:0148` carries the seam.
 
 The platform-honours question stands as it always did: durability across a power cut is the
 OS's guarantee and no test on this side of the syscall reaches it.
@@ -482,6 +509,18 @@ Note which test did **not** fail on that plant: `DocumentStore serialises writer
 process`, the one that had been standing for this criterion. One shared store and eight
 threads passes with either scoping, and the difference between the two tests is three lines.
 
+**That test is not vacuous, and the precise fault is worth naming rather than dismissing.**
+It kills the lock-order swap, which is a real defect and the one this criterion was written
+for. What it has is an **unvaried fixture dimension**: it fixes the store-instance count at
+one, and the defect lived in the dimension it never varied
+(`doc:35-testing#fixture-variation`, which `bean:0009` review thread 1 established for
+capability-set size and which generalises past collections). The other criteria here were
+swept on that reading and none rests on an unvaried dimension of comparable consequence.
+
+A consequence of the fix, checked rather than assumed: JVM-wide stripes could couple tests
+that share a path. No JUnit parallel execution is configured in this repository, and every
+test in this suite uses its own `@TempDir`, so there is no coupling to have.
+
 `CrossProcessLock`'s KDoc said that exception "means the ordering was inverted". It has three
 causes and named one; all three are now named there.
 
@@ -557,6 +596,41 @@ recorded rather than the change reverted. The 33 missed instructions that remain
 pre-existing `FlatFilePersistenceAdapter` placeholder, untouched by this bean. Every
 instruction and every branch of the new code is covered, asserted by reading the JaCoCo XML
 per method rather than inferred from the module total.
+
+**Re-derived at the rebased head.** Everything above this paragraph is a capture, stamped at
+the head it was taken at, and it stays as stamped. The figures below are the live ones, taken
+after rebasing onto `99212fc` (PR #83), and they are what the merge commit carries:
+
+```
+cmd:      ./gradlew ktlintFormat
+observed: BUILD SUCCESSFUL in 2s
+cmd:      ./gradlew qualityCheck
+observed: BUILD SUCCESSFUL in 2m 5s
+          195 actionable tasks: 23 executed, 20 from cache, 152 up-to-date
+cmd:      ./gradlew coverageBaselineWrite
+observed: :adapter-persistence-flatfile  33 0 0 0 -> 33 0 778 18
+          :core-application              6 0 160 6  (unchanged)
+          :core-domain                   0 0 1573 130  (unchanged)
+          BUILD SUCCESSFUL
+cmd:      integration test counts, from build/test-results/integrationTest/*.xml
+observed: AtomicWriteIntegrationTest            tests="8"  failures="0" errors="0"
+          CrossProcessLockIntegrationTest       tests="5"  failures="0" errors="0"
+          OptimisticConcurrencyIntegrationTest  tests="10" failures="0" errors="0"
+          PathLockingIntegrationTest            tests="8"  failures="0" errors="0"
+```
+
+**No `-Pcoverage.regress` is needed on this base, and that changes what the branch ships.**
+PR #83 reset `:adapter-persistence-flatfile` to `33 0 0 0`, so the row moves `0 -> 778`
+directly and the 780-to-778 step recorded above does not exist in the diff against `main`.
+The `REGRESSION` block that step produced is therefore **not** in the shipped baseline: a
+provenance line for a regression that no longer appears in the history would be false
+provenance. The observation of the writer's behaviour is unaffected and stays — it happened,
+it is captured verbatim, and it is written up in `bean:0033` as observation eight.
+
+**A ninth instance, at the rebase itself.** The re-derivation above moved exactly one row,
+upward, and destroyed all three `REGRESSION` blocks then on `main` plus the note recording
+that this keeps happening. Restored by hand; that is `bean:0066`'s upward-only shape
+confirmed independently, and it is why the tally in `bean:0033` now reads ten.
 
 **`bean:0033`'s defect fired twice on this one branch, and the second form is worse than the
 first.** The first write did **not** regress — it only raised covered counts — and the

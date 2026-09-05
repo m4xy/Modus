@@ -38,18 +38,28 @@ dies without flushing.
 > The seam that would witness a force is a seam that could suppress one, and a mechanism
 > whose test can turn it off is a test of the seam.
 
-That is `doc:00-constitution#observed-failing` applied to the instrument rather than to the
-gate. `SyncObserver` is deliberately called **after** the real force for the same reason, and
-the price of that safety is that it cannot witness the force either — the two properties are
-the same property.
+**That sentence is too strong as a general proposition, and the corrected form is the useful
+one.** The disqualifying property under `doc:00-constitution#observed-failing` is not "could
+a double be written that skips the mechanism" — that is true of every double in this
+repository and is a property of writing the double badly, visible in its own source. It is
+**whether production can be configured into a state where the mechanism does not run.**
 
-This bean is not bound by that argument, and there is a legitimate route past it: a seam that
-can only **observe** is not the same as a seam that can substitute. A recording `FileChannel`
-that delegates every call including `force` is observation; one that decides whether to
-delegate is substitution. If this bean builds the first, say so and re-point the gap here
-rather than at criterion 7. `bean:0148` may build the same seam for a different reason — a
-short-writing `FileChannel` for `doc:40-durability` §4.2 step 3 — and whichever bean builds
-it first should carry both uses.
+Applied to the two seams, that gives opposite answers:
+
+- Promoting `SyncObserver` from observer to **strategy** fails it. The writer would ask a
+  collaborator to force, the mechanism moves into the seam, and a wiring supplying a no-op
+  collaborator is a production configuration in which no force happens.
+- A delegating `java.nio.file.spi.FileSystemProvider` **passes** it. `AtomicFileWriter` is
+  unchanged, gains no parameter, and still calls `force(true)` unconditionally; production
+  always resolves the default filesystem. `FileChannel.open(Path, Set, FileAttribute…)` is
+  specified to dispatch through `path.getFileSystem().provider().newFileChannel(…)`, so the
+  seam is a JDK guarantee rather than a trick.
+
+So the provider seam is legitimate and would close this gap earlier than criterion 7. It was
+not built in `bean:0147` because it is ~200-250 lines serving two later beans rather than the
+one it would have sat in. `bean:0148` needs the same provider to provoke a short write for
+`doc:40-durability` §4.2 step 3, so whichever of the two builds it first should carry both
+uses — and if it is this bean, say so and re-point the gap here rather than at criterion 7.
 
 ## Success criteria
 

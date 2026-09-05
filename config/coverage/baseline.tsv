@@ -9,20 +9,31 @@
 #   :core-domain: covered branches 44 -> 38
 # REGRESSION accepted with -Pcoverage.regress: GrantIssued stores its capabilities as a Set rather than a List, so three toSet() calls disappear from equals, hashCode and the field initialiser; six instructions leave the source, none become uncovered (missed instructions stay 0)
 #   :core-domain: covered instructions 1549 -> 1543
-# Restored by hand in bean:0032, bean:0030, twice in bean:0036, in bean:0065 and twice in
-# bean:0066 after coverageBaselineWrite erased it; it also erases a PREVIOUS regression
+# Restored by hand after coverageBaselineWrite erased it, one entry per bean and summed from
+# the list rather than counted beside it: bean:0032 (1), bean:0030 (1), bean:0036 (2),
+# bean:0065 (1), bean:0066 (2), bean:0147 (3) = 10. Written out per bean because a bare
+# total beside the enumeration it summarises is made wrong by the next commit that extends
+# the enumeration, which happened here twice (bean:0033, bean:0173).
+# The writer also erases a PREVIOUS regression
 # block when recording a new one, which is what it did to bean:0065's block on the run below.
 # bean:0065 is the cleanest instance yet: the writer destroyed all six lines on a run in
 # which NO figure changed, because it rebuilds the file from a constant header plus rows and
 # the note it composes is empty unless THIS run regressed. bean:0066 saw it destroy the block
 # on a run that moved two rows UPWARD, so the defect is not conditional on the direction of
 # the write either.
+# bean:0147 saw it a ninth time, on the rebase onto this very file: a run that moved
+# exactly ONE row upward (:adapter-persistence-flatfile 0 -> 778) destroyed all three
+# REGRESSION blocks above and this note with them. That is bean:0066's shape confirmed
+# independently, and bean:0147 also saw the worse form — a run that legitimately
+# RECORDED a regression erased the two blocks that preceded it, so recording a
+# regression costs every regression recorded before it. Both are written up in
+# bean:0033, observations seven and eight.
 # bean:0033 makes it survive.
 # REGRESSION accepted with -Pcoverage.regress: InProcessDomainEventDispatch moved from core-application to the new adapter-events-inprocess module on the PR 83 review ruling; 39 covered instructions and 4 covered branches leave core-application with their class and reappear in the adapter's row, none become uncovered (missed instructions stay 6)
 #   :core-application: covered instructions 199 -> 160, covered branches 10 -> 6
 :adapter-agent-claude          33	0	0	0
 :adapter-events-inprocess      0	0	39	4
-:adapter-persistence-flatfile  33	0	0	0
+:adapter-persistence-flatfile  33	0	778	18
 :adapter-rest                  3	0	0	0
 :adapter-vcs-git               33	0	0	0
 :core-application              6	0	160	6

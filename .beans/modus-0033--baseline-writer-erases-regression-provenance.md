@@ -84,8 +84,13 @@ ran".
 point.** The dangerous case is not the one that looks dangerous. It is the agent who changes
 something they believe has no coverage effect, runs the writer **to confirm nothing moved**,
 sees `(unchanged)` on every row, and commits a diff that is pure history loss. That is a
-reasonable, careful thing to do, and it is the worst thing to do. Every one of the six
-restorations so far was caught by a human or agent reading the diff by eye.
+reasonable, careful thing to do, and it is the worst thing to do. Every restoration so far
+was caught by a human or agent reading the diff by eye, and none by a mechanism.
+
+*(This sentence said "the six restorations" over an enumeration that names five. The count
+is corrected in the running tally at the end of this bean rather than here, because a bare
+total beside the list it summarises is exactly what drifts — see the note under observation
+eight.)*
 
 ## Success criteria
 
@@ -190,14 +195,40 @@ severity and the framing:
   *correct* — a genuine regression, a written reason, a green build, a diff a reviewer will
   read as "one row and one comment moved" because the deletions sit above the addition in the
   same hunk.
-- **Eight restorations by hand, none by a mechanism.** `bean:0032`, `bean:0030`, twice in
-  `bean:0036`, `bean:0065`, and twice in `bean:0147`.
+- **Restorations by hand, none by a mechanism — one per bean, summed from the list rather
+  than counted beside it:** `bean:0032` (1), `bean:0030` (1), `bean:0036` (2), `bean:0065`
+  (1), `bean:0066` (2), `bean:0147` (3) = **10**.
+
+  The per-bean figures are written out because the previous version of this line said
+  "eight" over an enumeration of seven, and omitted `bean:0066` entirely — that bean merged
+  after the line was written. `baseline.tsv`'s own note carried the same drift
+  independently. A hand-written total placed beside the enumeration it summarises is made
+  wrong by the next commit that extends the enumeration, which is the defect, not the
+  arithmetic. `bean:0173` raises the mechanical check.
 
 ### One more success criterion, from the eighth observation
 
 - **A write that records a new regression preserves every regression block already in the
   file.** Observed failing first: record a regression for module A, then record one for
-  module B, and assert A's reason is still present. This is not implied by the first
-  criterion above — that one covers a later write which does *not* regress, and this branch
-  passed it while failing this one. A writer that appends its note to the existing blocks
-  satisfies both; one that rebuilds from a constant header satisfies neither.
+  module B, and assert A's reason is still present.
+
+  **The justification first written for this criterion was wrong, and the correction is the
+  reason to keep it.** It claimed the criterion was independent of criterion 1 because
+  "this branch passed criterion 1 while failing this one". That is false. Criterion 1 says a
+  reason survives every later write *that does not itself regress that module*; observation
+  eight regresses `:adapter-persistence-flatfile` and destroys `:core-domain`'s two reasons,
+  which criterion 1 already forbids. So does observation seven. **The branch failed
+  criterion 1 twice**, and this criterion was never the only thing it failed.
+
+  The stated test was the wrong shape too: "a writer that appends satisfies both; one that
+  rebuilds from a constant header satisfies neither" shows the two criteria *correlate* on
+  two implementations. Independence needs a design where one holds and the other fails.
+
+  Here is that design, and it is why the criterion stays. Criterion 1's qualifier is **"that
+  module"**, and that qualifier is a real hole: a writer that, on regressing `:core-domain`
+  a second time, **replaced** `:core-domain`'s existing reason with the new one satisfies
+  criterion 1 — the write does regress that module, so criterion 1 says nothing — and still
+  loses history. "Preserves every regression block already in the file" is what closes it.
+
+  Recorded at this length because a future fixer reading the original text would have
+  concluded criterion 1 needed no strengthening, and it does.
