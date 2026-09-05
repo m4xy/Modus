@@ -154,6 +154,22 @@ the next change adds — and the change need not come from another author or ano
 saying four, and gained a fifth row two pull requests later in the same stack. **A set that
 can grow is named, never counted.**
 
+**Restatement's second cost is not drift. It is that being wrong once costs N corrections,
+and consistent copies hide the error that drift would have shown.** Every instance in the
+table above was found because two copies disagreed; disagreement is the signal. `bean:0066`
+shipped one over-scoped scope clause at three sites — a rule in `doc:20-ddd-practices` §4.1.8,
+the port's KDoc, and the handler contract's — and the three agreed perfectly, so nothing
+looked wrong to a reader or to check 6. It was found by a reviewer reasoning about the rule
+itself, which is the mechanism this section exists to avoid depending on. **Copies of a belief
+are as much a defect as copies of a fact, and they are the harder half: a fact that drifts
+announces itself, and a belief restated faithfully never does.**
+
+**The instance that carries the highest cost is the one on the type other authors implement.**
+Of those three sites, the correction that mattered was the handler contract's, because four
+bounded contexts will write against it and inherit whatever it claims. Rank restatement sites
+by how many authors read them, not by how normative they look: the document is authoritative,
+the interface is what gets copied.
+
 ## 4. Prose ban <a id="prose-ban"></a>
 
 | banned | write instead |
@@ -194,6 +210,23 @@ marker is line 2" and "the id marker is the only `#` line" are both wrong, and a
 built on either silently reads the wrong value — found by check 13 failing on the real tree
 before any plant was written (`bean:0051`). Match `# <prefix><digits>` and require exactly
 one.
+
+**Flagging a doubt about a rule you are writing is not narrowing it.** A rule is read by
+people who never see the pull-request body, the bean, or the review thread it was doubted in,
+so a doubt recorded anywhere but in the rule's own text has no effect on what the rule
+requires. `bean:0066` wrote `doc:20-ddd-practices` §4.1.8, asked in the same pull request
+whether it was over-scoped, and shipped it over-scoped; the doubt was correct and changed
+nothing. **State the narrow rule you believe, and cite the bean for the part you are unsure
+of.** A rule stated wider than its author believes it is a rule nobody may rely on and
+everybody must obey.
+
+**The author of a rule is the worst-placed reader of its scope**, which is why the previous
+paragraph is a rule and not advice. An author who has just built one implementation writes
+the clause that implementation satisfies; the second implementation is the one that discovers
+the clause forbids it. `doc:20-ddd-practices` §4.1.8 bound every dispatcher to propagate a
+handler's exception to its caller, which the only existing dispatcher did and an asynchronous
+one cannot. **Before stating a rule over a set, name the member of that set you have not
+built, and check the rule against it.**
 
 ## 6. Mechanical checks <a id="checks"></a>
 
