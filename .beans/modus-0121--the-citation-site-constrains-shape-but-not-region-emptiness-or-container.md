@@ -942,11 +942,13 @@ supply the criterion NUMBER itself. That leaves the lowercase letters, and `CUTC
 cannot cite on its own account — it holds no digit, and `criteri(on|a)` is a contiguous literal,
 so a letter standing behind a `|` cannot complete one.
 
-**Why 71 assertions could not see it.** Every table in `tools/docs-lint-test.sh` — seventeen
-delimiter rows — put its evidence-ish column LAST, so no cut in the file had a right-hand
-neighbour and a mask that deletes and one that replaces were indistinguishable to all of them.
-That file already named this blind spot one mechanism over, for `isevcol-TRUE`: *the probe
-fixture's `evidence` column is the LAST column*. It was not carried across. The rejection added
+**Why 71 assertions could not see it.** At `5cf9c58` every table in `tools/docs-lint-test.sh`
+that carried an evidence-ish column — `evidence`, `observed`, `output` or `result` — had it as
+the LAST column, without exception; the one table with no such column is the `evidence kind`
+control. So no cut in the file had a right-hand neighbour, and a mask that deletes and one that
+replaces were indistinguishable to all of them. That file already named this blind spot one
+mechanism over, for `isevcol-TRUE`: *the probe fixture's `evidence` column is the LAST column*.
+It was not carried across. The rejection added
 this round puts the column in the middle, with a control that the rest of a middle-cut row is
 still read and a probe that prints the barrier standing between the neighbours; the same fixture
 incidentally makes `isevcol-TRUE` move the mask for the first time, which is recorded as

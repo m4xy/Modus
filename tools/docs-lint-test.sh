@@ -1705,13 +1705,15 @@ texts "the evidence cell is cut out of the row, and the rest of it is not" \
 
 # --- WHAT STANDS IN THE HOLE, which is the difference between a mask and a splice ----------
 #
-# EVERY FIXTURE ABOVE PUTS `evidence` IN THE LAST COLUMN, and so does every other table in
-# this file — seventeen delimiter rows, seventeen evidence-ish columns, all of them last. A
-# cut in the last column has no RIGHT-HAND NEIGHBOUR, so a mask that DELETES the cell and one
-# that REPLACES it are indistinguishable to all of them, and the suite was green on both. The
-# blind spot is the one this file already names for `isevcol-TRUE` above — `the probe
-# fixture's evidence column is the LAST column` — carried one mechanism over and not noticed.
-# So the fixture below puts `evidence` in the MIDDLE.
+# EVERY FIXTURE ABOVE PUTS `evidence` IN THE LAST COLUMN, and until this round so did every
+# other table in this file: at 5cf9c58 every table carrying an evidence-ish column — `evidence`,
+# `observed`, `output`, `result` — had it as the last column, without exception, and the one
+# table with no such column is the `evidence kind` control. A cut in the last column has no
+# RIGHT-HAND NEIGHBOUR, so a mask that DELETES the cell and one that REPLACES it are
+# indistinguishable to all of them, and the suite was green on both. The blind spot is the one
+# this file already names for `isevcol-TRUE` above — `every evidence column in this file was the
+# LAST column` — carried one mechanism over and not noticed. So the fixture below puts
+# `evidence` in the MIDDLE.
 #
 # Deleting the cell makes its two neighbours adjacent, and the matcher spans the seam:
 # `criteri(on|a)[^0-9a-z]*[0-9]+` skips any run of characters that are neither digit nor
