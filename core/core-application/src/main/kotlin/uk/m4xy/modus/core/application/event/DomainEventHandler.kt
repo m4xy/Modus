@@ -24,10 +24,14 @@ public fun interface DomainEventHandler<in E : DomainEvent> {
     /**
      * Reacts to [event].
      *
-     * Called synchronously, after the publishing aggregate's write is durable. A handler
-     * that throws is not swallowed; what happens to the events behind it is
-     * `doc:20-ddd-practices#domain-events` §4.1.8, which every implementation of
-     * [DomainEventDispatchPort] is held to.
+     * Called after the publishing aggregate's write is durable — but **not necessarily on the
+     * writing thread, and not necessarily before the use case returns.** The only dispatcher
+     * that exists today is synchronous; the port promises no mode, and §4.1.7 effectively
+     * mandates a durable one, which may well not be. Write a handler that does not assume it.
+     *
+     * A handler that throws is not swallowed. What happens to the events behind it depends on
+     * the dispatcher's mode and is `doc:20-ddd-practices#domain-events` §4.1.8, which every
+     * implementation of [DomainEventDispatchPort] is held to.
      *
      * **Write a handler to be idempotent.** `doc:20-ddd-practices#domain-events` §4.1.7 asks
      * for it because it expects a durable event log that can be replayed. That log does not

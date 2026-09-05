@@ -426,7 +426,7 @@ accumulated provenance loses it precisely when a reviewer most needs the history
 ### `./gradlew qualityCheck`
 
 ```
-docs-lint: OK — 19 documents, 111 anchors, 1786 references, 117 beans, 44 graph edges, 52 selectable, 117 bean ids, 5 introduced, 120 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+docs-lint: OK — 19 documents, 111 anchors, 1795 references, 118 beans, 44 graph edges, 53 selectable, 118 bean ids, 6 introduced, 120 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
 docs-lint-gate-test: 168 passed, 0 failed, over 2 bash major version(s).
 
 > Task :qualityCheck
@@ -444,15 +444,53 @@ BUILD SUCCESSFUL
 | **Any mechanism that makes the drain contract binding** | `RaisesDomainEvents` is a type, not a gate. Three ways past it were planted and verified green: a use case can call `repository.save(root)` then `dispatcher.dispatch(root.pendingEvents)` and never touch `WriteThenDispatch`; `pendingEvents` stays public on all three roots; and **a new aggregate can implement `drainEvents()` as `events.toList()` with no `clear()`** — this bean's own defect — and pass compile, ktlint, Detekt, 119 `core-domain` tests and 63 architecture tests. `DrainEventsTest`'s "visible as an absence" is a human-noticing convention, not a mechanism. `bean:0133` carries all three, and `bean:0013` is being written against this contract now |
 | A gate on `drainEvents` at all | `bean:0036`'s defensive-copy gate does not examine it: a copy hoisted into a local is invisible to the gate's `mentioned` check, observed both ways in `bean:0131`. Criterion 2 is met by test, and the note against it says so |
 
-Five beans were raised rather than absorbed: `bean:0130` (`doc:20-ddd-practices` §5.1 has no
+### Second review: §4.1.8 was over-scoped, and I wrote it
+
+The rule I added in the first round of corrections bound **every** implementation of the
+dispatch port to propagate a handler's exception to its caller. That is unmeetable by an
+asynchronous dispatcher, whose `dispatch` has already returned — and §4.1.7 effectively
+mandates a durable implementation, which may well be one. I had flagged the risk myself
+("a normative rule written by the agent whose implementation it describes") and still wrote
+the over-scoped version; flagging is not a substitute for narrowing.
+
+The same over-scoping was written **three times**, which is what makes it worth recording:
+in §4.1.8, in `DomainEventDispatchPort`'s "not an implementation's private business", and in
+`DomainEventHandler.handle`'s "**Called synchronously**" — the last on the very type four
+bounded contexts will implement, promising a synchrony the port does not guarantee. One
+belief, restated at three sites, corrected at three sites.
+
+§4.1.8 now binds every implementation to two things it can meet in either mode — do not
+swallow, and **state which mode you are** — and scopes the propagation consequence to
+synchronous delivery. The permanent-loss sentence moved into §4.1.7's enforcement-gap note,
+where it belongs: it is a contingent fact about a missing log, not a rule, and left in
+§4.1.8 it forbade the retry that §4.1.7's log exists to enable.
+
+Two smaller findings from the same review:
+
+- **`doc:15-repository-layout` §2's layout tree still listed four adapters.** This bean added
+  the fifth to §2.1's table twenty lines below and left the enumeration above stale — in the
+  document this change was editing. `bean:0161` makes it mechanical against
+  `settings.gradle.kts`, which is the one home for the module set and which both documents
+  restate.
+- **§2.1's row named `durability` and routed it to `adapter-events-inprocess`** — a module
+  named for the one property the durable dispatcher will not have. Same defect as §4.1.8, in
+  a table row: one implementation's identity standing in for the general case. The row now
+  targets `adapters/adapter-events-*`, one module per delivery mode.
+
+`bean:0134` was raised from `low` to `medium` on the ruling that the duplication ships: four
+partial copies of a fixture whose uniformity once hid a privilege escalation through 32 tests
+and 30 verified mutations is not a `low`.
+
+Six beans were raised rather than absorbed: `bean:0130` (`doc:20-ddd-practices` §5.1 has no
 row for the two packages this added, and no line budget left to add one), `bean:0131` (the
 defensive-copy gate's blind spot), `bean:0160` (no durable event log — it took **two** renumberings to land: 0132 was merged by a
 sibling branch first and `docs-lint` check 13 caught it, then 0147 collided with a band already
 allocated to `feat/atomic-document-write`, which check 13 could not catch because that branch is
 unmerged. `bean:0051` predicted both. The orchestrator now allocates disjoint id bands per agent),
 `bean:0133` (the drain
-contract is bypassable three ways) and `bean:0134` (test doubles copied between modules,
-which this bean's own module split caused).
+contract is bypassable three ways), `bean:0134` (test doubles copied between modules, which
+this bean's own module split caused) and `bean:0161` (the layout tree and the placement table
+both restate `settings.gradle.kts` and both drift from it).
 
 ## Sequencing
 

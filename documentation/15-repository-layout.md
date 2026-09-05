@@ -42,6 +42,7 @@ adapters/
   adapter-persistence-flatfile/         durable flat-file store
   adapter-rest/                         /domains/{domainId} REST + SSE/WS
   adapter-agent-claude/                 claude-code supervision + output streaming
+  adapter-events-inprocess/             synchronous in-process domain-event delivery
   adapter-vcs-git/                      git-backed repository operations
 modules/
   module-beans/                         work tracking (per-domain installable)
@@ -55,6 +56,14 @@ documentation/                          this package
 tools/                                  repository-wide checks that are not Kotlin rules
 ```
 
+**This tree and §2.1's table are two enumerations of one growing set.** A module added to
+`settings.gradle.kts` has to land in both, twenty lines apart, and `bean:0066` added
+`adapter-events-inprocess` to the table and left the tree stale — the seventh time a
+hand-maintained enumeration in this package has gone behind the set it enumerates.
+`settings.gradle.kts` is the one home for the module list and neither of these is
+(`doc:05-authoring-for-agents#one-fact-one-place`); until a check compares them, adding a
+module means editing both. **Enforcement gap:** `bean:0161`.
+
 ### 2.1 What goes where — the decision table <a id="placement-table"></a>
 
 | You are writing… | It goes in… |
@@ -67,7 +76,7 @@ tools/                                  repository-wide checks that are not Kotl
 | An HTTP controller, DTO, SSE/WebSocket handler, or an OpenAPI annotation | `adapters/adapter-rest` |
 | Process supervision, stdout parsing, token/cost extraction from a claude-code run | `adapters/adapter-agent-claude` |
 | Branch, commit, diff, worktree operations | `adapters/adapter-vcs-git` |
-| Delivery of a drained domain event to its handlers — the ordering, durability and failure semantics of the fan-out itself | `adapters/adapter-events-inprocess` |
+| Delivery of a drained domain event to its handlers — the fan-out itself, and its ordering, durability and failure semantics | `adapters/adapter-events-*`, one module per delivery mode; `adapter-events-inprocess` is the synchronous one and is not the durable one |
 | A user-installable capability that some domains have and others do not | `modules/module-*` |
 | A Spring `@Configuration`, bean definition, or `application.yaml` | `app/modus-server` |
 | A React component, route, or store | `backoffice/` |

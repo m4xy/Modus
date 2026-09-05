@@ -18,9 +18,12 @@ import uk.m4xy.modus.core.domain.DomainEvent
  * `doc:20-ddd-practices#domain-events` §4.1.7 requires (`bean:0160`); a conforming durable
  * implementation replaces it without either core module changing a line.
  *
- * Ordering is not this port's business — [WriteThenDispatch] owns it. Delivery semantics on
- * handler failure are not an implementation's private business either: they are stated once
- * in `doc:20-ddd-practices#domain-events` §4.1.8.
+ * Ordering is not this port's business — [WriteThenDispatch] owns it. Nor is the behaviour on
+ * handler failure left to each implementation to invent: `doc:20-ddd-practices#domain-events`
+ * §4.1.8 binds every one of them not to swallow, and to **say which delivery mode it is**. What
+ * follows from that differs by mode, and the rule is scoped accordingly — a synchronous
+ * implementation propagates to the caller, an asynchronous one cannot and records the failure
+ * for replay instead. This port promises neither mode, so no caller may assume one.
  */
 public fun interface DomainEventDispatchPort {
     /**

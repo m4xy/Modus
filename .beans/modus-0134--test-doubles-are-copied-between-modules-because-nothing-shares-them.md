@@ -3,7 +3,7 @@
 title: Test doubles are copied between modules because nothing shares them
 status: todo
 type: refactor
-priority: low
+priority: medium
 created_at: 2026-09-05T00:00:00Z
 ---
 
