@@ -1,5 +1,5 @@
 ---
-# modus-0147
+# modus-0160
 title: No durable event log exists, so §4.1.7 has never held and dispatch loses events
 status: todo
 type: feature

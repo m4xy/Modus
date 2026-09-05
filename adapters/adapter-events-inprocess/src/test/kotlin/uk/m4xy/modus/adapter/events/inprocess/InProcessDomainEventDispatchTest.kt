@@ -174,7 +174,7 @@ class InProcessDomainEventDispatchTest {
     /**
      * The suffix this drops is dropped **permanently**: nothing recorded that `revoked` and
      * `processChanged` were due, so nothing can replay them. That is §4.1.7's missing
-     * durable log (`bean:0147`), not the fail-fast choice — collecting failures and
+     * durable log (`bean:0160`), not the fail-fast choice — collecting failures and
      * continuing would lose them just as completely on the next crash.
      */
     @Test

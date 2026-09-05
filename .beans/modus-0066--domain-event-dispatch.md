@@ -128,7 +128,7 @@ of application-layer types outside the application layer.
   durable event log **before any handler runs**. A conforming dispatcher therefore touches
   durable storage. Today's synchronous fan-out is not a differently-named concern that
   happens to share a seam with the durable one — it is the same concern with the durable half
-  missing (`bean:0147`). Renaming it would have forfeited the seam.
+  missing (`bean:0160`). Renaming it would have forfeited the seam.
 
 So `InProcessDomainEventDispatch` lives in `adapters/adapter-events-inprocess`, the port stays
 in `core-application`, and `doc:15-repository-layout#placement-table` §2.1 carries the row and
@@ -426,7 +426,7 @@ accumulated provenance loses it precisely when a reviewer most needs the history
 ### `./gradlew qualityCheck`
 
 ```
-docs-lint: OK — 19 documents, 111 anchors, 1785 references, 117 beans, 44 graph edges, 52 selectable, 117 bean ids, 5 introduced, 120 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+docs-lint: OK — 19 documents, 111 anchors, 1786 references, 117 beans, 44 graph edges, 52 selectable, 117 bean ids, 5 introduced, 120 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
 docs-lint-gate-test: 168 passed, 0 failed, over 2 bash major version(s).
 
 > Task :qualityCheck
@@ -439,14 +439,18 @@ BUILD SUCCESSFUL
 | not done | why |
 |---|---|
 | The wiring in `app/modus-server` | There is nothing to wire. `PermissionGrantRepository` and `DomainRepository` have no implementation — `bean:0009` declared both and implemented neither, `bean:0017` builds the flat-file store — so a Spring configuration for edge 1 would bind a handler to a use case that cannot be constructed. It lands with the first real repository |
-| The durable event log `doc:20-ddd-practices#domain-events` §4.1.7 requires | It does not exist and never has; nothing in this repository appends a domain event anywhere. §4.1.7 carried no enforcement note until this change and now names `bean:0147`, which is blocked on `bean:0017`. §4.1.8's permanent loss of an undelivered suffix is its direct consequence |
-| Replayable, asynchronous or cross-process delivery, and delivery that survives one handler's failure | Out of scope by the bean's own "Not owned", and the failure policy is the one the toolchain leaves reachable: running every handler needs a broad `catch`, which `TooGenericExceptionCaught` refuses outside two adapters, and the alternative is swallowing, which criterion 7 forbids. Retrying is a property of a durable dispatcher (`bean:0147`) |
+| The durable event log `doc:20-ddd-practices#domain-events` §4.1.7 requires | It does not exist and never has; nothing in this repository appends a domain event anywhere. §4.1.7 carried no enforcement note until this change and now names `bean:0160`, which is blocked on `bean:0017`. §4.1.8's permanent loss of an undelivered suffix is its direct consequence |
+| Replayable, asynchronous or cross-process delivery, and delivery that survives one handler's failure | Out of scope by the bean's own "Not owned", and the failure policy is the one the toolchain leaves reachable: running every handler needs a broad `catch`, which `TooGenericExceptionCaught` refuses outside two adapters, and the alternative is swallowing, which criterion 7 forbids. Retrying is a property of a durable dispatcher (`bean:0160`) |
 | **Any mechanism that makes the drain contract binding** | `RaisesDomainEvents` is a type, not a gate. Three ways past it were planted and verified green: a use case can call `repository.save(root)` then `dispatcher.dispatch(root.pendingEvents)` and never touch `WriteThenDispatch`; `pendingEvents` stays public on all three roots; and **a new aggregate can implement `drainEvents()` as `events.toList()` with no `clear()`** — this bean's own defect — and pass compile, ktlint, Detekt, 119 `core-domain` tests and 63 architecture tests. `DrainEventsTest`'s "visible as an absence" is a human-noticing convention, not a mechanism. `bean:0133` carries all three, and `bean:0013` is being written against this contract now |
 | A gate on `drainEvents` at all | `bean:0036`'s defensive-copy gate does not examine it: a copy hoisted into a local is invisible to the gate's `mentioned` check, observed both ways in `bean:0131`. Criterion 2 is met by test, and the note against it says so |
 
 Five beans were raised rather than absorbed: `bean:0130` (`doc:20-ddd-practices` §5.1 has no
 row for the two packages this added, and no line budget left to add one), `bean:0131` (the
-defensive-copy gate's blind spot), `bean:0147` (no durable event log — id 0147 rather than the next free in this worktree, because a sibling branch merged 0132 first and `docs-lint` check 13 caught it, `bean:0051`), `bean:0133` (the drain
+defensive-copy gate's blind spot), `bean:0160` (no durable event log — it took **two** renumberings to land: 0132 was merged by a
+sibling branch first and `docs-lint` check 13 caught it, then 0147 collided with a band already
+allocated to `feat/atomic-document-write`, which check 13 could not catch because that branch is
+unmerged. `bean:0051` predicted both. The orchestrator now allocates disjoint id bands per agent),
+`bean:0133` (the drain
 contract is bypassable three ways) and `bean:0134` (test doubles copied between modules,
 which this bean's own module split caused).
 

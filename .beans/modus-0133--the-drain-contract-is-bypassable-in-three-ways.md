@@ -46,9 +46,26 @@ BUILD SUCCESSFUL in 15s
 ```
 
 119 `:core-domain` tests and 63 `:architecture-tests`, 0 failed, with `:core-domain:ktlintCheck`
-and `:core-domain:detekt` green in the same run. Note the first attempt at this plant WAS
-rejected — by `DefensiveCopySourceTest`, and for an unrelated reason: a public constructor
-taking a `MutableList`. Made realistic, nothing sees it.
+and `:core-domain:detekt` green in the same run.
+
+**The first attempt at this plant was rejected, and reading that as an answer would have been
+wrong.** A first draft declared the root with a public constructor taking a `MutableList`, and
+`DefensiveCopySourceTest` failed it:
+
+```
+PlantedRoot.kt:7: PlantedRoot.events: MutableList<DomainEvent> — a collection reaches this type
+through a constructor a caller can call, so it is never copied IN … Make the primary constructor
+`private` and add a named factory that copies, the shape `PermissionGrant.issue` and
+`ProcessDefinition.of` both use.
+```
+
+That rejection is about copying **in**, and says nothing whatever about the missing `clear()`.
+A less careful plant stops here and concludes the gap is already closed — the build went red,
+after all. Shaped the way a real aggregate is shaped, with a private constructor and a named
+factory, nothing sees it. This is `doc:00-constitution#observed-failing`'s point in a form the
+document does not yet carry: **a plant that fails for the wrong reason is a false negative for
+the gap you were probing**, and the only defence is reading the message rather than the exit
+code.
 
 **Bypass 1.** A class in `core.application.identity.usecase` calling `grants.save(grant)` and
 then `dispatcher.dispatch(grant.pendingEvents)`:

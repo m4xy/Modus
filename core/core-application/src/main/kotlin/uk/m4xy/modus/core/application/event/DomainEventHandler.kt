@@ -31,7 +31,7 @@ public fun interface DomainEventHandler<in E : DomainEvent> {
      *
      * **Write a handler to be idempotent.** `doc:20-ddd-practices#domain-events` §4.1.7 asks
      * for it because it expects a durable event log that can be replayed. That log does not
-     * exist and nothing replays anything (`bean:0147`), so idempotency buys nothing today —
+     * exist and nothing replays anything (`bean:0160`), so idempotency buys nothing today —
      * it is what makes the handler survive the day the log arrives, and the day a
      * re-delivery becomes possible. Nothing enforces it.
      */
