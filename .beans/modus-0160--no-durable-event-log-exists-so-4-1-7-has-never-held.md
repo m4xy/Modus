@@ -5,7 +5,7 @@ status: todo
 type: feature
 priority: high
 created_at: 2026-09-05T00:00:00Z
-blocked_by: [modus-0017]
+blocked_by: [modus-0147, modus-0148, modus-0149, modus-0150]
 ---
 
 # No durable event log exists, so §4.1.7 has never held and dispatch loses events
@@ -43,6 +43,20 @@ crash, and adds a summary no consumer reads. The fix is the log. Until it exists
 delivery guarantee this system offers is "best effort, on one thread, once".
 
 ## Why it is blocked
+
+**Edge re-pointed by `bean:0147`.** This bean was written naming `modus-0017`, which has
+since become the epic over `bean:0147` to `bean:0150`; `docs-lint` check 12 refuses an edge
+onto a `type: epic` bean, so the edge names all four children. All four rather than a
+subset, because the single edge cleared only when all four bullets were done and naming all
+four clears at the same moment (`bean:0017`) — over-naming preserves the meaning, narrowing
+would loosen it on a guess.
+
+The guess in question is a real one and is left for whoever picks this up: the paragraph
+below argues that the **writer** is the open question, and the writer is `bean:0148` alone.
+If that holds once `bean:0148` lands, this edge can honestly narrow to it. That is a claim
+someone has to make, not an omission someone can make by accident. Note also that
+`bean:0147` has since landed the store's write path, so the placeholder sentence above
+describes the tree before it.
 
 `bean:0017` builds the flat-file store. An append-only NDJSON log is what
 `doc:00-constitution` §2.3 already prescribes for "machine-facing, high-volume, append-only
