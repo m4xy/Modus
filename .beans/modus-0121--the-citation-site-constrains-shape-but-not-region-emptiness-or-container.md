@@ -1,7 +1,7 @@
 ---
 # modus-0121
 title: A citing heading answers a criterion from anywhere in the file, with nothing under it, and from inside a raw HTML block; and an evidence row answers from its own cell
-status: in-progress
+status: completed
 type: fix
 priority: high
 created_at: 2026-09-04T00:00:00Z
@@ -1093,3 +1093,664 @@ plants above are what exercise it, and the fourth of them is a closure that pass
   mechanisms interacting; this one owns three under-constraints of a single mechanism.
 - What an evidence *cell* must hold (`bean:0087`). `EMPTYCELL` and `HOLLOW` are named above
   only as the analogue the heading path lacks.
+
+## Closing evidence — merged as PR #79, squashed onto `main` as `277c4d5`
+
+A bean cannot close itself, so this is the next change (`doc:00-constitution#bean-lifecycle`).
+
+**The criteria are not restated below, and none is reworded.** A close that rewrites its
+criteria is indistinguishable from a close that met them (`bean:0113`), so the table below
+indexes `## Success criteria` by number and records a verdict against the wording already
+standing there. The `status:` line is the only edit this change makes outside this section;
+where a figure taken above has expired, it is corrected in Block G rather than edited where it
+stands.
+
+**All nine close met, and the one place a reader might reach a different verdict is named
+rather than left to be found.** It is the second half of the first criterion's wording, and it
+is Block G's first entry. `doc:80-agent-operating-procedure#self-validate` step 6 forbids
+weakening a criterion to reach green, so the reading that verdict rests on is written out where
+it can be disagreed with, instead of being applied silently.
+
+The heads in play. Every figure below was redirected to a file and pasted from that file,
+carries `[...]` on every elision, and is stamped with the head and the interpreter that
+produced it. Two bash interpreters are installed here and they are not interchangeable:
+`/bin/bash` is 3.2.57(1)-release and is what `build.gradle.kts`'s `gateShell` invokes by
+absolute path, and `bash` on `PATH` is 5.3.9(1)-release. Every shell figure below was produced
+by `/bin/bash`.
+
+- **`277c4d5`** — `origin/main`, this change's merge base, `.beans/` and `tools/` unmodified.
+  Blocks A, B, C, D, and the first arm of Block E.
+- **`277c4d5`+`status:`** — the merge base with this bean's `status:` line as the only edit and
+  this section absent. Block E's second arm.
+- **`277c4d5`+`status:`+this section, with Block F's fence replaced by a one-token placeholder
+  line** — the gate run. Every other line of this section was present when it ran.
+
+| # | verdict | observed |
+|---|---|---|
+| 1 | met | The three fixtures are rejected at the closing head and were accepted by the `3b02871` analyser on the same command: two `UNANSWERED` lines for the region fixture, five for the emptiness one, one for the cell one. The control this criterion names — a citing sub-heading with content under it, and an evidence row citing a range from the column that is not its evidence cell — closes at the head this branch merges as and closed before it, `STATS 3 0` in both arms. Block B, read with Block G's first entry, which states what the second half of this row's wording turns on |
+| 2 | met | Each constraint mutated on its own and re-measured rather than inherited: `70 passed, 6 failed`, `72 passed, 4 failed`, `69 passed, 7 failed`, against `76 passed, 0 failed` unmutated. The failure sets are enumerated member by member, and neither of the first two is landed on the other's evidence. Block C |
+| 3 | met | The choice — a non-blank line, and not an *entry* — is stated with its measured cost in `tools/lib/docs-lint-c14.awk` beside `pend_commit()` and in `doc:05-authoring-for-agents#checks`'s emptiness row, and that cost is a named bean rather than a count. Block D for the corpus half |
+| 4 | met | Every bean in `.beans/` measured before and after, at the merged head and again at the rebased base: `112 compared, 1 differing`, then `112 compared, 2 differing` once PR #80 landed. Every differing bean is named, both are `in-progress`, and no `completed` bean moves in either run. Block D |
+| 5 | met | The pasted-cell pin is a rejection at the closing head and keeps its position in the file; the two container pins are `ACCEPTED` with `bean:0129` named as their reason; a fourth is added for the empty fence. `cell-off` in Block C kills the flipped one, which is what makes it a pin and not a comment. Block C |
+| 6 | met | `doc:05-authoring-for-agents#checks` carries the three conditions as a table beside the structural-site rule, states the `## ` exemption and names `bean:0038`, `bean:0049`, `bean:0051` and `bean:0063` as the beans that write it, and hands the container residual to `bean:0129`. Block G's second entry corrects the one figure that section leaves stale |
+| 7 | met | No polarity is read. The mutation in Block C that deletes the region clause changes which SITES are read and not which CLAIMS are, and each of the three conditions is a positive property of where a citation stands. The literal set the change introduces is enumerated in this bean's seventh evidence section, and none of it is a word an author would write |
+| 8 | met | The sacrificed case is not merely described, it is pinned: `cell-off` in Block C kills `sacrificed: a row's evidence cell no longer answers even when it cites honestly` alongside the laundering rejection, so both halves of the trade fail together and neither can be quietly dropped later. Block C |
+| 9 | met | `./gradlew qualityCheck` green on this closing branch, re-run and not reused: an earlier run measured a different tree (`doc:80-agent-operating-procedure#self-validate`). PR #79's own `gate` job is `pass` on the pull request whose merge commit is `277c4d5`. Block F |
+
+### Block A — what merged, read from the commit rather than from this bean
+
+```
+$ git show 277c4d5 --stat --format='%h %s' > [...]/merged-stat.txt   # /bin/bash 3.2.57
+277c4d5 fix(docs-lint): narrow where a criterion citation counts (#79)
+
+ ...-shape-but-not-region-emptiness-or-container.md | 900 ++++++++++++++++++-
+ ...de-a-raw-html-block-is-still-a-citation-site.md |  96 ++
+ AGENTS.md                                          |   6 +
+ documentation/05-authoring-for-agents.md           | 108 ++-
+ tools/docs-lint-test.sh                            | 997 +++++++++++++++++++--
+ tools/lib/docs-lint-c14.awk                        | 220 ++++-
+ 6 files changed, 2201 insertions(+), 126 deletions(-)
+```
+
+```
+$ GITHUB_TOKEN= gh pr view 79 --json number,title,mergeCommit,mergedAt,state \
+    --jq '{number, title, state, mergedAt, merge: .mergeCommit.oid}'
+{"merge":"277c4d57264d938b3be894400a038178f93c5761","mergedAt":"2026-09-05T00:16:33Z","number":79,"state":"MERGED","title":"fix(docs-lint): narrow where a criterion citation counts"}
+```
+
+The `--stat` is git's own abbreviation of the two bean paths and is not an elision of mine. The
+six files are this bean, the bean the container residual was split into, the routing note in
+`AGENTS.md`, the document, the assertion suite and the analyser.
+
+**The merged tree is the reviewed tree**, which is what lets every figure below stand as a
+figure about the reviewed change as well as about the merge. `git diff --stat 1556d02 277c4d5`
+reports three bean files and nothing else: `.beans/modus-0123` and `.beans/modus-0128`, which
+are PR #78's and arrived on `main` while this branch was open, and nine lines of this bean's
+own ninth evidence section. No file any gate analyses differs between the last reviewed head
+and the merge.
+
+### Block B — the four residuals, at the merged head and at the analyser it replaced
+
+Five fixtures, in one script, through two analysers. Fixtures and not bean files, so no plant,
+no revert and no `git checkout -- .beans` is involved (`bean:0102`, `bean:0116`). The `before`
+analyser is `3b02871`'s, extracted with `git show <ref>:<path> > <scratch-file>` — which reads
+the index and never writes to the tree — and not restored from a copy taken earlier in the
+session, which would restore the file as it was THEN (`AGENTS.md`). `KINDS` is the value
+`tools/docs-lint.sh` passes.
+
+```
+$ /bin/bash [...]/run-fixtures.sh <this worktree> > [...]/fixtures-at-277c4d5.txt
+head 277c4d5
+interpreter 3.2.57(1)-release
+=== fx-region
+UNANSWERED	2
+UNANSWERED	3
+STATS	3	0
+exit: 0
+=== fx-emptiness
+UNANSWERED	1
+UNANSWERED	2
+UNANSWERED	3
+UNANSWERED	4
+UNANSWERED	5
+STATS	5	0
+exit: 0
+=== fx-cell
+UNANSWERED	3
+STATS	3	0
+exit: 0
+=== fx-cell-control
+UNANSWERED	3
+STATS	3	0
+exit: 0
+=== fx-container
+STATS	4	0
+exit: 0
+```
+
+```
+$ /bin/bash [...]/run-fixtures.sh <the 3b02871 analyser, extracted to scratch>
+fatal: not a git repository (or any of the parent directories): .git
+head 
+interpreter 3.2.57(1)-release
+=== fx-region
+STATS	3	0
+exit: 0
+=== fx-emptiness
+STATS	5	0
+exit: 0
+=== fx-cell
+STATS	3	0
+exit: 0
+=== fx-cell-control
+UNANSWERED	3
+STATS	3	0
+exit: 0
+=== fx-container
+STATS	4	0
+exit: 0
+```
+
+The `fatal:` line and the empty `head` are the script's own head stamp failing: the scratch
+directory holding the extracted analyser is not a git repository. It is left in rather than
+tidied away, because a stamp that could not be taken is worth more visible than hidden — the
+head is `3b02871`, named by the `git show` that produced the files and not by the run.
+
+Read the pair rather than either half. Three fixtures move from accepted to rejected, and the
+`STATS N 0` line is present in both runs of each, so the criteria were counted either way and
+the rejections come from the citation rule rather than from a fixture the analyser could not
+parse.
+
+**`fx-cell-control` says something sharper after the change than before it.** At `3b02871` the
+control differs from `fx-cell` — the pasted string was answering the third criterion, and
+removing it left that criterion unanswered. At `277c4d5` the two runs are byte-identical, which
+is the claim in its strongest form: the evidence cell now contributes nothing in either
+direction.
+
+**`fx-container` is unchanged in both runs, and that is why it is here.** The container model —
+the fourth residual this bean recorded — is not closed by what merged, and it was never one of
+this bean's criteria; it is `bean:0129`, which carries these fixtures in its own `## Observed`.
+A heading-shaped line inside `<pre>`, inside `<details><pre>` and inside an HTML comment still
+answers at the merged head, because the three conditions this bean shipped do not reach it: the
+container in that fixture stands inside `## Evidence`, under a heading that has content, which
+is where evidence belongs.
+
+**The control this criterion names, and why Block B did not carry one until review said so.**
+Neither fixture above is it. `fx-cell-control` reports `UNANSWERED 3` in BOTH arms — it is a
+control that the evidence cell contributes nothing, not a control that a bean closes — and
+`fx-container` closes but is the residual this bean did not fix. So Block B evidenced the
+rejections and left the second half of this criterion's wording resting on the named assertions
+in the first evidence section above, which were taken at `5a625fc`: a different head, and
+reusing it is what `doc:80-agent-operating-procedure#self-validate` says not to do. The control
+is therefore re-taken here, at the head this branch merges as. It carries both shapes the
+criterion names — a citing sub-heading inside the evidence region with a paragraph under it,
+and an evidence row citing a range from the column that is NOT its evidence cell — over a bean
+numbering three criteria:
+
+```
+$ /bin/bash [...]/run-control.sh <this worktree> > [...]/control-at-7731d13.txt
+head 83c64bf, base 7731d13
+interpreter 3.2.57(1)-release
+=== fx-control  (shipped analyser)
+STATS	3	0
+exit: 0
+=== fx-control  (3b02871 analyser)
+STATS	3	0
+exit: 0
+```
+
+No `UNANSWERED` line in either arm: the bean closes under the narrowed rule and closed under the
+rule it replaced. **Closing identically in both arms is what makes it a control rather than a
+fixture** — the narrowing cost it nothing, which is the claim, and a shape that only closed
+after the change would be evidence of something else. The head differs from the rest of Block B
+by design and is stamped rather than inherited; `git diff --stat 277c4d5 7731d13 -- tools/lib/`
+is empty, so the analyser under this run is the one the rest of the block measured.
+
+### Block C — each constraint mutated on its own, and the fail-open that closed
+
+One named edit to a copy of `tools/lib/docs-lint-c14.awk` each time, applied to a MIRROR of
+`tools/` under a private scratch root, so the tree under review is never written to and there
+is no pristine copy to restore from. The diff against the tree is printed for each, so the edit
+is not taken on trust, and the failing assertions are NAMED and never counted — a count of a
+set is the claim that goes stale without anyone noticing, and this suite's own header records
+three sentences that went stale that way.
+
+```
+$ /bin/bash [...]/mutate.sh <this worktree> > [...]/mutations-at-277c4d5.txt
+head 277c4d5
+interpreter 3.2.57(1)-release
+########## none
+rc=0 docs-lint-test: 76 passed, 0 failed.
+########## region-off
+192c192
+<   if (line !~ /^## / && region != "EV" && region != "BOTH") { return "" }
+---
+>   if (0) { return "" }
+rc=1 docs-lint-test: 70 passed, 6 failed.
+  FAIL verdict: a citing sub-heading outside the evidence region answers nothing
+  FAIL citation text: and the region is what refuses them, not their shape
+  FAIL verdict: a citing sub-heading in the CRITERIA region answers nothing
+  FAIL citation text: the evidence cell is cut out of the row, and the rest of it is not
+  FAIL citation text: the barrier stands where the cut cell was, keeping its neighbours apart
+  FAIL citation text: the escape is counted as cell content, not as a cell boundary
+########## emptiness-off
+335c335
+<     if (scan(citation_text(line), P)) { pendlvl = lvl }
+---
+>     scan(citation_text(line), A)
+rc=1 docs-lint-test: 72 passed, 4 failed.
+  FAIL verdict: a citing heading with nothing under it answers nothing
+  FAIL verdict: a citing heading closed by a sibling heading still answers nothing
+  FAIL verdict: a whitespace-only line under a citing heading is not content
+  FAIL verdict: of two adjacent citing headings, only the second is answered
+########## cell-off
+197c197
+<     for (i = 2; i <= last; i++) { t = t "|" (i == evcol ? CUTCHAR : c[i]) }
+---
+>     for (i = 2; i <= last; i++) { t = t "|" c[i] }
+rc=1 docs-lint-test: 69 passed, 7 failed.
+  FAIL verdict: pasted stdout in an evidence CELL no longer answers a criterion no row numbers
+  FAIL verdict: sacrificed: a row's evidence cell no longer answers even when it cites honestly
+  FAIL citation text: the evidence cell is cut out of the row, and the rest of it is not
+  FAIL citation text: the barrier stands where the cut cell was, keeping its neighbours apart
+  FAIL verdict: a row with no trailing pipe still has its evidence cell cut
+  FAIL verdict: an escaped pipe in a cell does not misalign the cut
+  FAIL citation text: the escape is counted as cell content, not as a cell boundary
+########## allkinds-off
+244c244
+<   return 1
+---
+>   return 0
+rc=1 docs-lint-test: 75 passed, 1 failed.
+  FAIL verdict: a row with no trailing pipe has its evidence cell examined, so a bare kind name is HOLLOW
+```
+
+The three constraint sets, as the run gives them rather than rounded. `region-off` kills two
+region verdicts and all four citation-text probes; `emptiness-off` kills four emptiness
+verdicts and no probe at all; `cell-off` kills four cell verdicts and three of the four probes.
+So the first two are disjoint, the second and third are disjoint, and the first and third meet
+in exactly three probes — the assertions that print what survives a row's mask, which both
+mechanisms decide between them. No pair is held up by a single shared assertion.
+
+**`allkinds-off` still scores `rc=1`, and that is confirmed here rather than inherited.** It
+scored `rc=0`, `71 passed, 0 failed` against every state of this suite before this bean's second
+review round, and was the last mutation in `tools/docs-lint-test.sh`'s table that could delete a
+mechanism outright behind a completely green run. It holds at the merged head, killing the row
+pin and nothing else. The gap is narrowed and not closed, and it is `bean:0087`'s: one kind name
+in one cell shape is a pin on WHICH CELL is examined, not a test of what reading it decides.
+
+The `none` arm is the mirror's own negative control. Without it a mutation table says only that
+the suite can fail, not that these edits are what failed it.
+
+### Block D — every bean in `.beans/`, before and after, at the closing head
+
+The corpus differential re-taken, because a per-corpus figure is expired by default and this one
+had already been taken three times on the branch. It is not a re-labelling: the corpus has grown
+since the branch could measure it, and this is the first run of it that includes
+`.beans/modus-0128`, which arrived on `main` from PR #78 after this bean's merge base was cut.
+
+```
+$ /bin/bash [...]/corpus.sh <this worktree> <3b02871 analyser> <277c4d5 analyser>
+=== modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md (status: in-progress)
+  1a2
+  > UNANSWERED	1
+  2a4,7
+  > UNANSWERED	3
+  > UNANSWERED	4
+  > UNANSWERED	5
+  > UNANSWERED	6
+112 compared, 1 differing
+```
+
+`modus-0118` is named and not counted, and it is the same bean the branch measurement named. It
+has no evidence section — its first output line is `NOEV`, before and after — so its criteria
+were being answered by rows of its `## Success criteria` table, in region `CRIT`, and the region
+constraint now refuses them. A bean with no evidence home answers nothing, which is the correct
+reading; it is `in-progress` and already could not close. No `completed` bean moves.
+
+The branch predicted this run and the prediction held: this bean's fourth evidence section
+states that `modus-0128` gives a byte-identical verdict under all three analysers, so the
+post-merge differential should be the branch's with one unchanged bean added. It is.
+
+**The differing set GREW when this branch was rebased, and this criterion is the one that
+said it would.** Its wording asks for every bean whose answered set changes to be named and
+`stated without a count because the corpus grows`. The capture above is stamped at `277c4d5`
+and stays as taken; re-run against the rebased base it reports a second bean:
+
+```
+$ /bin/bash [...]/corpus.sh <this worktree> <3b02871 analyser> <7731d13 analyser>
+=== modus-0118--docs-lint-reports-ok-through-almost-every-runtime-failure.md (status: in-progress)
+  1a2
+  > UNANSWERED	1
+  2a4,7
+  > UNANSWERED	3
+  > UNANSWERED	4
+  > UNANSWERED	5
+  > UNANSWERED	6
+=== modus-0124--the-non-analyser-fail-open-boundary-in-docs-lint.md (status: in-progress)
+  1a2,5
+  > UNANSWERED	1
+  > UNANSWERED	2
+  > UNANSWERED	3
+  > UNANSWERED	4
+112 compared, 2 differing
+```
+
+`modus-0124` is PR #80's own bean, which grew by two thousand-odd lines in that pull request.
+It is the same mechanism as `modus-0118` and not a new one: it prints `NOEV` in BOTH arms —
+no evidence section at all — so its criteria were being answered by rows of its
+`## Success criteria` table, in region `CRIT`, and the region constraint refuses them. A bean
+with no evidence home answers nothing, which is the correct reading.
+
+**No `completed` bean moves, and that is what the criterion turns on.** Both beans are
+`in-progress`; neither can close, and check 14 never reads a bean that is not transitioning
+into `completed`, so nothing goes red on either. What this does is land a real cost on
+`bean:0124`'s eventual close — it will have to file its evidence under an evidence section
+rather than cite from its criteria table. That is exactly the cost this bean's fourth evidence
+section predicted and priced: the risk lands on beans *about to* close, and those are
+correctable. It is named here rather than left for that author to discover.
+
+**A count would have hidden this and a name did not.** Had the figure been carried as `1
+differing` rather than re-derived, the rebase would have made it silently wrong; had the
+criterion asked for a count instead of names, the second bean would have been a number moving
+from 1 to 2 with nothing to check it against.
+
+### Block E — `bean:0129` becomes selectable, and check 12 still sees an acyclic graph
+
+Two arms of one command, and then the question of whether the green line under them means
+anything.
+
+```
+$ /bin/bash tools/docs-lint.sh > [...]/base-lint.txt     # 277c4d5, working tree clean
+docs-lint: OK — 19 documents, 111 anchors, 1729 references, 112 beans, 43 graph edges, 50 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+exit: 0
+```
+
+```
+$ /bin/bash tools/docs-lint.sh > [...]/bare-flip.txt      # 277c4d5 + the `status:` line alone
+docs-lint: OK — 19 documents, 111 anchors, 1729 references, 112 beans, 43 graph edges, 51 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 1 closing transitions, 9 criteria checked, 0 unnumbered.
+exit: 0
+```
+
+**Three figures move and each says a different thing.** `selectable` moves 50 to 51, which is
+this bean's blocked successor becoming reachable. `closing transitions` moves 0 to 1 and
+`criteria checked` 0 to 9, which is check 14's vacuity assertion working: the merge base reports
+zero because a bean is never a candidate on its own pull request
+(`doc:00-constitution#bean-lifecycle`, `bean:0096`), and the pair is non-zero here only because
+this change closes a bean whose implementation merged earlier and was reviewed elsewhere. A run
+that examined nothing and a run that passed both print `OK`; these counts are what tells them
+apart, and nine is the number of criteria this bean numbers.
+
+The nine also answers a question the bare flip asks on its own: the evidence sections already
+standing above satisfy check 14 unaided, with this closing section absent. Nothing below was
+written in order to make the check pass.
+
+Which bean became selectable, named rather than deduced from the arithmetic. The probe
+implements `AGENTS.md` step 1, and its count is cross-checked against the gate's own
+`selectable` figure at both heads — 50 against 50, then 51 against 51 — so it is validated by
+the gate rather than believed on its own:
+
+```
+$ diff [...]/sel-before.txt [...]/sel-after.txt          # /bin/bash 3.2.57(1)-release
+51c51,52
+< probe selectable count: 50
+---
+> SELECTABLE	modus-0129
+> probe selectable count: 51
+```
+
+`.beans/modus-0129` is `status: todo`, `type: fix`, `priority: medium`,
+`blocked_by: [modus-0121]`, and it is the only bean in the tree with an edge onto this one:
+`/usr/bin/grep -rn '^blocked_by:.*modus-0121' .beans/` returns that file and no other. The
+interpreter matters for that figure as much as for a shell one — `/usr/bin/grep` is BSD grep
+2.6.0-FreeBSD, and the bare name `grep` in this harness's interactive shell is a function
+wrapping `ugrep 7.8.4`. So the delta of one is that bean and nothing else.
+
+**Check 12's acyclicity result is a real result, and that is checked rather than assumed.**
+`43 graph edges` on the `OK` line is the check's own vacuity assertion — a run that parsed
+nothing reports zero. What makes the rest of the line mean more than it used to is `bean:0123`:
+before it, an analyser that died mid-check left `docs-lint` printing `OK`. The guard it added
+covers check 12's acyclicity analyser specifically, and `docsLintGateTest` plants a syntax error
+into a copy of exactly that analyser and observes the gate go red:
+
+```
+$ /bin/bash tools/docs-lint-gate-test.sh > [...]/base-gate.txt   # 277c4d5, tree clean
+docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
+docs-lint-gate-test: analyser awk — awk version 20200816
+
+--- the plant: check 12's acyclicity analyser, destroyed
+ok   the mutation site occurs exactly once in the gate
+ok   the copy differs from the gate on exactly one line (one '<', one '>')
+ok   and the line it differs on is the planted syntax error
+ok   the control copy is identical to the gate
+
+--- the runs: both halves, over the whole corpus
+ok   a destroyed analyser makes the gate exit non-zero
+ok   and the gate says it failed rather than printing OK
+ok   and attributes it to an analyser that examined nothing
+     (this awk exited 2 on the planted syntax error)
+ok   the negative control: the same copy unmutated exits 0
+ok   and prints the OK line
+ok   and writes nothing at all to stderr
+
+--- the mutated run's stderr: 6 line(s), at most 20 shown
+     awk: syntax error at source line 4
+      context is
+     	    removed = >>>  = <<<  1
+     awk: illegal statement at source line 4
+     awk: illegal statement at source line 4
+     FAIL check -  an analyser exited 2 and examined nothing; its last argument was '/var/folders/mg/c8xtgk197f74w3r78q7_9sfc0000gn/T/tmp.ezeGJTySr7/bean-edges.uniq'
+
+--- the guard covers every call site, because no call site opts in
+ok   the guard's own call is the only site that bypasses it
+
+docs-lint-gate-test: 11 passed, 0 failed.
+exit: 0
+```
+
+The last argument in that `FAIL` line is `bean-edges.uniq`, which is the acyclicity analyser's
+own input — so the plant landed where the assertion above it says it landed. The `OK` line in
+the two runs at the top of this block is therefore a green line from an analyser that ran, and
+the acyclicity verdict under it is a verdict rather than a silence.
+
+**The two arms above are stamped at `277c4d5` and both are still true there; the arithmetic
+at the head this branch MERGES as is different, and it is re-derived rather than restated.**
+This branch was rebased onto `7731d13` in review — PR #80, which merged after this close was
+first pushed. The figures above are left exactly as taken, because re-labelling a figure with a
+head it was not measured at is the failure this bean's own evidence rules exist to prevent. The
+same two arms at the rebased base, taken the same way:
+
+```
+$ /bin/bash tools/docs-lint.sh          # 7731d13 + this bean's `status:` line reverted
+docs-lint: OK — 19 documents, 111 anchors, 1746 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+
+$ /bin/bash tools/docs-lint.sh          # the same tree with this close applied
+docs-lint: OK — 19 documents, 111 anchors, 1746 references, 112 beans, 43 graph edges, 50 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 1 closing transitions, 9 criteria checked, 0 unnumbered.
+```
+
+`49` to `50`, not `50` to `51`. **The baseline moved and the delta did not**, which is the
+distinction that matters: `closing transitions` and `criteria checked` still move 0 to 1 and 0
+to 9, and the probe still names exactly one bean entering the selectable set:
+
+```
+$ diff [...]/sel-base-rebase.txt [...]/sel-after-rebase.txt
+50c50,51
+< probe selectable count: 49
+---
+> SELECTABLE	modus-0129
+> probe selectable count: 50
+```
+
+What moved the baseline is `.beans/modus-0124`, which PR #80 took out of the selectable set by
+starting it: `status: todo` at `277c4d5`, `status: in-progress` at `7731d13`. Its own probe
+diff says so and names no other bean:
+
+```
+$ diff [...]/sel-before.txt [...]/sel-base-rebase.txt
+48d47
+< SELECTABLE	modus-0124
+51c50
+< probe selectable count: 50
+---
+> probe selectable count: 49
+```
+
+So `selectable` is a figure of the corpus at a moment and moves under this bean without this
+bean touching it (`doc:50-memory-and-evidence#corpus-figures`), while *which* bean this change
+makes selectable is a property of the change and is unchanged. A close that had restated `50 to
+51` at the new head would have been wrong in the count and right in the claim, which is the
+worst of both.
+
+**The gate-test figure quoted above moved the same way and for the same kind of reason**, and
+it is worth separating stale from invalidated. `11 passed, 0 failed` is what that suite reported
+at `277c4d5` and the capture is left saying so. PR #80 rewrote it; at `7731d13` it reports
+`168 passed, 0 failed, over 2 bash major version(s)`. Nothing in that rewrite reads bean content
+or touches `tools/lib/`, and what this block relies on is a PROPERTY — that a destroyed check 12
+acyclicity analyser makes the gate exit non-zero instead of printing `OK` — not a count of
+assertions. The property is re-derived green at the rebased head, so the argument above is
+unchanged and strictly better evidenced than when it was written.
+
+### Block F — the gate, on this closing branch
+
+Re-run rather than reused, after the last edit to this file: this bean's own prose is an input
+to `docs-lint`, and its reference count moves whenever this section does.
+
+```
+$ ./gradlew qualityCheck > [...]/quality-with-placeholder.txt
+[...]
+> Task :bashCompatLint
+bash-compat: interpreter /bin/bash (bash 3.2.57(1)-release)
+bash-compat: OK — 4 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+[...]
+docs-lint-test: 76 passed, 0 failed.
+[...]
+> Task :docsLintGateTest
+docs-lint-gate-test: interpreter /bin/bash (bash 3.2.57(1)-release)
+docs-lint-gate-test: analyser awk — awk version 20200816
+[...]
+> Task :docsLint
+docs-lint: OK — 19 documents, 111 anchors, 1732 references, 112 beans, 43 graph edges, 51 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 1 closing transitions, 9 criteria checked, 0 unnumbered.
+[...]
+docs-lint-gate-test: 11 passed, 0 failed.
+[...]
+BUILD SUCCESSFUL in 53s
+170 actionable tasks: 54 executed, 96 from cache, 20 up-to-date
+exit: 0
+```
+
+Every `[...]` in that capture elides `> Task :…` banners, the per-module compile, ktlint,
+Detekt, ArchUnit and test output, `docsLintTest`'s and `docsLintGateTest`'s own assertion
+listings — the second is quoted whole in Block E, where that script is run on its own — the
+`:e2eInstall` and `:backofficeInstall` npm output, the three backoffice tasks
+(`backofficeTypecheck`, `backofficeLint`, `backofficeFormatCheck`), Gradle's problems-report
+path and its Gradle 10 deprecation notice, and the blank lines between all of them.
+
+**The head that run measured is stated exactly, because it is not this file as it now
+stands.** `docs-lint` reads this bean, so a gate run cannot contain its own output. That run
+measured this section with Block F's fence holding a one-token placeholder line, and without
+everything written into this section after it: Block B's closing control, Block D's
+re-derivation of the corpus differential, Block E's re-derivation at the rebased base, the
+PR #79 capture in this block, and every paragraph of this block standing below the fence —
+this one and the ones under it included, which is what stops this list going stale the next
+time a paragraph is added to it. Every one of those changed this file, so the gate was run
+again after the last of them, because
+`doc:80-agent-operating-procedure#self-validate` requires the last change to be the one the
+gate saw. The final run's `OK` line is quoted in the closing pull request's body rather than
+here, for the same reason this fence cannot hold it.
+
+**That list omitted Block D when it was first written, and named its own paragraphs
+individually so that it went stale again the moment this paragraph was added. The omission is
+worth more than either correction.** Block D's re-derivation was added in the same commit as
+the list, and the list was itself produced by the sweep for the count-of-a-growable-set defect
+one round earlier — the remedy for that defect being to NAME a set rather than count it. So a
+named enumeration, written by the sweep against counting, was already incomplete over a set its
+own commit was changing, and then went stale a second time under its own author.
+**Naming does not prevent staleness; it only makes staleness legible.** A count moving from one
+value to another is invisible, and that is the case for naming; an enumeration missing a member
+is visible to a reader who checks it against the thing it enumerates, which is why review caught
+this one. Both fail, and they fail differently.
+
+What that widens, recorded here because this paragraph is the instance and not a description of
+one: a check for this class cannot be only *a prose numeral standing before an enumerable set*.
+It has to reach *an enumeration asserted to be exhaustive over a set the same commit changes* —
+which is decidable, since the commit's own diff is what says which sets moved. That is not this
+bean's work and no bean claims it yet.
+
+`1732 references` inside the fence is the count as it stood at that run, and **this paragraph
+deliberately does not say what it reads now.** A reference count is a figure of the corpus at a
+moment (`doc:50-memory-and-evidence#corpus-figures`), never a property of this change, and this
+bean is part of the corpus it counts — so any live count written here is invalidated by the
+sentence written to explain it. That is not hypothetical: the clause standing here carried a
+number and a cause, went stale on the rebase, was corrected to a new number and a disclaimer,
+and went stale again on the very edit that added the paragraph above. Two rounds of review
+reached the verdict table and Block G and did not reach this block. The count that matters is
+the one on the `OK` line of the run in the closing pull request's body, which is re-taken after
+the last edit by construction; this fence holds the run it holds.
+
+**The ninth criterion's second half is PR #79's own CI, and it is observed here rather than
+asserted.** It was written into the verdict table above before it had been looked at, which is
+the failure `doc:00-constitution#evidence-rule` names — an unevidenced statement is a
+hypothesis — and the fix is the capture, not a softer sentence. Four check runs, deduplicated
+by name because the two workflow runs on that pull request report the same four:
+
+```
+$ GITHUB_TOKEN= gh pr checks 79 --json name,bucket,state \
+    --jq '.[] | "\(.name)\t\(.bucket)"' | sort -u
+backoffice + e2e	skipping
+build + mechanical gates	pass
+gate	pass
+which halves	pass
+```
+
+`gate` is `pass`. `backoffice + e2e` reports `skipping` and not a failure: PR #79 changed no
+file under `backoffice/` or `e2e/`, and `doc:00-constitution#workflow` §7.2.4 records that the
+`gate` job exists precisely because a skipped half reports neither success nor failure. That
+is why `gate` and not `build + mechanical gates` is the job this row cites.
+
+### Block G — figures taken above that have expired, corrected here and not edited there
+
+An observation is amended, never edited. Nothing below changes a verdict. Each entry is a
+figure whose head moved out from under it, a reading a verdict rests on that a reader should be
+able to check, or a constraint this record hit while being written. The entries are named and
+not counted, because a set that can grow is named and never counted
+(`doc:05-authoring-for-agents#one-fact-one-place`) — this one already grew by one while this
+paragraph stood above it saying `three`.
+
+**The first criterion's `a legitimately citing evidence row`, and the reading the verdict rests
+on.** The negative control that stands at the merged head is a row citing from a column that is
+not the evidence cell. A row citing from its evidence CELL no longer answers, and that is not an
+oversight — it is the case the eighth criterion was written to decide, and `cell-off` in Block C
+kills the sacrifice and the laundering rejection together. Both readings of the phrase are live:
+under the wider one, the class of evidence rows that cite legitimately is non-empty and still
+closes, and the criterion is met; under the narrower one it is not. The verdict recorded is
+`met`, on the wider reading, because this bean's own eighth criterion is what settles which
+reading was intended and it settles it in that direction. A reader who disagrees should
+disagree with this paragraph, which is why it is here rather than folded into the table.
+
+**The sixth criterion's `Line count after: 404`, expired.**
+`wc -l documentation/05-authoring-for-agents.md` reports `417` at `277c4d5`, and
+`git show <head>:documentation/05-authoring-for-agents.md | wc -l` reports 391 at `5a625fc`,
+404 at `2bcd9aa`, and 417 at `eabd009` and at every head after it. The figure was taken at
+`2bcd9aa`; the section around it was re-taken at `eabd009` and this line was not carried with
+it. 417 is inside `adr:0003`'s 500, so the budget claim the figure was making still holds — the
+figure is stale, not wrong about what it was for.
+
+**`seventeen delimiter rows, seventeen evidence-ish columns, all of them last`, in
+`tools/docs-lint-test.sh` at `eabd009` — wrong when written, and already corrected before the
+merge.** `1556d02` replaced it with an uncounted statement, which is why the merged tree carries
+no count there. Measured with an `awk` that applies `rowcells()`'s own rule for what a row's
+cells are, `/bin/bash` 3.2.57:
+
+```
+$ awk -f [...]/delims.awk <tools/docs-lint-test.sh at 5cf9c58, extracted with git show>
+NOEVCOL	line 887	| # | criterion | evidence kind |
+delimiter rows: 18; with an evidence-ish column: 17 (last: 17, not last: 0); without: 1
+
+$ awk -f [...]/delims.awk tools/docs-lint-test.sh          # at 277c4d5
+NOEVCOL	line 959	| # | criterion | evidence kind |
+NOTLAST	line 1747	| # | claim | evidence | runs |
+NOTLAST	line 1775	| # | claim | evidence | runs |
+delimiter rows: 22; with an evidence-ish column: 21 (last: 19, not last: 2); without: 1
+```
+
+The comment undercounted the delimiter rows by one, by leaving out of its total the single table
+the sentence's own next clause is about — so it made the blind spot sound smaller and tidier
+than it was. The two `NOTLAST` rows at the merged head are the fixtures added for the seam, so
+the structural blindness that hid the mask-seam defect is measurably gone rather than merely
+described as gone. This is `doc:05-authoring-for-agents#one-fact-one-place`'s drift generator in
+its purest form: a count, in a comment, of another file's shape. The comment that replaced it
+names the property and no number.
+
+**This section could not state the entries above as a numbered table, and that is the
+sharpest demonstration available that the narrowing bites.** The count that stood in this
+sentence is the fourth instance of the defect its own lead names, found in review after the
+lead was written to name the third — which is the argument for naming a set rather than
+counting it, made once more by the paragraph making it. A table row inside an evidence
+region is a citation site, so a row reading `| 2 | criterion 6's line count | … |` would answer
+the sixth criterion from the row that reports its figure stale — the shape
+`doc:05-authoring-for-agents#checks` warns about, reached while writing the closing record for
+the change that created it. Worse, a table with no evidence-ish column is read whole, so every
+criterion number in every cell would land. The entries are therefore prose under bolded leads:
+a bold line is running prose to the analyser and to CommonMark alike, which the same section
+states in as many words. The change this bean closes binds its own paperwork, and nothing in
+the corpus had done that before.
