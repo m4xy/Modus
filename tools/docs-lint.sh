@@ -135,7 +135,7 @@ trap 'docs_lint_err $? "$BASH_COMMAND" "$LINENO" "${PIPESTATUS[*]}"' ERR
 # the tree IS broken and no check said so — and the answer there is neither to arm it nor to
 # leave it, but to READ the answer: the opt-out is correctly derived and the missing thing was
 # a `fail`. That `fail 11` is now beside it. A site the derivation sends here can still be a
-# site whose result nobody checks, and those are two questions, not one (bean:0127).
+# site whose result nobody checks, and those are two questions, not one (bean:0124).
 #
 # `ls` is deliberately NOT routed through this. Its "no such file" is status 1 on the BSD `ls`
 # macOS ships and 2 on GNU coreutils, so tolerating it here would mean tolerating 2 — exactly
@@ -581,7 +581,7 @@ if [ -n "$BASE" ]; then
       # "no `### ` heading" is a legal answer about the input and the site's opt-out is correctly
       # derived; what was missing is a check that reads the answer. Measured at this branch's
       # head under /opt/homebrew/bin/bash 5.3.9, with the positive control that the same bean
-      # carrying `### not-a-valid-heading` fires four `fail 11` records (bean:0127).
+      # carrying `### not-a-valid-heading` fires four `fail 11` records (bean:0124).
       [ "$n_amend" -gt 0 ] || fail 11 "$f: has an '## Amendments' section carrying no '### ' amendment heading, so every per-amendment check below it compares 0 against 0 and passes vacuously (adr:0005#amendments)"
       for k in Claimed Found Evidence; do
         n_k="$(sed -n '/^## Amendments/,$p' "$f" | absent_ok grep -c "\*\*$k:\*\*")"

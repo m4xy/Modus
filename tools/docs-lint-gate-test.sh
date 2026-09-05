@@ -23,10 +23,17 @@
 # by nothing and the suite could not tell the whole file covered from most of it. That is
 # bean:0123's "22 call sites or 1 call site" moved from call sites to line ranges. Two things
 # answer it here, and only the second bounds anything: two more plants extend the planted
-# points to the last statement before the count, and — the bound — the gate now ASKS THE
-# SHELL at its last line whether the handler is still armed, so a disarm anywhere between the
-# arming and there is caught without enumerating where it might be. The fifth copy below is
-# that mutation, run as a plant.
+# points to the last statement before the count, and — the bound — the gate now FIRES ITS OWN
+# FAILURE PATH at its last line and requires the record, so a break anywhere between the
+# arming and there is caught without enumerating where it might be. The fifth, sixth and
+# seventh copies below are three such breaks, run as plants.
+#
+# FIRING IT AND NOT READING IT, which is the correction bean:0124 took in review. The bound
+# used to be `case "$(trap -p ERR)" in *docs_lint_err*)` — a match on one token of the handler
+# string, under a comment claiming "no list of spellings, which would fail open". A one-token
+# list is a list, and doc:00-constitution#observed-failing binds it: `trap ': docs_lint_err' ERR`
+# and `docs_lint_err() { :; }` each walked past it with a single edit, and against the reading
+# this suite scored 120 passed, 23 failed only once the two extra copies existed to catch them.
 #
 # UNDER EVERY BASH THIS MACHINE HAS, not just the one that invoked this file. An earlier
 # revision ran `${BASH}` alone — 3.2.57 locally, bash 5 on the runner — while the change it
@@ -66,8 +73,12 @@
 # path exists, not that every check reaches it, and its bypass assertion is an enumeration
 # that fails open (see the comment on that assertion). bean:0126 is the fail-closed harness.
 # The same holds of the second plant: eight points in the gate are made to fail, not every
-# point, and no assertion here bounds the set of SHAPES the trap catches — only the armed
-# check bounds the RANGE it is armed over, and only against a disarm that does not re-arm.
+# point, and no assertion here bounds the set of SHAPES the trap catches — only the gate's
+# own end-of-run live fire bounds the RANGE the path works over, and only against a break
+# that does not undo itself before that line. What the live fire DOES buy over the reading it
+# replaced is that it is not a list: it asks whether a failing command becomes a record, so a
+# fourth way of breaking the path is caught without being named. The three copies below are
+# evidence that it catches the three known ways, not that three is all there are.
 #
 # bash 3.2 (macOS): what that forbids is enumerated in tools/lib/bash32-forbidden.tsv and
 # enforced by tools/bash-compat-lint.sh in qualityCheck, not restated here (bean:0049).
@@ -143,7 +154,7 @@ done
 # some of what it cannot verify reads, to anyone who checks it against the file, as a list of
 # all of it — and the two it left out are the two whose single-verification is hardest to
 # notice, one being asserted per-interpreter (so it looks covered) and one being asserted
-# nowhere at all (so nothing points at it). bean:0127.
+# nowhere at all (so nothing points at it). bean:0124.
 if [ "$n_majors" -lt 2 ]; then
   echo "docs-lint-gate-test: ONE bash MAJOR VERSION ONLY on this host. The claims in"
   echo "docs-lint-gate-test: tools/docs-lint.sh's trap comment that differ BY interpreter —"
@@ -257,7 +268,7 @@ echo "--- the second plant: eight runtime failures that are not an analyser"
 #
 # THE LAST ROW USED TO STOP SHORT AND CLAIM OTHERWISE. Its anchor was the `# ---- done ----`
 # banner, which is twenty-seven lines above the `n_fail` read and above the two guards between
-# them; the range it left uncovered is exactly where bean:0127's second finding lived, and
+# them; the range it left uncovered is exactly where bean:0124's second finding lived, and
 # neither this suite nor the gate's own end-of-run check could tell. It is anchored now on the
 # statement that immediately precedes the count. What remains below it is one `[ … ] || fail`
 # list, and an `||` list is a context the ERR trap is exempt from BY CONSTRUCTION — it can
@@ -416,6 +427,30 @@ rm -f "$f"
 GROUPPROBE_EOF
 check "and the gate itself disarms nothing" \
   "0" "$(grep -c '^[[:space:]]*trap[[:space:]]*-[[:space:]]*ERR' "$GATE")"
+
+echo
+echo "--- and no count is computed on the branch that prints it"
+
+# THE COUNTS LINE IS THE GATE'S VACUITY ASSERTION, and four of its twelve figures used to be
+# `$( )` arguments of the `printf` that prints it — evaluated on the OK branch, AFTER the `if`
+# had already read `n_fail` and taken the exit status. A `grep` that could not look at one of
+# those four was recorded by `absent_ok` into a file nothing reads again, and the gate printed
+# `docs-lint: OK — 19 documents,  anchors, 1738 references, …` at exit 0 with the count blank.
+# `- introduced` versus `0 introduced` is that failure one character over (bean:0051).
+#
+# STRUCTURAL AND NOT A PLANT, deliberately: a plant shows one of the four failing, while this
+# says no count can be computed there AT ALL, including the thirteenth somebody adds next year.
+# It reads the `printf` statement as a whole — from the format string to the last continuation
+# — and requires every argument to be a plain variable already computed above.
+OKLINE="$TMP/okline.txt"
+sed -n "/^printf 'docs-lint: OK/,/^  \"\$n_c14_unnum\"/p" "$GATE" > "$OKLINE"
+check "the OK line's printf is found whole, format plus twelve arguments" \
+  "13" "$(grep -c . "$OKLINE")"
+check "and not one of its arguments is a command substitution" \
+  "0" "$(grep -c '\$(' "$OKLINE")"
+check "and every count is read before the exit decision reads n_fail" \
+  "before" \
+  "$(if [ "$(grep -n '^n_edges=' "$GATE" | cut -d: -f1)" -lt "$(grep -n '^n_fail=' "$GATE" | cut -d: -f1)" ]; then echo before; else echo after; fi)"
 
 # --------------------------------------------------------------- the runs ---
 # Every gate run below happens once per interpreter. Backgrounded within an interpreter
@@ -640,11 +675,11 @@ run_under() { # run_under <shell path>
   # stat was dropped — silently, at status 0, because a helper that "cannot fail" has no status
   # left to say it with. `ls` reported such a bean as five records; `[ -e ]` alone reported
   # `docs-lint: OK … 112 beans, … 112 bean ids` at exit 0, and the counts line could not see it
-  # either, `n_bean_files` and `n_beans` both deriving from this one output (bean:0127).
+  # either, `n_bean_files` and `n_beans` both deriving from this one output (bean:0124).
   #
   # ASSERTED ON A REAL BROKEN SYMLINK, in this suite's own scratch directory rather than in
   # .beans/, so a crash here cannot leave the corpus in a state that turns everyone's gate red.
-  # What the whole-gate half of this looks like is the plant recorded in bean:0127: the same
+  # What the whole-gate half of this looks like is the plant recorded in bean:0124: the same
   # symlink under .beans/, the gate red at rc=1, reverted.
   local brokenlink="$TMP/__probe_broken_symlink__.md"
   ln -sf /no/such/target/__probe_broken__ "$brokenlink"
@@ -716,7 +751,7 @@ fi
 # `run_number` and not `n_majors`: the first counts what RAN, the second what was DISCOVERED,
 # and a summary that reports discovery would say "over 2" for a run that managed one. They are
 # asserted equal rather than only one being printed, because the assertion is the thing that
-# keeps them the same figure (bean:0127).
+# keeps them the same figure (bean:0124).
 check "every discovered bash major version was actually run" \
   "$n_majors" "$run_number"
 echo "docs-lint-gate-test: $pass passed, $fail failed, over $run_number bash major version(s)."
