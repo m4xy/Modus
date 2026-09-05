@@ -114,6 +114,36 @@ object WorkFixture {
                 ),
         )
 
+    // ---- REWORK: a cycle back into the initial state ------------------------------------
+
+    /**
+     * backlog -> doing -> backlog, and doing -> shipped. Legal under every
+     * `ProcessDefinition` invariant: every state is reachable from `backlog`, every state
+     * can still reach `shipped`, and nothing leaves a terminal state.
+     *
+     * It exists because **`process.initial` was not load-bearing without it**. Replacing the
+     * read with a structural derivation — "the state no transition points into" — passed all
+     * 173 tests, because [ENGINEERING], [RESEARCH] and [EDITORIAL] are each acyclic with
+     * exactly one source state, so they are blind together on exactly this point. That is the
+     * same failure as `EDITORIAL` once starting at `shipped`, on the third read of the process
+     * rather than the second (`doc:35-testing#fixture-variation`). Found in review.
+     *
+     * Rework loops are not exotic: this repository's own bean lifecycle has one, since a bean
+     * under review goes back to `in-progress`.
+     */
+    val REWORK: ProcessDefinition =
+        ProcessDefinition.of(
+            states = setOf(name(BACKLOG), name(DOING), name(SHIPPED)),
+            initial = name(BACKLOG),
+            terminal = setOf(name(SHIPPED)),
+            transitions =
+                setOf(
+                    StateTransition(name(BACKLOG), name(DOING)),
+                    StateTransition(name(DOING), name(BACKLOG)),
+                    StateTransition(name(DOING), name(SHIPPED)),
+                ),
+        )
+
     // ---- criteria, at sizes 0, 1 and 3 -------------------------------------------------
     val FIRST: SuccessCriterionId = SuccessCriterionId("c1")
     val SECOND: SuccessCriterionId = SuccessCriterionId("c2")

@@ -163,6 +163,20 @@ class WorkItemEvidenceGuardTest {
         thrown.unmetCriteria shouldBe setOf(FIRST, SECOND)
     }
 
+    /**
+     * The same refusal on the other command. `recordEvidence` reads the process to decide
+     * whether this item is closed, so a process that does not govern it is the same defect
+     * one step earlier (`bean:0152`, found in review).
+     */
+    @Test
+    fun `refuses to record evidence against a process that does not govern this item`() {
+        val subject = item(criteria = ONE_CRITERION).transitionTo(DOING, ENGINEERING, AT)
+
+        shouldThrow<IllegalArgumentException> { subject.recordEvidence(evidence(FIRST), WorkFixture.EDITORIAL) }
+
+        subject.evidenceRecords shouldBe emptyList()
+    }
+
     // ---- recording evidence ------------------------------------------------------------
 
     @Test

@@ -131,7 +131,8 @@ need `bean:0066` merged (`bean:0153`); persistence (`bean:0017`); any REST surfa
 ## Evidence
 
 `./gradlew qualityCheck` green. `:core-domain` goes 130 -> 176 tests; the coverage row moves
-`0 0 1543 130` -> `0 0 2654 238`, so nothing new is uncovered in either half.
+`0 0 1543 130` -> `0 0 2653 238`, so nothing new is uncovered in either half; the single covered instruction below 2654 is the deleted `successCriteria` accessor, recorded with `-Pcoverage.regress` and explained below. Every figure
+here is from `./gradlew :core-domain:test` unfiltered unless a `--tests` selector is named.
 
 ### Criterion 1b — criteria cannot be omitted
 
@@ -215,6 +216,94 @@ criteria closes with no evidence`, `a move to a non-terminal state needs no evid
 process would call closed`, `permits exactly the moves this domain's process declares`,
 `accepts success criteria with distinct ids`. A guard that fired on every input fails all
 seven.
+
+### Criteria 1b and 10 — the specification, planted after the reversal
+
+The whole sweep was re-run against `WorkItemSpecification`, because the code changed under
+the evidence and evidence that describes a previous shape is not evidence. Sixteen plants,
+sixteen killed. The three new ones:
+
+| planted | test that caught it | observed |
+|---|---|---|
+| `require(true)` for the duplicate-criterion-id invariant | `refuses to create a work item whose success criteria share an id` | `Expected exception java.lang.IllegalArgumentException but no exception was thrown.` |
+| `criteria` getter returns the backing list | `a caller cannot add a criterion through the specification's getter` | `expected:<3> but was:<0>` |
+| `val held = criteria` — no copy on the way in | `a caller cannot add a criterion by mutating the list it built the specification from` | `AssertionFailedError: Unexpected elements from index 2`; `expected:<[SuccessCriterionId(value=c1), SuccessCriterionId(value=c2)]> but was:<[..., SuccessCriterionId(value=c3)]>` |
+
+**Two findings from that re-run, both about the procedure rather than the code.**
+
+*A plant that does not apply reports a pass.* Two of the sixteen came back `BUILD
+SUCCESSFUL` and neither was a surviving mutant. One plant point had been rewrapped across
+four lines by `ktlintFormat` between the sweep being written and being run, so the
+replacement matched nothing; the script's `assert` wrote to stderr and the loop carried on,
+running the suite against **unmodified source**. That is `doc:35-testing#load-bearing-evidence`'s
+own warning — plant the enabling condition, not only the claim — arriving in the harness
+rather than in a fixture. The sweep now runs under `set -eu` and prints `planted` per plant,
+so a plant point that has moved stops the run instead of producing a green line.
+
+*The copy-out test cannot reach copy-in.* The other survivor was `val held = criteria`, and
+the test aimed at it asserted on the **getter**: with copy-out intact, mutating what the
+getter returned changes nothing whether or not the constructor copied. A separate test now
+mutates the list the caller built the specification from, which is the only shape that
+fails. `doc:20-ddd-practices#value-objects` §3.1 states that the defensive-copy gate does
+not read a named factory's body, so this invariant has no mechanical guard at all — it is
+this test or it is nothing.
+
+### The plant procedure destroyed uncommitted work, on a source file
+
+`AGENTS.md` documents `git checkout -- .beans` discarding uncommitted bean edits
+(`bean:0102`). The same thing happened here to `WorkItem.kt`: the sweep was launched while
+the `WorkItemSpecification` refactor was still uncommitted, and the first plant's
+`git checkout -- "$WI"` reverted the file to `HEAD`, taking the refactor with it. Every
+subsequent plant then failed to compile against test sources that had moved on.
+
+Two things made it recoverable and both were luck rather than design: the refactor was
+scripted, so it could be replayed, and `WorkItemSpecification.kt` was **untracked**, so
+`git checkout --` could not touch it — which meant it kept three cumulative plants instead,
+in a file the revert silently skipped. The rule that would have prevented it is the one
+already in `AGENTS.md` and already followed for the first sweep: **a clean tree before every
+run, not once before the first.**
+
+### Criterion 10 — the copy gate refused a delegating accessor, twice
+
+`rule:archunit/noDomainTypePublishesACollectionItOwns` rejected `WorkItem` in the
+`qualityCheck` run after the specification landed, and it was right to. Neither of these
+passed:
+
+```
+observed: WorkItem.kt:92: WorkItem.successCriteria: List<SuccessCriterion> —
+            the accessor is `specification.criteria`, which is not a copy chain
+observed: WorkItem.kt:102: WorkItem.successCriteria: List<SuccessCriterion> —
+            the accessor is `specification.criteria.toList()`, which is not a copy chain
+```
+
+The second is the interesting one: it **is** a copy, twice over, and the gate still refuses
+it. `SINGLE_CALL` is `^(?:this\.)?[A-Za-z_]\w*\.[A-Za-z_]\w*\(\)$` — one receiver, one
+call — so a chain through a delegate has one segment too many, and the gate cannot follow
+the delegation to learn that `specification.criteria` already copied. It fails closed, which
+is the documented design (`doc:20-ddd-practices#value-objects` §3.1: an allowlist binds only
+over a set the tool enumerates exhaustively).
+
+The fix is not a second copy but one less indirection: `WorkItem` exposes its
+`WorkItemSpecification` whole, exactly as `Domain` exposes its `ProcessDefinition`, and the
+spec's own gate-approved `declared.toList()` is the only accessor. The alternative — a
+`private val criteria = specification.criteria` field on the root — was rejected because the
+gate's copy-**in** arm refuses it for the same reason, and because it would hold the criteria
+in two places with the spec as the only authority.
+
+This is recorded as a **cost of the gate**, not a complaint about it. It removed a public
+accessor and one covered instruction, and it is the shape `bean:0064` is about.
+
+### Criterion 11, third half — a `-Pcoverage.regress` write, and the ninth erasure
+
+Deleting `successCriteria` shrank fully-covered production code: `2654 -> 2653` covered
+instructions, with missed staying 0. `doc:35-testing#coverage` §8.1 names exactly this case,
+and `coverageBaselineWrite` correctly refused until given a reason. The reason is in the
+baseline and in the pull-request body.
+
+That write then erased **both** regression blocks already on `main` while recording the new
+one — the "it also erases a PREVIOUS regression block when recording a new one" clause of
+`bean:0033`, reproduced cleanly. All three are restored by hand. Four erasures in this bean,
+instances six to nine, and between them they reproduce every shape `bean:0033` describes.
 
 ### Criterion 8 — `rule:archunit/publishedLanguageIsLeaf`
 

@@ -19,8 +19,10 @@ import uk.m4xy.modus.core.domain.work.WorkFixture.ONE_CRITERION
 import uk.m4xy.modus.core.domain.work.WorkFixture.PRINTED
 import uk.m4xy.modus.core.domain.work.WorkFixture.QUESTION
 import uk.m4xy.modus.core.domain.work.WorkFixture.RESEARCH
+import uk.m4xy.modus.core.domain.work.WorkFixture.REWORK
 import uk.m4xy.modus.core.domain.work.WorkFixture.SHIPPED
 import uk.m4xy.modus.core.domain.work.WorkFixture.SUBEDIT
+import uk.m4xy.modus.core.domain.work.WorkFixture.THREE_CRITERIA
 import uk.m4xy.modus.core.domain.work.WorkFixture.item
 import uk.m4xy.modus.core.domain.work.event.WorkItemClosed
 import uk.m4xy.modus.core.domain.work.event.WorkItemTransitioned
@@ -45,6 +47,33 @@ class WorkItemStateMachineTest {
         item(process = ENGINEERING).state shouldBe BACKLOG
         item(process = RESEARCH).state shouldBe QUESTION
         item(process = EDITORIAL).state shouldBe DRAFT
+
+        // REWORK has a transition back INTO its initial state, so "the state no transition
+        // points into" is not an answer here. Without this line an implementation that
+        // derives the start structurally instead of reading `process.initial` passes the
+        // whole suite — it did, on 173 tests (`doc:35-testing#fixture-variation`).
+        item(process = REWORK).state shouldBe BACKLOG
+    }
+
+    /**
+     * A process with a rework loop still moves, and still closes. The cycle is legal —
+     * every state remains reachable from the initial one and every state can still reach a
+     * terminal one — so nothing about the guard changes; this asserts that, rather than
+     * leaving [REWORK] as a fixture only one test ever reads.
+     */
+    @Test
+    fun `a process may cycle back into the state it starts in`() {
+        val subject = item(criteria = NO_CRITERIA, process = REWORK)
+
+        subject.transitionTo(DOING, REWORK, AT).transitionTo(BACKLOG, REWORK, LATER)
+
+        subject.state shouldBe BACKLOG
+        subject.pendingEvents.none { it is WorkItemClosed } shouldBe true
+        subject.transitionTo(DOING, REWORK, LATER).transitionTo(SHIPPED, REWORK, LATER)
+        subject.pendingEvents
+            .last()
+            .shouldBeA<WorkItemClosed>()
+            .finalState shouldBe SHIPPED
     }
 
     /**
@@ -110,16 +139,60 @@ class WorkItemStateMachineTest {
     }
 
     /**
-     * The same move, legal under one process and refused under another, on one item. This is
-     * what an implementation holding its own transition table cannot do.
+     * The same move from the same state, legal under one process and refused under another.
+     * This is what an implementation holding its own transition table cannot do.
+     *
+     * Both processes declare `shipped`, deliberately: if one did not, the governing check
+     * would refuse first and the test would stop being about `allows` at all. `EDITORIAL`
+     * passes through `shipped`; `ENGINEERING` ends there and permits no exit.
      */
     @Test
     fun `the same move is permitted under one process and refused under another`() {
-        item(criteria = NO_CRITERIA, process = RESEARCH).transitionTo(INVESTIGATING, RESEARCH, LATER).state shouldBe INVESTIGATING
+        val editorial = item(criteria = NO_CRITERIA, process = EDITORIAL).transitionTo(SHIPPED, EDITORIAL, AT)
+        editorial.transitionTo(SUBEDIT, EDITORIAL, LATER).state shouldBe SUBEDIT
 
-        shouldThrow<WorkItemTransitionNotPermittedException> {
-            item(criteria = NO_CRITERIA, process = RESEARCH).transitionTo(INVESTIGATING, ENGINEERING, LATER)
-        }
+        val engineering = item(criteria = NO_CRITERIA, process = EDITORIAL).transitionTo(SHIPPED, EDITORIAL, AT)
+        shouldThrow<WorkItemTransitionNotPermittedException> { engineering.transitionTo(SUBEDIT, ENGINEERING, LATER) }
+    }
+
+    /**
+     * **The bypass this guard exists to close, found in review of `bean:0152`.**
+     *
+     * Before it, an item at `doing` with three unevidenced criteria could be moved to
+     * `shipped` under `EDITORIAL`, where `shipped` is an ordinary intermediate: the move is
+     * permitted, the target is not terminal, so no evidence is owed and no `WorkItemClosed`
+     * is raised. The item then sat in `shipped` — terminal under its **own** domain's
+     * process, which permits no exit — closed, with nothing proved.
+     *
+     * That is a strictly easier opt-out than the separate `close()` method this aggregate
+     * refuses to have, and both are refused for the same reason.
+     */
+    @Test
+    fun `refuses a process that does not govern this item, so a close cannot be laundered through another`() {
+        val subject = item(criteria = THREE_CRITERIA).transitionTo(DOING, ENGINEERING, AT)
+
+        val thrown = shouldThrow<IllegalArgumentException> { subject.transitionTo(SHIPPED, EDITORIAL, LATER) }
+
+        thrown.message shouldBe
+            "work item 'modus-0152' is in state 'doing', which the process supplied does not declare: " +
+            "that process does not govern this item"
+        subject.state shouldBe DOING
+        subject.pendingEvents.none { it is WorkItemClosed } shouldBe true
+    }
+
+    /**
+     * The accepting half. A process the item's state **does** belong to is accepted even
+     * though it is a different process — which is what keeps `accepts evidence in a state
+     * another process would call closed` legal, and keeps this guard from being a check that
+     * every input fails.
+     */
+    @Test
+    fun `accepts any process that declares the state this item is in`() {
+        val subject = item(criteria = NO_CRITERIA, process = ENGINEERING)
+
+        subject.transitionTo(DOING, REWORK, LATER)
+
+        subject.state shouldBe DOING
     }
 
     /**

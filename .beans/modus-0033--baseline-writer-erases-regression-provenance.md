@@ -250,5 +250,22 @@ itself erased by the very next write. So a hand restoration does not survive the
 either, which means the current mitigation — "check the diff and restore by hand" — costs
 once per baseline write, not once per regression.
 
-Both restored with `git show origin/main:config/coverage/baseline.tsv`, per `AGENTS.md`'s
-rule against restoring from a `cp` taken earlier.
+Two more followed in the same bean, bringing it to four erasures and instances six to nine.
+Between them they reproduce **every shape this bean describes**:
+
+| write | what the writer printed | what it erased |
+|---|---|---|
+| `0 0 2505 216` -> `0 0 2654 238` | the new figures | the whole block, including the note added by hand after the previous erasure |
+| no change at all | `:core-domain  0 0 2654 238  (unchanged)` | the whole block — the `bean:0065` no-op shape, reproduced deliberately |
+| `2654 -> 2653` covered instructions, with `-Pcoverage.regress` | the new `# REGRESSION accepted` pair | **both** regression blocks already on `main`, while recording the third — the "erases a PREVIOUS regression block when recording a new one" clause |
+
+The last is the one worth having: it is the clause of this bean's title that had no recorded
+instance, and it is now observed rather than inferred. It also means the file cannot
+accumulate provenance at all — a module with two accepted regressions in its history can
+only ever show the most recent one, so "the reason is recorded below" is true of exactly one
+reason.
+
+All restored with `git show origin/main:config/coverage/baseline.tsv`, per `AGENTS.md`'s
+rule against restoring from a `cp` taken earlier — which matters here, because a `cp` taken
+before the first erasure would have restored a block that was already missing the entry the
+second write added.

@@ -37,7 +37,7 @@ class WorkItemTest {
         subject.domainId shouldBe MODUS
         subject.epicId shouldBe EPIC
         subject.title shouldBe TITLE
-        subject.successCriteria shouldBe THREE_CRITERIA
+        subject.specification.criteria shouldBe THREE_CRITERIA
         subject.evidenceRecords shouldBe emptyList()
     }
 
@@ -109,7 +109,7 @@ class WorkItemTest {
 
     @Test
     fun `accepts a work item with no success criteria at all`() {
-        item(criteria = NO_CRITERIA).successCriteria shouldBe emptyList()
+        item(criteria = NO_CRITERIA).specification.criteria shouldBe emptyList()
     }
 
     /**
@@ -123,7 +123,7 @@ class WorkItemTest {
         val subject = WorkItem.create(WorkItemSpecification.of(ITEM, TITLE, NO_CRITERIA), MODUS, ENGINEERING, AT)
 
         subject.epicId shouldBe null
-        subject.successCriteria shouldBe emptyList()
+        subject.specification.criteria shouldBe emptyList()
         subject.state shouldBe BACKLOG
     }
 
@@ -205,9 +205,12 @@ class WorkItemTest {
     // ---- the drain contract ------------------------------------------------------------
 
     /**
-     * Half one of `bean:0066`'s contract, on its own. The plant that kills it is removing
-     * `events.clear()`; nothing else in this file fails when it is removed, which is what
-     * makes this test the one that carries the emptying.
+     * Half one of `bean:0066`'s contract. The plant that kills it is removing
+     * `events.clear()`, and this is the test whose **name** describes the emptying — not the
+     * only test that notices. `a mutation of the drained list puts nothing back into the
+     * root` below and `reaching a terminal state raises the transition and then the close`
+     * in `WorkItemStateMachineTest` also fail on that plant. An earlier version of this
+     * comment claimed exclusivity and was wrong; found in review.
      */
     @Test
     fun `drainEvents leaves the root carrying none`() {
@@ -277,9 +280,9 @@ class WorkItemTest {
     fun `a caller cannot add a success criterion through the getter`() {
         val subject = item(criteria = THREE_CRITERIA)
 
-        (subject.successCriteria as MutableList<SuccessCriterion>).clear()
+        (subject.specification.criteria as MutableList<SuccessCriterion>).clear()
 
-        subject.successCriteria.size shouldBe 3
+        subject.specification.criteria.size shouldBe 3
     }
 
     /**

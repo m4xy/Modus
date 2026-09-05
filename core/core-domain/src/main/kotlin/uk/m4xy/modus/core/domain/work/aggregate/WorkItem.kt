@@ -5,7 +5,6 @@ import uk.m4xy.modus.core.domain.DomainId
 import uk.m4xy.modus.core.domain.domainmgmt.published.ProcessDefinition
 import uk.m4xy.modus.core.domain.domainmgmt.published.StateName
 import uk.m4xy.modus.core.domain.work.EvidenceRecord
-import uk.m4xy.modus.core.domain.work.SuccessCriterion
 import uk.m4xy.modus.core.domain.work.UnknownSuccessCriterionException
 import uk.m4xy.modus.core.domain.work.WorkItemAlreadyClosedException
 import uk.m4xy.modus.core.domain.work.WorkItemNotClosableException
@@ -58,7 +57,7 @@ import java.time.Instant
  * [equals]/[hashCode] say so.
  */
 public class WorkItem private constructor(
-    private val specification: WorkItemSpecification,
+    public val specification: WorkItemSpecification,
     public val domainId: DomainId,
     // JustifiedVar: the state machine is this root's reason to exist; transitionTo is its
     // only writer, and it validates against the domain's ProcessDefinition first.
@@ -87,9 +86,6 @@ public class WorkItem private constructor(
 
     /** Where this item stands right now, in its own domain's vocabulary. */
     public val state: WorkItemState get() = currentState
-
-    /** A fresh copy every read: [WorkItemSpecification.criteria] copies on the way out. */
-    public val successCriteria: List<SuccessCriterion> get() = specification.criteria
 
     /** A fresh copy every read: mutating it evidences nothing. */
     public val evidenceRecords: List<EvidenceRecord> get() = evidence.toList()
@@ -136,6 +132,7 @@ public class WorkItem private constructor(
         record: EvidenceRecord,
         process: ProcessDefinition,
     ): WorkItem {
+        requireGoverning(process)
         if (process.isTerminal(currentState.asStateName())) {
             throw WorkItemAlreadyClosedException(id, currentState)
         }
@@ -170,6 +167,7 @@ public class WorkItem private constructor(
         process: ProcessDefinition,
         at: Instant,
     ): WorkItem {
+        requireGoverning(process)
         if (!process.allows(currentState.asStateName(), target.asStateName())) {
             throw WorkItemTransitionNotPermittedException(id, currentState, target)
         }
@@ -203,6 +201,34 @@ public class WorkItem private constructor(
             .map { it.id }
             .filterNot { it in evidenced }
             .toSet()
+    }
+
+    /**
+     * Refuses a process that does not govern this item, before any guard reads it.
+     *
+     * **Without this the evidence guard has a bypass, and it is a strictly easier one than
+     * the separate `close()` method this aggregate refuses to have.** An item at `doing`
+     * with three unevidenced criteria could be moved to `shipped` under a *different*,
+     * perfectly legal process in which `shipped` is an ordinary intermediate state: the
+     * move is permitted, the target is not terminal, so no evidence is owed and no
+     * [WorkItemClosed] is raised. The item then sits in a state its own domain's process
+     * calls terminal and permits no exit from — closed, with nothing proved. Found in review
+     * of `bean:0152`.
+     *
+     * A `require`, not a domain exception: handing an aggregate another domain's process is
+     * a programming error rather than a business rule a caller is expected to surface
+     * (`doc:20-ddd-practices#invariants` §7.2).
+     *
+     * It checks membership of the current state only. The target is checked by
+     * [ProcessDefinition.allows], which is false for any state the process does not declare,
+     * and re-checking it here would be a second answer to a question the process already
+     * owns.
+     */
+    private fun requireGoverning(process: ProcessDefinition) {
+        require(currentState.asStateName() in process.states) {
+            "work item '${id.value}' is in state '${currentState.value}', which the process " +
+                "supplied does not declare: that process does not govern this item"
+        }
     }
 
     /**
