@@ -221,12 +221,12 @@ class WorkItemEvidenceGuardTest {
 
     /**
      * The accepting half of the same guard, and the proof that it reads the process rather
-     * than a name: the identical item in the identical state accepts evidence under
-     * `EDITORIAL`, where `shipped` is where work **starts**.
+     * than a name: an item sitting in `shipped` — which ends the work under `ENGINEERING` —
+     * accepts evidence under `EDITORIAL`, which passes through it.
      */
     @Test
     fun `accepts evidence in a state another process would call closed`() {
-        val subject = item(criteria = ONE_CRITERION, process = WorkFixture.EDITORIAL)
+        val subject = item(criteria = ONE_CRITERION, process = WorkFixture.EDITORIAL).transitionTo(SHIPPED, WorkFixture.EDITORIAL, AT)
         subject.state shouldBe SHIPPED
 
         subject.recordEvidence(evidence(FIRST), WorkFixture.EDITORIAL)
