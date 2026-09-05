@@ -22,7 +22,7 @@ import uk.m4xy.modus.core.domain.aggregate.RaisesDomainEvents
  * **This is not a mechanism, and it does not make a drain correct.** Nothing forces a use
  * case through this class: `repository.save(root)` followed by
  * `dispatcher.dispatch(root.pendingEvents)` compiles and passes every gate in the build, and
- * so does a `drainEvents()` that copies without clearing. `bean:0132` carries all three
+ * so does a `drainEvents()` that copies without clearing. `bean:0133` carries all three
  * gaps.
  */
 public class WriteThenDispatch(

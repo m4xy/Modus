@@ -15,7 +15,7 @@ import uk.m4xy.modus.core.domain.DomainEvent
  *
  * The signature names only the shared kernel, which is what keeps the seam swappable.
  * `adapter-events-inprocess` satisfies it today, synchronously and without the durable log
- * `doc:20-ddd-practices#domain-events` §4.1.7 requires (`bean:0132`); a conforming durable
+ * `doc:20-ddd-practices#domain-events` §4.1.7 requires (`bean:0147`); a conforming durable
  * implementation replaces it without either core module changing a line.
  *
  * Ordering is not this port's business — [WriteThenDispatch] owns it. Delivery semantics on

@@ -10,7 +10,7 @@ import uk.m4xy.modus.core.domain.DomainEvent
  * The walking skeleton's whole delivery mechanism, and an **incomplete** implementation of
  * the port it satisfies. `doc:20-ddd-practices#domain-events` §4.1.7 requires that every
  * event be appended to the durable event log before any handler runs; there is no durable
- * event log, and nothing in this repository appends a domain event anywhere. `bean:0132`
+ * event log, and nothing in this repository appends a domain event anywhere. `bean:0147`
  * carries it. So this class is not a different concern from the durable dispatcher that
  * replaces it — it is the same concern with the durable half missing, which is exactly why
  * it is an adapter rather than an application-layer collaborator: a conforming
