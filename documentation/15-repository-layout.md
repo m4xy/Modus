@@ -67,6 +67,7 @@ tools/                                  repository-wide checks that are not Kotl
 | An HTTP controller, DTO, SSE/WebSocket handler, or an OpenAPI annotation | `adapters/adapter-rest` |
 | Process supervision, stdout parsing, token/cost extraction from a claude-code run | `adapters/adapter-agent-claude` |
 | Branch, commit, diff, worktree operations | `adapters/adapter-vcs-git` |
+| Delivery of a drained domain event to its handlers — the ordering, durability and failure semantics of the fan-out itself | `adapters/adapter-events-inprocess` |
 | A user-installable capability that some domains have and others do not | `modules/module-*` |
 | A Spring `@Configuration`, bean definition, or `application.yaml` | `app/modus-server` |
 | A React component, route, or store | `backoffice/` |
@@ -76,6 +77,17 @@ tools/                                  repository-wide checks that are not Kotl
 
 If you cannot place your code using this table, you have discovered a gap. Do not guess:
 add a row here in the same pull request, with a rationale.
+
+Rationale for the dispatch row (`bean:0066`). Dispatch looks like orchestration and belongs
+in an adapter, and `doc:20-ddd-practices#domain-events` §4.1.7 is what settles it: a
+conforming dispatcher appends every event to the durable event log **before** any handler
+runs, so it necessarily touches storage. Today's synchronous fan-out is not a different
+concern that happens to share the name — it is the same one with the durable half missing.
+The **port** does not move with it: `doc:10-architecture#module-system` §7.2 puts ports
+inside, which is why "an adapter port" is not a thing. An adapter naming and invoking a use
+case is the sanctioned direction — it is what `<Noun>Controller` in `adapter.rest.<ctx>` does
+— so routing to application-layer handlers from outside the application layer is not an
+inversion.
 
 ### 2.2 Which tier <a id="tiers"></a>
 

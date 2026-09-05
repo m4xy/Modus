@@ -32,12 +32,7 @@ public class Domain private constructor(
     private var process: ProcessDefinition,
     private val events: MutableList<DomainEvent>,
 ) : RaisesDomainEvents {
-    /**
-     * Raised, not dispatched: the application layer drains these after the write.
-     *
-     * A read, not a handover — it leaves the events where they are. [drainEvents] is the
-     * handover, and the only thing a use case may call.
-     */
+    /** Inspection only. A read, never a handover: see [RaisesDomainEvents.drainEvents]. */
     public val pendingEvents: List<DomainEvent> get() = events.toList()
 
     /**

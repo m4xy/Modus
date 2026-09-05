@@ -8,19 +8,12 @@ import uk.m4xy.modus.core.application.ApplicationFixture.BOB
 import uk.m4xy.modus.core.application.ApplicationFixture.LATER
 import uk.m4xy.modus.core.application.ApplicationFixture.MODUS
 import uk.m4xy.modus.core.application.ApplicationFixture.SKUNKWORKS
-import uk.m4xy.modus.core.application.ApplicationFixture.domain
 import uk.m4xy.modus.core.application.ApplicationFixture.grant
 import uk.m4xy.modus.core.application.FixedClock
-import uk.m4xy.modus.core.application.InMemoryDomainRepository
 import uk.m4xy.modus.core.application.InMemoryPermissionGrantRepository
 import uk.m4xy.modus.core.application.RecordingDispatch
-import uk.m4xy.modus.core.application.RecordingHandler
 import uk.m4xy.modus.core.application.WriteFailed
-import uk.m4xy.modus.core.application.domainmgmt.usecase.ObserveGrantRevokedUseCase
-import uk.m4xy.modus.core.application.domainmgmt.usecase.UnknownDomainOnGrantRevoked
 import uk.m4xy.modus.core.application.event.DomainEventDispatchPort
-import uk.m4xy.modus.core.application.event.EventSubscription
-import uk.m4xy.modus.core.application.event.SynchronousDomainEventDispatch
 import uk.m4xy.modus.core.application.event.WriteThenDispatch
 import uk.m4xy.modus.core.domain.identity.event.GrantIssued
 import uk.m4xy.modus.core.domain.identity.event.GrantRevoked
@@ -28,16 +21,17 @@ import uk.m4xy.modus.core.domain.identity.published.GrantId
 import kotlin.test.Test
 
 /**
- * Edge 1 of `doc:10-architecture#bounded-contexts` §3, end to end: `identity` revokes a
- * grant, `domainmgmt` observes `GrantRevoked` (`bean:0066` criteria 5, 6 and 8).
+ * `identity`'s side of edge 1 of `doc:10-architecture#bounded-contexts` §3: what the use
+ * case **hands the dispatcher** (`bean:0066` criteria 6 and 8).
  *
- * "End to end" here means the real use case, the real `WriteThenDispatch`, the real
- * `SynchronousDomainEventDispatch`, the real `ObserveGrantRevokedUseCase` and the real
- * `PermissionGrant` aggregate — every collaborator that decides anything. The two doubles
- * are the repository ports, which decide nothing, and there is no adapter to substitute for
- * them: `bean:0009` declared both ports and implemented neither, and `bean:0017` is the bean
- * that builds the flat-file store. `doc:15-repository-layout` §8 puts this test at exactly
- * this level.
+ * Every assertion here reads [RecordingDispatch], which delivers to nobody, and that is the
+ * point rather than a limitation. `core-application` declares `DomainEventDispatchPort` and
+ * may not reach an adapter (`rule:archunit/applicationDependsOnDomainOnly`), so the only
+ * thing observable from here is the input surface — which is exactly the half criterion 8
+ * asks to be asserted separately. A fixture that constructed a `GrantRevoked` and passed it
+ * to a handler would satisfy an end-to-end assertion and say nothing about the drain that
+ * produced it. The other half, with a real dispatcher and a real consumer, is
+ * `adapter-events-inprocess`'s `GrantRevokedEdgeTest`.
  */
 class RevokeGrantUseCaseTest {
     private val command = RevokeGrantCommand(GrantId("g1"), ALICE, MODUS)
@@ -47,29 +41,6 @@ class RevokeGrantUseCaseTest {
         dispatch: DomainEventDispatchPort,
     ) = RevokeGrantUseCase(grants, FixedClock(LATER), WriteThenDispatch(dispatch))
 
-    // --- criterion 5: the edge, whole ----------------------------------------------------
-
-    @Test
-    fun `revoking a grant reaches domainmgmt's handler through the dispatcher`() {
-        val grants = InMemoryPermissionGrantRepository(listOf(grant("g1")))
-        val domains = InMemoryDomainRepository(listOf(domain(MODUS)))
-        val dispatch =
-            SynchronousDomainEventDispatch(
-                listOf(EventSubscription({ it as? GrantRevoked }, ObserveGrantRevokedUseCase(domains))),
-            )
-
-        useCase(grants, dispatch).handle(command)
-
-        grants.contents.single().isRevoked shouldBe true
-        domains.lookups shouldBe listOf(MODUS)
-    }
-
-    /**
-     * Criterion 8's separation, on the edge itself. What `domainmgmt` concluded is asserted
-     * above; what the dispatcher was **handed** is asserted here, by a double that delivers
-     * to nobody. A fixture that constructed a `GrantRevoked` and passed it to the handler
-     * would satisfy the first assertion and say nothing about the drain that produced it.
-     */
     @Test
     fun `the dispatcher is handed exactly the events the grant raised`() {
         val grants = InMemoryPermissionGrantRepository(listOf(grant("g1")))
@@ -77,6 +48,7 @@ class RevokeGrantUseCaseTest {
 
         useCase(grants, dispatch).handle(command)
 
+        grants.contents.single().isRevoked shouldBe true
         dispatch.calls.size shouldBe 1
         dispatch.dispatched.size shouldBe 2
         dispatch.dispatched[0].shouldBeInstanceOf<GrantIssued>()
@@ -122,19 +94,15 @@ class RevokeGrantUseCaseTest {
     // --- criterion 6: dispatch happens after the write ------------------------------------
 
     @Test
-    fun `a failed write dispatches nothing and reaches no handler`() {
+    fun `a failed write dispatches nothing`() {
         val grants = InMemoryPermissionGrantRepository(listOf(grant("g1")), failWriteWith = "disk full")
-        val domains = InMemoryDomainRepository(listOf(domain(MODUS)))
-        val handler = RecordingHandler<GrantRevoked>()
-        val dispatch =
-            SynchronousDomainEventDispatch(listOf(EventSubscription({ it as? GrantRevoked }, handler)))
+        val dispatch = RecordingDispatch()
 
         shouldThrow<WriteFailed> { useCase(grants, dispatch).handle(command) }
             .message shouldBe "disk full"
 
         grants.saved shouldBe listOf(GrantId("g1"))
-        handler.handled shouldBe emptyList()
-        domains.lookups shouldBe emptyList()
+        dispatch.calls shouldBe emptyList()
     }
 
     @Test
@@ -147,23 +115,6 @@ class RevokeGrantUseCaseTest {
 
         dispatch.calls shouldBe emptyList()
         held.pendingEvents.size shouldBe 2
-    }
-
-    // --- criterion 7: a handler that throws, through a real use case ----------------------
-
-    @Test
-    fun `a handler that refuses surfaces to the caller, with the write already done`() {
-        val grants = InMemoryPermissionGrantRepository(listOf(grant("g1")))
-        val domains = InMemoryDomainRepository(listOf(domain(SKUNKWORKS, "Skunkworks")))
-        val dispatch =
-            SynchronousDomainEventDispatch(
-                listOf(EventSubscription({ it as? GrantRevoked }, ObserveGrantRevokedUseCase(domains))),
-            )
-
-        shouldThrow<UnknownDomainOnGrantRevoked> { useCase(grants, dispatch).handle(command) }
-
-        grants.contents.single().isRevoked shouldBe true
-        grants.saved shouldBe listOf(GrantId("g1"))
     }
 
     // --- the use case's own preconditions -------------------------------------------------

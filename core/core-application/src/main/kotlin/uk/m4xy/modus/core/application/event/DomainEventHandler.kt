@@ -25,11 +25,15 @@ public fun interface DomainEventHandler<in E : DomainEvent> {
      * Reacts to [event].
      *
      * Called synchronously, after the publishing aggregate's write is durable. A handler
-     * that throws is not swallowed — see [SynchronousDomainEventDispatch] for what happens
-     * next, which is stated there rather than left to the implementation.
+     * that throws is not swallowed; what happens to the events behind it is
+     * `doc:20-ddd-practices#domain-events` §4.1.8, which every implementation of
+     * [DomainEventDispatchPort] is held to.
      *
-     * Handlers are expected to be idempotent (`doc:20-ddd-practices#domain-events` §4.1.7).
-     * Nothing enforces it, and nothing replays an event today.
+     * **Write a handler to be idempotent.** `doc:20-ddd-practices#domain-events` §4.1.7 asks
+     * for it because it expects a durable event log that can be replayed. That log does not
+     * exist and nothing replays anything (`bean:0132`), so idempotency buys nothing today —
+     * it is what makes the handler survive the day the log arrives, and the day a
+     * re-delivery becomes possible. Nothing enforces it.
      */
     public fun handle(event: E)
 }

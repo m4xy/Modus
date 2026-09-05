@@ -37,26 +37,27 @@ public fun leak(): List<Capability> {          // identical defect, gate green
 }
 ```
 
-**Observed, both halves, in `bean:0066`'s worktree.** A function was planted in
-`PermissionGrant.kt` in the direct form and the gate rejected it:
+**Observed, both halves, in `bean:0066`'s worktree.** Unfiltered `:architecture-tests:test`
+runs — the whole module, 63 tests, not the 34 in `DefensiveCopySourceTest` alone. A function
+was planted in `PermissionGrant.kt` in the direct form and the gate rejected it:
 
 ```
-> Task :architecture-tests:test
+> Task :architecture-tests:test --rerun-tasks
 DefensiveCopySourceTest > noDomainTypePublishesACollectionItOwns() FAILED
-      core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/identity/aggregate/PermissionGrant.kt:63: PermissionGrant.leakDirect() — it returns `granted`, a live view of the backing collection `granted`, not a copy (doc:20-ddd-practices §3.1). `asReversed`, `subList` and a bare field all write through.
-34 tests completed, 1 failed
-BUILD FAILED in 1m 3s
+      core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/identity/aggregate/PermissionGrant.kt:58: PermissionGrant.leakDirect() — it returns `granted`, a live view of the backing collection `granted`, not a copy (doc:20-ddd-practices §3.1). `asReversed`, `subList` and a bare field all write through.
+63 tests completed, 1 failed
+BUILD FAILED in 9s
 ```
 
 The same function, changed only from `return granted` to `val out = granted; return out` —
 same defect, same call site, one extra line:
 
 ```
-> Task :architecture-tests:test --tests '*DefensiveCopySourceTest*'
-BUILD SUCCESSFUL in 1m 49s
+> Task :architecture-tests:test --rerun-tasks
+BUILD SUCCESSFUL in 4s
 ```
 
-Both plants reverted. This is not a tolerated shape. It is the same class of defect as the four the gate has
+63 tests, 0 failed. Both plants reverted. This is not a tolerated shape. It is the same class of defect as the four the gate has
 already been walked past — `bean:0036`, `bean:0064` — and the same class as `bean:0034`'s
 finding that `PublishedLanguageIsLeaf` could not see an erased reference. `doc:00-constitution#observed-failing`'s
 own summary of that history is the rule to apply: *"enumerating the shapes a gate accepts
@@ -83,6 +84,10 @@ That implementation is correct — it copies, and the copy is what makes the fol
 three roots `bean:0066` touches are three functions the gate does not examine, and its
 non-vacuity floors (≥20 files, ≥12 collection-typed properties, `DefensiveCopySourceTest.kt:400`,
 `:403`) are unmoved by that, because they count files and properties rather than functions.
+
+The non-vacuity floors also count 34 tests inside one class; the module runs 63. Neither
+figure is the one that matters here, and this bean says so rather than letting a filtered
+count stand in for a suite.
 
 ## Success criteria and evidence
 

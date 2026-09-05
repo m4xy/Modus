@@ -41,9 +41,15 @@ public interface RaisesDomainEvents {
      * read that only copies leaves the root able to re-publish everything it has ever
      * raised the next time it is written, which is the defect `bean:0066` was raised for.
      *
-     * The domain never decides *who* receives them. `doc:20-ddd-practices#domain-events`
-     * §4.1.4 puts dispatch in the application layer, and this signature is the whole of
-     * what the domain knows about it.
+     * The domain never decides *who* receives them, and never decides *when*.
+     * `doc:20-ddd-practices#domain-events` §4.1.4 puts dispatch in the application layer;
+     * the ordering is `core-application`'s `WriteThenDispatch.write`, and this signature is
+     * the whole of what the domain knows about either.
+     *
+     * **Implementing this interface does not make a drain correct.** A body that copies
+     * without clearing satisfies the compiler, every Detekt and ArchUnit rule, and every
+     * test in this repository, while reinstating the defect above. `bean:0133` carries the
+     * gate that would catch it.
      */
     public fun drainEvents(): List<DomainEvent>
 }
