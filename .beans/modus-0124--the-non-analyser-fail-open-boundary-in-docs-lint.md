@@ -947,9 +947,10 @@ head:        cb714f2 for the assertion, planted into copies of tools/docs-lint.s
              `sed` from the working file; each copy is fed to a harness that runs the OLD three
              lines and the NEW three side by side and prints both verdicts
 interpreter: /opt/homebrew/bin/bash (GNU bash, version 5.3.9(1)-release)
-grep:        BSD grep 2.6.0-FreeBSD; the assertion's own `grep -E`/`-c`/`-cv` uses are POSIX
-             and `-F`-free on ASCII, but no GNU grep is installed on this host, so the GNU
-             side is reasoned about and not measured (doc:50-memory-and-evidence#capturing)
+grep:        BSD grep 2.6.0-FreeBSD, and BSD awk for the extraction; no GNU grep is installed
+             on this host, so the GNU side of this matrix is not measured here. It IS measured
+             on the runner — see the CI capture below, where the same three assertions pass
+             under GNU grep and GNU Awk 5.2.1 (doc:50-memory-and-evidence#capturing)
 00-unmodified (control)                        old=PASS                         new=PASS
 01-backtick-substitution                       old=PASS                         new=FAIL by: shape bound
 02-dollar-paren-substitution                   old=FAIL(lines=13,cmdsub=1)      new=FAIL by: shape bound
@@ -991,6 +992,35 @@ the question fails closed":
 Rows 12 and 13 are the negative half: a thirteenth argument that is a legal plain variable
 computed above the decision still passes, so the pin refuses shapes rather than refusing
 change. Row 15 is the anchor asserting on itself.
+
+**The GNU side, measured rather than reasoned about.** The extraction is `awk` and the shape
+check is `grep -E`, so a BSD-only measurement would have left the half that actually runs in CI
+unobserved — `bean:0123`'s lesson, where the only assertion in this suite to fail on the runner
+did so because it was written against the BSD `awk`'s exit status. `f656906` on
+`ubuntu-latest`:
+
+```
+run:      33958759710, job `build + mechanical gates`, green in 1m24s
+docs-lint-gate-test: interpreter /bin/bash (bash 5.2.21(1)-release)
+docs-lint-gate-test: analyser awk — GNU Awk 5.2.1, API 3.2, PMA Avon 8-g1, (GNU MPFR 4.2.1, GNU MP 6.3.0)
+ok   the OK line's printf is extracted whole, from its format string to the line that ends it
+ok   and every one of its arguments is a plain variable expansion and nothing else
+ok   and every one of them is assigned above the if that reads n_fail
+ok   a gate with the record helper fail shadowed exits non-zero [bash 5.2.21(1)-release]
+ok   and names the broken failure path on stderr rather than reporting OK (shadowfail) [bash 5.2.21(1)-release]
+ok   and says the probe produced 0 records, which is what it measured (shadowfail) [bash 5.2.21(1)-release]
+ok   and never reaches the OK line (shadowfail) [bash 5.2.21(1)-release]
+ok   a gate with the tee that fail writes through shadowed exits non-zero [bash 5.2.21(1)-release]
+ok   and names the broken failure path on stderr rather than reporting OK (shadowtee) [bash 5.2.21(1)-release]
+ok   and says the probe produced 0 records, which is what it measured (shadowtee) [bash 5.2.21(1)-release]
+ok   and never reaches the OK line (shadowtee) [bash 5.2.21(1)-release]
+docs-lint-gate-test: 112 passed, 0 failed, over 1 bash major version(s).
+docs-lint: OK — 19 documents, 111 anchors, 1740 references, 112 beans, [...] 0 unnumbered.
+bash-compat: OK — 5 scripts parsed, 23 rules, 23 planted violations each caught exactly once, 0 hits on the negative control, 0 findings.
+```
+
+`112` on the runner against `168` here is one interpreter against two, not a set of assertions
+that did not run: every per-interpreter assertion is scored once there and twice here.
 
 ### The site the derivation sent to the opt-out and nobody read the answer of
 
