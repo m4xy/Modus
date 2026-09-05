@@ -155,6 +155,23 @@ class WorkItemTest {
     }
 
     /**
+     * Copy-**in**, which the getter test above cannot reach: a specification built from a
+     * list the caller still holds must not change when that list does. The gate in
+     * `DefensiveCopySourceTest` does not read a named factory's body
+     * (`doc:20-ddd-practices#value-objects` §3.1 says so explicitly), so this invariant has
+     * no mechanical guard and is a test or it is nothing.
+     */
+    @Test
+    fun `a caller cannot add a criterion by mutating the list it built the specification from`() {
+        val supplied = mutableListOf(criterion(FIRST), criterion(SECOND))
+        val subject = WorkItemSpecification.of(ITEM, TITLE, supplied)
+
+        supplied.add(criterion(THIRD))
+
+        subject.criteria.map { it.id } shouldBe listOf(FIRST, SECOND)
+    }
+
+    /**
      * Two criteria on purpose: at size one `toList()` returns an immutable singleton and the
      * down-cast throws before it can prove anything (`doc:35-testing#fixture-variation`).
      */
