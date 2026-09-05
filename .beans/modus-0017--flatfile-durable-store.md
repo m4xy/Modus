@@ -57,15 +57,27 @@ to refuse.
 **The `blocked_by` edges naming this bean moved to the children.** `docs-lint` check 12
 refuses a `blocked_by` edge onto a `type: epic` bean, and rightly: an epic is never
 selectable, so an edge onto one can never be satisfied. `bean:0018`, `bean:0039` and
-`bean:0067` each named `modus-0017`; each now names all four children. All four rather than
-the subset each consumer strictly needs, because "which child does the REST layer actually
-require" is a judgement none of the three beans wrote down, and inventing one here would
-narrow an edge on a guess. A child may be dropped from an edge later by the bean that can
-show it is not needed.
+`bean:0067` each named `modus-0017`; each now names all four children.
+
+All four, and that is exactly semantics-preserving rather than a cautious default. Before the
+split, `blocked_by: [modus-0017]` cleared when this bean closed, and it closes only when all
+four of its bullets are done — so naming all four children clears at precisely the moment the
+single edge did. Over-naming **preserves** the pre-split meaning; narrowing would *loosen* an
+edge, and loosen it on a guess, because "which child does the REST layer actually require" is
+a judgement none of the three beans ever wrote down. A child may be dropped from an edge
+later by a bean that can show it is not needed — which is a claim someone has to make and
+evidence, not an omission someone can make by accident.
 
 **The `Enforcement gap:` lines in `documentation/` still name `bean:0017`, deliberately.**
-`doc:15-repository-layout` §4.3 and `doc:40-durability` §4, §5, §6.4, §7, §8 and §9 each
-close only when the whole store exists, and this bean is what "the whole store" now names.
+`doc:15-repository-layout` §4.3 and `doc:40-durability` §4, §5, §7, §8 and §9 each close
+only when the whole store exists, and this bean is what "the whole store" now names.
 Re-pointing each line at a child is the job of the child's own pull request, at the moment
 it can show the gap closed — a gap re-pointed before it is closed is a citation that has
 moved without anything being enforced.
+
+**§6.4 is the first to go, and it went the way this policy says.** `bean:0147` implemented
+the guarded entry point, showed the guard load-bearing by deleting it and watching four
+tests fail, and replaced the gap with an `Enforced by:` naming `DocumentStore.write` — in
+the same pull request, because that is when it could be shown. What remains of §6.4 is the
+caller-side bounded retry, now a gap of its own owned by `bean:0149`. The list above shrinks
+as each child earns it; a line still naming this bean is a gap still open.

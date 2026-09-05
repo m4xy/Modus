@@ -57,7 +57,7 @@ healthy case that must still pass (`doc:00-constitution#observed-failing`).
 
 | # | criterion |
 |---|---|
-| 1 | The seven steps of `doc:40-durability#atomic-write` happen, in that order: the temp file is created in the target's own directory, forced before the rename, and the **parent directory** forced after it |
+| 1 | The steps of `doc:40-durability#atomic-write` happen in the order §4 gives, observed at the two points where a descriptor is forced: the temp file is created in the target's own directory, the first observation falls **before** the rename and the second **after** it, and the second is against the target's parent directory. Whether either `fsync` is issued is **not** established — see the gap under this criterion's evidence |
 | 2 | A reader never observes a partial document: with a write in flight the target holds either the whole previous version or the whole new one, and never an empty file or a mixture |
 | 3 | A write that fails partway leaves the previous version intact and an orphan `.tmp` **beside the target, in the same directory** — the evidence `doc:40-durability` §4.1 says a crash leaves |
 | 4 | §6.4: a write conditional on a version that is no longer current is refused with `StaleWriteException` carrying the current version, and a write conditional on the current version succeeds. There is no unconditional overwrite entry point to omit the check on |
@@ -109,7 +109,7 @@ observed: BUILD SUCCESSFUL
           PathLockingIntegrationTest            tests="8"  failures="0" errors="0"
 ```
 
-### Criterion 1 — the seven steps, in order
+### Criterion 1 — the steps, in order, at the two observed points
 
 Three mutations, one per clause of the criterion. `SyncObserver` records each real `fsync`
 and what was on disk at that moment; it is called **after** the force, so nothing passed to
@@ -154,11 +154,49 @@ change nothing about `fsync` can detect — the test catches it because the obse
 *what the target held* at each force, so "after the rename" is an assertion about the
 directory's contents rather than about a call order the test was told.
 
-**What this criterion does not establish**, stated because the gap is where an over-claim
-would sit: that the platform honours a force. The three plants above establish the sequence
-of real `fsync` calls against real descriptors, which is the part Modus controls. Durability
-across a power cut is the OS's guarantee; `doc:40-durability` §5's `SIGKILL`-at-randomised-
-points test is `bean:0150` and is not claimed here.
+**Enforcement gap: no test establishes that either `fsync` is issued.** Found in review, by
+two plants these thirteen did not contain, and reproduced here:
+
+```
+planted:  AtomicFileWriter: `channel.force(true)` on the temp file deleted, the
+          observer.forced(TEMP_FILE, ...) notification kept
+observed: BUILD SUCCESSFUL in 10s     — 30 of 30 green
+reverted: tree clean: []
+
+planted:  AtomicFileWriter: `channel.force(true)` on the parent directory deleted, the
+          observer.forced(PARENT_DIRECTORY, ...) notification kept
+observed: BUILD SUCCESSFUL in 9s      — 30 of 30 green
+reverted: tree clean: []
+```
+
+The original wording of this passage conceded only that a test cannot show the *platform
+honours* a force. The gap is one level up: nothing here shows a force is **called**. The
+notification sits beside the force rather than downstream of it, so the three plants at the
+top of this criterion establish the ordering of the two **observed steps** relative to the
+rename — which the directory-content assertions make real, and which is worth having — and
+say nothing about the syscall inside a step.
+
+Two things follow, and both are recorded rather than argued away:
+
+- **JaCoCo reports 100% on this class.** 0 missed instructions, 0 missed branches, on a file
+  containing two lines whose deletion nothing notices. Line coverage counts execution, not
+  consequence, and this is the cleanest example of that distinction in the repository so far.
+- **The `Enforced by:` claim is demoted to an admitted gap**, which is what
+  `doc:00-constitution#observed-failing` requires of a mechanism that cannot be made to fail:
+  "an unfalsifiable gate is worse than an admitted gap, because it also stops anyone
+  looking." `bean:0150` owns it. The `SIGKILL`-at-randomised-points test `doc:40-durability`
+  §5 asks for is the only thing in the four-bean plan that could detect a missing `fsync`,
+  and `bean:0150` already carries it as criterion 7.
+
+**Not fixed here, deliberately.** The seam that would witness a force is a seam that could
+also suppress one, and a mechanism whose test can turn it off is a test of the seam
+(`doc:00-constitution#observed-failing`). Making the force witnessable without making it
+disableable needs the `FileSystemProvider` wrapper described under "What is not evidenced"
+below — the same seam the short-write loop needs — and it belongs with the bean that needs
+it for two reasons rather than one.
+
+The platform-honours question stands as it always did: durability across a power cut is the
+OS's guarantee and no test on this side of the syscall reaches it.
 
 ### Criterion 2 — a reader never observes a partial document
 
@@ -261,6 +299,20 @@ refused every write would fail rather than pass.
 **There is no unconditional entry point to have omitted the check on.** `write` takes a
 `DocumentVersion`, and `DocumentVersion.ABSENT` is how a create states what it expected to
 find — asserted by `creating a document that already exists is refused`.
+
+**This closes `doc:40-durability` §6.4's `Enforcement gap:`, in this pull request.** That
+line read "the store's public port does not exist yet, so there is no `write(path, bytes)`
+method to have omitted"; the method now exists, is the store's whole mutation surface, and
+has been observed refusing. It is replaced by an `Enforced by:` naming `DocumentStore.write`
+and the plant above. Under the epic's own policy a child re-points a gap at the moment it can
+show it closed, and leaving it standing would guarantee the next agent re-litigates whether
+the entry point should have been a port — which it already did twice.
+
+§6.4's remaining sentence — "the caller re-reads, re-applies, retries. Retries are bounded
+(3)" — is **caller-side and unimplemented**, so it becomes a gap of its own rather than
+disappearing with the one above. `DocumentStore` refuses and hands back the current version;
+nothing yet counts attempts. `bean:0149` owns it as the first caller that needs to, and the
+bound of 3 is a constant that must match the document (`bean:0090`).
 
 ### Criterion 5 — the striped lock and its timeout
 
@@ -383,6 +435,43 @@ That this failure is reachable at all is asserted separately and deterministical
 `the cross-process lock alone cannot serialise two threads of one process`. Without that
 test the assertion above would be "no exception was recorded", which is what a suite that
 never exercised the path also reports.
+
+**The criterion was false as shipped, and the test above could not see it.** Found in
+review. `PathLocks` held its stripes per **instance**, so two `DocumentStore`s over one root
+were two disjoint sets of locks: neither writer excluded the other, both reached `tryLock` on
+one sidecar, and the JVM refused its own process — the exact exception this criterion records
+as impossible. The test above shares one store between its eight threads and so never
+constructs the case.
+
+It was reachable by accident rather than by contrivance. `OptimisticConcurrencyIntegrationTest`
+builds a fresh `DocumentStore` on every property access, and `bean:0149` puts two repositories
+on this class.
+
+Fixed by making the stripe map JVM-wide, which is a correctness requirement and not a cache:
+the in-process lock exists to reduce the process to one contender before the operating system
+is asked for a `FileLock`, a `FileLock` is held by the **JVM**, and two locks can only be
+ordered if they have the same scope. The rejected alternative was a mandatory constructor
+argument, which moves the hazard into the wiring rather than removing it — every call site
+would have to remember to share an instance, and `doc:00-constitution` §9 says a rule anyone
+has to remember is eventually broken.
+
+A second test now constructs the case, and kills the shipped defect:
+
+```
+planted:  PathLocks: the JVM-wide STRIPES map replaced by a per-instance one — the shipped
+          behaviour, restored
+observed: two DocumentStore instances over one root serialise each other() FAILED
+          org.opentest4j.AssertionFailedError: Expected null but actual was
+            java.nio.channels.OverlappingFileLockException
+reverted: tree clean: []
+```
+
+Note which test did **not** fail on that plant: `DocumentStore serialises writers within one
+process`, the one that had been standing for this criterion. One shared store and eight
+threads passes with either scoping, and the difference between the two tests is three lines.
+
+`CrossProcessLock`'s KDoc said that exception "means the ordering was inverted". It has three
+causes and named one; all three are now named there.
 
 ### Criterion 9 — a target outside the store root
 
@@ -512,12 +601,29 @@ until it lands.
 
 ## What is not evidenced, stated rather than implied
 
-- **The short-write retry loop** (`doc:40-durability` §4.2 step 3). `FileChannel.write` may
-  perform a short write, and the loop is there because no API can assert a single syscall.
-  No test here provokes one: a 512 KiB write to a local file completes in one call on both
-  platforms Modus runs on, and there is no seam that would make it not. Removing the loop
-  would leave every test in this bean green. It is written down here rather than claimed.
-- **`fsync` durability across a power cut** — criterion 1's closing paragraph.
+- **That either `fsync` is issued** — criterion 1's `Enforcement gap:`, which is the
+  substantive one. Owned by `bean:0150`.
+- **`fsync` durability across a power cut** — the same criterion's closing paragraph, and a
+  weaker claim than the line above it.
+- **The short-write retry loop.** Removing the loop leaves every test in this bean green,
+  confirmed. Two corrections to how this entry read before review:
+
+  It cited `doc:40-durability` §4.2 step 3, which is the **append** path's rule and belongs
+  to `bean:0148`. What §4 step 3 requires of *this* class is "write all bytes to the temp
+  file", and the 512 KiB round-trip under criterion 2 evidences exactly that. So the loop is
+  correctly not load-bearing here, and the mandate it satisfies is elsewhere.
+
+  It then said "there is no seam that would make it not", which is wrong. The honest form is
+  **no seam this bean was willing to build**, and there are two:
+
+  | seam | cost |
+  |---|---|
+  | extract the loop into an internal helper taking a `java.nio.channels.WritableByteChannel`, and drive it with a short-writing fake | one production extraction, and the test is a **unit** test — no filesystem, no `@TempDir`, so it also stops being the slowest way to assert this |
+  | a delegating `java.nio.file.spi.FileSystemProvider` whose `newFileChannel` returns a `FileChannel` that short-writes | no production change at all, and it is the same seam that would let a test witness an `fsync` |
+
+  Neither is built here because the loop this bean contains is not the loop the rule is
+  about. `bean:0148` mandates it, `bean:0148` should build the seam, and the second row buys
+  criterion 1's gap at the same time.
 - **Windows.** Step 7 opens the parent directory with `READ`, which Linux and macOS accept
   and Windows rejects. The failure would be loud rather than swallowed; no platform other
   than those two is claimed or tested.
