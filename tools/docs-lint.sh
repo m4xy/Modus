@@ -980,8 +980,8 @@ n_edges="$(absent_ok grep -c . "$TMP/bean-edges.uniq")"
 #   docs_lint_err() { :; }       — redefined anywhere below the arming line. `trap -p ERR` is
 #                                  byte-identical, the `case` matches, every record is dropped.
 #                                  This is the more plausible accident of the two.
-# Firing the path answers those two, the disarm, and any other way of breaking it that is still
-# broken AT THIS LINE — which is a bound on WHEN and not a list of HOW, because it asks the
+# Firing the path DETECTS those two, the disarm, and any other way of breaking it that is
+# still broken AT THIS LINE — a bound on WHEN and not a list of HOW, because it asks the
 # question the records depend on: does a failing command at the top level of this file end up
 # as a LINE OF $TMP/fails.txt. That is not completeness, and the paragraph below says what it
 # leaves out; it is the difference between a proxy and the thing. A `false` that records
@@ -990,14 +990,34 @@ n_edges="$(absent_ok grep -c . "$TMP/bean-edges.uniq")"
 # interpreters (bean:0124). The marker is filtered out of `n_fail` below rather than deleted
 # from the file, so a failure to remove it cannot lose a real record.
 #
+# DETECTING IS NOT REPORTING, and the first revision of this check reported through `fail` —
+# the same channel the probe had just measured as broken. `fail` is `printf | tee -a`, so
+# shadowing EITHER name anywhere above swallowed the alarm about itself: measured on the clean
+# tree at cb714f2 under /opt/homebrew/bin/bash 5.3.9, planting one line at the `--- done ---`
+# banner, with `n_armed` printed to stderr from a probe copy to show the detection did happen:
+#   false __a_real_runtime_failure__                              rc=1  FAIL check - line 935: …
+#   fail() { :; }; false __a_real_runtime_failure__               rc=0  docs-lint: OK   n_armed=0
+#   tee() { cat >/dev/null; }; false __a_real_runtime_failure__   rc=0  docs-lint: OK   n_armed=0
+# `fail` is a shorter and more shadowable name than `docs_lint_err`, so that is a likelier
+# accident than either escape named above. THE REPORT THEREFORE GOES AROUND BOTH: a bare
+# `printf` to stderr and an `exit 1` of this shell, so the load-bearing half of the alarm is a
+# process exit status that nothing below can rewrite. It exits here rather than recording,
+# because a record is exactly what has just been shown not to arrive.
+#
 # WHAT IT STILL DOES NOT CATCH, stated rather than implied: a disarm that RE-ARMS before this
-# line, which needs two edits. Two shapes that look like escapes and are not, measured under
-# both interpreters: a disarm inside a `( … )` subshell leaves the parent's trap intact, and
-# `trap - ERR` inside a FUNCTION does not disarm the caller — bash restores the function-local
-# ERR trap on return. Neither is an escape and neither needs guarding against.
+# line, which needs two edits; and anything that makes the two lines below answer 1 falsely —
+# a shadowed `grep` or `absent_ok`, or a `__docs_lint_armed_probe__` written into the file by
+# something other than this probe. A shadowed `printf` silences the sentence but not the
+# status. Two shapes that look like escapes and are not, measured under both interpreters: a
+# disarm inside a `( … )` subshell leaves the parent's trap intact, and `trap - ERR` inside a
+# FUNCTION does not disarm the caller — bash restores the function-local ERR trap on return.
+# Neither is an escape and neither needs guarding against.
 { false __docs_lint_armed_probe__; } 2>/dev/null
 n_armed="$(absent_ok grep -cF '__docs_lint_armed_probe__' "$TMP/fails.txt")"
-[ "$n_armed" = 1 ] || fail - "the failure path was not working at the end of the run: a top-level 'false' produced $n_armed record(s) in the failure file instead of exactly 1. The ERR trap is armed once, near the top of this file; nothing below may disarm it, re-trap it, or redefine docs_lint_err. Every runtime failure between the break and here went unrecorded"
+if [ "$n_armed" != 1 ]; then
+  printf "docs-lint: the failure path was not working at the end of the run: a top-level 'false' produced %s record(s) in the failure file instead of exactly 1. The ERR trap is armed once, near the top of this file; nothing below may disarm it, re-trap it, or redefine docs_lint_err, or shadow fail or tee — this line reports around fail and tee for that reason. Every runtime failure between the break and here went unrecorded.\n" "$n_armed" >&2
+  exit 1
+fi
 
 # `-v`, so the probe's own record is not a failure of the corpus. It is the only line that can
 # carry that marker; if a document ever does, this counts 2 above and the gate goes red rather

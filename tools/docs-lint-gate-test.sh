@@ -77,8 +77,10 @@
 # own end-of-run live fire bounds the RANGE the path works over, and only against a break
 # that does not undo itself before that line. What the live fire DOES buy over the reading it
 # replaced is that it is not a list: it asks whether a failing command becomes a record, so a
-# fourth way of breaking the path is caught without being named. The three copies below are
-# evidence that it catches the three known ways, not that three is all there are.
+# sixth way of breaking the path is caught without being named. The five copies below are
+# evidence that it catches the five known ways, not that five is all there are — and two of
+# those five broke the gate's REPORT rather than its detection, which is a second axis the
+# first three did not reach.
 #
 # bash 3.2 (macOS): what that forbids is enumerated in tools/lib/bash32-forbidden.tsv and
 # enforced by tools/bash-compat-lint.sh in qualityCheck, not restated here (bean:0049).
@@ -125,7 +127,9 @@ VANISH="$ROOT/tools/.docs-lint-probe-$$-vanish.sh"
 DISARM="$ROOT/tools/.docs-lint-probe-$$-disarm.sh"
 RETRAP="$ROOT/tools/.docs-lint-probe-$$-retrap.sh"
 REDEF="$ROOT/tools/.docs-lint-probe-$$-redef.sh"
-trap 'rm -rf "$TMP"; rm -f "$MUTANT" "$CONTROL" "$RUNTIME" "$TMPFAIL" "$VANISH" "$DISARM" "$RETRAP" "$REDEF"' EXIT
+SHADOWFAIL="$ROOT/tools/.docs-lint-probe-$$-shadowfail.sh"
+SHADOWTEE="$ROOT/tools/.docs-lint-probe-$$-shadowtee.sh"
+trap 'rm -rf "$TMP"; rm -f "$MUTANT" "$CONTROL" "$RUNTIME" "$TMPFAIL" "$VANISH" "$DISARM" "$RETRAP" "$REDEF" "$SHADOWFAIL" "$SHADOWTEE"' EXIT
 TAB="$(printf '\t')"
 
 pass=0
@@ -359,7 +363,7 @@ check "and the copy differs from the gate on exactly one line (one '>')" \
   "1" "$(diff "$GATE" "$VANISH" | grep -c '^[<>]')"
 
 echo
-echo "--- the fifth plant: three one-line breaks of the failure path, which nothing below can see"
+echo "--- the fifth plant: five one-line breaks of the failure path, which nothing below can see"
 
 # ONE LINE EACH, AND NONE IS A NO-OP: each leaves everything above it recorded and everything
 # below it silent, and the gate reported OK at exit 0. Against the revision of this file that
@@ -376,6 +380,16 @@ echo "--- the fifth plant: three one-line breaks of the failure path, which noth
 # handler that leaves `trap -p ERR` byte-identical. The gate now fires a `false` and requires
 # the record, so all three are the same question asked once.
 #
+# ROWS FOUR AND FIVE BREAK THE REPORT RATHER THAN THE DETECTION, which the first revision of
+# the end-of-run probe could not survive: it found `n_armed` = 0 correctly and then said so
+# through `fail`, which is `printf | tee -a`, so shadowing either name swallowed the alarm
+# about itself and the gate printed `docs-lint: OK` at rc=0. Both were measured that way at
+# cb714f2 under /opt/homebrew/bin/bash 5.3.9 before the probe was changed to report around
+# both. They are rows here and not one row because they break two different names, and `fail`
+# — short, and shadowed by any later helper of that name — is the likelier accident of the
+# five. What is asserted below is the same for all five, and it reads STDERR: the alarm's
+# sentence no longer goes through `tee` to stdout, and its load-bearing half is the rc.
+#
 # NOT PLANTED, because they are not escapes — measured under both interpreters at this head,
 # and recorded so nobody plants them expecting red: `( trap - ERR; true )` leaves the parent's
 # trap intact, and `trap - ERR` inside a FUNCTION does not disarm the caller, bash restoring
@@ -387,6 +401,8 @@ cat > "$BREAKS" <<BREAKS_EOF
 the ERR trap disarmed${TAB}trap - ERR${TAB}$DISARM
 the ERR trap re-trapped to text that merely contains the handler's name${TAB}trap ': docs_lint_err' ERR${TAB}$RETRAP
 the handler redefined to do nothing${TAB}docs_lint_err() { :; }${TAB}$REDEF
+the record helper shadowed${TAB}fail() { :; }${TAB}$SHADOWFAIL
+the pipe the record helper writes through shadowed${TAB}tee() { cat >/dev/null; }${TAB}$SHADOWTEE
 BREAKS_EOF
 
 check "the plant point for the broken failure path occurs exactly once in the gate" \
@@ -407,8 +423,8 @@ while IFS="$TAB" read -r bname bline bfile; do
     "0" "$(grep -cxF "$bline" "$GATE")"
 done < "$BREAKS"
 
-check "three ways of breaking the failure path were planted, one copy each" \
-  "3" "$n_breaks"
+check "five ways of breaking the failure path were planted, one copy each" \
+  "5" "$n_breaks"
 
 # The one shell fact the end-of-run probe rests on, in a fixture of its own so it is measured
 # under every interpreter rather than asserted once on the runner. `fail`'s `tee -a` writes to
@@ -440,22 +456,77 @@ echo "--- and no count is computed on the branch that prints it"
 #
 # STRUCTURAL AND NOT A PLANT, deliberately: a plant shows one of the four failing, while this
 # says no count can be computed there AT ALL, including the thirteenth somebody adds next year.
-# It reads the `printf` statement as a whole — from the format string to the last continuation
-# — and requires every argument to be a plain variable already computed above.
+#
+# POSITIVE SHAPE, NOT A DENYLIST. The first revision of this block was `grep -c '\$('` over a
+# `sed` range whose END ANCHOR was the twelfth argument's own text, `^  "$n_c14_unnum"`. Both
+# halves failed open, and both were measured passing the assertion at cb714f2 (BSD grep 2.6.0,
+# /opt/homebrew/bin/bash 5.3.9): a backtick substitution, `` "`grep -c . "$TMP/provides.tsv"`" ``,
+# because the denylist named one spelling of command substitution out of two; and a THIRTEENTH
+# `$( )` argument appended after `"$n_c14_unnum"`, because it fell outside the range the anchor
+# closed — which falsifies "the thirteenth somebody adds next year" exactly. `"0"`,
+# `"${n_anchors:-0}"`, `"$n_anchors$n_edges"`, bare `$n_anchors` and `"$@"` passed it too.
+# doc:00-constitution#observed-failing binds a denylist of shapes here as it bound the
+# `case "$(trap -p ERR)"` reading above: enumerating what is refused fails open; requiring the
+# token that settles the question fails closed. So the three checks below say, positively:
+#
+#   the extraction ENDS WHERE THE STATEMENT DOES — the first line that does not continue with
+#   a trailing backslash, so a thirteenth argument is INSIDE the range by construction and the
+#   range's end is not a string anybody has to remember to move;
+#   every line after the format string is EXACTLY two spaces, one double-quoted plain variable
+#   expansion, and an optional continuation — nothing else is a legal argument, so backticks,
+#   `$( )`, defaults, concatenations, literals, `"$@"` and a comment are all refused without
+#   being named;
+#   every variable so named is ASSIGNED AT THE TOP LEVEL OF THE GATE ABOVE the `if` that reads
+#   `n_fail`, which is the half the old `n_edges` < `n_fail` line checked for one of twelve.
 OKLINE="$TMP/okline.txt"
-sed -n "/^printf 'docs-lint: OK/,/^  \"\$n_c14_unnum\"/p" "$GATE" > "$OKLINE"
-check "the OK line's printf is found whole, format plus twelve arguments" \
-  "13" "$(grep -c . "$OKLINE")"
-check "and not one of its arguments is a command substitution" \
-  "0" "$(grep -c '\$(' "$OKLINE")"
-check "and every count is read before the exit decision reads n_fail" \
-  "before" \
-  "$(if [ "$(grep -n '^n_edges=' "$GATE" | cut -d: -f1)" -lt "$(grep -n '^n_fail=' "$GATE" | cut -d: -f1)" ]; then echo before; else echo after; fi)"
+awk '/^printf .docs-lint: OK/ { in_stmt = 1 }
+     in_stmt { print }
+     in_stmt && !/\\$/ { exit }' "$GATE" > "$OKLINE"
+check "the OK line's printf is extracted whole, from its format string to the line that ends it" \
+  "1 format line, last line ends the statement" \
+  "$(grep -c "^printf 'docs-lint: OK" "$OKLINE") format line, $(if tail -1 "$OKLINE" | grep -q '\\$'; then echo 'last line still continues'; else echo 'last line ends the statement'; fi)"
+
+OKARGS="$TMP/oklineargs.txt"
+sed 1d "$OKLINE" > "$OKARGS"
+check "and every one of its arguments is a plain variable expansion and nothing else" \
+  "0 of $(grep -c . "$OKARGS") arguments are some other shape" \
+  "$(grep -Ecv '^  "\$[A-Za-z_][A-Za-z0-9_]*"( \\)?$' "$OKARGS") of $(grep -c . "$OKARGS") arguments are some other shape"
+
+# `head -1` because a variable may be reassigned lower down; what is asserted is that the name
+# is BOUND at the top level above the exit decision, which is what "already computed" means
+# here. A name the gate never assigns at column 0 counts as late, so a typo is caught too.
+#
+# THE NAMES ARE COUNTED AS WELL AS CHECKED, because a loop that read no name would report zero
+# late names and pass — the vacuity this whole block exists to refuse, one level up. The
+# assertion pairs "how many names came out of the argument list" with "how many were late", so
+# an extraction that stops matching fails here rather than going quiet. It did: the names were
+# first read with `while read -r` straight off the argument lines, whose leading two spaces
+# `read` strips with the default IFS, and every one of the twelve then looked unassigned.
+# THE ANCHOR IS THE `if` ITSELF, not the `n_fail=` above it: "the branch that prints it" begins
+# at the exit decision, and anchoring one line higher made `"$n_fail"` — computed above the
+# decision and therefore legal — read as late. The anchor's own presence is part of what this
+# reports, so a rewritten `if` fails here rather than defaulting every name to late in silence.
+EXITIF='if [ "$n_fail" -gt 0 ]; then'
+OKNAMES="$TMP/oklinenames.txt"
+sed -n 's/^  "\$\([A-Za-z0-9_]*\)".*$/\1/p' "$OKARGS" > "$OKNAMES"
+exit_line="$(grep -nxF "$EXITIF" "$GATE" | head -1 | cut -d: -f1)"
+exit_line="${exit_line:-0}"
+n_late=0
+while read -r okname; do
+  [ -n "$okname" ] || continue
+  okline_n="$(grep -n "^$okname=" "$GATE" | head -1 | cut -d: -f1)"
+  if [ -z "$okline_n" ] || [ "$okline_n" -gt "$exit_line" ]; then n_late=$((n_late + 1)); fi
+done < "$OKNAMES"
+check "and every one of them is assigned above the if that reads n_fail" \
+  "$(grep -c . "$OKARGS") names read, 1 exit decision, 0 assigned below it or not at all" \
+  "$(grep -c . "$OKNAMES") names read, $(grep -cxF "$EXITIF" "$GATE") exit decision, $n_late assigned below it or not at all"
 
 # --------------------------------------------------------------- the runs ---
-# Every gate run below happens once per interpreter. Backgrounded within an interpreter
-# rather than sequential: each is a full pass over every document and every bean, and six
-# of them one after the other is the whole cost of this file.
+# Every gate run below happens once per interpreter, TEN of them: the mutant, its unmutated
+# control, the eight-point runtime plant, the two scratch-directory plants, and the five
+# one-line breaks of the failure path. Backgrounded within an interpreter rather than
+# sequential: each is a full pass over every document and every bean, and ten of them one
+# after the other is the whole cost of this file.
 run_number=0
 run_under() { # run_under <shell path>
   local sh="$1"
@@ -487,6 +558,10 @@ run_under() { # run_under <shell path>
   local retrap_pid=$!
   "$sh" "$REDEF" > "$d/redef.out" 2> "$d/redef.err" &
   local redef_pid=$!
+  "$sh" "$SHADOWFAIL" > "$d/shadowfail.out" 2> "$d/shadowfail.err" &
+  local shadowfail_pid=$!
+  "$sh" "$SHADOWTEE" > "$d/shadowtee.out" 2> "$d/shadowtee.err" &
+  local shadowtee_pid=$!
   wait "$mutant_pid"
   local mutant_rc=$?
   wait "$control_pid"
@@ -503,6 +578,10 @@ run_under() { # run_under <shell path>
   local retrap_rc=$?
   wait "$redef_pid"
   local redef_rc=$?
+  wait "$shadowfail_pid"
+  local shadowfail_rc=$?
+  wait "$shadowtee_pid"
+  local shadowtee_rc=$?
 
   check "a destroyed analyser makes the gate exit non-zero$at" \
     "rc=1" "rc=$mutant_rc"
@@ -599,24 +678,31 @@ run_under() { # run_under <shell path>
     "0" "$(grep -c '^docs-lint: OK' "$d/vanish.out")"
 
   echo
-  echo "--- and with the failure path broken below every plant, three ways, the gate says so$at"
+  echo "--- and with the failure path broken below every plant, five ways, the gate says so$at"
 
-  # ONE ASSERTION SHAPE FOR THREE BREAKS, because the gate answers them with one question. The
+  # ONE ASSERTION SHAPE FOR FIVE BREAKS, because the gate answers them with one question. The
   # record names what it measured — how many records a top-level `false` produced — rather than
-  # which spelling was planted, so a fourth way of breaking the path nobody has thought of is
-  # caught by the same three lines without being enumerated here (bean:0124).
-  for br in disarm retrap redef; do
+  # which spelling was planted, so a sixth way of breaking the path nobody has thought of is
+  # caught by the same four lines without being enumerated here (bean:0124).
+  #
+  # ON STDERR, and that is the point of rows four and five. The alarm used to be a `fail`, so it
+  # was `printf | tee -a` to stdout — the channel two of these five breaks disable. It is a bare
+  # `printf … >&2` and an `exit 1` now, and the rc assertion is the half that survives even a
+  # shadowed `printf`.
+  for br in disarm retrap redef shadowfail shadowtee; do
     case "$br" in
-      disarm) local what="the ERR trap disarmed" ; local brc=$disarm_rc ;;
-      retrap) local what="the ERR trap re-trapped to text containing the handler's name" ; local brc=$retrap_rc ;;
-      redef)  local what="the handler redefined to do nothing" ; local brc=$redef_rc ;;
+      disarm)     local what="the ERR trap disarmed" ; local brc=$disarm_rc ;;
+      retrap)     local what="the ERR trap re-trapped to text containing the handler's name" ; local brc=$retrap_rc ;;
+      redef)      local what="the handler redefined to do nothing" ; local brc=$redef_rc ;;
+      shadowfail) local what="the record helper fail shadowed" ; local brc=$shadowfail_rc ;;
+      shadowtee)  local what="the tee that fail writes through shadowed" ; local brc=$shadowtee_rc ;;
     esac
     check "a gate with $what exits non-zero$at" \
       "rc=1" "rc=$brc"
-    check "and names the broken failure path rather than reporting OK ($br)$at" \
-      "1" "$(grep -c 'the failure path was not working at the end of the run' "$d/$br.out")"
+    check "and names the broken failure path on stderr rather than reporting OK ($br)$at" \
+      "1" "$(grep -c 'the failure path was not working at the end of the run' "$d/$br.err")"
     check "and says the probe produced 0 records, which is what it measured ($br)$at" \
-      "1" "$(grep -c "a top-level 'false' produced 0 record(s)" "$d/$br.out")"
+      "1" "$(grep -c "a top-level 'false' produced 0 record(s)" "$d/$br.err")"
     check "and never reaches the OK line ($br)$at" \
       "0" "$(grep -c '^docs-lint: OK' "$d/$br.out")"
   done

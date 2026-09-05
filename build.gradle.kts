@@ -50,7 +50,7 @@ tasks.register<Exec>("docsLintTest") {
 
 // docs-lint's own FAILURE PATH, which is a different subject from the task above and so is
 // a different script: that one feeds fixtures to the awk libraries under tools/lib/, this
-// one can only observe the shell script by running the whole gate — six mutated and
+// one can only observe the shell script by running the whole gate — ten mutated and
 // unmutated copies of it, backgrounded against each other, once per bash MAJOR version the
 // host has. It plants a syntax error into check 12's analyser in a COPY and requires the gate
 // to go red, and requires the same copy unmutated to go green — the negative half, without

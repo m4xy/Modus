@@ -630,7 +630,64 @@ the record:
 ```sh
 { false __docs_lint_armed_probe__; } 2>/dev/null
 n_armed="$(absent_ok grep -cF '__docs_lint_armed_probe__' "$TMP/fails.txt")"
-[ "$n_armed" = 1 ] || fail - "the failure path was not working at the end of the run: …"
+if [ "$n_armed" != 1 ]; then
+  printf "docs-lint: the failure path was not working at the end of the run: …\n" "$n_armed" >&2
+  exit 1
+fi
+```
+
+### Detecting is not reporting: the armed check reported through the channel it tests
+
+Review's second reading of this block. The `if` above was `[ "$n_armed" = 1 ] || fail - "…"`,
+and `fail` is `printf 'FAIL check %-2s %s\n' "$1" "$2" | tee -a "$TMP/fails.txt"` — so the
+probe's verdict travelled out through `fail` and `tee`, **the same path it had just measured as
+broken**. The detection was never the problem. The report was.
+
+```
+head:        cb714f2, clean tree
+interpreter: /opt/homebrew/bin/bash (GNU bash, version 5.3.9(1)-release (aarch64-apple-darwin25.1.0))
+grep:        BSD grep 2.6.0-FreeBSD, via /usr/bin/grep — no GNU grep is installed on this host
+method:      `git show cb714f2:tools/docs-lint.sh` into a scratch file, one line planted with
+             awk at line 935 (the `--- done ---` banner) into copies under tools/, all deleted
+             after; probes D and E additionally print `$n_armed` to stderr from a line inserted
+             after the `n_armed=` assignment, to show the detection DID happen
+--- A: false __a_real_runtime_failure__
+exit:   1
+stderr: FAIL check -  line 935: a command exited 1 and nothing checked it: 'false __a_real_runtime_failure__'
+--- B: fail() { :; }; false __a_real_runtime_failure__
+exit:   0
+stdout: docs-lint: OK — 19 documents, 111 anchors, 1740 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+stderr: (empty)
+--- C: tee() { cat >/dev/null; }; false __a_real_runtime_failure__
+exit:   0
+stdout: docs-lint: OK — 19 documents, 111 anchors, 1740 references, 112 beans, 43 graph edges, 49 selectable, 112 bean ids, 0 introduced, 112 on origin/main, 0 closing transitions, 0 criteria checked, 0 unnumbered.
+stderr: (empty)
+--- D: probe B, instrumented
+stderr: PROBE n_armed=[0]
+--- E: probe C, instrumented
+stderr: PROBE n_armed=[0]
+--- (end)
+```
+
+`n_armed` is **0** in both — the live fire detected the break correctly and then announced it
+down a wire that had been cut. `fail` is a shorter and more shadowable name than
+`docs_lint_err`, so it is a likelier accident than either escape the section below enumerates,
+and the comment that shipped at `cb714f2` claimed to cover "any other way of breaking it that
+is still broken AT THIS LINE" — true of the detection, false of the alarm.
+
+**The report goes around both now**: a bare `printf … >&2` and an `exit 1` of this shell, so
+the load-bearing half of the alarm is a process exit status nothing below can rewrite. It exits
+rather than recording, because a record is exactly what has just been shown not to arrive. A
+shadowed `printf` still silences the sentence; the status survives it, and the comment at the
+site says so rather than claiming completeness a third time.
+
+Two rows were added to the suite's failure-path plant table for this — `fail() { :; }` and
+`tee() { cat >/dev/null; }` — and all five now assert on **stderr**, which is where the alarm
+goes. Ten gate copies per interpreter rather than eight. Measured at this head:
+
+```
+$ /opt/homebrew/bin/bash tools/docs-lint-gate-test.sh
+docs-lint-gate-test: 168 passed, 0 failed, over 2 bash major version(s).   rc=0
 ```
 
 ### The reading this replaced, and why review was right to refuse it
@@ -868,15 +925,72 @@ rc=1
 
 **Pinned structurally, not by a plant**, because a plant shows one of the four failing while
 the property wanted is that no count can be computed there at all — including the thirteenth
-somebody adds next year. The suite reads the `printf` whole and requires every argument to be
-a plain variable, and requires `n_edges` to be read above `n_fail`. Negative control, with one
-count moved back into the `printf` and nothing else changed:
+somebody adds next year. Negative control, with one count moved back into the `printf` and
+nothing else changed:
 
 ```
 cmd:      /bin/bash tools/docs-lint-gate-test.sh
 FAIL and not one of its arguments is a command substitution
 docs-lint-gate-test: 145 passed, 1 failed, over 2 bash major version(s).
 ```
+
+#### The first version of that pin was a denylist over a range that closed too early
+
+Review's third reading of this class on this branch, and the same finding as the `case "$(trap
+-p ERR)"` one. The assertion that shipped at `cb714f2` was three lines: a `sed` range from the
+format string to `^  "$n_c14_unnum"`, a required line count of 13, and `grep -c '\$('` required
+to be 0. Its comment said it "requires every argument to be a plain variable" and covered "the
+thirteenth somebody adds next year". **Both halves failed open**, and both were measured:
+
+```
+head:        cb714f2 for the assertion, planted into copies of tools/docs-lint.sh built with
+             `sed` from the working file; each copy is fed to a harness that runs the OLD three
+             lines and the NEW three side by side and prints both verdicts
+interpreter: /opt/homebrew/bin/bash (GNU bash, version 5.3.9(1)-release)
+grep:        BSD grep 2.6.0-FreeBSD; the assertion's own `grep -E`/`-c`/`-cv` uses are POSIX
+             and `-F`-free on ASCII, but no GNU grep is installed on this host, so the GNU
+             side is reasoned about and not measured (doc:50-memory-and-evidence#capturing)
+00-unmodified (control)                        old=PASS                         new=PASS
+01-backtick-substitution                       old=PASS                         new=FAIL by: shape bound
+02-dollar-paren-substitution                   old=FAIL(lines=13,cmdsub=1)      new=FAIL by: shape bound
+03-arithmetic-substitution                     old=FAIL(lines=13,cmdsub=1)      new=FAIL by: shape bound
+04-literal-zero                                old=PASS                         new=FAIL by: shape bound
+05-default-expansion                           old=PASS                         new=FAIL by: shape bound
+06-concatenation                               old=PASS                         new=FAIL by: shape bound
+07-unquoted-variable                           old=PASS                         new=FAIL by: shape bound
+08-dollar-at                                   old=PASS                         new=FAIL by: shape bound
+09-comment-inside-arglist                      old=FAIL(lines=14,cmdsub=0)      new=FAIL by: shape bound
+10-name-the-gate-never-assigns                 old=PASS                         new=FAIL by: bound
+11-thirteenth-argument-cmdsub                  old=PASS                         new=FAIL by: shape bound
+12-thirteenth-argument-legal-plain             old=PASS                         new=PASS
+13-thirteenth-argument-n_fail-legal            old=PASS                         new=PASS
+14-thirteenth-argument-assigned-late           old=PASS                         new=FAIL by: bound
+15-exit-decision-if-rewritten                  old=PASS                         new=FAIL by: bound
+```
+
+Row 11 is the one that falsifies the sentence exactly: a thirteenth `$( )` argument appended
+**after** `"$n_c14_unnum"` is outside a range whose end anchor is the twelfth argument's own
+text, so the denylist never saw it. Row 01 is the other half — `$(` names one spelling of
+command substitution out of two, and a backtick walked past it. Rows 04–08 are not command
+substitutions at all and were never covered by the claim the comment made.
+
+**The replacement is positive, not a denylist**, per §9.1's "requiring the token that settles
+the question fails closed":
+
+- the extraction ends at the first line that does **not** end in a continuation backslash, so a
+  thirteenth argument is inside the range by construction and no anchor has to be remembered;
+- every line after the format string must match `^  "\$[A-Za-z_][A-Za-z0-9_]*"( \\)?$` — one
+  double-quoted plain variable and nothing else, which refuses backticks, `$( )`, `$(( ))`,
+  defaults, concatenations, literals, `"$@"` and a comment without naming any of them;
+- every name so extracted must be assigned at the top level **above** `if [ "$n_fail" -gt 0 ];
+  then`, which is the half the old `n_edges` < `n_fail` line checked for one argument of twelve.
+  The count of names extracted is reported beside the count of late ones, so a loop that read
+  no name fails here instead of passing vacuously — it did, first time, because `read -r` with
+  the default IFS strips the two leading spaces the shape assertion had just required.
+
+Rows 12 and 13 are the negative half: a thirteenth argument that is a legal plain variable
+computed above the decision still passes, so the pin refuses shapes rather than refusing
+change. Row 15 is the anchor asserting on itself.
 
 ### The site the derivation sent to the opt-out and nobody read the answer of
 
@@ -906,7 +1020,17 @@ rc=1
 
 A `fail 11` is now beside it. The corpus is clean for it — two beans carry `## Amendments`,
 `modus-0102` with 1 heading and `modus-0049` with 11 — so it is a gate over the tree as it is,
-not a change to it. The derivation comment said `.beans.yml`'s `prefix:` was "the only such
+not a change to it.
+
+**Those two figures are a corpus survey and not a run of the check, and this branch's own gate
+runs never executed the body they describe.** Check 11's amendment loop `continue`s on any bean
+whose `status:` is not `completed`, and the two beans this branch touches were `in-progress`
+(`modus-0118`) and `todo` (`modus-0124`) at the base — so `n_closing` is **0** on every OK line
+this branch printed, which is the counts line correctly reporting that the check examined
+nothing. The `fail 11` above is therefore evidence from the two plants recorded in this section
+and from review's, and from nothing this branch's CI run did. The distinction is check 11's own
+history (`doc:00-constitution#observed-failing`, `bean:0051`): a check that examines nothing and
+a check that passes both print `OK`, and this one has shipped inert before. The derivation comment said `.beans.yml`'s `prefix:` was "the only such
 site left in this file"; that sentence had **two** outcomes where the rule has three, and it
 now says so. A site the derivation sends to the opt-out can still be a site whose result
 nobody checks, and those are two questions.
@@ -1584,10 +1708,16 @@ gate test exit: 0
 ```
 
 What that costs. Both `Exec` tasks declare no inputs, so neither is ever up to date and every
-figure here is a real run. The gate test's six gate runs are backgrounded against each other
-within an interpreter and the interpreters run one after another, so on this machine it is
-twelve full passes over the corpus; on the CI runner, which has one bash major version, it is
-six and the second interpreter costs nothing. Measured here, alone on the machine:
+figure here is a real run. The gate test's gate runs are backgrounded against each other within
+an interpreter and the interpreters run one after another. That was **six** runs at `688f3ba`,
+where the timings below were taken; it is **ten** at the head this branch ships — the mutant,
+its control, the eight-point runtime plant, the two scratch-directory plants and the five
+one-line breaks of the failure path — so twenty full passes over the corpus on this machine and
+ten on the CI runner, which has one bash major version and pays nothing for the second. The
+last two of the ten were added by review, which found that the end-of-run probe reported through
+`fail`; the wall cost of that on this machine is **54 s → 68 s** for the whole suite,
+`/opt/homebrew/bin/bash`, `time`, nothing else running. Timings at `688f3ba`, alone on the
+machine:
 
 ```
 head:     688f3ba
@@ -1765,27 +1895,35 @@ figure it scores is a pass/fail count and not a figure of the corpus. `repointed
 harness asserting on itself: a copy whose `GATE=` line did not move would score the unmutated
 gate and every row would read like the control.
 
-**THIS MATRIX IS STAMPED AT `688f3ba` AND HAS NOT BEEN RE-RUN AT `0982b71`.** Review replaced
-the mechanism three of its rows mutate, and the honest thing is to say which rather than to
-leave twelve figures reading as if they described the gate that ships:
+**THIS MATRIX IS STAMPED AT `688f3ba` AND HAS NOT BEEN RE-RUN SINCE.** An earlier revision of
+this line said "has not been re-run at `0982b71`", which named a head that stopped being the
+branch's before the line was read; the label is deliberately not a SHA now, because the thing
+it has to stay true against is *every* later head and a SHA written into a file is stale the
+moment the next commit lands. The commits that have changed `tools/docs-lint.sh` or the suite
+since the stamp are `2efeb1c`, `160e1ff`, `0982b71`, `52a04b8`, `cb714f2` and the review-nits
+commit at the head of this branch. Review replaced the mechanism three of the matrix's rows
+mutate, and the honest thing is to say which rather than to leave twelve figures reading as if
+they described the gate that ships:
 
 - `armed-check-removed` **(104/6)** removed a `case "$(trap -p ERR)"` block that no longer
   exists. Its analogue at this head is "the live fire removed", and it is not re-measured.
 - `trap-neutered` **(88/22)** and `trap-deleted` **(82/28)** were separated by that reading.
   They are still separated at this head, and by more: the live fire catches the neutered
-  handler by the record it stops producing, which is what the three failure-path copies in the
+  handler by the record it stops producing, which is what the five failure-path copies in the
   suite now plant directly.
-- `control` **(110/0)** is **146/0** at this head — the same suite with 36 more assertions.
-  Measured: `/bin/bash tools/docs-lint-gate-test.sh`, `docs-lint-gate-test: 146 passed, 0
-  failed, over 2 bash major version(s).`, rc=0.
+- `control` **(110/0)** is **168/0** at the head this branch ships — the same suite with 58
+  more assertions. Measured: `/opt/homebrew/bin/bash tools/docs-lint-gate-test.sh`,
+  `docs-lint-gate-test: 168 passed, 0 failed, over 2 bash major version(s).`, rc=0. It read
+  **146/0** at `cb714f2`; the twenty-two added since are the two new failure-path breaks
+  (four assertions each, per interpreter) and the rebuilt `printf` pin.
 
 Re-running all twelve rows is 192 full passes over the corpus and was not done here. What was
-done instead is three targeted negative controls at this head, each recorded in the sections
+done instead is targeted negative controls at this head, each recorded in the sections
 above: the reading restored in place of the live fire (**120/23**), `[ -e "$p" ]` restored in
-`glob_lines` (**141/2**), and one count moved back into the `printf` (**145/1**). Those bound
-the three things this review changed; they do not re-establish the other nine rows, and a
-reader should treat the table above as a measurement of `688f3ba` and nothing else
-(`doc:50-memory-and-evidence#corpus-figures`).
+`glob_lines` (**141/2**), one count moved back into the `printf` (**145/1**), and the fifteen-row
+old-versus-new matrix for the `printf` pin. Those bound the things review changed; they do not
+re-establish the other nine rows, and a reader should treat the table above as a measurement of
+`688f3ba` and nothing else (`doc:50-memory-and-evidence#corpus-figures`).
 
 **Two rows are new, and one of them is the reason this section was rewritten.** `trap - ERR`
 planted below every plant scored **49 passed, 0 failed** against the previous suite: a
@@ -1943,9 +2081,14 @@ have passed everything, and one did.
   RANGE the failure path works over, by the gate FIRING that path at its last trap-visible
   statement and requiring the record — and that bound has a hole of its own, a break that
   undoes itself before that line. The residuals are named above and the fail-closed harness is
-  `bean:0126`. Three ways of breaking the path are planted and caught; **three is not a claim
-  that three is all there are**, and the reason the live fire is worth more than the reading it
-  replaced is precisely that it does not have to enumerate them.
+  `bean:0126`. Five ways of breaking the path are planted and caught; **five is not a claim
+  that five is all there are**, and the reason the live fire is worth more than the reading it
+  replaced is precisely that it does not have to enumerate them. Two of the five were added by
+  review and are a different axis from the first three: they break the gate's REPORT rather
+  than its detection, and the first revision of the probe — which said `n_armed` was 0 by
+  calling `fail`, which is `printf | tee -a` — was swallowed by both. What is still not
+  bounded on that axis: anything that makes `absent_ok grep -cF` answer 1 falsely, and a
+  shadowed `printf`, which silences the sentence but not the `exit 1`.
 - **The status-2 tolerance at check 13c's `grep -qx "$nid" "$TMP/bean-ids-main.txt" || continue`.**
   The one blanket `|| continue` left. Here the STATUS is the answer, so `absent_ok` — which is
   for sites that read a VALUE — does not fit, and `|| continue` therefore tolerates 2 along
