@@ -1226,7 +1226,8 @@ decides "a backtick in the info string does the same" \
 # RESTATED at bean:0121, which owned all four residuals and closed three of them. These two
 # pins are the fourth and they STAY ACCEPTED, deliberately and not by omission. The three
 # that closed are each an extra CONDITION on a site this analyser already recognises, decided
-# from state it already holds — `region`, the heading level, `evcol` — and each fails closed.
+# from state it already holds — `region`, the heading level, `evcol` — and each is written to
+# fail closed. Written to: `cell` did not, until the seam below was found and closed.
 # This one is not of that kind: it needs a perception layer the analyser does not have, and
 # the argument above is why building it is the wrong trade. That argument was re-checked
 # against `pandoc 3.7.0.2` at bean:0121 and holds: a `#` heading inside <details> with blank
@@ -1360,7 +1361,8 @@ decides "control: the same table without the pasted cell leaves criterion 3 unan
 # --- CLOSED by bean:0121: REGION, EMPTINESS and the cost of the CELL rule ------------------
 #
 # Three constraints beyond the SHAPE test, all three decided from state the analyser already
-# holds, all three failing closed. They are asserted together and then separately, because
+# holds, all three WRITTEN TO fail closed — the qualifier is earned, and the `cell` section
+# below says how. They are asserted together and then separately, because
 # bean:0121's second criterion is that neither of the first two may be landed on the other's
 # evidence: each fixture below is rejected by exactly one of them, so a mutation removing
 # either is visible here. The mutation figures are in this file's header.
