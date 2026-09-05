@@ -6,7 +6,7 @@ type: feature
 priority: high
 order: AR
 created_at: 2026-08-29T00:00:00Z
-blocked_by: [modus-0013, modus-0130, modus-0131, modus-0132, modus-0133]
+blocked_by: [modus-0013, modus-0147, modus-0148, modus-0149, modus-0150]
 ---
 
 # The .beans file to WorkItem mapper
@@ -88,8 +88,8 @@ fail:
 So the store is a hard dependency, and the order is `bean:0013` and the store → this bean →
 `bean:0018`. Losing the split costs nothing real and removes a contradiction.
 
-`bean:0017` has since become the epic over `bean:0130`, `bean:0131`, `bean:0132` and
-`bean:0133`, so this bean's `blocked_by` and `bean:0018`'s each name those four rather than
+`bean:0017` has since become the epic over `bean:0147`, `bean:0148`, `bean:0149` and
+`bean:0150`, so this bean's `blocked_by` and `bean:0018`'s each name those four rather than
 the epic — `docs-lint` check 12 refuses an edge onto a `type: epic` bean. The argument above
 is unchanged: "the store" is what the four children are between them.
 

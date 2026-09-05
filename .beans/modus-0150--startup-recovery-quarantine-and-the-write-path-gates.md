@@ -1,5 +1,5 @@
 ---
-# modus-0133
+# modus-0150
 title: Startup recovery, derived indexes, and the write-path gates
 status: todo
 type: feature
@@ -7,15 +7,15 @@ priority: high
 order: CH
 created_at: 2026-09-05T00:00:00Z
 parent: modus-0017
-blocked_by: [modus-0130, modus-0131, modus-0132]
+blocked_by: [modus-0147, modus-0148, modus-0149]
 ---
 
 # Startup recovery, derived indexes, and the write-path gates
 
 The fourth child of `bean:0017`, and the one that turns the other three from mechanisms into
 a store that survives being restarted. It is last because §7's recovery table has a row for
-each of them: an orphan `.tmp` is `bean:0130`'s, a torn line is `bean:0131`'s, a document
-failing schema validation is `bean:0132`'s.
+each of them: an orphan `.tmp` is `bean:0147`'s, a torn line is `bean:0148`'s, a document
+failing schema validation is `bean:0149`'s.
 
 ## Success criteria
 
@@ -25,7 +25,7 @@ failing schema validation is `bean:0132`'s.
 | 2 | Orphan `.tmp` older than one hour is deleted and logged at WARN with the path; younger than one hour is left and logged at DEBUG. The one-hour boundary is decided against an injected clock, never `Instant.now()` — `rule:archunit/timeIsInjectedNeverReadFromAStaticClock` binds the whole repository, not `core-domain` alone (`doc:15-repository-layout` §4.3) | |
 | 3 | A document failing schema validation moves to `.modus/quarantine/<timestamp>/` and is never auto-repaired; the operator sees it | |
 | 4 | An `intent` record with no `completed` is replayed idempotently and a `completed` appended — §6.5's intent-log pattern, which is what stands in for the multi-document transaction the store does not have | |
-| 5 | A stale lock file whose holder PID is dead is broken with a logged warning; a lock whose holder is alive is not. `bean:0130` refuses a held lock and deliberately never breaks one | |
+| 5 | A stale lock file whose holder PID is dead is broken with a logged warning; a lock whose holder is alive is not. `bean:0147` refuses a held lock and deliberately never breaks one | |
 | 6 | §9: `.modus/index/` is derived, git-ignored, never fsynced, rebuilt when missing or stale, and updated after the durable write rather than in the same critical section. The test §9's enforcement gap names — delete the whole index directory between every integration test case and assert identical answers | |
 | 7 | §5: the `SIGKILL`-at-randomised-points test, and its companion that corrupts a segment's bytes and asserts the reader skips exactly that record, marks the log `degraded`, and still serves every other record. Both named in §5's enforcement gap | |
 | 8 | §4's enforcement gap closed: an ArchUnit rule restricting `java.nio.file.Files` write methods to `AtomicFileWriter`, and the Detekt `ForbiddenMethodCall` entries for `File.writeText`, `File.writeBytes` and `Files.newOutputStream` outside it. Both observed rejecting a planted violation, or demoted to a stated gap — an unfalsifiable gate is worse than an admitted one (`doc:00-constitution#observed-failing`) | |

@@ -1,5 +1,5 @@
 ---
-# modus-0131
+# modus-0148
 title: The append-only NDJSON log
 status: todo
 type: feature
@@ -7,7 +7,7 @@ priority: high
 order: CF
 created_at: 2026-09-05T00:00:00Z
 parent: modus-0017
-blocked_by: [modus-0130]
+blocked_by: [modus-0147]
 ---
 
 # The append-only NDJSON log
@@ -15,8 +15,8 @@ blocked_by: [modus-0130]
 The second child of `bean:0017`: `doc:40-durability#append-only-log`, §4.2, §5 and the log
 rows of §7. Bullet 2 of the parent, whole.
 
-`blocked_by: [modus-0130]` for the store root, the lock striping and the exception types
-`bean:0130` introduces, not for the rename — an append deliberately does not use one (§4.2).
+`blocked_by: [modus-0147]` for the store root, the lock striping and the exception types
+`bean:0147` introduces, not for the rename — an append deliberately does not use one (§4.2).
 
 ## Success criteria
 

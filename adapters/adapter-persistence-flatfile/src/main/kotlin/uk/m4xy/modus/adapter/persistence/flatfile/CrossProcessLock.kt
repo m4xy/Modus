@@ -22,7 +22,7 @@ import java.security.MessageDigest
  * contention with another process, and the two must not report as the same thing.
  *
  * Breaking a lock whose holder is dead is a startup-recovery action (§6.3, §7) and belongs
- * to `bean:0133`. This class refuses a held lock and never breaks one.
+ * to `bean:0150`. This class refuses a held lock and never breaks one.
  */
 public class CrossProcessLock(
     private val locksDirectory: Path,
