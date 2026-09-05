@@ -214,7 +214,7 @@ Each check is decidable from repository contents alone.
 | 11 | completed beans are final | a bean that was `completed` on the merge base changes in any way other than gaining entries under a trailing `## Amendments` section, or an amendment omits its date, its authoring bean, `**Claimed:**`, `**Found:**` or `**Evidence:**` (`adr:0005-evidence-lives-in-the-work-item#amendments`) |
 | 12 | bean graph | a `blocked_by` or `parent` id matches other than exactly one bean file, a `blocked_by` edge names a `type: epic` bean, the `blocked_by` graph has a cycle, two beans that reach `AGENTS.md` step 1's tiebreak together share an `order` value, or no bean is selectable at all |
 | 13 | bean id uniqueness | a bean id names two files in the tree, a filename's id and its front-matter `# <id>` marker disagree, a bean filename is not `<prefix><id>--<slug>.md` at `.beans.yml`'s `id_length`, or an id this branch **introduces** already exists on `origin/main` |
-| 14 | a bean closes without evidence | a bean that is `completed` in the change and was not `completed` on the merge base carries no evidence section, an evidence section holding no entry, a numbered table in an evidence section with no evidence column, an unanswered numbered criterion, an evidence cell that is empty or holds only a name from `doc:50-memory-and-evidence#evidence-kinds`, or a fenced block that is never closed |
+| 14 | a bean closes without evidence | a bean that is `completed` in the change and was not `completed` on the merge base carries no evidence section, an evidence section holding no entry, a numbered table in an evidence section with no evidence column, an unanswered numbered criterion — where a citation answers only from a structural site, inside an evidence section or from a `## ` heading of its own, with something under it, and never from a row's evidence cell — an evidence cell that is empty or holds only a name from `doc:50-memory-and-evidence#evidence-kinds`, or a fenced block that is never closed |
 
 **Enforced by:** `tools/docs-lint.sh`, run by the `docsLint` task inside `qualityCheck`
 (`rule:ci/build`). Each check has been observed rejecting a planted violation; check 11's
@@ -226,7 +226,9 @@ raw `<pre>`, from an HTML comment, from a `<details>` wrapper, from a line-initi
 span and from a backtick info string, against negative controls for each of its two structural
 sites, in `bean:0093`. In every one of those the citation stood on a line of PROSE, which is
 what was rejected; the container was not, and the same containers holding a heading-shaped or
-row-shaped line are accepted. That is stated in full below and owned by `bean:0121`.
+row-shaped line are accepted. That is stated in full below and owned by `bean:0129`. The
+three conditions beyond shape — region, emptiness and the evidence cell — were each observed
+rejecting a planted violation, against a negative control for each, in `bean:0121`.
 
 Check 11 classifies by the `status:` on the **merge base**, not on the branch, and diffs the
 base against the **working tree**. A bean moving `in-progress` → `completed` in the change
@@ -283,7 +285,49 @@ conventions:
 - A criterion is **answered** by an evidence row bearing its number, or by a `criterion N` or
   `criteria N–M` citation standing at a **structural site**: a heading, or a row of a table.
   Running prose is not a citation site, whatever it renders as. Write the citation as an
-  evidence sub-heading — `### Criterion 3` — or in a cell of the evidence table.
+  evidence sub-heading — `### Criterion 3` — or in a cell of the evidence table other than
+  the **evidence cell** itself.
+
+  Shape is necessary and not sufficient. Three further conditions apply, each decided from
+  state the analyser already holds and each written to fail closed — a citation that does not
+  satisfy them is not read, and its criterion is reported unanswered (`bean:0121`):
+
+  | condition | a citation is not read from |
+  |---|---|
+  | region | a sub-heading or a row standing outside an **evidence** section — `## Evidence`, or the combined `## Success criteria and evidence`. `### Criterion 3 was not attempted` under `## Not in scope` answers nothing, and neither does `### Criterion 2 cannot be met as written` under `## Success criteria`: a criteria section is not an evidence section, and evidence is what this condition is about. A `## ` heading is exempt, because `region` is what a `## ` heading sets: a top-level section devoted to one criterion is that criterion's evidence home. Four completed beans write that shape — `bean:0038`, `bean:0049`, `bean:0051` and `bean:0063` — and `bean:0038` is the one that loses a criterion if `## ` is bound too |
+  | emptiness | a citing heading with nothing under it before the next heading at its own level or shallower. `### Criteria 1-5` as the whole of a five-criterion bean's `## Evidence` answers nothing. Content is any **non-blank line**, which is deliberately weaker than the *entry* defined above: an entry rule refuses `### Criterion 2 cannot be met as written` followed by the ruling and its reason, which this section accepts below and `bean:0038` writes |
+  | cell | the **evidence cell** of a row. The rest of the row is read either side of a **barrier** standing where the cell was, so `\| 3 \| criteria 1-5 \| … \|` still answers; the cell where output is pasted does not. The cost is a row that names, in its evidence cell, a span its own run genuinely covers — write that span in any **other** column of the row instead, since the cut is one column wide. Not necessarily the first: in a table whose rows are numbered, the first cell is the criterion number, and a span written there stops the row being numbered and so stops it answering its own criterion |
+
+  The cell condition applies to every row and not only to a numbered one. Masking only a
+  numbered row's cell leaves the identical laundering one column over, in the evidence cell of
+  an unnumbered row; both forms give the same verdict on every bean in `.beans/`, so the
+  corpus does not choose between them and the reasoning does.
+
+  A row's **cells** are its pipe-separated fields, and two shapes GFM permits are cells all
+  the same: a row may omit its trailing pipe, and a cell may hold an escaped `\|`. Both were
+  measured getting past the cut before `bean:0121`'s review — the first left the evidence cell
+  as the last field and so outside the cut, the second shifted every field after it and moved
+  the cut onto the wrong column. The condition is unconditional, so both are cells now.
+
+  The cut **replaces** the evidence cell; it does not delete it, and that distinction is a
+  rule rather than an implementation detail. Deleting the cell makes its two neighbours
+  adjacent, and the matcher — which skips any run of characters that are neither digit nor
+  letter between `criterion` and its number — reads straight across the seam. So a row whose
+  claim column ends `covers both criteria` and whose next-but-one column begins `3 runs`
+  answered **criterion 3** from a citation standing in no cell of the file, with the evidence
+  cell that separated them being the one thing the condition says not to read. The barrier that
+  replaces the cell is a lowercase letter for the same reason the seam existed: the matcher's
+  own gap class is what has to exclude it, and that class admits every character outside
+  `[0-9a-z]`. This condition is therefore the one place where the check writes a character of
+  its own into what it reads, and `bean:0121` records why the alternative — a separator no
+  author could type — is measurably not enough.
+
+  Three edges of **emptiness**, stated because each is a rule and not an accident. A line of
+  only spaces or tabs is **blank**, so it is not content and does not save a citing heading.
+  A fenced block IS content even when it is empty, which follows from an *entry* being a
+  fenced block rather than the text inside one. And a citing heading immediately followed by
+  a **sibling** heading heads nothing, so of two adjacent `### Criterion N` headings sharing
+  one paragraph, only the second is answered — give each citing heading its own content.
 
   The rule names where a citation may stand and enumerates no container, because an
   enumeration would be an allowlist and would fail on the first container nobody named,
@@ -300,21 +344,24 @@ conventions:
   inside `<details><pre>`, or inside an HTML comment IS read as a citation, as is a Markdown
   table pasted inside `<pre>`, whose delimiter row enters the table like any other. A fence
   is the one container the analyser does model: it is an entry, and it is not a citation
-  site. `bean:0121` owns the residual and states why closing it needs an enumeration of HTML
+  site. `bean:0129` owns the residual and states why closing it needs an enumeration of HTML
   tag names — and why "inside a container" is not the same set as "not rendered as a
   heading", since a `#` heading inside `<details>` with blank lines around it renders as a
   heading. What the rule does close is the shape it was written for: pasted check output at
-  column zero is neither a heading nor a table row, wherever it is pasted.
+  column zero is neither a heading nor a table row, wherever it is pasted. The three
+  conditions above do not reach it either: the container stands inside `## Evidence`, under a
+  heading with content, which is where evidence belongs.
 
-  **`At column zero` is a qualifier and it has a price.** A citation is read from the whole of
-  a site line, so the same output pasted into the evidence **cell** of a numbered row is read:
-  the cell is not at column zero, but the row around it is row-shaped. A row reading
-  `| 2 | two | FAIL check 14 …: criterion 3 is not answered in the evidence |` answers
-  criterion 3, and a three-criterion bean whose table numbers only rows 1 and 2 closes green.
-  Nothing there is written by hand — it is the tool's own stdout arriving through the site the
-  rule kept — so it is laundering of exactly the kind `bean:0093` closed, reached by a
-  different route. `bean:0121` owns it as a fourth residual and it is pinned as a verdict in
-  `tools/docs-lint-test.sh`. **Quote a transcript inside a fence, never inside a cell**: a
+  **`At column zero` was a qualifier with a price, and `bean:0121` paid it off.** A citation
+  used to be read from the whole of a site line, so the same output pasted into the evidence
+  **cell** of a row was read: the cell is not at column zero, but the row around it is
+  row-shaped. A row reading `| 2 | two | FAIL check 14 …: criterion 3 is not answered in the
+  evidence |` answered criterion 3, and a three-criterion bean whose table numbered only rows
+  1 and 2 closed green. Nothing there was written by hand — the tool's own stdout arriving
+  through the site the rule kept — so it was laundering of exactly the kind `bean:0093`
+  closed, reached by a different route. The cell condition above closes it, and the rejection
+  is pinned as a verdict in `tools/docs-lint-test.sh` where the acceptance used to be.
+  **Quote a transcript inside a fence, never inside a cell** stands unchanged as advice: a
   fence is an entry and is not a citation site, so the same paste under one answers nothing.
 
   A **heading** here is an ATX heading: `#` characters at the start of the line. A
@@ -335,19 +382,24 @@ conventions:
   A criterion whose evidence is a section that never names it is unanswered however long that
   section is, because `adr:0005-evidence-lives-in-the-work-item#evidence-home` puts the
   evidence beside the criterion it satisfies and a reader must be able to find the pairing.
-  **The converse is not checked, and recommending the sub-heading above makes that worth
-  saying out loud.** The citing heading is required to be neither inside the evidence region
-  nor followed by anything: `### Criteria 1-5` as the whole of a five-criterion bean's
-  `## Evidence` closes it, and `### Criterion 3 was not attempted` under `## Not in scope`
-  answers criterion 3. The evidence-table path has `EMPTYCELL` and `HOLLOW`; the heading path
-  has no analogue. `bean:0121` owns both, with the runs.
+  **The converse is now checked, and recommending the sub-heading above is why it had to
+  be.** The citing heading used to be required to be neither inside the evidence region nor
+  followed by anything: `### Criteria 1-5` as the whole of a five-criterion bean's
+  `## Evidence` closed it, and `### Criterion 3 was not attempted` under `## Not in scope`
+  answered criterion 3. The evidence-table path had `EMPTYCELL` and `HOLLOW`; the heading path
+  had no analogue. The region and emptiness conditions above are that analogue — `EMPTYCELL`'s
+  and not `HOLLOW`'s, since a heading over a paragraph is not hollow (`bean:0121`).
 
-  The check reads the number, never the polarity of the claim around it, and the rule does
-  not change that — it puts the number somewhere polarity does not arise. So a heading
-  answers the criterion it names whatever it says about it: `### Criterion 2 cannot be met as
-  written` answers criterion 2, because the section under that heading is that criterion's
-  evidence home and a ruling with its reason is an answer. That is the boundary of the rule,
-  and it is accepted rather than closed: a heading is authored, not pasted.
+  The check reads the number, never the polarity of the claim around it, and neither
+  condition changes that — both put the number somewhere polarity does not arise. So a
+  heading answers the criterion it names whatever it says about it: `### Criterion 2 cannot
+  be met as written`, under `## Evidence` and followed by the ruling, answers criterion 2,
+  because the section under that heading is that criterion's evidence home and a ruling with
+  its reason is an answer. That is the boundary of the rule, and it is accepted rather than
+  closed: a heading is authored, not pasted. It is also load-bearing rather than theoretical
+  — it is what fixes the two conditions at the strength they have, since the stricter form of
+  either takes criterion 7 off `bean:0038`, which closed on a `## Criterion 7 is dropped,
+  deliberately` section with the reason in prose under it.
 
 A criterion the bean does not number is outside the per-criterion condition; the `OK` line's
 `closing transitions`, `criteria checked` and `unnumbered` counts are what say how much was

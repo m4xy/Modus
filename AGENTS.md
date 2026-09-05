@@ -52,6 +52,12 @@ script ending in `git checkout -- .beans`, which silently discards uncommitted e
 closing, amending or correcting does not. The `modus-evidence` skill's Preconditions own the
 rule and the reason: a clean tree before **every** run, not once before the first (`bean:0102`).
 
+Restoring from a pristine `cp` instead has the same failure one step later: a copy taken
+before you kept editing the file restores the file as it was THEN, silently reverting the
+work in between, and `git status` shows the file modified either way. Re-take the copy after
+every edit, or take it from `HEAD` with `git show <ref>:<path> > <scratch>`, which reads the
+index and never writes to the tree (`bean:0121`).
+
 Review what you changed with `git diff --name-only origin/main...HEAD` — three dots, or
 `@{u}`. The two-dot form compares endpoints, so once `main` moves ahead it lists what **main**
 changed beside what you did, and gives a plausible answer rather than an error (`bean:0102`).
