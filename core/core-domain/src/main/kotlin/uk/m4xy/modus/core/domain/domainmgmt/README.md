@@ -11,9 +11,12 @@ Package layout follows `doc:20-ddd-practices#ports-and-adapters` §5.1: `publish
 (`adr:0004-domain-id-shared-kernel`) — this context's events name a domain, and a published
 package may not reach into another context's.
 
-That is the whole of what this context imports from outside itself. The allowlist of
-`doc:10-architecture#bounded-contexts` §3.1 also permits `identity`'s published language,
-and `bean:0031` uses it to consume `GrantRevoked`; nothing here does yet.
+That is the whole of what this context imports from outside itself, and it stays that way.
+The allowlist of `doc:10-architecture#bounded-contexts` §3.1 also permits `identity`'s
+published language, and since `bean:0066` this context consumes `GrantRevoked` — but the
+consumer is a use case, `core.application.domainmgmt.usecase.ObserveGrantRevokedUseCase`, so
+nothing in this package imports `identity` at all. `bean:0031` adds the module-visibility
+reaction to that handler; what exists today is the referential check, and its KDoc says so.
 
 `ProcessDefinition` is published rather than internal because it appears in this context's
 events, and because `doc:20-ddd-practices#aggregates` §2.2 passes it into

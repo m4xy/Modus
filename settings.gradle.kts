@@ -35,6 +35,7 @@ fun module(
 module("core-domain", "core/core-domain")
 module("core-application", "core/core-application")
 
+module("adapter-events-inprocess", "adapters/adapter-events-inprocess")
 module("adapter-persistence-flatfile", "adapters/adapter-persistence-flatfile")
 module("adapter-rest", "adapters/adapter-rest")
 module("adapter-agent-claude", "adapters/adapter-agent-claude")
