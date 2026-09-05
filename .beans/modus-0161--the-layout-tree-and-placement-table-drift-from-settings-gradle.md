@@ -42,6 +42,15 @@ Note what the check must **not** do: assert the two documents agree with each ot
 would agree perfectly while both being stale, which is the state §2 was in for the whole of
 `bean:0066`'s review. `settings.gradle.kts` is the referent.
 
+**Criterion 4 says `fail`, not `report`, and the distinction is the whole of `bean:0051`.**
+An earlier draft of it asked only that the check print how many modules it parsed. A printed
+number nobody asserts on is a diagnostic: a run that parses zero prints its zero and exits 0,
+which is `docs-lint` check 11 inert in CI for its entire life, printing `- introduced` where
+`0 introduced` belonged with nobody reading either. The count belongs in the output **and** in
+a predicate. Recorded here because that draft and `doc:20-ddd-practices` §4.1.8's unparseable
+"state which delivery mode you are" arrived in the same pull request from the same hand
+(`bean:0162`) — one confusion, two shapes: a rule that describes where it must decide.
+
 ## Success criteria and evidence
 
 | # | criterion | evidence |
@@ -49,6 +58,6 @@ would agree perfectly while both being stale, which is the state §2 was in for 
 | 1 | A module in `settings.gradle.kts` and absent from §2's tree fails `docs-lint`, observed failing on a planted removal and reverted (`doc:00-constitution#observed-failing`) | |
 | 2 | The same for §2.1's table, planted separately — one plant passing both arms proves only that one arm works | |
 | 3 | A module-shaped entry in either document naming no real module also fails, so the check is not satisfiable by adding text | |
-| 4 | The check reports what it examined — how many modules it parsed — because a run that parses zero and a run that passes both print `OK` (`bean:0051`) | |
+| 4 | The check **fails** when it parses zero modules, observed by planting a `settings.gradle.kts` whose `module(...)` calls the parser cannot see. Reporting the count as well is required, but the count is a diagnostic and the failure is the gate | |
 | 5 | §2's `Enforcement gap:` line naming this bean is replaced by an `Enforced by:` | |
 | 6 | `./gradlew qualityCheck` green | |

@@ -112,9 +112,9 @@ Resolution: `kind` selects the directory; `name` MUST include the fixed-width nu
 - Summaries, recaps, convenience tables and examples that re-encode a rule are restatement.
 - A derived listing (for example the routing table in `AGENTS.md`) is permitted only when it is marked derived and names its normative source. On disagreement the source wins and the listing is the bug.
 
-Evidence — PR #1 at review: 13 files (12 documents, 1 bean), +3458 lines, 8 review threads. Six were one fact living in two to four places and drifting apart:
+Evidence — PR #1 at review: 13 files (12 documents, 1 bean), +3458 lines, 8 review threads. Six were one fact living in two to four places and drifting apart, or agreeing on something false:
 
-| drifted fact | copies | outcome |
+| restated fact | copies | outcome |
 |---|---|---|
 | per-model `effort` support | `60` §4.1, `60` §4.4, `70` §3.7 | the specified benchmark grid was four API calls that all return 400 |
 | non-domain-scoped route allowlist | `10` §4.3, `30` §4, `00` §8 | `/domains` missing from two copies; the derived rule failed the build |
@@ -153,6 +153,32 @@ the next change adds — and the change need not come from another author or ano
 `doc:50-memory-and-evidence#unverified-shapes` was introduced with four rows and a heading
 saying four, and gained a fifth row two pull requests later in the same stack. **A set that
 can grow is named, never counted.**
+
+**Restatement's second cost is not drift. It is that being wrong once costs N corrections,
+and copies that agree hide the error that drift would have exposed.** Where copies disagree
+the disagreement is itself the signal; where they agree there is none, and the defect waits
+for someone to reason about the claim.
+
+Row 4 above is the prior instance: three documents asserted a `@Disabled` check that cannot
+exist, agreed perfectly, and were found by realising that comments do not survive into
+bytecode — not by comparing the copies against each other. `bean:0066` is the second: one
+over-scoped scope clause at three sites — a rule in `doc:20-ddd-practices` §4.1.8, the
+dispatch port's KDoc, and the handler contract's — all three in agreement, so nothing looked
+wrong to a reader or to check 6, and it was found by a reviewer reasoning about the rule.
+**Copies of a belief are as much a defect as copies of a fact, and they are the harder half:
+a fact that drifts announces itself, and a belief restated faithfully never does.**
+
+**The table's third column records what each fact was wrong about, not how it was found**, so
+no row of it evidences a discovery mechanism, and a claim about one may not cite it. An
+earlier draft of this passage asserted that every instance in the table was caught by two
+copies disagreeing; three of the six were not — rows 1 and 5 were caught by exercising the
+claim, and row 4 is the counter-example the paragraph above now rests on.
+
+**The instance that carries the highest cost is the one on the type other authors implement.**
+Of those three sites, the correction that mattered was the handler contract's, because four
+bounded contexts will write against it and inherit whatever it claims. Rank restatement sites
+by how many authors read them, not by how normative they look: the document is authoritative,
+the interface is what gets copied.
 
 ## 4. Prose ban <a id="prose-ban"></a>
 
@@ -194,6 +220,27 @@ marker is line 2" and "the id marker is the only `#` line" are both wrong, and a
 built on either silently reads the wrong value — found by check 13 failing on the real tree
 before any plant was written (`bean:0051`). Match `# <prefix><digits>` and require exactly
 one.
+
+**Flagging a doubt about a rule you are writing is not narrowing it.** A rule is read by
+people who never see the pull-request body, the bean, or the review thread it was doubted in,
+so a doubt recorded anywhere but in the rule's own text has no effect on what the rule
+requires. `bean:0066` wrote `doc:20-ddd-practices` §4.1.8, asked in the same pull request
+whether it was over-scoped, and shipped it over-scoped; the doubt was correct and changed
+nothing. **State the narrow rule you believe, and cite the bean for the part you are unsure
+of.** A rule stated wider than its author believes it is a rule nobody may rely on and
+everybody must obey.
+
+**The author of a rule is the worst-placed reader of its scope**, which is why the previous
+paragraph is a rule and not advice. An author who has just built one implementation writes
+the clause that implementation satisfies; the second implementation is the one that discovers
+the clause forbids it. `doc:20-ddd-practices` §4.1.8 bound every dispatcher to propagate a
+handler's exception to its caller, which the only existing dispatcher did and an asynchronous
+one cannot. **Before stating a rule over a set, name the member of that set you have not
+built, check the rule against it, and name it in the rule's own text or in the pull-request
+body.** The naming is what makes this reviewable rather than advisory: an obligation
+discharged in the author's head leaves a reviewer unable to tell it from one skipped. §4.1.8's
+closing sentence is the form — it names the asynchronous dispatcher inside the rule, and the
+scope clause it justifies cannot be read without meeting it.
 
 ## 6. Mechanical checks <a id="checks"></a>
 
