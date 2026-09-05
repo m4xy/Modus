@@ -73,6 +73,18 @@ catch "whether or not anyone thought to name it". The hand-run reports green on 
 gate would reject. An agent that runs a gate by hand to save the price of `qualityCheck`, in
 the form the tree taught it, gets the one answer the pin was introduced to prevent.
 
+The wrong interpreter is not invisible, and that is a mitigation rather than a defence.
+Line 98 prints it, unconditionally, before the parse runs:
+
+```
+cmd:      sed -n '98p' tools/bash-compat-lint.sh
+observed: printf 'bash-compat: interpreter %s (bash %s)\n' "${BASH:-unknown}" "${BASH_VERSION:-unknown}"
+```
+
+Nothing fails on that line. It is a figure in the output that a reader must notice, compare
+against `gateShell` and act on — which is exactly the shape
+`doc:00-constitution#mechanical-enforcement` prefers a check to replace.
+
 ## The refused-shape claim is a report, and this bean says so
 
 ```

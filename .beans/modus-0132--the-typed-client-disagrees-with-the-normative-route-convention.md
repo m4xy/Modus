@@ -14,11 +14,15 @@ single normative copy of the non-domain-scoped allowlist. `backoffice/src/api/cl
 disagrees with it in three ways. All three exist today, are decidable today, and are blocked
 by nothing.
 
-Split out of `bean:0146`, which is blocked on `modus-0017` and `modus-0067` and cannot
-start. §5.1 is cited by name from three places outside that slice — `doc:15-repository-layout#adapter-rules`
+Split out of `bean:0146`, which is blocked on `modus-0017` and cannot start. §5.1 is cited
+by name from three places outside that slice — `doc:15-repository-layout#adapter-rules`
 §4.3, `doc:30-code-style` §4 and `doc:00-constitution#domain-scoping` §8 — so the blast
 radius is not slice-local, and a slice whose purpose is to be the narrowest thing that
 reaches a browser is the wrong place to settle it.
+
+The three rows are not settled by one bean either. `bean:0146` serves the session route
+(row 2) and `bean:0018` serves every domain-scoped route, the work list (rows 1 and 3)
+among them. Settling all three here is what keeps the answer in one place instead of two.
 
 ## The three, and which one §9 gates
 
@@ -60,8 +64,8 @@ rule a document specifies but `config/detekt/detekt.yml` does not declare is not
 
 That is what makes this `type: fix` rather than a preference. Both rules are specified to
 **read** §5.1's list rather than carry a copy, so whatever the first controller writes
-becomes the de-facto input to two rules nobody has written yet — and the first controller is
-`bean:0146`'s.
+becomes the de-facto input to two rules nobody has written yet — and the first controller
+to be written is `bean:0146`'s session route.
 
 ## Recommendation, offered as a recommendation
 
@@ -92,5 +96,6 @@ without first pricing the one-line alternative.
 - Writing `ControllersAreDomainScoped` or `DomainScopedRoute`. `doc:00-constitution#domain-scoping`
   §8's gap line names `bean:0018` as the carrier of both, and this bean settles which paths
   they will read, not the rules that read them.
-- Serving any of these routes. `bean:0146` does that and is blocked on this.
+- Serving any of these routes. `bean:0146` serves the session route and is blocked on this;
+  `bean:0018` serves the domain-scoped ones.
 - The per-item work route, which the document lists and no component calls (`bean:0144`).
