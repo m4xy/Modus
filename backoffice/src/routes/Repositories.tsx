@@ -1,7 +1,18 @@
 import { useDomain } from '../app/DomainContext';
 import { useRepositories } from '../api/queries';
 import { PageHeader } from '../components/PageHeader';
-import { Badge, Card, CardBody, EmptyState, SkeletonList, Table, Td, Th, Tooltip } from '../ui';
+import {
+  Badge,
+  Card,
+  CardBody,
+  EmptyState,
+  ErrorState,
+  SkeletonList,
+  Table,
+  Td,
+  Th,
+  Tooltip,
+} from '../ui';
 import type { BadgeTone } from '../ui';
 import { formatRelative } from '../lib/format';
 
@@ -25,7 +36,12 @@ export function Repositories() {
 
       <Card>
         <CardBody flush>
-          {query.isPending ? (
+          {query.isError ? (
+            <ErrorState
+              title="Repositories could not be loaded"
+              description="The repository request failed, so what this domain is connected to is unknown rather than absent. Reload to try again."
+            />
+          ) : query.isPending ? (
             <div style={{ padding: 'var(--space-5)' }}>
               <SkeletonList rows={3} label="Loading repositories" />
             </div>

@@ -1,7 +1,7 @@
 ---
 # modus-0141
 title: Settings confirms a budget save that never leaves the browser
-status: todo
+status: in-progress
 type: fix
 priority: high
 created_at: 2026-09-05T00:00:00Z
@@ -63,3 +63,22 @@ Success criteria:
    (`doc:00-constitution#observed-failing`).
 
 Blocked on nothing to make the controls honest; the persisting half needs `bean:0018`.
+
+## Restated criteria
+
+| # | Restated, binary | Evidence kind planned |
+|---|---|---|
+| 1 | **Save budget** is disabled, carries no `onClick`, and no interaction with the Settings screen produces a success toast or a non-GET request to `/api/` | test-run |
+| 2 | **Display name** and **Environment** are disabled, and still display the domain's real values | test-run |
+| 3 | Both assertions are observed failing against the pre-fix source, with the plant confirmed applied | test-run |
+
+Out of scope: persisting anything. There is no endpoint — `src/api/client.ts` declares
+reads only and the aggregate is `bean:0018`.
+
+## The ruling: disable, not wire
+
+Wiring the control needs an endpoint that does not exist. Inventing one would move the
+untruth one layer down — the browser would report a 2xx from a mock nobody will ship —
+so the honest half of criterion 1 ("or it is disabled and says why") is the one taken.
+Every control on the screen is now read-only, with one sentence on the screen saying
+why and a second beside the button saying why that one in particular.

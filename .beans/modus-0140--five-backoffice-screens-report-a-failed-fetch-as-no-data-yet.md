@@ -1,7 +1,7 @@
 ---
 # modus-0140
 title: Five backoffice screens report a failed fetch as "no data yet"
-status: todo
+status: in-progress
 type: fix
 priority: high
 created_at: 2026-09-05T00:00:00Z
@@ -68,3 +68,28 @@ Success criteria:
    (`doc:00-constitution#observed-failing`).
 
 Blocks `bean:0022` — replacing the mock with the live API is what makes this reachable.
+
+## Restated criteria
+
+| # | Restated, binary | Evidence kind planned |
+|---|---|---|
+| 1 | Each of Work, Repositories, Memories, Skills and the agent console's run history renders a distinct failure state under a non-2xx, and the empty-state sentence is absent from the DOM | test-run |
+| 2 | Under a failed `/work`, no stat tile renders a figure — the three tiles are absent, not zeroed | test-run |
+| 3 | Each assertion in 1 and 2 is observed failing against the pre-fix source, with the plant confirmed applied | test-run |
+
+Out of scope: `bean:0022`'s live API, any change under `core/`, `adapters/` or
+`modules/`, and any control that writes (that is `bean:0141`).
+
+## Approach
+
+- `backoffice/src/ui/ErrorState.tsx` — one shape for "the request failed", `role="alert"`,
+  `data-testid="error-state"`. `EmptyState` keeps its own meaning.
+- Six call sites branch on `query.isError` first: the five named plus `Cost`, which had
+  the branch and now shares the shape.
+- `Work` returns the whole screen as the failure — tiles and filters included, since a
+  tile is a claim and a filter over an unfetched list filters nothing.
+- The agent console's run history gains `isPending` as well as `isError`; the bean's own
+  correction is that it read neither.
+- `backoffice/src/mocks/handlers.ts` gains `?fail=<resource>`. Without it the branch is
+  unreachable from a test: MSW's service worker answers before the network, so
+  Playwright's `page.route` never sees the call.

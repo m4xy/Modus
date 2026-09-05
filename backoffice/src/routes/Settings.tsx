@@ -1,13 +1,29 @@
-import { useState } from 'react';
 import { useDomain } from '../app/DomainContext';
 import { PageHeader } from '../components/PageHeader';
-import { Badge, Button, Card, CardBody, CardHeader, Input, Select, useToast } from '../ui';
+import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../ui';
+
+/**
+ * Every control on this screen is read-only, and that is the fix rather than a
+ * gap in it.
+ *
+ * There is no endpoint to call. `src/api/client.ts` declares reads only, and the
+ * aggregate that would accept a settings change is not built yet (`bean:0018`).
+ * What stood here was worse than an unwired control: **Save budget**'s whole
+ * handler was a call to `notify`, so the operator was told in a success toast
+ * that a spend cap had been set which had never left the browser (`bean:0141`).
+ * An unwired control is visibly unwired; a false confirmation is
+ * indistinguishable from a real one, so nobody goes and checks.
+ *
+ * A disabled control that says why is honest. A success toast for a no-op is
+ * not. Wiring these to an invented endpoint would only move the untruth one
+ * layer down, so they stay disabled until there is a real one to call.
+ */
+const NO_WRITE_API =
+  'Settings cannot be saved yet: this build has no endpoint to write them to, so every control below shows the current configuration and is disabled. Nothing typed here would be kept.';
 
 export function Settings() {
   const { domain, can, capabilities } = useDomain();
-  const { notify } = useToast();
-  const writable = can('settings.write');
-  const [budget, setBudget] = useState(String(domain.monthlyBudgetUsd));
+  const permitted = can('settings.write');
 
   return (
     <>
@@ -16,13 +32,26 @@ export function Settings() {
         title="Settings"
         description="Configuration for this domain. Changes apply to every actor and every run in it."
         actions={
-          writable ? undefined : (
+          permitted ? (
+            <Badge tone="warn">Read only — settings cannot be saved yet</Badge>
+          ) : (
             <Badge tone="warn">Read only — you cannot change settings here</Badge>
           )
         }
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+        <Card>
+          <CardBody>
+            <p
+              data-testid="settings-readonly"
+              style={{ color: 'var(--ink-2)', fontSize: 'var(--text-sm)', maxWidth: '68ch' }}
+            >
+              {NO_WRITE_API}
+            </p>
+          </CardBody>
+        </Card>
+
         <Card>
           <CardHeader
             eyebrow="Identity"
@@ -32,11 +61,11 @@ export function Settings() {
           <CardBody>
             <div style={{ display: 'grid', gap: 'var(--space-4)', maxWidth: '32rem' }}>
               <Input label="Domain id" value={domain.id} readOnly disabled />
-              <Input label="Display name" defaultValue={domain.name} disabled={!writable} />
+              <Input label="Display name" value={domain.name} readOnly disabled />
               <Select
                 label="Environment"
-                defaultValue={domain.environment}
-                disabled={!writable}
+                value={domain.environment}
+                disabled
                 options={[
                   { value: 'production', label: 'Production' },
                   { value: 'staging', label: 'Staging' },
@@ -57,26 +86,26 @@ export function Settings() {
             <div style={{ display: 'grid', gap: 'var(--space-4)', maxWidth: '32rem' }}>
               <Input
                 label="Budget (USD)"
-                inputMode="decimal"
-                value={budget}
-                disabled={!writable}
+                value={String(domain.monthlyBudgetUsd)}
+                readOnly
+                disabled
                 hint="Applies to model spend only. Infrastructure is billed separately."
-                onChange={(event) => setBudget(event.target.value)}
               />
               <div>
-                <Button
-                  variant="primary"
-                  disabled={!writable}
-                  onClick={() =>
-                    notify({
-                      tone: 'success',
-                      title: 'Budget saved',
-                      body: `${domain.name} will refuse new runs above $${budget}.`,
-                    })
-                  }
-                >
+                <Button variant="primary" disabled data-testid="save-budget">
                   Save budget
                 </Button>
+                <p
+                  style={{
+                    marginTop: 'var(--space-2)',
+                    color: 'var(--ink-2)',
+                    fontSize: 'var(--text-sm)',
+                    maxWidth: '48ch',
+                  }}
+                >
+                  Disabled until there is a server to save to. A cap that costs money when it is
+                  wrong is not one to confirm on trust.
+                </p>
               </div>
             </div>
           </CardBody>

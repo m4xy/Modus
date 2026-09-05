@@ -1,28 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
-
-const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
-
-/**
- * Waits for every finite animation to finish before measuring. An element
- * captured mid-fade is composited against whatever is behind it, so contrast is
- * read against a blend that no user ever sees. Infinite animations (the caret,
- * the skeleton shimmer) are skipped — they never settle.
- */
-async function settle(page: Page) {
-  await page.evaluate(async () => {
-    const finite = document
-      .getAnimations()
-      .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity);
-    await Promise.all(finite.map((animation) => animation.finished.catch(() => undefined)));
-  });
-}
-
-async function scan(page: Page) {
-  await settle(page);
-  return new AxeBuilder({ page }).withTags(TAGS).analyze();
-}
+import { scan } from './support/axe';
 
 /**
  * Every navigable surface, the heading that proves the right one rendered, and
