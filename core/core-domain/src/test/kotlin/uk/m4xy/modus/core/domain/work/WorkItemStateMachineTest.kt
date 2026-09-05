@@ -7,6 +7,7 @@ import uk.m4xy.modus.core.domain.work.WorkFixture.ANSWERED
 import uk.m4xy.modus.core.domain.work.WorkFixture.AT
 import uk.m4xy.modus.core.domain.work.WorkFixture.BACKLOG
 import uk.m4xy.modus.core.domain.work.WorkFixture.DOING
+import uk.m4xy.modus.core.domain.work.WorkFixture.DRAFT
 import uk.m4xy.modus.core.domain.work.WorkFixture.EDITORIAL
 import uk.m4xy.modus.core.domain.work.WorkFixture.ENGINEERING
 import uk.m4xy.modus.core.domain.work.WorkFixture.INVESTIGATING
@@ -14,6 +15,7 @@ import uk.m4xy.modus.core.domain.work.WorkFixture.ITEM
 import uk.m4xy.modus.core.domain.work.WorkFixture.LATER
 import uk.m4xy.modus.core.domain.work.WorkFixture.MODUS
 import uk.m4xy.modus.core.domain.work.WorkFixture.NO_CRITERIA
+import uk.m4xy.modus.core.domain.work.WorkFixture.ONE_CRITERION
 import uk.m4xy.modus.core.domain.work.WorkFixture.PRINTED
 import uk.m4xy.modus.core.domain.work.WorkFixture.QUESTION
 import uk.m4xy.modus.core.domain.work.WorkFixture.RESEARCH
@@ -42,13 +44,20 @@ class WorkItemStateMachineTest {
     fun `a work item starts wherever its own domain's process says work begins`() {
         item(process = ENGINEERING).state shouldBe BACKLOG
         item(process = RESEARCH).state shouldBe QUESTION
-        item(process = EDITORIAL).state shouldBe SHIPPED
+        item(process = EDITORIAL).state shouldBe DRAFT
     }
 
     /**
-     * The sharpest form of the rule. `shipped` ends the work in `ENGINEERING` and **begins**
-     * it in `EDITORIAL`, so "is this item finished" is a question only the process can
-     * answer — the same state name, the opposite verdict, decided entirely by the argument.
+     * The sharpest form of the rule: **the same move**, `-> shipped`, ends the work under
+     * `ENGINEERING` and does not under `EDITORIAL`. "Is this item finished" is a question
+     * only the process can answer.
+     *
+     * The editorial half carries an unevidenced criterion on purpose. An implementation
+     * holding its own set of terminal names does two visible things here — raises a
+     * `WorkItemClosed` that did not happen, and refuses a legal move through the evidence
+     * guard — so this fails for its own name rather than incidentally. An earlier version
+     * had `shipped` as `EDITORIAL`'s *initial* state, so nothing ever moved into it, and a
+     * planted hardcoded terminal set passed this test untouched.
      */
     @Test
     fun `one state name is terminal in one process and a legal intermediate in another`() {
@@ -59,11 +68,10 @@ class WorkItemStateMachineTest {
             .shouldBeA<WorkItemClosed>()
             .finalState shouldBe SHIPPED
 
-        val editorial = item(criteria = NO_CRITERIA, process = EDITORIAL)
-        editorial.state shouldBe SHIPPED
-        editorial.transitionTo(SUBEDIT, EDITORIAL, LATER)
+        val editorial = item(criteria = ONE_CRITERION, process = EDITORIAL)
+        editorial.transitionTo(SHIPPED, EDITORIAL, LATER)
 
-        editorial.state shouldBe SUBEDIT
+        editorial.state shouldBe SHIPPED
         editorial.pendingEvents.none { it is WorkItemClosed } shouldBe true
     }
 
@@ -170,6 +178,7 @@ class WorkItemStateMachineTest {
         val abandoned = item(criteria = NO_CRITERIA).transitionTo(ABANDONED, ENGINEERING, LATER)
         val printed =
             item(criteria = NO_CRITERIA, process = EDITORIAL)
+                .transitionTo(SHIPPED, EDITORIAL, AT)
                 .transitionTo(SUBEDIT, EDITORIAL, AT)
                 .transitionTo(PRINTED, EDITORIAL, LATER)
 

@@ -84,22 +84,31 @@ object WorkFixture {
                 ),
         )
 
-    // ---- EDITORIAL: starts where ENGINEERING ends --------------------------------------
+    // ---- EDITORIAL: passes through where ENGINEERING ends -------------------------------
+    val DRAFT: WorkItemState = WorkItemState("draft")
     val SUBEDIT: WorkItemState = WorkItemState("subedit")
     val PRINTED: WorkItemState = WorkItemState("printed")
 
     /**
-     * shipped -> subedit -> printed. `shipped` is this process's **initial** state and
-     * [ENGINEERING]'s terminal one, which is what makes "is this item finished" a question
-     * only the process can answer.
+     * draft -> shipped -> subedit -> printed.
+     *
+     * `shipped` is a **target** here and a terminal state in [ENGINEERING], which is the
+     * shape that discriminates. An earlier version made `shipped` this process's initial
+     * state, so nothing ever moved *into* it — and a planted implementation holding its own
+     * set of terminal names (`shipped`, `abandoned`) passed the test that claimed to catch
+     * exactly that, because the only move it saw was `shipped -> subedit`. Moving into
+     * `shipped` under a process that does not end there is what makes such an implementation
+     * both raise a close that did not happen and refuse a move that is legal
+     * (`doc:35-testing#load-bearing-evidence`).
      */
     val EDITORIAL: ProcessDefinition =
         ProcessDefinition.of(
-            states = setOf(name(SHIPPED), name(SUBEDIT), name(PRINTED)),
-            initial = name(SHIPPED),
+            states = setOf(name(DRAFT), name(SHIPPED), name(SUBEDIT), name(PRINTED)),
+            initial = name(DRAFT),
             terminal = setOf(name(PRINTED)),
             transitions =
                 setOf(
+                    StateTransition(name(DRAFT), name(SHIPPED)),
                     StateTransition(name(SHIPPED), name(SUBEDIT)),
                     StateTransition(name(SUBEDIT), name(PRINTED)),
                 ),

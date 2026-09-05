@@ -110,4 +110,159 @@ need `bean:0066` merged (`bean:0153`); persistence (`bean:0017`); any REST surfa
 
 ## Evidence
 
-To be recorded as each criterion is satisfied.
+`./gradlew qualityCheck` green. `:core-domain` goes 130 -> 173 tests; the coverage row moves
+`0 0 1543 130` -> `0 0 2505 216`, so nothing new is uncovered in either half.
+
+### Criterion 3 — the state machine is data, not code
+
+Three fixture processes (`WorkFixture`). `ENGINEERING` and `RESEARCH` share no state name.
+`EDITORIAL` moves **into** `shipped`, which `ENGINEERING` ends at.
+
+`grep -rn --include='*.kt' 'enum class'` over
+`core/core-domain/src/main/kotlin/uk/m4xy/modus/core/domain/work` matches nothing. Every
+string literal in that tree is a regex, an exception message, or KDoc prose; none reaches a
+state or evidence-kind decision.
+
+**The first version of this criterion's evidence was wrong, and that is recorded rather than
+deleted.** The test named `one state name is terminal in one process and a legal intermediate
+in another` did **not** discriminate a hardcoded terminal set. `EDITORIAL` had `shipped` as
+its *initial* state, so nothing ever moved into it, and the only move the test made under
+that process was `shipped -> subedit` — which a planted
+`target.value == "shipped" || target.value == "abandoned"` agrees with. The plant passed:
+
+```
+planted:  val closing = target.value == "shipped" || target.value == "abandoned"
+observed: BUILD SUCCESSFUL in 4s          <-- the test that names this property PASSED
+```
+
+`EDITORIAL` is now `draft -> shipped -> subedit -> printed`, so the same move `-> shipped`
+is a close under one process and an ordinary move under the other, and the editorial half
+carries an unevidenced criterion. The same plant now dies in four tests:
+
+```
+planted:  val closing = target.value == "shipped" || target.value == "abandoned"
+observed: WorkItemStateMachineTest > one state name is terminal in one process and a legal
+            intermediate in another() FAILED
+          uk.m4xy.modus.core.domain.work.WorkItemNotClosableException: work item
+            'modus-0152' cannot close: no evidence recorded for c1
+            at ...WorkItem.transitionTo-82iMEy8(WorkItem.kt:173)
+          whole suite: 173 tests completed, 4 failed — also
+            `every terminal state a process declares closes the work`
+            (IllegalStateException: expected WorkItemClosed but was WorkItemTransitioned),
+            `a move to a non-terminal state raises no close`,
+            `accepts evidence in a state another process would call closed`
+reverted: yes
+```
+
+### Criteria 2, 4, 5, 6, 7, 10, 12 — targeted mutation
+
+Thirteen planted, thirteen killed, each by the test whose name describes the behaviour, each
+reverted. The assertion each produced, verbatim:
+
+| planted | test that caught it | observed |
+|---|---|---|
+| `drainEvents` drops `events.clear()` | `drainEvents leaves the root carrying none` | `AssertionFailedError: Unexpected elements from index 1`; `expected:<[]> but was:<[WorkItemCreated(...), WorkItemTransitioned(...)]>` |
+| `drainEvents` returns the live list, still clears | `drainEvents hands over everything the root had raised, oldest first` | `AssertionFailedError: Missing elements from index 0`; `expected:<[WorkItemCreated(...), WorkItemTransitioned(...)]> but was:<[]>` |
+| `drainEvents` returns the live list, no clear | `a mutation of the drained list puts nothing back into the root` | `AssertionFailedError: Element differ at index: [0, 1]`; `expected:<["WorkItemTransitioned", "WorkItemClosed"]> but was:<["WorkItemCreated", "WorkItemTransitioned", "WorkItemCreated", "WorkItemTransitioned", "WorkItemClosed"]>` |
+| `create` hardcodes the initial state | `a work item starts wherever its own domain's process says work begins` | `expected:<WorkItemState(value=question)> but was:<WorkItemState(value=backlog)>` |
+| terminal states hardcoded | `one state name is terminal in one process and a legal intermediate in another` | `WorkItemNotClosableException: work item 'modus-0152' cannot close: no evidence recorded for c1` |
+| transition guard dropped | `refuses a move this domain's process does not declare` | `Expected exception uk.m4xy.modus.core.domain.work.WorkItemTransitionNotPermittedException but no exception was thrown.` |
+| close guard dropped | `refuses a close when no success criterion carries evidence` | `Expected exception uk.m4xy.modus.core.domain.work.WorkItemNotClosableException but no exception was thrown.` |
+| guard counts records, not criteria | `refuses a close when three records all evidence one criterion` | `Expected exception uk.m4xy.modus.core.domain.work.WorkItemNotClosableException but no exception was thrown.` |
+| state written before `from` is read | `permits exactly the moves this domain's process declares` | `expected:<WorkItemState(value=backlog)> but was:<WorkItemState(value=doing)>` |
+| unknown-criterion check dropped | `refuses evidence for a criterion this work item does not have` | `Expected exception uk.m4xy.modus.core.domain.work.UnknownSuccessCriterionException but no exception was thrown.` |
+| closed-item check dropped | `refuses evidence for a work item that has already closed` | `Expected exception uk.m4xy.modus.core.domain.work.WorkItemAlreadyClosedException but no exception was thrown.` |
+| `evidenceRecords` hands out the backing list | `a caller cannot evidence a criterion through the evidence getter` | `AssertionFailedError: Unexpected elements from index 2`; `expected:<[SuccessCriterionId(value=c1), SuccessCriterionId(value=c2)]> but was:<[..., SuccessCriterionId(value=c3)]>` |
+| `WorkItemState` accepts upper case | `WorkItemState and StateName reach the same verdict on every value in the corpus` | `AssertionFailedError: Unexpected elements from index 1`; `expected:<[]> but was:<["Todo", "TODO"]>` |
+
+The negative half sits beside each refusal, per `doc:00-constitution#observed-failing`:
+`permits a close when every success criterion carries evidence`, `an item with no success
+criteria closes with no evidence`, `a move to a non-terminal state needs no evidence`,
+`accepts evidence for a criterion this work item has`, `accepts evidence in a state another
+process would call closed`, `permits exactly the moves this domain's process declares`,
+`accepts success criteria with distinct ids`. A guard that fired on every input fails all
+seven.
+
+### Criterion 8 — `rule:archunit/publishedLanguageIsLeaf`
+
+Planted on the real event type, not on a probe class.
+
+```
+planted:  WorkItemCreated gains `val probe: ActorId get() = ActorId("agent")`
+observed: ArchitectureRulesTest > publishedLanguageIsLeaf FAILED
+          Rule '... should depend on nothing beyond the Kotlin stdlib, java.time, their own
+            context's published language and the shared kernel ...' was violated (1 times):
+          Method <uk.m4xy.modus.core.domain.work.event.WorkItemCreated.getProbe-TPKKjuw()>
+            calls method <uk.m4xy.modus.core.domain.identity.published.ActorId.constructor-impl(
+            java.lang.String)> in (WorkEvents.kt:44)
+reverted: yes
+```
+
+This is also the observation behind `bean:0154`: the event `doc:20-ddd-practices` §4.1
+prints as this context's worked example cannot be built.
+
+### Criterion 9 — `rule:archunit/portsAreInterfaces`
+
+`work.port` had to be added to `PORT_PACKAGES` in `ArchitectureRulesTest`, and the guard on
+the guard is what said so, unprompted, on the first run:
+
+```
+observed: ArchitectureRulesTest > everyPortPackageIsSeenByPortsAreInterfaces FAILED
+          (ArchitectureRulesTest.kt:381)
+```
+
+That is the rule's own KDoc working as written: *"a new context's port package is a
+deliberate edit here"*.
+
+### Criterion 11 — the 100% aggregate branch floor, shown non-vacuous over the new package
+
+```
+planted:  WorkItem gains `fun probe(): String = if (title.value.isEmpty()) "empty" else "present"`
+observed: Rule violated for package uk.m4xy.modus.core.domain.work.aggregate:
+            branches covered ratio is 0.8, but expected minimum is 1.0
+          Rule violated for bundle core-domain: instructions missed count is 13, but expected maximum is 0
+          Rule violated for bundle core-domain: branches missed count is 4, but expected maximum is 0
+reverted: yes
+```
+
+`coverageBaselineWrite` refused the first two runs, both correctly: 60 then 1 missed
+instruction, from data-class accessors no test read individually and from the synthetic
+`create$default` bridge that every call site bypassed by passing both optional arguments.
+Both are now covered — by tests that read those accessors, and by one that takes the
+defaults. The last missed branch was `filterValues { it.size > 1 }` inside the duplicate-id
+message, reachable only when *some* id is distinct, which no fixture supplied; `a
+duplicate-id refusal names only the ids that repeat` supplies it.
+
+### Criterion 11, second half — the baseline's regression-provenance block
+
+`coverageBaselineWrite` erased all eleven comment lines again, on a write in which **no
+figure regressed** (`0 0 1543 130` -> `0 0 2505 216`, both counts upward). Restored by hand
+from `git show origin/main:config/coverage/baseline.tsv`, with a line recording this
+instance. Sixth occurrence, and the second on a non-regressing write; `bean:0033` carries
+the fix.
+
+### Criterion 14 — the marker
+
+`git diff` shows `WorkContext.kt` deleted and `BoundedContexts` naming `work` as a literal
+beside `identity` and `domainmgmt`. `BoundedContextsTest` still asserts six contexts and
+passes unchanged.
+
+### On filtered runs
+
+Every figure above names its selector. `173 tests completed` is `./gradlew :core-domain:test`
+unfiltered; the single-assertion transcripts are `--tests "*<Class>.<test name>*"` and are
+labelled as such rather than reported as suite runs.
+
+## Not met, stated plainly
+
+- **`RaisesDomainEvents` is not implemented.** `WorkItem.drainEvents` has the contract's
+  exact signature and the three-line body the other roots use, and both halves are proved
+  independently above — but the interface does not exist on `main`, and this branch is cut
+  from `main`. No `DrainEventsTest` case is added, for the same reason. `bean:0153` carries
+  both, `blocked_by: [modus-0066]`.
+- **Nothing forces a write through `WriteThenDispatch`,** and `pendingEvents` stays public
+  here as it is on the other three roots. `bean:0066`'s review established that
+  `RaisesDomainEvents` does not make a drain correct; that is why the drain has three
+  independent plants above rather than a claim of conformance.
+- **`Epic` is thin** — identity, domain and title, with no state and no event. The reason is
+  in its KDoc and in `bean:0013`: it is a deferral with a named question, not an oversight.
