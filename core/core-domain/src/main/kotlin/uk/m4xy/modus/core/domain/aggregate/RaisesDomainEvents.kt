@@ -6,10 +6,11 @@ import uk.m4xy.modus.core.domain.DomainEvent
  * An aggregate root that accumulates [DomainEvent]s and can hand them over exactly once.
  *
  * **The contract every aggregate root in Modus adopts**, and the whole of what a new root
- * has to do to participate in dispatch: implement [drainEvents]. `WorkItem`, `Memory`,
- * `AgentRun` and `SpendLedger` each inherit the ordering, the copy-out and the
- * once-only-delivery guarantee from the one implementation of that pattern in
- * `core-application` rather than restating any of it.
+ * has to do to participate in dispatch: implement [drainEvents]. `Domain`, `Actor` and
+ * `PermissionGrant` do today; `WorkItem`, `Memory`, `AgentRun` and `SpendLedger` will as
+ * their contexts land (`bean:0013` to `bean:0016`). None of them restates the ordering or
+ * the once-only guarantee — those live in `core-application`'s `WriteThenDispatch`, which
+ * takes this type and can therefore reach nothing but the drain.
  *
  * Why a type and not a convention: without it, the caller that writes an aggregate and
  * then hands its events over has to be given a `(T) -> List<DomainEvent>` at every call
