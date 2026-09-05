@@ -53,4 +53,5 @@ here:
 | 7 | An unreadable grant store throws rather than reading as an empty set; the KDoc says why, and the test asserts the throw and not the denial | |
 | 8 | Round-tripping a `PermissionGrant` preserves revocation and preserves **two or more** capabilities — `doc:35-testing#fixture-variation`, and the exact uniformity that hid `bean:0009` thread 1 | |
 | 9 | The reconstitution question above is answered by a recorded decision, not by whichever shape compiled first | |
-| 10 | `./gradlew qualityCheck` green, baseline row written by `coverageBaselineWrite` | |
+| 10 | `doc:40-durability` §6.4's remaining `Enforcement gap:` — "the caller re-reads, re-applies, retries. Retries are bounded (3)" — is closed or restated. `bean:0147` implemented the refusal and `DocumentStore` returns the current version with it; nothing yet re-reads, re-applies and counts, and this bean is the first caller that needs to. The bound of 3 is the document's figure and a constant that must match it (`bean:0090`) |
+| 11 | `./gradlew qualityCheck` green, baseline row written by `coverageBaselineWrite` | |

@@ -37,6 +37,28 @@ paired with the healthy case it must not break
 | 9 | §2.2.8: segments roll at a size threshold and are immutable once rolled | |
 | 10 | `./gradlew qualityCheck` green, baseline row written by `coverageBaselineWrite` | |
 
+## Two seams handed to this bean by `bean:0147`
+
+**Criterion 1's short-write loop is this bean's to evidence, not `bean:0147`'s.**
+`doc:40-durability` §4.2 step 3 — "LOOPING until every byte is written" — governs the append
+path, which is here. `bean:0147` contains a loop of its own and correctly does not claim it:
+§4 step 3 asks that class only to write all the bytes, which its 512 KiB round-trip
+evidences, and removing its loop leaves its whole suite green.
+
+Provoking a short write needs a seam, and `bean:0147` recorded two rather than asserting
+none existed:
+
+| seam | cost | also buys |
+|---|---|---|
+| the loop extracted into an internal helper taking a `java.nio.channels.WritableByteChannel`, driven by a short-writing fake | one production extraction; the test is a **unit** test — no filesystem | nothing else |
+| a delegating `java.nio.file.spi.FileSystemProvider` whose `newFileChannel` returns a short-writing `FileChannel` | no production change at all | `bean:0147`'s `fsync` gap, below |
+
+**And the `fsync` gap `bean:0147` could not close.** Deleting either `channel.force(true)`
+from `AtomicFileWriter` leaves that bean's thirty tests green, so nothing establishes that
+either force is issued; `bean:0150` owns closing it through the `SIGKILL` test. The second
+seam above would let a `FileChannel` record its own `force` calls, which closes it earlier
+and more cheaply. If this bean builds that seam, say so and re-point the gap.
+
 ## The trap this bean is most likely to fall into
 
 The parent's brief names it: a corruption detector whose fixtures share one structural
