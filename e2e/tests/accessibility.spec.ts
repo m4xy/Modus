@@ -64,3 +64,25 @@ test('no accessibility violations mid-stream in the console', async ({ page }) =
   const results = await scan(page);
   expect(results.violations).toEqual([]);
 });
+
+/**
+ * Settings in dark, specifically for the inert-but-focusable controls.
+ *
+ * A hard-`disabled` control is exempt from WCAG 1.4.3, so the pale primary
+ * "Save budget" was never measured by any of the scans above — zero violations
+ * on this route was a weaker signal than it read as. Now that the control is
+ * `aria-disabled` and stays in the tab order, axe measures it, and this is the
+ * theme where a muted-token treatment is most likely to fall short.
+ */
+test('no accessibility violations on the read-only settings controls in dark', async ({ page }) => {
+  await page.goto('/domains/modus/settings');
+  await page.getByTestId('theme-toggle').click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+  const save = page.getByRole('button', { name: 'Save budget' });
+  await expect(save).toHaveAttribute('aria-disabled', 'true');
+  await save.focus();
+
+  const results = await scan(page);
+  expect(results.violations).toEqual([]);
+});

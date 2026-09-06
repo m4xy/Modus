@@ -290,6 +290,14 @@ test('runs are refused where the actor cannot start them', async ({ page }) => {
   await run.click({ force: true });
   await expect(page.getByTestId('agent-transcript').getByText('Nothing running')).toBeVisible();
   await expect(page.getByTestId('agent-cost')).toHaveText('$0.0000');
+  /*
+    This absence assertion is anchored by the two positive ones above it, which
+    is what makes it real — but note what it is NOT protected by: at default
+    pacing the canned session runs 17.3s against a 7s `expect` timeout, so a
+    `Streaming` badge that did appear would still be on screen when this ran.
+    That margin is a property of the fixture, not of the test, and nothing
+    records it or would notice it shrinking (`bean:0190`).
+  */
   await expect(page.getByText('Streaming')).toHaveCount(0);
 });
 

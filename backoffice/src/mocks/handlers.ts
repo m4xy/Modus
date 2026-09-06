@@ -21,10 +21,29 @@ import {
  * It lives here because there is no other way to reach the error branches from a
  * test. MSW's service worker answers before the request reaches the network, so
  * Playwright's `page.route` never sees these calls and cannot fulfil them with a
- * non-2xx; and the switch costs nothing in production, because `VITE_MOCK_API=false`
- * drops this whole module out of the bundle (`src/main.tsx`). Five screens
- * rendered a rejected query as an empty collection precisely because nothing
- * could make one reject (`bean:0140`).
+ * non-2xx. Five screens rendered a rejected query as an empty collection
+ * precisely because nothing could make one reject (`bean:0140`).
+ *
+ * **This module ships.** The first version of this comment said the opposite —
+ * that `VITE_MOCK_API=false` drops it from the bundle — which was a claim about
+ * the build that had never been checked against the build, committed to the one
+ * change whose whole subject is mechanisms reporting success without checking.
+ * Built both ways, the chunk is emitted either way:
+ *
+ * ```
+ * VITE_MOCK_API=false npx vite build  ->  browser-C2ngF1C2.js  434367 bytes
+ * npx vite build                      ->  browser-Ck4cxOVV.js  434345 bytes
+ * ```
+ *
+ * and the `VITE_MOCK_API=false` output still contains `URLSearchParams`, `fail`
+ * and four `status:500` sites. The cause is bracket access:
+ * `import.meta.env['VITE_MOCK_API']` in `src/main.tsx` compiles to a runtime
+ * comparison rather than folding to a constant, so Rollup cannot eliminate the
+ * dynamic `import()`. Nothing in this repository sets the flag to `false` in any
+ * case — no `.env` file, no deploy step, no CI variable — so under every build
+ * actually run here, MSW installs and `?fail=all` is live on the shipped bundle.
+ * `bean:0146` owns the `VITE_MOCK_API=false` path; `bean:0191` owns making the
+ * flag statically foldable so this module can actually be dropped.
  *
  * Handlers run in the page rather than in the worker, so `window.location` is
  * the location of the document that issued the request.

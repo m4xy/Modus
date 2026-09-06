@@ -21,10 +21,21 @@ test('switching domain re-scopes the whole app', async ({ page }) => {
 test('navigation reflects the permissions of the domain you are in', async ({ page }) => {
   await page.goto('/domains/atlas-ledger/work');
 
-  // No cost.read grant here, and Cost is a 'hide' section.
-  await expect(page.getByTestId('nav-cost')).toHaveCount(0);
+  /*
+    The positive assertion comes FIRST, and that ordering is the test.
+
+    Run straight after `goto`, `toHaveCount(0)` resolved in 12ms — before the
+    shell had rendered any nav at all — so it passed with permission-based
+    hiding deleted outright (`if (false) return null;` over the `whenDenied`
+    branch in AppShell.tsx: 5/5 green). A test named for permissions could not
+    fail when permissions stopped being enforced. Anchoring on a rail item this
+    domain DOES grant proves the rail rendered before anything asserts that a
+    different item is absent from it (`bean:0190`).
+  */
   // Settings is 'hide' too, but this domain does hold settings.read.
   await expect(page.getByTestId('nav-settings')).toBeVisible();
+  // No cost.read grant here, and Cost is a 'hide' section.
+  await expect(page.getByTestId('nav-cost')).toHaveCount(0);
 
   // Typing the URL directly hits the same wall the navigation does.
   await page.goto('/domains/atlas-ledger/cost');
