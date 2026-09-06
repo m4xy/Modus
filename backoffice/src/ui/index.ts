@@ -5,6 +5,7 @@ export type { ButtonProps, ButtonSize, ButtonVariant } from './Button';
 export { Card, CardBody, CardFooter, CardHeader } from './Card';
 export { Dialog } from './Dialog';
 export { EmptyState } from './EmptyState';
+export { ErrorState } from './ErrorState';
 export { Input, Textarea } from './Input';
 export { Select } from './Select';
 export type { SelectOption } from './Select';

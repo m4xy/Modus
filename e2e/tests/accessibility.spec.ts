@@ -1,28 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
-
-const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
-
-/**
- * Waits for every finite animation to finish before measuring. An element
- * captured mid-fade is composited against whatever is behind it, so contrast is
- * read against a blend that no user ever sees. Infinite animations (the caret,
- * the skeleton shimmer) are skipped — they never settle.
- */
-async function settle(page: Page) {
-  await page.evaluate(async () => {
-    const finite = document
-      .getAnimations()
-      .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity);
-    await Promise.all(finite.map((animation) => animation.finished.catch(() => undefined)));
-  });
-}
-
-async function scan(page: Page) {
-  await settle(page);
-  return new AxeBuilder({ page }).withTags(TAGS).analyze();
-}
+import { scan } from './support/axe';
 
 /**
  * Every navigable surface, the heading that proves the right one rendered, and
@@ -83,6 +60,28 @@ test('no accessibility violations mid-stream in the console', async ({ page }) =
   await expect(
     page.getByTestId('agent-transcript').getByText(/Reading the transport seam/),
   ).toBeVisible();
+
+  const results = await scan(page);
+  expect(results.violations).toEqual([]);
+});
+
+/**
+ * Settings in dark, specifically for the inert-but-focusable controls.
+ *
+ * A hard-`disabled` control is exempt from WCAG 1.4.3, so the pale primary
+ * "Save budget" was never measured by any of the scans above — zero violations
+ * on this route was a weaker signal than it read as. Now that the control is
+ * `aria-disabled` and stays in the tab order, axe measures it, and this is the
+ * theme where a muted-token treatment is most likely to fall short.
+ */
+test('no accessibility violations on the read-only settings controls in dark', async ({ page }) => {
+  await page.goto('/domains/modus/settings');
+  await page.getByTestId('theme-toggle').click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+  const save = page.getByRole('button', { name: 'Save budget' });
+  await expect(save).toHaveAttribute('aria-disabled', 'true');
+  await save.focus();
 
   const results = await scan(page);
   expect(results.violations).toEqual([]);

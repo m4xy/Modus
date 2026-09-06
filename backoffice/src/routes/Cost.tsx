@@ -2,7 +2,17 @@ import { useDomain } from '../app/DomainContext';
 import { useCostSummary } from '../api/queries';
 import { PageHeader } from '../components/PageHeader';
 import { DailySpendChart, ModelSplit, StageBars } from '../components/charts/Charts';
-import { Card, CardBody, CardHeader, EmptyState, SkeletonList, Table, Td, Th } from '../ui';
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  SkeletonList,
+  Table,
+  Td,
+  Th,
+} from '../ui';
 import { formatCount, formatUsd } from '../lib/format';
 import styles from './Cost.module.css';
 
@@ -31,9 +41,9 @@ export function Cost() {
           title="Cost"
           description="Spend for this domain."
         />
-        <EmptyState
-          title="Cost data is unavailable"
-          description="The cost summary request failed. Reload to try again."
+        <ErrorState
+          title="Cost data could not be loaded"
+          description="The cost summary request failed, so this domain's spend is unknown rather than zero. Reload to try again."
         />
       </>
     );

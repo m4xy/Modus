@@ -99,3 +99,35 @@
   background: var(--danger);
   color: var(--surface);
 }
+
+/* ---- Inert but focusable ---- */
+
+/*
+  `aria-disabled` is the form that stays in the tab order, used where the
+  control has to explain itself rather than vanish from the keyboard — the nav
+  rail's locked sections already work this way, and Settings' Save budget now
+  does too.
+
+  It must NOT reuse `opacity: 0.5`. WCAG 1.4.3 exempts an inactive component
+  from the contrast requirement, and a hard-`disabled` button is inactive; an
+  `aria-disabled` one is still exposed and focusable, so it is measured. Zero
+  axe violations over a hard-disabled control is therefore a weaker signal than
+  it looks — the pale primary was never measured at all.
+
+  These rules sit last in the file deliberately: `.primary:hover:not(:disabled)`
+  and its siblings match at equal specificity, so source order is what decides.
+*/
+.button[aria-disabled='true'] {
+  cursor: not-allowed;
+  background: var(--surface-sunken);
+  border-color: var(--line-strong);
+  color: var(--ink-2);
+  box-shadow: none;
+}
+
+.button[aria-disabled='true']:hover,
+.button[aria-disabled='true']:active {
+  background: var(--surface-sunken);
+  color: var(--ink-2);
+  transform: none;
+}

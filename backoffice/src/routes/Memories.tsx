@@ -1,7 +1,7 @@
 import { useDomain } from '../app/DomainContext';
 import { useMemories } from '../api/queries';
 import { PageHeader } from '../components/PageHeader';
-import { Badge, Card, CardBody, CardHeader, EmptyState, SkeletonList } from '../ui';
+import { Badge, Card, CardBody, CardHeader, EmptyState, ErrorState, SkeletonList } from '../ui';
 import { formatRelative, formatTokens } from '../lib/format';
 
 export function Memories() {
@@ -23,7 +23,16 @@ export function Memories() {
         }
       />
 
-      {query.isPending ? (
+      {query.isError ? (
+        <Card>
+          <CardBody>
+            <ErrorState
+              title="Memories could not be loaded"
+              description="The memory request failed, so what this domain carries into a run is unknown rather than empty. Reload to try again."
+            />
+          </CardBody>
+        </Card>
+      ) : query.isPending ? (
         <SkeletonList rows={4} label="Loading memories" />
       ) : memories.length === 0 ? (
         <Card>

@@ -10,6 +10,7 @@ import {
   CardBody,
   Dialog,
   EmptyState,
+  ErrorState,
   Input,
   Select,
   SkeletonList,
@@ -60,16 +61,41 @@ export function Work() {
     });
   }, [query.data, search, status]);
 
-  const openCount = (query.data ?? []).filter((item) => item.status !== 'done').length;
-  const spend = (query.data ?? []).reduce((total, item) => total + item.spendUsd, 0);
+  const header = (
+    <PageHeader
+      eyebrow={`${domain.id} · work`}
+      title="Work"
+      description="Every change in this domain traces to a numbered bean. These are the markdown files an agent reads before it starts, rendered for people."
+    />
+  );
+
+  /*
+    A failed read takes the whole screen, tiles and filters included. Rendering
+    `0` and `$0.00` above an error would report two measurements nobody took,
+    and a status filter over a list that was never fetched filters nothing
+    (`bean:0140`).
+  */
+  if (query.isError) {
+    return (
+      <>
+        {header}
+        <ErrorState
+          title="Work items could not be loaded"
+          description="The request for this domain's backlog failed. Nothing here says the backlog is empty — it says it is unknown. Reload to try again."
+        />
+      </>
+    );
+  }
+
+  /* `—` until the numbers are measured: a tile is a claim about the domain. */
+  const loaded = query.data;
+  const openCount = loaded ? loaded.filter((item) => item.status !== 'done').length : '—';
+  const spend = loaded ? formatUsd(loaded.reduce((total, item) => total + item.spendUsd, 0)) : '—';
+  const inReview = loaded ? loaded.filter((item) => item.status === 'in-review').length : '—';
 
   return (
     <>
-      <PageHeader
-        eyebrow={`${domain.id} · work`}
-        title="Work"
-        description="Every change in this domain traces to a numbered bean. These are the markdown files an agent reads before it starts, rendered for people."
-      />
+      {header}
 
       <div className={styles.summaryRow}>
         <div className={styles.stat}>
@@ -78,13 +104,11 @@ export function Work() {
         </div>
         <div className={styles.stat}>
           <span className={styles.statLabel}>Spend attributed</span>
-          <span className={styles.statValue}>{formatUsd(spend)}</span>
+          <span className={styles.statValue}>{spend}</span>
         </div>
         <div className={styles.stat}>
           <span className={styles.statLabel}>In review</span>
-          <span className={styles.statValue}>
-            {(query.data ?? []).filter((item) => item.status === 'in-review').length}
-          </span>
+          <span className={styles.statValue}>{inReview}</span>
         </div>
       </div>
 

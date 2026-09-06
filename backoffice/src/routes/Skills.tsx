@@ -1,7 +1,7 @@
 import { useDomain } from '../app/DomainContext';
 import { useSkills } from '../api/queries';
 import { PageHeader } from '../components/PageHeader';
-import { Badge, Card, CardBody, EmptyState, SkeletonList, Table, Td, Th } from '../ui';
+import { Badge, Card, CardBody, EmptyState, ErrorState, SkeletonList, Table, Td, Th } from '../ui';
 import { formatCount } from '../lib/format';
 
 export function Skills() {
@@ -18,7 +18,12 @@ export function Skills() {
 
       <Card>
         <CardBody flush>
-          {query.isPending ? (
+          {query.isError ? (
+            <ErrorState
+              title="Skills could not be loaded"
+              description="The skill request failed, so what is installed in this domain is unknown rather than nothing. Reload to try again."
+            />
+          ) : query.isPending ? (
             <div style={{ padding: 'var(--space-5)' }}>
               <SkeletonList rows={3} label="Loading skills" />
             </div>

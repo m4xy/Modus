@@ -16,7 +16,9 @@ import {
   CardBody,
   CardHeader,
   EmptyState,
+  ErrorState,
   Select,
+  SkeletonList,
   Table,
   Td,
   Textarea,
@@ -300,7 +302,16 @@ export function AgentConsole() {
             description="Every run in this domain, with what it cost."
           />
           <CardBody flush>
-            {(runs.data ?? []).length === 0 ? (
+            {runs.isError ? (
+              <ErrorState
+                title="Run history could not be loaded"
+                description="The request for this domain's runs failed, so this is not a report that no runs happened. Reload to try again."
+              />
+            ) : runs.isPending ? (
+              <div style={{ padding: 'var(--space-5)' }}>
+                <SkeletonList rows={3} label="Loading run history" />
+              </div>
+            ) : (runs.data ?? []).length === 0 ? (
               <EmptyState
                 title="No runs recorded"
                 description="Once a session finishes, it lands here with its duration, model and spend."
